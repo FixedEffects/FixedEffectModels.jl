@@ -12,8 +12,8 @@ function partial(df::DataFrame, demeans::Vector{Symbol},  factors::Vector{Vector
 	factorlist = construct_factors(subdf, factors)
 	a = df
 	for x in demeans
+		a[x] = NA
 		a[condition, x] = demean(factorlist, subdf[x])
-		a[!condition, x] = NA
 	end
 	return(a)
 end
