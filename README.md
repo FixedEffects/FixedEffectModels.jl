@@ -41,8 +41,8 @@ K = 10000
 df = DataFrame(
   v1 =  rand(1:N, N),
   v2 =  rand(1:K, N),
-  v3 =  randn(N), # numeric e.g. 23.5749
-  v4 =  randn(N) # numeric e.g. 23.5749
+  v3 =  randn(N), 
+  v4 =  randn(N) 
 )
 @time FixedEffects.demean(df, [:v3,:v4], Vector{Symbol}[[:v1]])
 # elapsed time: 0.666773452 seconds (272412128 bytes allocated, 4.19% gc time)
@@ -60,8 +60,8 @@ K = N/100
 df = data_frame(
   v1 =  sample(N, N, replace = TRUE),
   v2 =  sample(K, N, replace = TRUE),
-  v3 =  runif(N), # numeric e.g. 23.5749
-  v4 =  runif(N) # numeric e.g. 23.5749
+  v3 =  runif(N), 
+  v4 =  runif(N) 
 )
 system.time(felm(v3+v4~1|v1, df))
 #  user  system elapsed 
