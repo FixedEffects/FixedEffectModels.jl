@@ -39,6 +39,11 @@ function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
 	    idx = g.idx
 	    starts = g.starts
 	    ends = g.ends
+
+	    # construct size
+	    size = ends - starts + 1
+
+	    # construct ref
 	    refs = Array(Uint32, length(idx))
 	    j = 1
 	    for i = 1:length(starts)
@@ -47,8 +52,8 @@ function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
 	            j += 1
 	        end
 	    end
-	    l = ends - starts + 1
-	    push!(factors, Factor(l, refs))
+
+	    push!(factors, Factor(size, refs))
     end
     return(factors)
 end
@@ -56,28 +61,31 @@ end
 
 function demean_vector(factors::Vector{Factor}, x::DataVector)
 	delta = 1.0
+	ans = copy(x)
 	while (delta > 1e-6)
-		oldx = copy(x)
+		oldans = copy(ans)
 	    for factor in factors
 	        l = factor.size
 	        refs = factor.refs
+	        # construct demeaned x by group
 	        mean = zeros(Float64, length(l))
 	    	for i = 1:length(x)
-	    		mean[refs[i]] += x[i]
+	    		mean[refs[i]] += ans[i]
 	        end
 	    	for i = 1:length(l)
 	    		mean[i] = mean[i]/l[i]
 	        end
 	    	for i = 1:length(x)
-	    		x[i] = x[i] - mean[refs[i]]
+	    		ans[i] += - mean[refs[i]]
 	        end
 	    end
-	    for i = 1:length(x)
-	        delta += (x[i]-oldx[i])^2
+	    # check whether close from previous matrix
+	    for i = 1:length(ans)
+	        delta += (ans[i]-oldans[i])^2
 	    end
-	    delta = sqrt(delta)/length(x)
+	    delta = sqrt(delta)/length(ans)
 	end
-	return(x)
+	return(ans)
 end
 
 
