@@ -11,11 +11,10 @@ df = DataFrame(
   v4 =  randn(N) # numeric e.g. 23.5749
 )
 @time FixedEffects.demean(df, [:v3,:v4], Vector{Symbol}[[:v1]])
-#elapsed time:  0.556775771 seconds (240368992 bytes allocated, 6.04% gc time)
-1000000x6 DataFrame
+# elapsed time: 0.666773452 seconds (272412128 bytes allocated, 4.19% gc time)
+
 @time FixedEffects.demean(df, [:v3,:v4], Vector{Symbol}[[:v1],[:v2]])
-# elapsed time:  0.786792491 seconds (312528272 bytes allocated, 19.41% gc time)
-1000000x6 DataFrame
+# elapsed time: 3.205108244 seconds (888593920 bytes allocated, 16.27% gc time)
 ```
 
 R

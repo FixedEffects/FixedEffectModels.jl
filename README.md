@@ -3,7 +3,7 @@
 This is a basic implementation of the algorithm in the [lfe R package](http://journal.r-project.org/archive/2013-2/gaure.pdf).
 
 
-The function `demean` accepts a dataframe, columns to demean (an array of symbols), and a set of grouping variables (an array of an array of symbols). It returns new columns, with the suffix `p`, corresponding to demeaned column.
+The function `demean` accepts a dataframe, a set of columns to demean (an array of symbols), and a set of grouping variables (an array of an array of symbols). It returns a new data.frame with the demeaned version of columns.
 
 
 

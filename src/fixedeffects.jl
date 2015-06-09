@@ -62,21 +62,21 @@ end
 
 
 function demean_vector(factors::Vector{Factor}, x::DataVector)
-
 	delta = 1.0
 	ans = convert(Vector, x)
-	# create container (groups can be large)
+	# create mean array for each factor
 	dict = Dict{Factor, Vector{Float64}}()
 	for factor in factors
 		dict[factor] = zeros(Float64, length(factor.size))
 	end
-	tolerance = (1e-6 * length(ans))^2
+	tolerance = (1e-8 * length(ans))^2
 	while (delta > tolerance)
 		oldans = copy(ans)
 	    for factor in factors
 	        l = factor.size
 	        refs = factor.refs
 	        mean = dict[factor]
+	        fill!(mean, 0)
 	    	for i = 1:length(x)
 	    		mean[refs[i]] += ans[i]
 	        end
