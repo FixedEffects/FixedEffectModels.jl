@@ -15,15 +15,6 @@ result = FixedEffects.demean(df, :Sales, Vector{Symbol}[[:State],[:Year]])
 ```
 
 
-
-One can check that the new `Sales_p` column averages to zero within each state and within each year
-
-```julia
-by(result, :State, result -> mean(result[:Sales_p]))
-by(result, :Year, result -> mean(result[:Sales_p]))
-```
-
-
 If the dataframe contains missing values, new rows are set to missing
 
 ```julia
@@ -32,7 +23,7 @@ result = FixedEffects.demean(df, [:Sales], Vector{Symbol}[[:State],[:Year]])
 ```
 
 
-# Comparaisons
+# Comparison
 
 Julia
 ```julia
