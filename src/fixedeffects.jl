@@ -6,25 +6,56 @@ using NumericExtensions
 using DataArrays
 using DataFrames
 
-# Each element in absorb is transformed into a Factor object
+# Type
 type Factor
-	size::Vector{Int64}  # length of each group
+	size::Vector{Int64}  # store the length of each group
 	refs::Vector{Uint32} # associates to each row a group
 end
 
 
+# Constructor 
+function Factor(df::SubDataFrame, cols::Vector{Symbol})
+    groupeddf = groupby(df, cols)
+    idx = groupeddf.idx
+    starts = groupeddf.starts
+    ends = groupeddf.ends
+
+    # size
+    size = ends - starts + 1
+
+    # ref
+    refs = Array(Uint32, length(idx))
+    j = 1
+    for i = 1:length(starts)
+        while (j <= ends[i])
+            refs[idx[j]] =  i
+            j += 1
+        end
+    end
+
+    Factor(size, refs)
+end
+
+
 function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
-	# construct submatrix with no NA
+
+	# construct subdataframe wo NA
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
-	# construct array of factors
-	factors = construct_factors(subdf, absorb)
+
+	# construct an array of factors
+	factors = Factor[]
+	for a in absorb
+		push!(factors, Factor(subdf, a))
+	end
+	# don't modify input dataset
 	out = copy(df)
 	for x in cols
 		newx = parse("$(x)_p")
 		out[newx] = similar(df[x])
 		out[condition, newx] = demean_vector(factors, subdf[x])
 	end
+
 	return(out)
 end
 
@@ -42,9 +73,7 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 		dict[factor] = zeros(Float64, length(factor.size))
 	end
 	tolerance = (1e-8 * length(ans))^2
-	iter = 0
 	while (delta > tolerance)
-		iter = iter + 1
 		oldans = copy(ans)
 	    for factor in factors
 	        l = factor.size
@@ -64,38 +93,11 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	    # check error at each iteration (could do better)
 	    delta = vnormdiff(ans, oldans, 2)
 	end
-	println(iter)
 	return(ans)
 end
 
 
 
-
-function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
-	factors = Factor[]
-	for a in absorb
-	    g = groupby(df, a)
-	    idx = g.idx
-	    starts = g.starts
-	    ends = g.ends
-
-	    # size
-	    size = ends - starts + 1
-
-	    # ref
-	    refs = Array(Uint32, length(idx))
-	    j = 1
-	    for i = 1:length(starts)
-	        while (j <= ends[i])
-	            refs[idx[j]] =  i
-	            j += 1
-	        end
-	    end
-
-	    push!(factors, Factor(size, refs))
-    end
-    return(factors)
-end
 
 
 
