@@ -1,23 +1,29 @@
 module FixedEffects
-export partial
+
+export demean
 using DataArrays
 using DataFrames
 
 
-function partial(df::DataFrame, demeans::Vector{Symbol},  factors::Vector{Vector{Symbol}})
+
+function demean(df::DataFrame, cols::Vector{Symbol},  factors::Vector{Vector{Symbol}})
 	# vector of NA
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
 	# construct factors
 	factorlist = construct_factors(subdf, factors)
-	a = df
-	for x in demeans
-		a[x] = NA
-		a[condition, x] = demean(factorlist, subdf[x])
+	for x in cols
+		newx = parse("$(x)_p")
+		df[newx] = similar(df[x])
+		df[condition, newx] = demean_vector(factorlist, subdf[x])
+		df[!condition, newx] = NA
 	end
-	return(a)
+	return(df)
 end
 
+function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
+	demean(df, [cols],  factors)
+end
 
 function construct_factors(df::SubDataFrame, factors::Vector{Vector{Symbol}})
 	factorlist = (Vector{Int64}, Vector{Uint32})[]
@@ -41,7 +47,7 @@ function construct_factors(df::SubDataFrame, factors::Vector{Vector{Symbol}})
 end
 
 
-function demean(factorlist::Array{(Vector{Int64}, Vector{Uint32}), 1}, x::DataVector)
+function demean_vector(factorlist::Array{(Vector{Int64}, Vector{Uint32}), 1}, x::DataVector)
 	delta = 1.0
 	while (delta > 1e-6)
 		oldx = copy(x)
@@ -70,4 +76,3 @@ end
 
 
 end
-
