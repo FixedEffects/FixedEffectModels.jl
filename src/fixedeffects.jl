@@ -2,10 +2,15 @@ module FixedEffects
 
 export demean
 
+using NumericExtensions
 using DataArrays
 using DataFrames
-using NumericExtensions
 
+# Each element in absorb is transformed into a Factor object
+type Factor
+	size::Vector{Int64}  # length of each group
+	refs::Vector{Uint32} # associates to each row a group
+end
 
 
 function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
@@ -30,14 +35,16 @@ end
 
 function demean_vector(factors::Vector{Factor}, x::DataVector)
 	delta = 1.0
-	ans = convert(Vector, x)
+	ans = convert(Vector{Float64}, x)
 	# create mean array for each factor
 	dict = Dict{Factor, Vector{Float64}}()
 	for factor in factors
 		dict[factor] = zeros(Float64, length(factor.size))
 	end
 	tolerance = (1e-8 * length(ans))^2
+	iter = 0
 	while (delta > tolerance)
+		iter = iter + 1
 		oldans = copy(ans)
 	    for factor in factors
 	        l = factor.size
@@ -45,27 +52,24 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	        mean = dict[factor]
 	        fill!(mean, 0)
 	    	for i = 1:length(x)
-	    		mean[refs[i]] += ans[i]
+	    		 @inbounds mean[refs[i]] += ans[i]
 	        end
 	    	for i = 1:length(l)
-	    		mean[i] = mean[i]/l[i]
+	    		 @inbounds mean[i] = mean[i]/l[i]
 	        end
 	    	for i = 1:length(x)
-	    		ans[i] += - mean[refs[i]]
+	    		 @inbounds ans[i] += - mean[refs[i]]
 	        end
 	    end
-	    # check whether close from previous matrix
+	    # check error at each iteration (could do better)
 	    delta = vnormdiff(ans, oldans, 2)
 	end
+	println(iter)
 	return(ans)
 end
 
 
-# Each element in absorb is transformed into a Factor object
-type Factor
-	size::Vector{Int64}  # length of each group
-	refs::Vector{Uint32} # associates to each row a group
-end
+
 
 function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
 	factors = Factor[]
