@@ -1,23 +1,24 @@
+
 module FixedEffects
+
+using NumericExtensions
+using DataFrames
 
 export demean
 
-using NumericExtensions
-using DataArrays
-using DataFrames
-
-max_it = 1000
 
 
 # algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
+max_it = 1000
 
+
+# Factor is a type that stores size of group and their refs for a group defined by multiple cols
 
 # Type
 type Factor
 	size::Vector{Int64}  # store the length of each group
 	refs::Vector{Uint32} # associates to each row a group
 end
-
 
 # Constructor 
 function Factor(df::SubDataFrame, cols::Vector{Symbol})
@@ -43,38 +44,7 @@ function Factor(df::SubDataFrame, cols::Vector{Symbol})
 end
 
 
-# main function
-function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
-
-	# construct subdataframe wo NA
-	condition = complete_cases(df)
-	subdf = sub(df, condition)
-
-	# construct an array of factors
-	factors = Factor[]
-	for a in absorb
-		push!(factors, Factor(subdf, a))
-	end
-
-	# don't modify input dataset
-	out = copy(df)
-
-	# demean each vector sequentially
-	for x in cols
-		newx = parse("$(x)_p")
-		out[newx] = similar(df[x])
-		out[condition, newx] = demean_vector(factors, subdf[x])
-	end
-
-	return(out)
-end
-
-function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
-	demean(df, [cols],  factors)
-end
-
-
-
+# Demean_vector demean a vector repeatedly
 function demean_vector(factors::Vector{Factor}, x::DataVector)
 	delta = 1.0
 	ans = convert(Vector{Float64}, x)
@@ -110,6 +80,41 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	end
 	return(ans)
 end
+
+
+
+
+
+# main function
+function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
+
+	# construct subdataframe wo NA
+	condition = complete_cases(df)
+	subdf = sub(df, condition)
+
+	# construct an array of factors
+	factors = Factor[]
+	for a in absorb
+		push!(factors, Factor(subdf, a))
+	end
+
+	# don't modify input dataset
+	out = copy(df)
+
+	# demean each vector sequentially
+	for x in cols
+		newx = parse("$(x)_p")
+		out[newx] = similar(df[x])
+		out[condition, newx] = demean_vector(factors, subdf[x])
+	end
+
+	return(out)
+end
+
+function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
+	demean(df, [cols],  factors)
+end
+
 
 
 
