@@ -2,12 +2,7 @@
 
 The function `demean` accepts a dataframe, columns (an array of synbols), and a set of grouping variables (an array of an array of symbols). It returns new columns, with the suffix `p`, corresponding to demeaned column.
 
-They correspond to residuals in the model
-
-```
-x_i = \Sum_k gamma_{g_k(i) + \epsilon_{i}
-```
-
+It is a basic implementation of the algorithm in the [lfe R package](http://journal.r-project.org/archive/2013-2/gaure.pdf).
 
 
 ```julia
