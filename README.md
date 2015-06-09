@@ -32,7 +32,9 @@ result = FixedEffects.demean(df, [:Sales], Vector{Symbol}[[:State],[:Year]])
 ```
 
 
+# Comparaisons
 
+Julia
 ```julia
 N = 1000000
 K = 10000
@@ -49,7 +51,7 @@ df = DataFrame(
 # elapsed time: 3.205108244 seconds (888593920 bytes allocated, 16.27% gc time)
 ```
 
-R
+R (lfe package, C)
 
 ```R
 library(lfe)
