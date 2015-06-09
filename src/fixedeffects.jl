@@ -6,29 +6,36 @@ using DataFrames
 
 
 
-function demean(df::DataFrame, cols::Vector{Symbol},  factors::Vector{Vector{Symbol}})
-	# vector of NA
+function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
+	# construct submatrix with no NA
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
-	# construct factors
-	factorlist = construct_factors(subdf, factors)
+	# construct array of factors
+	factors = construct_factors(subdf, absorb)
+	out = copy(df)
 	for x in cols
 		newx = parse("$(x)_p")
-		df[newx] = similar(df[x])
-		df[condition, newx] = demean_vector(factorlist, subdf[x])
-		df[!condition, newx] = NA
+		out[newx] = similar(df[x])
+		out[condition, newx] = demean_vector(factors, subdf[x])
 	end
-	return(df)
+	return(out)
 end
 
 function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
 	demean(df, [cols],  factors)
 end
 
-function construct_factors(df::SubDataFrame, factors::Vector{Vector{Symbol}})
-	factorlist = (Vector{Int64}, Vector{Uint32})[]
-	for factor in factors
-	    g = groupby(df, factor)
+
+# Each element in absorb is transformed into a Factor object
+type Factor
+	size::Vector{Int64}  # length of each group
+	refs::Vector{Uint32} # associates to each row a group
+end
+
+function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
+	factors = Factor[]
+	for a in absorb
+	    g = groupby(df, a)
 	    idx = g.idx
 	    starts = g.starts
 	    ends = g.ends
@@ -41,19 +48,19 @@ function construct_factors(df::SubDataFrame, factors::Vector{Vector{Symbol}})
 	        end
 	    end
 	    l = ends - starts + 1
-	    push!(factorlist, (l, refs))
+	    push!(factors, Factor(l, refs))
     end
-    return(factorlist)
+    return(factors)
 end
 
 
-function demean_vector(factorlist::Array{(Vector{Int64}, Vector{Uint32}), 1}, x::DataVector)
+function demean_vector(factors::Vector{Factor}, x::DataVector)
 	delta = 1.0
 	while (delta > 1e-6)
 		oldx = copy(x)
-	    for factor in factorlist
-	        l = factor[1]
-	        refs = factor[2]
+	    for factor in factors
+	        l = factor.size
+	        refs = factor.refs
 	        mean = zeros(Float64, length(l))
 	    	for i = 1:length(x)
 	    		mean[refs[i]] += x[i]
