@@ -1,8 +1,10 @@
 module FixedEffects
 
 export demean
+
 using DataArrays
 using DataFrames
+using NumericExtensions
 
 
 
@@ -60,15 +62,21 @@ end
 
 
 function demean_vector(factors::Vector{Factor}, x::DataVector)
+
 	delta = 1.0
-	ans = copy(x)
-	while (delta > 1e-6)
+	ans = convert(Vector, x)
+	# create container (groups can be large)
+	dict = Dict{Factor, Vector{Float64}}()
+	for factor in factors
+		dict[factor] = zeros(Float64, length(factor.size))
+	end
+	tolerance = (1e-6 * length(ans))^2
+	while (delta > tolerance)
 		oldans = copy(ans)
 	    for factor in factors
 	        l = factor.size
 	        refs = factor.refs
-	        # construct demeaned x by group
-	        mean = zeros(Float64, length(l))
+	        mean = dict[factor]
 	    	for i = 1:length(x)
 	    		mean[refs[i]] += ans[i]
 	        end
@@ -80,10 +88,7 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	        end
 	    end
 	    # check whether close from previous matrix
-	    for i = 1:length(ans)
-	        delta += (ans[i]-oldans[i])^2
-	    end
-	    delta = sqrt(delta)/length(ans)
+	    delta = vnormdiff(ans, oldans, 2)
 	end
 	return(ans)
 end
