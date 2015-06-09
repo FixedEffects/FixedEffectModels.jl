@@ -3,9 +3,7 @@ module FixedEffects
 
 using NumericExtensions
 using DataFrames
-
 export demean
-
 
 
 # algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
@@ -13,7 +11,6 @@ max_it = 1000
 
 
 # Factor is a type that stores size of group and their refs for a group defined by multiple cols
-
 # Type
 type Factor
 	size::Vector{Int64}  # store the length of each group
@@ -80,8 +77,6 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	end
 	return(ans)
 end
-
-
 
 
 
