@@ -8,6 +8,7 @@ It allows to estimate models with multiple high dimentional fixed effects.
 The function `demean` accepts a dataframe, a set of columns to demean (an array of symbols), and a set of grouping variables (an array of an array of symbols). It returns a new data.frame with the demeaned version of columns.
 
 
+For instance, the following code returns the residuals of the regression of Sales on State dummies and Year dummies.
 
 ```julia
 using DataFrames
@@ -19,12 +20,13 @@ result = FixedEffects.demean(df, :Sales, Vector{Symbol}[[:State],[:Year]])
 
 
 
-Check that the new `Sales_p` column averages to zero with respect to both state and year
+One can check that the new `Sales_p` column averages to zero with respect to both state and year
 
 ```julia
 by(result, :State, result -> mean(result[:Sales_p]))
 by(result, :Year, result -> mean(result[:Sales_p]))
 ```
+
 
 If the dataframe contains missing values, new rows are set to missing
 
