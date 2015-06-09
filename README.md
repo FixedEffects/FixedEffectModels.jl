@@ -16,7 +16,7 @@ result = FixedEffects.demean(df, :Sales, Vector{Symbol}[[:State],[:Year]])
 
 
 
-One can check that the new `Sales_p` column averages to zero with respect to both state and year
+One can check that the new `Sales_p` column averages to zero within each state and within each year
 
 ```julia
 by(result, :State, result -> mean(result[:Sales_p]))
