@@ -1,4 +1,3 @@
-
 module FixedEffects
 
 using NumericExtensions
@@ -23,10 +22,8 @@ function Factor(df::SubDataFrame, cols::Vector{Symbol})
     idx = groupeddf.idx
     starts = groupeddf.starts
     ends = groupeddf.ends
-
     # size
     size = ends - starts + 1
-
     # ref
     refs = Array(Uint32, length(idx))
     j = 1
@@ -36,7 +33,6 @@ function Factor(df::SubDataFrame, cols::Vector{Symbol})
             j += 1
         end
     end
-
     Factor(size, refs)
 end
 
@@ -50,9 +46,7 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	for factor in factors
 		dict[factor] = zeros(Float64, length(factor.size))
 	end
-
 	tolerance = (1e-8 * length(ans))^2
-
 	for iter = 1:max_it
 		oldans = copy(ans)
 	    for factor in factors
@@ -82,27 +76,22 @@ end
 
 # main function
 function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
-
 	# construct subdataframe wo NA
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
-
 	# construct an array of factors
 	factors = Factor[]
 	for a in absorb
 		push!(factors, Factor(subdf, a))
 	end
-
 	# don't modify input dataset
 	out = copy(df)
-
 	# demean each vector sequentially
 	for x in cols
 		newx = parse("$(x)_p")
 		out[newx] = similar(df[x])
 		out[condition, newx] = demean_vector(factors, subdf[x])
 	end
-
 	return(out)
 end
 
