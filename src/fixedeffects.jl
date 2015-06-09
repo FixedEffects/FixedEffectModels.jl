@@ -48,8 +48,11 @@ function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbo
 	for a in absorb
 		push!(factors, Factor(subdf, a))
 	end
+
 	# don't modify input dataset
 	out = copy(df)
+
+	# demean each vector sequentially
 	for x in cols
 		newx = parse("$(x)_p")
 		out[newx] = similar(df[x])
