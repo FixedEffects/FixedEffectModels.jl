@@ -1,8 +1,10 @@
 
 
-The function `demean` accepts a dataframe, columns (an array of synbols), and a set of grouping variables (an array of an array of symbols). It returns new columns, with the suffix `p`, corresponding to demeaned column.
+This is a basic implementation of the algorithm in the [lfe R package](http://journal.r-project.org/archive/2013-2/gaure.pdf).
 
-It is a basic implementation of the algorithm in the [lfe R package](http://journal.r-project.org/archive/2013-2/gaure.pdf).
+
+The function `demean` accepts a dataframe, columns to demean (an array of symbols), and a set of grouping variables (an array of an array of symbols). It returns new columns, with the suffix `p`, corresponding to demeaned column.
+
 
 
 ```julia
@@ -15,7 +17,7 @@ result = FixedEffects.demean(df, :Sales, Vector{Symbol}[[:State],[:Year]])
 
 
 
-The new Sales_p column averages to zero with respect to both state and year
+Check that the new `Sales_p` column averages to zero with respect to both state and year
 
 ```julia
 by(result, :State, result -> mean(result[:Sales_p]))
