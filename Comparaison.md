@@ -30,9 +30,9 @@ df = data_frame(
   v4 =  runif(N) # numeric e.g. 23.5749
 )
 system.time(felm(v3+v4~1|v1, df))
- user  system elapsed 
-3.909   0.117   4.009 
+#  user  system elapsed 
+# 3.909   0.117   4.009 
 system.time(felm(v3+v4~1|v1+v2, df))
- user  system elapsed 
-5.009   0.147   4.583 
+#  user  system elapsed 
+# 5.009   0.147   4.583 
 ```

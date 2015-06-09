@@ -28,39 +28,6 @@ function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
 end
 
 
-# Each element in absorb is transformed into a Factor object
-type Factor
-	size::Vector{Int64}  # length of each group
-	refs::Vector{Uint32} # associates to each row a group
-end
-
-function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
-	factors = Factor[]
-	for a in absorb
-	    g = groupby(df, a)
-	    idx = g.idx
-	    starts = g.starts
-	    ends = g.ends
-
-	    # construct size
-	    size = ends - starts + 1
-
-	    # construct ref
-	    refs = Array(Uint32, length(idx))
-	    j = 1
-	    for i = 1:length(starts)
-	        while (j <= ends[i])
-	            refs[idx[j]] =  i
-	            j += 1
-	        end
-	    end
-
-	    push!(factors, Factor(size, refs))
-    end
-    return(factors)
-end
-
-
 function demean_vector(factors::Vector{Factor}, x::DataVector)
 	delta = 1.0
 	ans = convert(Vector, x)
@@ -91,6 +58,39 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	    delta = vnormdiff(ans, oldans, 2)
 	end
 	return(ans)
+end
+
+
+# Each element in absorb is transformed into a Factor object
+type Factor
+	size::Vector{Int64}  # length of each group
+	refs::Vector{Uint32} # associates to each row a group
+end
+
+function construct_factors(df::SubDataFrame, absorb::Vector{Vector{Symbol}})
+	factors = Factor[]
+	for a in absorb
+	    g = groupby(df, a)
+	    idx = g.idx
+	    starts = g.starts
+	    ends = g.ends
+
+	    # size
+	    size = ends - starts + 1
+
+	    # ref
+	    refs = Array(Uint32, length(idx))
+	    j = 1
+	    for i = 1:length(starts)
+	        while (j <= ends[i])
+	            refs[idx[j]] =  i
+	            j += 1
+	        end
+	    end
+
+	    push!(factors, Factor(size, refs))
+    end
+    return(factors)
 end
 
 
