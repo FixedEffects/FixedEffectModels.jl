@@ -6,7 +6,12 @@ using NumericExtensions
 using DataArrays
 using DataFrames
 
+max_it = 1000
+
+
 # algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
+
+
 # Type
 type Factor
 	size::Vector{Int64}  # store the length of each group
@@ -38,6 +43,7 @@ function Factor(df::SubDataFrame, cols::Vector{Symbol})
 end
 
 
+# main function
 function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
 
 	# construct subdataframe wo NA
@@ -68,16 +74,19 @@ function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
 end
 
 
+
 function demean_vector(factors::Vector{Factor}, x::DataVector)
 	delta = 1.0
 	ans = convert(Vector{Float64}, x)
-	# create mean array for each factor
+	# allocate array of means for each factor
 	dict = Dict{Factor, Vector{Float64}}()
 	for factor in factors
 		dict[factor] = zeros(Float64, length(factor.size))
 	end
+
 	tolerance = (1e-8 * length(ans))^2
-	while (delta > tolerance)
+
+	for iter = 1:max_it
 		oldans = copy(ans)
 	    for factor in factors
 	        l = factor.size
@@ -94,8 +103,10 @@ function demean_vector(factors::Vector{Factor}, x::DataVector)
 	    		 @inbounds ans[i] += - mean[refs[i]]
 	        end
 	    end
-	    # check error at each iteration (could do better)
 	    delta = vnormdiff(ans, oldans, 2)
+	    if delta < tolerance
+	    	break
+	    end
 	end
 	return(ans)
 end
