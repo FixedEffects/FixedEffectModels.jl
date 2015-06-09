@@ -6,6 +6,7 @@ using NumericExtensions
 using DataArrays
 using DataFrames
 
+# algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 # Type
 type Factor
 	size::Vector{Int64}  # store the length of each group
