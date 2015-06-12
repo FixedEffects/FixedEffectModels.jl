@@ -2,6 +2,7 @@
 
 Julia
 ```julia
+using DataFrames
 N = 1000000
 K = 10000
 df = DataFrame(
@@ -14,7 +15,7 @@ df = DataFrame(
 # elapsed time: 0.666773452 seconds (272412128 bytes allocated, 4.19% gc time)
 
 @time FixedEffects.demean(df, [:v3,:v4], Vector{Symbol}[[:v1],[:v2]])
-# elapsed time: 2.579359049 seconds (888593920 bytes allocated, 16.27% gc time)
+# elapsed time: 2.202122509 seconds (328567504 bytes allocated, 7.88% gc time)
 ```
 
 R (lfe package, C)
