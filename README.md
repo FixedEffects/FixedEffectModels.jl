@@ -1,35 +1,27 @@
-The package `fixedeffects` allows to estimate models with high dimensional fixed effects.
+The package `fixedeffects` allows to estimate models with high dimensional fixed effects. It is a basic implementation of the functions `reghdfe` in Stata and `lfe` in R
 
 
 ## demean
-The function `demean` is a basic implementation of the functions `reghdfe` in Stata and `lfe` in R. It allows to estimate models with multiple high dimentional fixed effects.
+The function `demean` demeans columns with respect to fixed effects. 
 
 ```julia
 using DataArrays, DataFrame, RDataSets, FixedEffects
 df = dataset("plm", "Cigar")
-```
-
-
-The function `demean` accepts a dataframe, a set of columns to demean (an array of symbols), and a formula. It returns a new data.frame with the demeaned version of columns.
-
-```julia
 df[:State] = PooledDataArray(df[:State])
 df[:Year] = PooledDataArray(df[:Year])
 demean(f, [:Sales], nothing ~ State + Year)
 ```
 
-To construct one group from a set of variables, use `group`
+`demean!` replaces columns in place.
+
+Construct one fixed effect from a set of variables using `group`
 
 ```julia
 df[:group] = group(df[:State, :Year])
 demean(f, [:Sales], nothing ~ group)
 ```
 
-
-
-
-Interactions with continuous variable can be added using `&`
-
+Add interactions with continuous variable with `&`
 ```julia
 df = dataset("plm", "Cigar")
 df[:State] = PooledDataArray(df[:State])
