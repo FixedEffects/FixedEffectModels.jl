@@ -12,14 +12,8 @@ df[:Year] = PooledDataArray(df[:Year])
 demean(df, [:Sales], nothing ~ State + Year)
 ```
 
-`demean!` replaces columns in place.
+`demean!` replaces columns in the original dataset
 
-Construct one fixed effect from a set of variables using `group`
-
-```julia
-df[:StateYear] = group(df[:State, :Year])
-demean(df, [:Sales], nothing ~ StateYear)
-```
 
 Add interactions with continuous variable with `&`
 ```julia
@@ -28,6 +22,12 @@ df[:State] = PooledDataArray(df[:State])
 demean(df, [:Sales], nothing ~ State + State&Year)
 ```
 
+Construct one fixed effect from a set of variables using `group`
+
+```julia
+df[:StateYear] = group(df[:State, :Year])
+demean(df, [:Sales], nothing ~ StateYear)
+```
 
 
 

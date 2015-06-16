@@ -1,7 +1,9 @@
 # algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
-using DataFrames, Distances, GLM
+using DataFrames, Distances
 
-
+#
+# Type Fe and FeInteracted
+#
 
 abstract AbstractFe
 
@@ -22,11 +24,10 @@ function Fe(f::PooledDataArray)
 	Fe(size, f.refs)
 end
 
-
 immutable type FeInteracted{R<: Integer} <: AbstractFe
 	size::Vector{Float64}  # store the sum of x^2 in each group
 	refs::Vector{R} # associates to each row a group
-	x::Vector{Float64}
+	x::Vector{Float64} # the continuous interaction 
 end
 
 function FeInteracted(f::PooledDataArray, x::Vector{Float64})
@@ -42,30 +43,7 @@ function FeInteracted(f::PooledDataArray, x::Vector{Float64})
 end
 
 
-
-function group(df::AbstractDataFrame) 
-    # from groupby
-    ncols = length(df)
-    dv = DataArrays.PooledDataArray(df[ncols])
-    dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
-    x = copy(dv.refs) .+ dv_has_nas
-    ngroups = length(dv.pool) + dv_has_nas
-    for j = (ncols - 1):-1:1
-        dv = DataArrays.PooledDataArray(df[j])
-        dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
-        for i = 1:DataFrames.size(df, 1)
-            x[i] += (dv.refs[i] + dv_has_nas- 1) * ngroups
-        end
-        ngroups = ngroups * (length(dv.pool) + dv_has_nas)
-    end
-    # factorize
-    uu = unique(x)
-    T = eltype(x)
-    dict = Dict(uu, map(z -> convert(T,z), 1:length(uu)))
-    PooledDataArray(DataArrays.RefArray(map(z -> dict[z], x)),  [1:length(uu)])
-end
-
-# custome version till 0.4 is released
+# custom version till Julia 0.4 is released
 function dropUnusedLevels!(da::PooledDataArray)
     rr = da.refs
     uu = unique(rr)
@@ -108,6 +86,9 @@ function construct_fe(df::AbstractDataFrame, a::Symbol)
 end
 
 
+#
+# demean_vector
+#
 
 
 # Demean a vector repeatedly
@@ -132,7 +113,7 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 	    	mean = dict1[fe]
 	    	scale = dict2[fe]
 	    	fill!(mean, 0.0)
-	    	f(df, fe, scale, mean,  ans)
+	    	demean_vector_factor(df, fe, scale, mean,  ans)
 		end
 	    delta =  sqeuclidean(ans, oldans)
 	    if delta < tolerance
@@ -143,7 +124,7 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 end
 
 
-function f(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
 	@simd for i in 1:length(ans)
 		@inbounds mean[refs[i]] += ans[i]
@@ -156,7 +137,7 @@ function f(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{
     end
 end
 
-function f(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+function demean_vector_factor(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
 	@simd for i in 1:length(ans)
 		@inbounds mean[refs[i]] += ans[i] * fe.x[i]
@@ -175,7 +156,7 @@ end
 #
 
 
-function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
+function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 	# construct subdataframe wo NA
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
@@ -190,40 +171,46 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 	end
 	# demean each vector sequentially
 	for x in cols
-		subdf[x] =  demean_vector(subdf, factors, subdf[x])
+		out[condition, x] =  demean_vector(subdf, factors, subdf[x])
+		out[!condition, x] = NA
 	end
-
-	return(df)
+	return(out)
 end
-function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula) = demean!(deepcopy(df), cols, absorb)
+
+function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
+	demean!(df, df, cols, absorb)
+end
+
+function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
+	out = DataFrame(Float64, size(df, 1), length(cols))
+	names!(out, cols)
+	demean!(out, df, cols, absorb)
+end
 
 
 # just demean if no formula
+function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol})
+	# construct subdataframe wo NA
+	condition = complete_cases(df)
+	subdf = sub(df, condition)
+	for x in cols
+		out[condition, x] = subdf[x] .- mean(subdf[x])
+		out[!condition, x] = NA
+	end
+	return(out)
+end
+
 function demean!(df::AbstractDataFrame, cols::Vector{Symbol})
-	# construct subdataframe wo NA
-	condition = complete_cases(df)
-	subdf = sub(df, condition)
-	# construct an array of factors
-	for x in cols
-		subdf[x] = subdf[x] .- mean(subdf[x])
-	end
-	return(df)
+	demean!(df, df, cols, absorb)
 end
-function demean(df::AbstractDataFrame, cols::Vector{Symbol}) = demean!(deepcopy(df), cols)
+
+function demean(df::AbstractDataFrame, cols::Vector{Symbol})
+	out = DataFrame(Float64, size(df, 1), length(cols))
+	names!(out, cols)
+	demean!(out, df, cols, absorb)
+end
 
 
-function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol)
-	# construct subdataframe wo NA
-	condition = complete_cases(df)
-	subdf = sub(df, condition)
-	w = weights(subdf[w])
-	# construct an array of factors
-	for x in cols
-		subdf[x] = subdf[x] .- mean(subdf[x], w)
-	end
-	return(df)
-end
-function demean(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol) = demean!(deepcopy(df), cols, w)
 
 
 

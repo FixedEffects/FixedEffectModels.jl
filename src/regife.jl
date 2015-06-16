@@ -21,9 +21,9 @@ function regife(f::Formula, df::AbstractDataFrame, factors::Formula, absorb::For
   allvars = [DataFrames.allvars(f), DataFrames.allvars(factors), DataFrames.allvars(absorb)]
   allvars = setdiff(allvars, [:nothing])
   df = df[allvars]
-  condition = complete_cases(df)
-  df = df[condition,:]
-  g(f, demean!(df, DataFrames.allvars(f), absorb), factors, d)
+  condition = complete_cases(df[allvars])
+  subdf = sub(df, condition)
+  g(f, demean(subdf, DataFrames.allvars(f), absorb), factors, d)
 end
 
 function regife(f::Formula, df::AbstractDataFrame, factors::Formula, d::Int64)
@@ -32,8 +32,8 @@ function regife(f::Formula, df::AbstractDataFrame, factors::Formula, d::Int64)
   allvars = setdiff(allvars, [:nothing])
   df = df[allvars]
   condition = complete_cases(df)
-  df = df[condition,:]
-  g(f, demean!(df, DataFrames.allvars(f)), factors, d)
+  subdf = sub(df, condition)
+  g(f, demean(subdf, DataFrames.allvars(f)), factors, d)
 end
 
 function g(f::Formula, df::AbstractDataFrame, factors::Formula, d::Int64)
