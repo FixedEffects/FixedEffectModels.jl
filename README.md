@@ -12,7 +12,7 @@ df = dataset("plm", "Cigar")
 
 The function `demean` accepts a dataframe, a set of columns to demean (an array of symbols), and a formula. It returns a new data.frame with the demeaned version of columns.
 
-```
+```julia
 df[:State] = PooledDataArray(df[:State])
 df[:Year] = PooledDataArray(df[:Year])
 demean(f, [:Sales], nothing ~ State + Year)
@@ -20,7 +20,7 @@ demean(f, [:Sales], nothing ~ State + Year)
 
 To construct a fixed effect from set of variable into one factor, use `group`
 
-```
+```julia
 df[:group] = group(df[:State, :Year])
 demean(f, [:Sales], nothing ~ :group)
 ```
@@ -28,7 +28,7 @@ demean(f, [:Sales], nothing ~ :group)
 
 
 
-Interactions with continuous variable are indicated by `&`
+Interactions with continuous variable can be indicated with `&`
 
 ```julia
 df = dataset("plm", "Cigar")
@@ -45,7 +45,6 @@ The function `areg` simply estimates a linear model on the demeaned variables. I
 ```julia
 areg(Sales~NDI, df, nothing ~ State + Year)
 ```
-
 
 
 
