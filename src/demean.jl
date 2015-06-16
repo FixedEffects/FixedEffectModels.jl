@@ -2,7 +2,7 @@
 using DataFrames, Distances
 
 #
-# Type Fe and FeInteracted
+# Type Fe and FeInteracted. These types store reference vector, the size of each group, eventually interaction
 #
 
 abstract AbstractFe
@@ -87,7 +87,7 @@ end
 
 
 #
-# demean_vector
+# demean_vector. This is the main algorithm
 #
 
 
