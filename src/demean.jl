@@ -87,11 +87,42 @@ end
 
 
 #
-# demean_vector. This is the main algorithm
+# demean_vector_factor. This is the main algorithm
 #
 
 
-# Demean a vector repeatedly
+function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+	refs = fe.refs
+	@simd for i in 1:length(ans)
+		@inbounds mean[refs[i]] += ans[i]
+    end
+	@simd for i in 1:length(scale)
+		 @inbounds mean[i] = mean[i] * scale[i] 
+    end
+	@simd for i in 1:length(ans)
+		@inbounds ans[i] += - mean[refs[i]]
+    end
+end
+
+function demean_vector_factor(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+	refs = fe.refs
+	@simd for i in 1:length(ans)
+		@inbounds mean[refs[i]] += ans[i] * fe.x[i]
+    end
+	@simd for i in 1:length(scale)
+		 @inbounds mean[i] = mean[i] * scale[i] 
+    end
+	@simd for i in 1:length(ans)
+		@inbounds ans[i] += - mean[refs[i]] * fe.x[i]
+    end
+end
+
+
+
+#
+# demean_vector demeans with respect to all vectors and stop when convergence
+#
+
 function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVector)
 	max_iter = 1000
 	tolerance = ((1e-8 * length(x))^2)::Float64
@@ -124,36 +155,11 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 end
 
 
-function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
-	refs = fe.refs
-	@simd for i in 1:length(ans)
-		@inbounds mean[refs[i]] += ans[i]
-    end
-	@simd for i in 1:length(scale)
-		 @inbounds mean[i] = mean[i] * scale[i] 
-    end
-	@simd for i in 1:length(ans)
-		@inbounds ans[i] += - mean[refs[i]]
-    end
-end
-
-function demean_vector_factor(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
-	refs = fe.refs
-	@simd for i in 1:length(ans)
-		@inbounds mean[refs[i]] += ans[i] * fe.x[i]
-    end
-	@simd for i in 1:length(scale)
-		 @inbounds mean[i] = mean[i] * scale[i] 
-    end
-	@simd for i in 1:length(ans)
-		@inbounds ans[i] += - mean[refs[i]] * fe.x[i]
-    end
-end
 
 
 #
-# demean
-#
+# demean constructs the fixed effects and the demeaned vectors
+# 
 
 
 function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
@@ -188,7 +194,7 @@ function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 end
 
 
-# just demean if no formula
+# simple case with no formula: just demean
 function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol})
 	# construct subdataframe wo NA
 	condition = complete_cases(df)
