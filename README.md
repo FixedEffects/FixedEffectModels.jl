@@ -1,4 +1,4 @@
-The package `fixedeffects` allow to estimate models with high dimensional fixed effects.
+The package `fixedeffects` allows to estimate models with high dimensional fixed effects.
 
 
 ## demean
