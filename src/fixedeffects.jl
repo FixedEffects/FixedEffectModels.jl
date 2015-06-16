@@ -1,108 +1,81 @@
 module FixedEffects
+using DataFrames, DataArrays
 
-using NumericExtensions
-using DataFrames
-export demean
+export group, demean, demean_factors
 
-
-# algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
-
-
-# Factor is a type that stores size of group and their refs for a group defined by multiple cols
-# Type
-type Factor
-	size::Vector{Int64}  # store the length of each group
-	refs::Vector{Uint32} # associates to each row a group
-end
-
-# Constructor 
-function Factor(df::SubDataFrame, cols::Vector{Symbol})
-    groupeddf = groupby(df, cols)
-    idx = groupeddf.idx
-    starts = groupeddf.starts
-    ends = groupeddf.ends
-    # size
-    size = ends - starts + 1
-    # ref
-    refs = Array(Uint32, length(idx))
-    j = 1
-    for i in 1:length(starts)
-        while (j <= ends[i])
-            refs[idx[j]] =  i
-            j += 1
+function group(df::AbstractDataFrame) 
+	ncols = length(df)
+    dv = DataArrays.PooledDataArray(df[ncols])
+    dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
+    x = copy(dv.refs) .+ dv_has_nas
+    ngroups = length(dv.pool) + dv_has_nas
+    for j = (ncols - 1):-1:1
+        dv = DataArrays.PooledDataArray(df[j])
+        dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
+        for i = 1:DataFrames.size(df, 1)
+            x[i] += (dv.refs[i] + dv_has_nas- 1) * ngroups
         end
+        ngroups = ngroups * (length(dv.pool) + dv_has_nas)
     end
-    Factor(size, refs)
+    dropUnusedLevels!(x)
 end
 
 
+abstract FeAll 
 
-# Demean_vector demean a vector repeatedly
-function demean_vector(factors::Vector{Factor}, x::DataVector)
-	max_it = 1000
-	tolerance = ((1e-8 * length(x))^2)::Float64
-	delta = 1.0
-	ans = convert(Vector{Float64}, x)
-	oldans = similar(ans)
-	# allocate array of means for each factor
-	dict = Dict{Factor, Vector{Float64}}()
-	for factor in factors
-		dict[factor] = zeros(Float64, length(factor.size))
+immutable type Fe{R<: Integer} <: FeAll
+	size::Vector{Uint64}  # store the length of each group
+	refs::Vector{R} # associates to each row a group
+end
+
+function Fe(f::PooledDataArray)
+	f = copy(f)
+	dropUnusedLevels!(f)
+	size = Array(Uint64, length(f.pool))
+	fill!(size, 0)
+	refs = f.refs
+	for i in 1:length(refs)
+		size[refs[i]] += 1
 	end
-	for iter in 1:max_it
-		for i in 1:length(x)
-			@inbounds oldans[i] = ans[i]
-		end
-	    for factor in factors
-	        l = factor.size
-	        refs = factor.refs
-	        mean = dict[factor]
-	        fill!(mean, 0)
-	    	for i in 1:length(x)
-	    		 @inbounds mean[refs[i]] += ans[i]
-	        end
-	    	for i in 1:length(l)
-	    		 @inbounds mean[i] = mean[i]/l[i]
-	        end
-	    	for i in 1:length(x)
-	    		 @inbounds ans[i] += - mean[refs[i]]
-	        end
-	    end
-	    delta = vnormdiff(ans, oldans, 2)
-	    if delta < tolerance
-	    	break
-	    end
-	end
-	return(ans)
+	Fe(size, f.refs)
 end
 
 
-# main function
-function demean(df::DataFrame, cols::Vector{Symbol}, absorb::Vector{Vector{Symbol}})
-	# construct subdataframe wo NA
-	condition = complete_cases(df)
-	subdf = sub(df, condition)
-	# construct an array of factors
-	factors = Factor[]
-	for a in absorb
-		push!(factors, Factor(subdf, a))
-	end
-	# don't modify input dataset
-	out = copy(df)
-	# demean each vector sequentially
-	for x in cols
-		newx = parse("$(x)_p")
-		out[newx] = similar(df[x])
-		out[condition, newx] = demean_vector(factors, subdf[x])
-	end
-	return(out)
+immutable type FeInteracted{R<: Integer} <: FeAll
+	size::Vector{Float64}  # store the sum of x^2 in each group
+	refs::Vector{R} # associates to each row a group
+	x::Vector{Float64}
 end
 
-function demean(df::DataFrame, cols::Symbol,  factors::Vector{Vector{Symbol}})
-	demean(df, [cols],  factors)
+function FeInteracted(f::PooledDataArray, x::Vector{Float64})
+	f = copy(f)
+	dropUnusedLevels!(f)
+	size = Array(Float64, length(f.pool))
+	fill!(size, 0.0)
+	refs = f.refs
+	for i in 1:length(refs)
+		size[refs[i]] += x[i] * x[i]
+	end
+	FeInteracted(size, f.refs, x)
 end
 
 
+# custome version till 0.4 is released
+function dropUnusedLevels!(da::PooledDataArray)
+    rr = da.refs
+    uu = unique(rr)
+    length(uu) == length(da.pool) && return da
+    T = eltype(rr)
+    su = sort!(uu)
+    dict = Dict(su, map(x -> convert(T,x), 1:length(uu)))
+    da.refs = map(x -> dict[x], rr)
+    da.pool = da.pool[uu]
+    da
+end	
 
+
+
+include("linearfixedeffects.jl")
+include("interactivefixedeffects.jl")
 
 end
