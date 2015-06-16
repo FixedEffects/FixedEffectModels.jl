@@ -18,17 +18,17 @@ df[:Year] = PooledDataArray(df[:Year])
 demean(f, [:Sales], nothing ~ State + Year)
 ```
 
-To construct a fixed effect from set of variable into one factor, use `group`
+To construct one group from a set of variables, use `group`
 
 ```julia
 df[:group] = group(df[:State, :Year])
-demean(f, [:Sales], nothing ~ :group)
+demean(f, [:Sales], nothing ~ group)
 ```
 
 
 
 
-Interactions with continuous variable can be indicated with `&`
+Interactions with continuous variable can be added using `&`
 
 ```julia
 df = dataset("plm", "Cigar")
@@ -40,7 +40,7 @@ demean(df, [:Sales], nothing ~ State + State&Year)
 
 
 ## areg
-The function `areg` simply estimates a linear model on the demeaned variables. In particular errors are not adjusted for dof etc.
+The function `areg` simply estimates a linear model after demeaning variables. In particular errors are not adjusted for dof etc.
 
 ```julia
 areg(Sales~NDI, df, nothing ~ State + Year)
