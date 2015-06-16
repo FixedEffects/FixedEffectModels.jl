@@ -1,3 +1,5 @@
+using StatsBase
+using Base.Test
 # values checked from reghdfe
 df = dataset("plm", "Cigar")
 df[:State] = PooledDataArray(df[:State])
