@@ -35,21 +35,21 @@ end
 
 
 # Demean a vector repeatedly
-function demean_vector(df::AbstractDataFrame, fes::Vector{FeAll}, x::DataVector)
+function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVector)
 	max_iter = 1000
 	tolerance = ((1e-8 * length(x))^2)::Float64
 	delta = 1.0
 	ans = convert(Vector{Float64}, x)
 	oldans = similar(ans)
 	# allocate array of means for each factor
-	dict1 = Dict{FeAll, Vector{Float64}}()
-	dict2 = Dict{FeAll, Vector{Float64}}()
+	dict1 = Dict{AbstractFe, Vector{Float64}}()
+	dict2 = Dict{AbstractFe, Vector{Float64}}()
 	for fe in fes
 		dict1[fe] = zeros(Float64, length(fe.size))
 		dict2[fe] = 1.0 ./ fe.size
 	end
 	for iter in 1:max_iter
-		for i in 1:length(x)
+		@simd for i in 1:length(x)
 			@inbounds oldans[i] = ans[i]
 		end
 	    for fe in fes
@@ -69,26 +69,26 @@ end
 
 function f(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
-	for i in 1:length(ans)
+	@simd for i in 1:length(ans)
 		@inbounds mean[refs[i]] += ans[i]
     end
-	for i in 1:length(scale)
+	@simd for i in 1:length(scale)
 		 @inbounds mean[i] = mean[i] * scale[i] 
     end
-	for i in 1:length(ans)
+	@simd for i in 1:length(ans)
 		@inbounds ans[i] += - mean[refs[i]]
     end
 end
 
 function f(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
-	for i in 1:length(ans)
+	@simd for i in 1:length(ans)
 		@inbounds mean[refs[i]] += ans[i] * fe.x[i]
     end
-	for i in 1:length(scale)
+	@simd for i in 1:length(scale)
 		 @inbounds mean[i] = mean[i] * scale[i] 
     end
-	for i in 1:length(ans)
+	@simd for i in 1:length(ans)
 		@inbounds ans[i] += - mean[refs[i]] * fe.x[i]
     end
 end
@@ -100,20 +100,17 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
 	# construct an array of factors
-	factors = FeAll[]
+	factors = AbstractFe[]
 	for a in DataFrames.Terms(absorb).terms
 		push!(factors, construct_fe(subdf, a))
 	end
-	#w = convert(Array{Float64}, df[weights])
 	# demean each vector sequentially
 	for x in cols
-		df[x] = convert(Array{Float64}, df[x])
 		subdf[x] =  demean_vector(subdf, factors, subdf[x])
 	end
 	return(df)
 end
 
-demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula) = demean!(copy(df), cols, absorb)
 
 
 # just demean if no formula
@@ -123,12 +120,10 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol})
 	subdf = sub(df, condition)
 	# construct an array of factors
 	for x in cols
-		df[x] = convert(Array{Float64}, df[x])
 		subdf[x] = subdf[x] .- mean(subdf[x])
 	end
 	return(df)
 end
-demean(df::AbstractDataFrame, cols::Vector{Symbol}) = demean!(copy(df), cols)
 
 
 function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol)
@@ -138,14 +133,11 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol)
 	w = weights(subdf[w])
 	# construct an array of factors
 	for x in cols
-		df[x] = convert(Array{Float64}, df[x])
 		subdf[x] = subdf[x] .- mean(subdf[x], w)
 	end
-
 	return(df)
 end
 
-demean(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol) = demean!(copy(df), cols, w)
 
 
 

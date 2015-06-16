@@ -4,6 +4,7 @@ using DataFrames, DataArrays
 export group, demean, demean_factors
 
 function group(df::AbstractDataFrame) 
+	# from groupby
 	ncols = length(df)
     dv = DataArrays.PooledDataArray(df[ncols])
     dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
@@ -17,13 +18,17 @@ function group(df::AbstractDataFrame)
         end
         ngroups = ngroups * (length(dv.pool) + dv_has_nas)
     end
-    dropUnusedLevels!(x)
+    # factorize
+    uu = unique(x)
+    T = eltype(x)
+    dict = Dict(uu, map(z -> convert(T,z), 1:length(uu)))
+    PooledDataArray(DataArrays.RefArray(map(z -> dict[z], x)),  [1:length(uu)])
 end
 
 
-abstract FeAll 
+abstract AbstractFe
 
-immutable type Fe{R<: Integer} <: FeAll
+immutable type Fe{R<: Integer} <: AbstractFe
 	size::Vector{Uint64}  # store the length of each group
 	refs::Vector{R} # associates to each row a group
 end
@@ -41,7 +46,7 @@ function Fe(f::PooledDataArray)
 end
 
 
-immutable type FeInteracted{R<: Integer} <: FeAll
+immutable type FeInteracted{R<: Integer} <: AbstractFe
 	size::Vector{Float64}  # store the sum of x^2 in each group
 	refs::Vector{R} # associates to each row a group
 	x::Vector{Float64}

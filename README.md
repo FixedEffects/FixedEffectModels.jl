@@ -19,11 +19,14 @@ df = DataFrame(
   v4 =  randn(N) 
 )
 
-@time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1)
-# elapsed time: 0.602404481 seconds (169166440 bytes allocated, 24.85% gc time)
-@time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1+v2)
-# elapsed time: 1.473874682 seconds (192951364 bytes allocated)
-@time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1+v1:v3)
+@time FixedEffects.demean!(df, [:v3,:v4], nothing ~ v1)
+# elapsed time:  0.313016191 seconds (169166440 bytes allocated, 24.85% gc time)
+@time FixedEffects.demean!(df, [:v3,:v4], nothing ~ v1+v2)
+# elapsed time: 1.138125588 seconds (192951364 bytes allocated)
+@time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1+v1&v3)
+
+
+@time FixedEffects.demean!(sub(df,1:100), [:v3,:v4], nothing ~ v1)
 ```
 
 Factors must be PooledDataArray

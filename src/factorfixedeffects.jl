@@ -22,7 +22,7 @@ function demean_factors(f::Formula, df::AbstractDataFrame, factors::Formula, abs
   allvars = setdiff(allvars, [:nothing])
   df = df[allvars]
   condition = complete_cases(df)
-   df = df[condition, :]
+  df = df[condition,:]
   g(f, demean!(df, DataFrames.allvars(f), absorb), factors, d)
 end
 
@@ -32,8 +32,7 @@ function demean_factors(f::Formula, df::AbstractDataFrame, factors::Formula, d::
   allvars = setdiff(allvars, [:nothing])
   df = df[allvars]
   condition = complete_cases(df)
-  df = df[condition, :]
-  demean!(df, DataFrames.allvars(f))
+  df = df[condition,:]
   g(f, demean!(df, DataFrames.allvars(f)), factors, d)
 end
 
