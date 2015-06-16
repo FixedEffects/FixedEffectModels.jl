@@ -40,7 +40,7 @@ demean(df, [:Sales], nothing ~ State + State&Year)
 
 
 ## areg
-The function `areg` estimates a linear model on the demeaned variables. In particular errors are not adjusted for dof etc.
+The function `areg` simply estimates a linear model on the demeaned variables. In particular, contrary to `reghdfe`, errors are not adjusted for dof etc.
 
 ```julia
 areg(Sales~NDI, df, nothing ~ State + Year)
@@ -49,41 +49,3 @@ areg(Sales~NDI, df, nothing ~ State + Year)
 
 
 
-
-
-## Comparison
-R (lfe package, C)
-
-```julia
-using DataArrays, DataFrames
-N = 1000000
-K = 10000
-df = DataFrame(
-  v1 =  PooledDataArray(rand(1:N, N)),
-  v2 =  PooledDataArray(rand(1:K, N)),
-  v3 =  randn(N), 
-  v4 =  randn(N) 
-)
-@time FixedEffects.demean!(df, [:v3,:v4], nothing ~ v1)
-# elapsed time:  0.313016191 seconds (169166440 bytes allocated, 24.85% gc time)
-@time FixedEffects.demean!(df, [:v3,:v4], nothing ~ v1+v2)
-# elapsed time: 1.138125588 seconds (192951364 bytes allocated)
-````
-
-```R
-library(lfe)
-N = 1000000
-K = N/100
-df = data_frame(
-  v1 =  as.factor(sample(N, N, replace = TRUE)),
-  v2 =  as.factor(sample(K, N, replace = TRUE)),
-  v3 =  runif(N), 
-  v4 =  runif(N) 
-)
-system.time(felm(v3+v4~1|v1, df))
-#  user  system elapsed 
-# 3.909   0.117   4.009 
-system.time(felm(v3+v4~1|v1+v2, df))
-#  user  system elapsed 
-# 5.009   0.147   4.583 
-```
