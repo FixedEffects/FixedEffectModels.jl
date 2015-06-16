@@ -195,6 +195,7 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 
 	return(df)
 end
+function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula) = demean!(deepcopy(df), cols, absorb)
 
 
 # just demean if no formula
@@ -208,6 +209,7 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol})
 	end
 	return(df)
 end
+function demean(df::AbstractDataFrame, cols::Vector{Symbol}) = demean!(deepcopy(df), cols)
 
 
 function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol)
@@ -221,6 +223,7 @@ function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol)
 	end
 	return(df)
 end
+function demean(df::AbstractDataFrame, cols::Vector{Symbol}, w::Symbol) = demean!(deepcopy(df), cols, w)
 
 
 
