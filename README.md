@@ -1,9 +1,10 @@
+The package `fixedeffects` allow to estimate models with high dimensional fixed effects.
+
 
 The function `demean` is a basic implementation of the function `demean` in the [lfe R package](http://journal.r-project.org/archive/2013-2/gaure.pdf). It allows to estimate models with multiple high dimentional fixed effects.
-
 The function `demean` accepts a dataframe, a set of columns to demean (an array of symbols), and a formula. It returns a new data.frame with the demeaned version of columns.
 
-For instance, the following command returns the residuals of the regression of Sales on State dummies and Year dummies.
+The function `areg` is just a wrapper for a call to `demean` + `fit(LinearModel)`. In particular errors are not adjusted for dof etc.
 
 
 ## Example
