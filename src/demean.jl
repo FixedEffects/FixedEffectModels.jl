@@ -1,5 +1,5 @@
 # algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
-using DataFrames, Distances
+using DataFrames, DataArrays, Distances
 
 #
 # Type Fe and FeInteracted. These types store reference vector, the size of each group, eventually interaction
