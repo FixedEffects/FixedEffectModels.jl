@@ -1,8 +1,7 @@
-# algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 using DataFrames, DataArrays, Distances
 
 #
-# Type Fe and FeInteracted. These types store reference vector, the size of each group, eventually interaction
+# Type Fe and FeInteracted. For each fixed effect, this stores the reference vector (ie a map of each row to a group), the size of each group, and, for FeInteracted, the interaction variable
 #
 
 abstract AbstractFe
@@ -88,7 +87,8 @@ end
 
 #
 # demean_vector_factor. This is the main algorithm
-#
+# Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
+
 
 
 function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
@@ -120,7 +120,7 @@ end
 
 
 #
-# demean_vector demeans with respect to all vectors and stop when convergence
+# demean_vector applieds demean_vector_factor repeatedly and stop when convergence
 #
 
 function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVector)
@@ -158,9 +158,8 @@ end
 
 
 #
-# demean constructs the fixed effects and the demeaned vectors
+# demean constructs the fixed effects and then calls demean_vector
 # 
-
 
 function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 	# construct subdataframe wo NA
