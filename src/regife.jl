@@ -1,22 +1,22 @@
 using DataFrames, Distances
 
 
-type FactorStructure
+type FactorModel
 	id::Fe
 	time::Fe
-	Lambda::Matrix{Float64} 
-	F::Matrix{Float64}
+	lambda::Matrix{Float64} 
+	f::Matrix{Float64}
 end
 
 
 type FactorEstimate
-	b::Vector{Float64} 
-	F::FactorStructure
+	beta::Vector{Float64} 
+	factor::FactorModel
 end
 
 
 # demean factors (Bai 2009)
-function demean_factors(f::Formula, df::AbstractDataFrame, factors::Formula, absorb::Formula, d::Int64)
+function regife(f::Formula, df::AbstractDataFrame, factors::Formula, absorb::Formula, d::Int64)
   # construct subdataframe wo NA
   allvars = [DataFrames.allvars(f), DataFrames.allvars(factors), DataFrames.allvars(absorb)]
   allvars = setdiff(allvars, [:nothing])
@@ -26,7 +26,7 @@ function demean_factors(f::Formula, df::AbstractDataFrame, factors::Formula, abs
   g(f, demean!(df, DataFrames.allvars(f), absorb), factors, d)
 end
 
-function demean_factors(f::Formula, df::AbstractDataFrame, factors::Formula, d::Int64)
+function regife(f::Formula, df::AbstractDataFrame, factors::Formula, d::Int64)
   # construct subdataframe wo NA
   allvars = [DataFrames.allvars(f), DataFrames.allvars(factors)]
   allvars = setdiff(allvars, [:nothing])

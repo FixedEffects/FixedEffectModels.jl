@@ -6,8 +6,45 @@ The function `demean` accepts a dataframe, a set of columns to demean (an array 
 For instance, the following command returns the residuals of the regression of Sales on State dummies and Year dummies.
 
 
+## Example
+
+
+
+
 
 ## Example
+
+```julia
+using DataArrays, DataFrame, RDataSets, FixedEffects
+df = dataset("plm", "Cigar")
+
+# Factors must be PooledDataArray
+df[:State] = PooledDataArray(df[:State])
+df[:Year] = PooledDataArray(df[:Year])
+
+# demean the selected columns
+demean!(copy(df), [:v3,:v4], nothing ~ v1)
+
+# areg estimates a lm model on demeaned columns
+areg(Sales~NDI, df, nothing ~ State + Year)
+```
+
+Interactions are supported
+
+```julia
+df = dataset("plm", "Cigar")
+df[:State] = PooledDataArray(df[:State])
+FixedEffects.demean!(copy(df), [:Sales], nothing ~ State)
+FixedEffects.demean!(copy(df), [:Sales], nothing ~ State + State&Year)
+FixedEffects.areg(Sales~NDI, df, nothing ~ State + State&Year)
+```
+
+
+
+
+## Comparison
+R (lfe package, C)
+
 ```julia
 using DataArrays, DataFrames
 N = 1000000
@@ -18,23 +55,11 @@ df = DataFrame(
   v3 =  randn(N), 
   v4 =  randn(N) 
 )
-
 @time FixedEffects.demean!(df, [:v3,:v4], nothing ~ v1)
 # elapsed time:  0.313016191 seconds (169166440 bytes allocated, 24.85% gc time)
 @time FixedEffects.demean!(df, [:v3,:v4], nothing ~ v1+v2)
 # elapsed time: 1.138125588 seconds (192951364 bytes allocated)
-@time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1+v1&v3)
-
-
-@time FixedEffects.demean!(sub(df,1:100), [:v3,:v4], nothing ~ v1)
-```
-
-Factors must be PooledDataArray
-
-
-
-## Comparison
-R (lfe package, C)
+````
 
 ```R
 library(lfe)
