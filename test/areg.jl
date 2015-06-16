@@ -1,4 +1,4 @@
-using StatsBase
+using FixedEffects, RDatasets, DataArrays
 using Base.Test
 # values checked from reghdfe
 df = dataset("plm", "Cigar")
