@@ -40,7 +40,7 @@ demean(df, [:Sales], nothing ~ State + State&Year)
 
 
 ## areg
-The function `areg` simply estimates a linear model on the demeaned variables. In particular, contrary to `reghdfe`, errors are not adjusted for dof etc.
+The function `areg` simply estimates a linear model on the demeaned variables. In particular errors are not adjusted for dof etc.
 
 ```julia
 areg(Sales~NDI, df, nothing ~ State + Year)
