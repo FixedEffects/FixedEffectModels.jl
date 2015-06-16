@@ -17,8 +17,8 @@ demean(f, [:Sales], nothing ~ State + Year)
 Construct one fixed effect from a set of variables using `group`
 
 ```julia
-df[:group] = group(df[:State, :Year])
-demean(f, [:Sales], nothing ~ group)
+df[:StateYear] = group(df[:State, :Year])
+demean(f, [:Sales], nothing ~ StateYear)
 ```
 
 Add interactions with continuous variable with `&`
