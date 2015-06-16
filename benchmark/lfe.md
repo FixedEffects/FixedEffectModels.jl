@@ -1,8 +1,7 @@
 
 
 ## Comparison
-R (lfe package, C)
-
+Julia
 ```julia
 using DataArrays, DataFrames
 N = 1000000
@@ -18,7 +17,7 @@ df = DataFrame(
 @time areg(v4~v3, df, nothing ~ v1+v2)
 # elapsed time: 1.220437439 seconds (243547784 bytes allocated, 11.34% gc time)
 ````
-
+R (lfe package, C)
 ```R
 library(lfe)
 N = 1000000
@@ -36,3 +35,4 @@ system.time(felm(v4~v3|v1+v2, df))
 #  user  system elapsed 
 # 5.817   0.211   5.426 
 ```
+
