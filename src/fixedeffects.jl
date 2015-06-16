@@ -76,6 +76,6 @@ end
 
 
 include("linearfixedeffects.jl")
-include("interactivefixedeffects.jl")
+include("factorfixedeffects.jl")
 
 end

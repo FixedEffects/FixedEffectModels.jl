@@ -7,8 +7,7 @@ For instance, the following command returns the residuals of the regression of S
 
 
 
-## Comparison
-Julia
+## Example
 ```julia
 using DataArrays, DataFrames
 N = 1000000
@@ -24,10 +23,14 @@ df = DataFrame(
 # elapsed time: 0.602404481 seconds (169166440 bytes allocated, 24.85% gc time)
 @time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1+v2)
 # elapsed time: 1.473874682 seconds (192951364 bytes allocated)
+@time FixedEffects.demean(df, [:v3,:v4], nothing ~ v1+v1:v3)
 ```
 
+Factors must be PooledDataArray
 
 
+
+## Comparison
 R (lfe package, C)
 
 ```R
