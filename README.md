@@ -9,7 +9,7 @@ using DataArrays, DataFrame, RDataSets, FixedEffects
 df = dataset("plm", "Cigar")
 df[:State] = PooledDataArray(df[:State])
 df[:Year] = PooledDataArray(df[:Year])
-demean(f, [:Sales], nothing ~ State + Year)
+demean(df, [:Sales], nothing ~ State + Year)
 ```
 
 `demean!` replaces columns in place.
@@ -18,7 +18,7 @@ Construct one fixed effect from a set of variables using `group`
 
 ```julia
 df[:StateYear] = group(df[:State, :Year])
-demean(f, [:Sales], nothing ~ StateYear)
+demean(df, [:Sales], nothing ~ StateYear)
 ```
 
 Add interactions with continuous variable with `&`
