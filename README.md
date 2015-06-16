@@ -1,4 +1,4 @@
-The package `fixedeffects` estimates models with high dimensional fixed effects. It is a basic implementation of the functions `reghdfe` in Stata and `lfe` in R
+The package `fixedeffects` estimates models with high dimensional fixed effects. It is a basic and mostly untested implementation of the functions `reghdfe` in Stata and `lfe` in R
 
 
 ## demean
