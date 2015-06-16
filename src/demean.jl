@@ -206,13 +206,13 @@ function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Sym
 end
 
 function demean!(df::AbstractDataFrame, cols::Vector{Symbol})
-	demean!(df, df, cols, absorb)
+	demean!(df, df, cols)
 end
 
 function demean(df::AbstractDataFrame, cols::Vector{Symbol})
 	out = DataFrame(Float64, size(df, 1), length(cols))
 	names!(out, cols)
-	demean!(out, df, cols, absorb)
+	demean!(out, df, cols)
 end
 
 

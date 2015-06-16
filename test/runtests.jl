@@ -1,6 +1,6 @@
 using FixedEffects
 
-tests = ["areg"]
+tests = ["areg", "regife"]
 
 println("Running tests:")
 
