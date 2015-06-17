@@ -1,4 +1,4 @@
-using FixedEffects
+using FixedEffectModels
 
 tests = ["areg", "regife"]
 

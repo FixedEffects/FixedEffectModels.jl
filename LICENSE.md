@@ -1,4 +1,4 @@
-The FixedEffects.jl package is licensed under the MIT "Expat" License:
+The FixedEffectModels.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2015: matthieugomez.
 >
