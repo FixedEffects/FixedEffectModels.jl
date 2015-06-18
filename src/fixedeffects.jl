@@ -1,12 +1,12 @@
 module FixedEffects
 
-export group, demean!, demean, areg, regife, VcovModel, RegressionResult, vcov, vcov_robust, vcov_cluster, vcov_cluster2
+export group, demean!, demean, areg, regife, RegressionResult
 
 include("algo.jl")
-include("demean.jl")
-include("areg.jl")
 include("vcov.jl")
 
+include("areg.jl")
+include("demean.jl")
 include("regife.jl")
 
 include("group.jl")

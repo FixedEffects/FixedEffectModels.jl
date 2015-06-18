@@ -47,7 +47,6 @@ function areg(f::Formula, df::AbstractDataFrame, absorb::Formula, cluster::Formu
 	X = mm.m
 	H = At_mul_B(X, X)
 	H = inv(cholfact!(H))
-	println(mean(X))
 	beta = H * (X' * y)
 	residuals  = y - X * beta
 
