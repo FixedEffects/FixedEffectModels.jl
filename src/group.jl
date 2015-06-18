@@ -1,7 +1,5 @@
 using DataArrays, DataFrames
 
-
-
 function group(df::AbstractDataFrame; skipna = true) 
     ncols = length(df)
     dv = DataArrays.PooledDataArray(df[ncols])

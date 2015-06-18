@@ -6,54 +6,45 @@ using DataFrames, DataArrays, Distances
 
 abstract AbstractFe
 
-immutable type Fe{R<: Integer} <: AbstractFe
+immutable type Fe{R <: Integer} <: AbstractFe
+	name::Symbol
 	size::Vector{Uint64}  # store the length of each group
 	refs::Vector{R} # associates to each row a group
 end
 
-function Fe(f::PooledDataArray)
-	f = copy(f)
-	dropUnusedLevels!(f)
-	size = Array(Uint64, length(f.pool))
-	fill!(size, 0)
-	refs = f.refs
-	for i in 1:length(refs)
-		size[refs[i]] += 1
-	end
-	Fe(size, f.refs)
-end
-
-immutable type FeInteracted{R<: Integer} <: AbstractFe
+immutable type FeInteracted{R <: Integer} <: AbstractFe
+	name::Symbol
 	size::Vector{Float64}  # store the sum of x^2 in each group
 	refs::Vector{R} # associates to each row a group
+	xname::Symbol
 	x::Vector{Float64} # the continuous interaction 
 end
 
-function FeInteracted(f::PooledDataArray, x::Vector{Float64})
-	f = copy(f)
+
+function clean_fe(f::PooledDataArray)
 	dropUnusedLevels!(f)
-	size = Array(Float64, length(f.pool))
-	fill!(size, 0.0)
-	refs = f.refs
-	for i in 1:length(refs)
-		size[refs[i]] += x[i] * x[i]
-	end
-	FeInteracted(size, f.refs, x)
+    size = Array(Uint64, length(f.pool))
+    fill!(size, 0)
+    refs = f.refs
+    for i in 1:length(refs)
+    	size[refs[i]] += 1
+    end
+    (size, refs)
 end
 
+function dropUnusedLevels!(f::PooledDataArray)
+	rr = f.refs
+	uu = unique(rr)
+	T = eltype(rr)
+	su = sort!(uu)
+	dict = Dict(su, map(x -> convert(T,x), 1:length(uu)))
+	f.refs = map(x -> dict[x], rr)
+	f.pool = f.pool[uu]
+	f
+end
 
-# custom version till Julia 0.4 is released
-function dropUnusedLevels!(da::PooledDataArray)
-    rr = da.refs
-    uu = unique(rr)
-    length(uu) == length(da.pool) && return da
-    T = eltype(rr)
-    su = sort!(uu)
-    dict = Dict(su, map(x -> convert(T,x), 1:length(uu)))
-    da.refs = map(x -> dict[x], rr)
-    da.pool = da.pool[uu]
-    da
-end	
+dropUnusedLevels!(f) = f
+
 
 
 function construct_fe(df::AbstractDataFrame, a::Expr)
@@ -61,12 +52,13 @@ function construct_fe(df::AbstractDataFrame, a::Expr)
 		if (typeof(df[a.args[2]]) <: PooledDataArray) & !(typeof(df[a.args[3]]) <: PooledDataArray)
 			f = df[a.args[2]]
 			x = convert(Vector{Float64}, df[a.args[3]])
-			FeInteracted(f, x)
+			(size, refs) = clean_fe(f)
+			FeInteracted(a.args[2], size, refs, a.args[3], x)
 		elseif (typeof(df[a.args[3]]) <: PooledDataArray) & !(typeof(df[a.args[2]]) <: PooledDataArray)
 			f = df[a.args[3]]
-			dropUnusedLevels!(f)
 			x = convert(Vector{Float64}, df[a.args[2]])
-			FeInteracted(f, x)
+			(size, refs) = clean_fe(f)
+			FeInteracted(a.args[3], size, refs, a.args[2], x)
 		else
 			error("& is not of the form factor & nonfactor")
 		end
@@ -78,7 +70,8 @@ end
 function construct_fe(df::AbstractDataFrame, a::Symbol)
 	if typeof(df[a]) <: PooledDataArray
 		f = df[a]
-		Fe(f)
+		(size, refs) = clean_fe(f)
+		Fe(a, size, refs)
 	else
 		error("$(a) is not a pooled data array")
 	end
@@ -88,7 +81,6 @@ end
 #
 # demean_vector_factor. This is the main algorithm
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
-
 
 
 function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
@@ -155,65 +147,6 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 end
 
 
-
-
-#
-# demean constructs the fixed effects and then calls demean_vector
-# 
-
-function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
-	# construct subdataframe wo NA
-	condition = complete_cases(df)
-	subdf = sub(df, condition)
-	# construct an array of factors
-	factors = AbstractFe[]
-	for a in DataFrames.Terms(absorb).terms
-		push!(factors, construct_fe(subdf, a))
-	end
-	# case where only interacted fixed effect : add constant
-	if all(map(z -> typeof(z) <: FeInteracted, factors))
-		push!(factors, Fe(PooledDataArray(fill(1, size(subdf, 1)))))
-	end
-	# demean each vector sequentially
-	for x in cols
-		out[condition, x] =  demean_vector(subdf, factors, subdf[x])
-		out[!condition, x] = NA
-	end
-	return(out)
-end
-
-function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
-	demean!(df, df, cols, absorb)
-end
-
-function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
-	out = DataFrame(Float64, size(df, 1), length(cols))
-	names!(out, cols)
-	demean!(out, df, cols, absorb)
-end
-
-
-# simple case with no formula: just demean
-function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol})
-	# construct subdataframe wo NA
-	condition = complete_cases(df)
-	subdf = sub(df, condition)
-	for x in cols
-		out[condition, x] = subdf[x] .- mean(subdf[x])
-		out[!condition, x] = NA
-	end
-	return(out)
-end
-
-function demean!(df::AbstractDataFrame, cols::Vector{Symbol})
-	demean!(df, df, cols)
-end
-
-function demean(df::AbstractDataFrame, cols::Vector{Symbol})
-	out = DataFrame(Float64, size(df, 1), length(cols))
-	names!(out, cols)
-	demean!(out, df, cols)
-end
 
 
 
