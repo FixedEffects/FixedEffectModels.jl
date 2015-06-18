@@ -1,4 +1,4 @@
-module FixedEffects
+module FixedEffectModels
 
 export group, demean!, demean, areg, regife, RegressionResult
 
