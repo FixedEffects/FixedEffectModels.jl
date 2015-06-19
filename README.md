@@ -36,9 +36,9 @@ Compute robust standard errors using a third argument
 
 ```julia
 reg(Sales ~ NDI, df,)
-reg(Sales ~ NDI, df, vceWhite())
-reg(Sales ~ NDI, df, vceCluster([:State]))
-reg(Sales ~ NDI, df, vceCluster([:State, :Year]))
+reg(Sales ~ NDI, df, VceWhite())
+reg(Sales ~ NDI, df, VceCluster([:State]))
+reg(Sales ~ NDI, df, VceCluster([:State, :Year]))
 
 ```
 
