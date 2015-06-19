@@ -46,9 +46,9 @@ immutable type VceWhite <: AbstractVce
 end
 
 function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame) 
-	Xu = broadcast(*,  x.X, x.residuals)
+	Xu = broadcast(*,  regressors(X), residuals(X))
 	S = At_mul_B(Xu, Xu)
-	scale!(S, x.nobs/x.df_residual)
+	scale!(S, nobs(X)/df_residual(X))
 	sandwich(x, S) 
 end
 ```
