@@ -176,7 +176,7 @@ function helper_cluster(x::AbstractVceModel, f::PooledDataArray)
 		X2 = fill(zero(Float64), (size(X, 2), length(f.pool)))
 		for j in 1:size(X, 2)
 			for i in 1:size(X, 1)
-				X2[j, refs[i]] += X[i, j] * residuals[i]
+				@inbounds X2[j, refs[i]] += X[i, j] * residuals[i]
 			end
 		end
 		out = A_mul_Bt(X2, X2)
