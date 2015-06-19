@@ -38,6 +38,8 @@ Compute robust standard errors using a third argument
 reg(Sales ~ NDI, df,)
 reg(Sales ~ NDI, df, vceWhite())
 reg(Sales ~ NDI, df, vceCluster([:State]))
+reg(Sales ~ NDI, df, vceCluster([:State, :Year]))
+
 ```
 
 For now, `vceSimple()` (default), `vceWhite()` and `vceCluster(cols)` are implemented.
