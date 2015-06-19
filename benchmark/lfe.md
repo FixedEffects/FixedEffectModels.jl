@@ -1,6 +1,7 @@
 
 
 ## Comparison
+
 Julia
 ```julia
 using DataArrays, DataFrames
@@ -12,11 +13,12 @@ df = DataFrame(
   v3 =  randn(N), 
   v4 =  randn(N) 
 )
-@time areg(v4~v3, df, nothing ~ v1)
-# elapsed time: 0.401270786 seconds (226271604 bytes allocated, 30.61% gc time)
-@time areg(v4~v3, df, nothing ~ v1+v2)
-# elapsed time: 1.220437439 seconds (243547784 bytes allocated, 11.34% gc time)
+@time reg(v4~v3 | v1, df)
+# elapsed time: 0.666867215 seconds (269151632 bytes allocated, 23.04% gc time)
+@time reg(v4~v3 |(v1+v2), df)
+# elapsed time: 1.650180923 seconds (307684448 bytes allocated, 11.86% gc time)
 ````
+
 R (lfe package, C)
 ```R
 library(lfe)
