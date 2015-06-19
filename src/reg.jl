@@ -24,7 +24,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
 	end
 	rt = DataFrames.Terms(rf)
 
-	vcevars = allvars2(vce)
+	vcevars = DataFrames.allvars(vce)
 	allvars = setdiff(vcat(vcevars, absorbvars, rvars), [nothing])
 	allvars = unique(convert(Vector{Symbol}, allvars))
 
@@ -87,7 +87,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
     end
     nobs = size(X, 1)
     df_residual = size(X, 1) - size(X, 2) - df_fe
-    vcovmodel = VceModelH(X, H, residuals, df_residual, nobs)
+    vcovmodel = VceModelHat(X, H, residuals,  nobs, df_residual)
 	vcov = StatsBase.vcov(vcovmodel, vce, df)
 
 

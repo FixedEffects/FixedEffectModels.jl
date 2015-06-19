@@ -39,23 +39,26 @@ reg(Sales~NDI | State, df, vceWhite())
 reg(Sales~NDI | State, df, vceCluster([:State]))
 ```
 
-The third argument is any instance of a type that inherits from the Abstract type `AbstractVce`. You can write your own type : just define a `vcov` model for it. For instance, `vceWhite` is defined as
+For now, `vceSimple()` (default), `vceWhite()` and `vceCluster(cols)` are implemented.
+
+You can define your own type: After declaring it as a child of `AbstractVce`, define a `vcov` methods for it.
+
+For instance,  White errors are implemented with the following code:
 
 ```julia
 immutable type VceWhite <: AbstractVce 
 end
 
-function StatsBase.vcov(x::AbstractVceModel, t::VceWhite) 
+function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame) =
 	Xu = broadcast(*,  x.X, x.residuals)
 	S = At_mul_B(Xu, Xu)
 	scale!(S, x.nobs/x.df_residual)
 	sandwich(x, S) 
 end
-
-StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df) = StatsBase.vcov(x, t)
 ```
 
-For now, `vceSimple()` (default), `vceWhite()` and `vceCluster(cols)` are implemented.
+Note the AbstractDataFrame in the signature of `vcov`: it allows to use symbols instead of vectors when constructing a type, like `vceCluster([:State])`.
+
 
 ## demean
 The function `demean` demeans columns with respect to fixed effects. 

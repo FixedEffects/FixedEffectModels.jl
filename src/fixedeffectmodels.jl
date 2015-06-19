@@ -1,7 +1,7 @@
 module FixedEffectModels
-import StatsBase: coef, nobs, coeftable, vcov
-
-
+import StatsBase: coef, nobs, coeftable, vcov, residuals
+import GLM: df_residual
+import DataFrames: allvars
 export group, demean!, demean, reg, regife, RegressionResult, AbstractVCE, VceSimple, VceWhite, VceHac, VceCluster
 
 include("utils.jl")
