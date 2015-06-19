@@ -4,7 +4,7 @@
 
 Julia
 ```julia
-using DataArrays, DataFrames
+using DataArrays, DataFrames, FixedEffectModels
 N = 1000000
 K = 10000
 df = DataFrame(

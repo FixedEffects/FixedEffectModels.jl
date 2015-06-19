@@ -60,7 +60,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
 	end
 
 
-	mf = ModelFrame(rt, df)
+	mf = ModelFrame(df, t, esample)
 	mm = ModelMatrix(mf)
 	coefnames = DataFrames.coefnames(mf)
 
@@ -79,7 +79,6 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
     	end
     end
 
-
     if hasfe && typeof(vce) == VceCluster
     	for f in factors
     		df_fe += in(f.name, vcevars) ? 0 : length(f.size)
@@ -89,7 +88,6 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
     df_residual = size(X, 1) - size(X, 2) - df_fe
     vcovmodel = VceModelHat(X, H, residuals,  nobs, df_residual)
 	vcov = StatsBase.vcov(vcovmodel, vce, df)
-
 
     # Output object
     RegressionResult(coef, vcov, coefnames, rt.eterms[1], nobs, df_residual, esample, t)
