@@ -10,7 +10,7 @@ include("algo.jl")
 
 include("vcov.jl")
 
-include("areg.jl")
+include("reg.jl")
 include("demean.jl")
 
 include("regife.jl")

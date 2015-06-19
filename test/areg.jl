@@ -7,6 +7,7 @@ df[:Year] = PooledDataArray(df[:Year])
 
 reg(Sales~NDI | State, df)
 reg(Sales~NDI | State, df, VceWhite())
+reg(Sales~NDI | State, df, VceCluster(:State))
 
 @test_approx_eq  coef(reg(Sales~NDI | State , df))   -0.0017046786439408937
 @test_approx_eq  coef(reg(Sales~NDI | (State + State&Year), df))  -0.005686067588968152
