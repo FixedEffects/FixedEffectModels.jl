@@ -1,7 +1,12 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffects.jl?branch=master)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffects.jl)
 
-Contrary to the function `lm`, the function `reg`  estimates linear models with (i) robust standard errors (ii) high dimensional fixed effects. Moreover, `reg` returns a very light object (mainly coefficients and covariance matrix). It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R.
+Contrary to the Julia function `lm`, the function `reg` 
+- estimates models with high dimensional fixed effects
+- computes robust standard errors (White or clustered)
+- returns a very light object (mainly coefficients and covariance matrix). 
+
+It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R.
 
 ## Fixed effects
 
