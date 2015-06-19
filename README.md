@@ -25,6 +25,8 @@ In the `DataFrames` package, the function `pool` transforms one column into a  `
 Add interactions with continuous variable using `&`
 
 ```julia
+df = dataset("plm", "Cigar")
+df[:State] =  pool(df[:State]
 reg(Sales ~ NDI | (State + State&Year))
 ```
 
