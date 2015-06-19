@@ -20,7 +20,7 @@ df[:Year] =  pool(df[:Year]
 reg(Sales ~ NDI | (State + Year), df)
 ```
 
-Construct PooledDataArray from one column using `pool`. Construct PooledDataArray from multiple columns using `group`
+In the `DataFrames` package, the function `pool` transforms one column into a  `PooledDataArray`, the function `group` transforms multiple columns into a `PooledDataArray`.
 
 Add interactions with continuous variable using `&`
 
