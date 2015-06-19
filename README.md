@@ -49,7 +49,7 @@ For instance,  White errors are implemented with the following code:
 immutable type VceWhite <: AbstractVce 
 end
 
-function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame) =
+function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame) 
 	Xu = broadcast(*,  x.X, x.residuals)
 	S = At_mul_B(Xu, Xu)
 	scale!(S, x.nobs/x.df_residual)
@@ -57,8 +57,7 @@ function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame)
 end
 ```
 
-Note the AbstractDataFrame in the signature of `vcov`: it allows to use symbols instead of vectors when constructing a type, like `vceCluster([:State])`.
-
+Note the AbstractDataFrame in the signature of `vcov`. This does not make sense for `VceWhite` but it allows to use symbols when errors require supplementary variables, like `vceCluster([:State])`.
 
 ## demean
 The function `demean` demeans columns with respect to fixed effects. 
