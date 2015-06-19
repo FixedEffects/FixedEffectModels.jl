@@ -1,36 +1,38 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffects.jl?branch=master)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffects.jl)
 
-The function `reg`  estimates a linear model with high dimensional fixed effects. It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R
-
+Contrary to the function `lm`, the function `reg`  estimates linear models with (i) robust standard errors (ii) high dimensional fixed effects. It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R.
 
 ## Fixed effects
 
-Add (an arbitrary number of) fixed effects using `|`
+Add (an arbitrary number of) fixed effects using `|`. Fixed effects must be of type PooledDataArray.
 
 ```julia
 df = dataset("plm", "Cigar")
 df[:State] =  pool(df[:State]
-reg(Sales~NDI | State, df)
+reg(Sales ~ NDI | State, df)
+df[:Year] =  pool(df[:Year]
+reg(Sales ~ NDI | (State + Year), df)
 ```
 
-Fixed effects must be of type PooledDataArray. You can interactions with continuous variable using `&`
+Construct PooledDataArray from one column using `pool`. Construct PooledDataArray from multiple columns using `group`
+
+Add interactions with continuous variable using `&`
 
 ```julia
 reg(Sales ~ NDI | (State + State&Year))
 ```
 
-To construct PooledDataArray from one column use `pool`. To construct PooledDataArray from multiple columns, use `group` 
 
 
 ## Errors
 
-Compute different error using a third argument
+Compute robust standard errors using a third argument
 
 ```julia
-reg(Sales~NDI, df,)
-reg(Sales~NDI, df, vceWhite())
-reg(Sales~NDI, df, vceCluster([:State]))
+reg(Sales ~ NDI, df,)
+reg(Sales ~ NDI, df, vceWhite())
+reg(Sales ~ NDI, df, vceCluster([:State]))
 ```
 
 For now, `vceSimple()` (default), `vceWhite()` and `vceCluster(cols)` are implemented.
@@ -50,7 +52,6 @@ function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame)
 	sandwich(x, S) 
 end
 ```
-
 Note the AbstractDataFrame in the signature of `vcov`. This does not make sense for `VceWhite` but it allows to use symbols when errors require supplementary variables, like `vceCluster([:State])`.
 
 ## demean
