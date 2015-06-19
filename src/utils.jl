@@ -1,4 +1,4 @@
-using DataArray
+using DataArrays
 
 function dropUnusedLevels!(f::PooledDataArray)
 	rr = f.refs

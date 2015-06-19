@@ -1,119 +1,179 @@
 using GLM, DataFrames
 
-abstract AbstractVcovModel
+
+abstract AbstractVceModel
+
+abstract AbstractVce
+allvars2(x::AbstractVce) = nothing
 
 
-immutable type VcovModel{T} <: AbstractVcovModel
+immutable type VceModel{T} <: AbstractVceModel
 	X::Matrix{T} # If weight, matrix should be X\sqrt{W}
 	residuals::Vector{T}
 	df_residual::Integer
 	nobs::Integer
 end
-VcovModel{T}(X::Matrix{T}, residual::Vector{T}) = VcovModel(X, residual, size(X, 1) - size(X,2), size(X, 1))
+VceModel{T}(X::Matrix{T}, residual::Vector{T}) = VceModel(X, residual, size(X, 1) - size(X,2), size(X, 1))
 
-immutable type VcovModelH{T} <: AbstractVcovModel
+immutable type VceModelH{T} <: AbstractVceModel
 	X::Matrix{T} # If weight, matrix should be X\sqrt{W}
 	H::Matrix{T} # If weight, matrix should be X\sqrt{W}
 	residuals::Vector{T}
 	df_residual::Integer
 	nobs::Integer
 end
-VcovModelH{T}(X::Matrix{T}, H::Matrix{T}, residual::Vector{T}) = VcovModelH(X, H, residual, size(X, 1) - size(X,2), size(X, 1))
+VceModelH{T}(X::Matrix{T}, H::Matrix{T}, residual::Vector{T}) = VceModelH(X, H, residual, size(X, 1) - size(X,2), size(X, 1))
 
-#
-#
-# Helper
-#
-function helper(X::Matrix, H::Matrix, S::Matrix)
-	temp = H * S
-	if size(temp, 1) > 1
-		A_mul_B!(temp, temp, H)
-	else
-		temp * H
-	end
+
+function sandwich(x::VceModel, S::Matrix{Float64})
+	temp = At_mul_B(x.X, x.X)
+	H = inv(cholfact!(temp))
+	H * S * H
 end
 
-function sandwich(x::VcovModel, S::Matrix{Float64})
-	H = At_mul_B(x.X, x.X)
-	helper(x.X, inv(cholfact!(H)))
+function sandwich(x::VceModelH, S::Matrix{Float64})
+	 x.H * S * x.H
 end
 
-function sandwich(x::VcovModelH, S::Matrix{Float64})
-	helper(x.X, x.H, S)
+
+#
+# User can write new vcov in term of first variable
+#
+
+StatsBase.vcov(x::LinearModel, v::AbstractVce) = StatsBase.vcov(VceModelH(x.pp.X, residuals(x), inv(cholfact(x))), v)
+
+
+#
+# User can write new vcov in term of second variable
+#
+
+
+immutable type VceSimple <: AbstractVce 
 end
 
-# Simple
+StatsBase.vcov(x::VceModel, t::VceSimple) = StatsBase.vcov(x)
 
-function vcov(x::VcovModel)
+function StatsBase.vcov(x::VceModel, t::VceSimple)
 	H = At_mul_B(x.X, x.X)
 	H = inv(cholfact!(H))
  	scale!(H, sum(x.residuals.^2)/  x.df_residual)
 end
 
-function vcov(x::VcovModelH)
- 	scale!(H, sum(x.residuals.^2)/  x.df_residual)
+function StatsBase.vcov(x::VceModelH, t::VceSimple)
+ 	x.H * (sum(x.residuals.^2)/  x.df_residual)
+end
+
+StatsBase.vcov(x::AbstractVceModel, t::VceSimple, df) = StatsBase.vcov(x, t)
+
+
+#
+# White
+#
+
+immutable type VceWhite <: AbstractVce 
+end
+
+function StatsBase.vcov(x::AbstractVceModel, t::VceWhite) 
+	Xu = broadcast(*,  x.X, x.residuals)
+	S = At_mul_B(Xu, Xu)
+	scale!(S, x.nobs/x.df_residual)
+	sandwich(x, S) 
+end
+
+StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df) = StatsBase.vcov(x, t)
+
+#
+# HAC
+#
+
+immutable type VceHac <: AbstractVce
+	time::Symbol
+	nlag::Int
+	weightfunction::Function
+end
+VceHac(time, nlag) = VceHac(time, nlag, (i, n) -> 1 - i/(n+1))
+allvars2(x::VceHac) = x.time
+
+function StatsBase.vcov(x::AbstractVceModel, v::VceHac, df)
+	time = df[v.time]
+	nlag = v.nlag
+	weights = map(i -> v.weightfunction(i, nlag), [1:nlag])
+
+	Xu = broadcast(*,  x.X, x.residuals)
+	rhos = Array(Matrix{Float64}, nlag)
+
+	# 1 is juste White
+	rhos[1] = At_mul_B(Xu, Xu)	
+
+	for i in 2:nlags
+		lagx = lag(x, i, time)
+		isna = sum(isna(x), 2) + sum(isna(lagx), 2)
+		rhos[i] = At_mul_B(x[!isna, :], lagx[!isna, :]) +  At_mul_B(lagx[!isna, :], x[!isna, :]) 
+		scale!(rhos[i], weights[i] * (size(x, 1) - i) / (size(x, 1) -i - lenth(isna)))
+	end
+	S = sum(rhos)
+	scale!(S, x.nobs/x.df_residual)
+	sandwich(x, S) 
+end
+
+function lag(x::Array, n::Int, time::Vector) 
+	index = findin(time - n, time)
+	lagx = DataArray(eltype(x), dim(x))
+	lagx[index] = x[index]
+	return(lagx)
 end
 
 #
-# Robust
+# Cluster
 #
 
-function vcov_robust(x::AbstractVcovModel)
-	X2 = broadcast(*,  x.X, x.residuals)
-	scale = At_mul_B(X2, X2)
-	sandwich(x, scale) * (x.nobs/x.df_residual)
+immutable type VceCluster  <: AbstractVce
+	clusters::Vector{Symbol}
+end
+VceCluster(x::Symbol) = VceCluster([x])
+
+allvars2(x::VceCluster) = x.clusters
+# Cameron, Gelbach, & Miller (2011).
+function StatsBase.vcov(x::AbstractVceModel, v::VceCluster, df::DataFrame) 
+	df = df[v.clusters]
+	S = fill(zero(Float64), (size(x.X, 2), size(x.X, 2)))
+	for i in 1:length(v.clusters)
+		for c in combinations(v.clusters, i)
+			if rem(length(c), 2) == 1
+				S += helper_cluster(x, group(df[c]))
+			else
+				S -= helper_cluster(x, group(df[c]))
+			end
+		end
+	end
+	scale!(S, (x.nobs - 1) / x.df_residual)
+	sandwich(x, S)
 end
 
-
-#
-# clustered
-#
-
-function vcov_within(x::AbstractVcovModel, f::PooledDataArray)
+function helper_cluster(x::AbstractVceModel, f::PooledDataArray)
 	X = x.X
 	residuals = x.residuals
 	pool = f.pool
 	refs = f.refs
-	X2 = fill(zero(Float64), (size(X, 2), length(f.pool)))
-	for j in 1:size(X, 2)
-		for i in 1:size(X, 1)
-			X2[j, refs[i]] += X[i, j] * residuals[i]
-		end
-	end
-	A_mul_Bt(X2, X2)
-end
 
-
-function vcov_cluster(x::AbstractVcovModel, f::PooledDataArray)
-	scale = vcov_within(x, f)
-	out = sandwich(x, scale)
-	scale!(out, length(f.pool) / (length(f.pool) - 1) * (x.nobs - 1) / x.df_residual)
-end
-function vcov_cluster(x::AbstractVcovModel, f1::PooledDataArray, f2::PooledDataArray)
-	Xf1 = vcov_within(x, f1)
-	Xf2 = vcov_within(x, f2)
-	Xf3 = vcov_within(x, group(DataFrame(f1 = f1, f2 = f2)))
-	scale = Xf1 + Xf2 - Xf3
-	# not sure what df is
-	sandwich(x, scale)
-end
-function vcov_cluster(x::AbstractVcovModel, df::AbstractDataFrame) 
-	if size(df, 2) == 1
-		vcov_cluster(x, df[1])
-	elseif size(df, 2) == 2
-		vcov_cluster(x, df[1], df[2])
+	# if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
+	if length(pool) == size(X, 1)
+		Xu = broadcast(*,  x.X, x.residuals)
+		At_mul_B(Xu, Xu)
+		return(At_mul_B(Xu, Xu))
 	else
-		error("Can't compute > 2 clusters")
+		# otherwise
+		X2 = fill(zero(Float64), (size(X, 2), length(f.pool)))
+		for j in 1:size(X, 2)
+			for i in 1:size(X, 1)
+				X2[j, refs[i]] += X[i, j] * residuals[i]
+			end
+		end
+		out = A_mul_Bt(X2, X2)
+		scale!(out, length(pool) / length(pool - 1))
+		return(out)
 	end
 end
-
-
-# Support for LinearModel
-VcovModel(x::LinearModel) = VcovModelH(x.pp.X, residuals(x), inv(cholfact(x)))
-vcov_robust(x::LinearModel) = vcov_robust(VcovModelH(x))
-vcov_cluster(x::LinearModel, f::PooledDataArray) = vcov_cluster(VcovModel(x), f)
-vcov_cluster(x::LinearModel, df::AbstractDataFrame) = vcov_cluster(VcovModel(x), df)
-vcov_cluster(x::LinearModel, f1::PooledDataArray, f2::PooledDataArray) = vcov_cluster(VcovModel(x), f1, f2)
 
 
 

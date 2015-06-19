@@ -1,71 +1,98 @@
-using DataFrames, GLM
+using DataFrames, StatsBase
 
 
 
 
-function areg(f::Formula, df::AbstractDataFrame, absorb::Formula, cluster::Formula = nothing)
+function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
 	
-	# get all variables present in f or absorb (except nothing)
-	clustervars = setdiff(unique(DataFrames.allvars(cluster)), [:nothing])
-	absorbvars = setdiff(unique(DataFrames.allvars(absorb)), [:nothing])
-	regvars = setdiff(unique(DataFrames.allvars(f)), [:nothing])
-	allvars = unique([clustervars, absorbvars, regvars])
-	esample = complete_cases(df[allvars])
+	# get all variables
+	t = DataFrames.Terms(f)
+	if t.terms[1].args[1] == :|
+		hasfe = true
 
+		absorbexpr =  t.terms[1].args[3]
+		absorbf = Formula(nothing, absorbexpr)
+		absorbvars = unique(DataFrames.allvars(absorbexpr))
+
+		rexpr =  t.terms[1].args[2]
+		rf = Formula(f.lhs, rexpr)
+		rvars = unique(DataFrames.allvars(rf))
+	else
+		rf = f
+		rvars =  unique(DataFrames.allvars(f))
+		absorbvars = nothing
+	end
+	rt = DataFrames.Terms(rf)
+
+	vcevars = allvars2(vce)
+	allvars = setdiff(vcat(vcevars, absorbvars, rvars), [nothing])
+	allvars = unique(convert(Vector{Symbol}, allvars))
+
+	# construct df without NA for all variables
+	esample = complete_cases(df[allvars])
 	df = df[esample, allvars]
 	for v in allvars
 		dropUnusedLevels!(df[v])
 	end
 
-	# construct an array of factors
-	factors = AbstractFe[]
-	for a in DataFrames.Terms(absorb).terms
-		push!(factors, construct_fe(df, a))
+
+	# pre demean if fe
+	if  hasfe
+		# construct an array of factors
+		factors = AbstractFe[]
+		for a in DataFrames.Terms(absorbf).terms
+			push!(factors, construct_fe(df, a))
+		end
+
+		# in case where only interacted fixed effect,  add constant
+		if all(map(z -> typeof(z) <: FeInteracted, factors))
+			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1)))))
+		end
+
+		# demean each vector sequentially
+		for x in rvars
+			df[x] =  demean_vector(df, factors, df[x])
+		end
+
+		# Removing intercept 
+		rt = deepcopy(rt)
+		rt.intercept = false
 	end
 
-	# in case where only interacted fixed effect,  add constant
-	if all(map(z -> typeof(z) <: FeInteracted, factors))
-		push!(factors, Fe(PooledDataArray(fill(1, size(df, 1)))))
-	end
-	
-	# demean each vector sequentially
-	for x in DataFrames.allvars(f)
-		df[x] =  demean_vector(df, factors, df[x])
-	end
 
-	# Estimate linear model after removing intercept 
-	terms = DataFrames.Terms(f)
-	terms_rm = deepcopy(terms)
-	terms_rm.intercept = false
-
-	mf = ModelFrame(terms_rm, df)
+	mf = ModelFrame(rt, df)
 	mm = ModelMatrix(mf)
-
 	coefnames = DataFrames.coefnames(mf)
 
 	y = model_response(mf)
 	X = mm.m
 	H = At_mul_B(X, X)
 	H = inv(cholfact!(H))
-	beta = H * (X' * y)
-	residuals  = y - X * beta
+	coef = H * (X' * y)
+	residuals  = y - X * coef
 
     # standard error
     df_fe = 0
-    for f in factors
-    	df_fe += in(f.name, clustervars) ? 0 : length(f.size)
+    if hasfe 
+    	for f in factors
+    		df_fe += (typeof(vce) == VceCluster && in(f.name, vcevars)) ? 0 : length(f.size)
+    	end
+    end
+
+
+    if hasfe && typeof(vce) == VceCluster
+    	for f in factors
+    		df_fe += in(f.name, vcevars) ? 0 : length(f.size)
+    	end
     end
     nobs = size(X, 1)
     df_residual = size(X, 1) - size(X, 2) - df_fe
-    vcovmodel = VcovModelH(X, H, residuals, df_residual, nobs)
-    if isequal(cluster, nothing)
-    	vcov = vcov(vcovmodel)
-    else
-	    vcov = vcov_cluster(vcovmodel, df[[clustervars]])
-	end
+    vcovmodel = VceModelH(X, H, residuals, df_residual, nobs)
+	vcov = StatsBase.vcov(vcovmodel, vce, df)
+
 
     # Output object
-    RegressionResult(beta, vcov, coefnames, terms.eterms[1], nobs, df_residual, esample, terms_rm)
+    RegressionResult(coef, vcov, coefnames, rt.eterms[1], nobs, df_residual, esample, t)
 end
 
 

@@ -1,12 +1,18 @@
 module FixedEffectModels
+import StatsBase: coef, nobs, coeftable, vcov
 
-export group, demean!, demean, areg, regife, RegressionResult
+
+export group, demean!, demean, reg, regife, RegressionResult, AbstractVCE, VceSimple, VceWhite, VceHac, VceCluster
+
+include("utils.jl")
 
 include("algo.jl")
+
 include("vcov.jl")
 
 include("areg.jl")
 include("demean.jl")
+
 include("regife.jl")
 
 include("group.jl")
@@ -57,7 +63,7 @@ function Base.show(io::IO, x::RegressionResult)
 	print("\n")
 	print(      "Dependent variable:        $(x.yname)\n")
 	@printf(io, "Number of obs:             %u\n", x.nobs)
-	@printf(io, "Degree of freedom:         %u\n", x.nobs-x.def_residual)
+	@printf(io, "Degree of freedom:         %u\n", x.nobs-x.df_residual)
 	print("\n")
 	show(coeftable(x))
 end
