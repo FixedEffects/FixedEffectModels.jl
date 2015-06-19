@@ -42,7 +42,7 @@ reg(Sales ~ NDI, df, VceCluster([:State, :Year]))
 
 ```
 
-For now, `vceSimple()` (default), `vceWhite()` and `vceCluster(cols)` are implemented.
+For now, `VceSimple()` (default), `VceWhite()` and `VceCluster(cols)` are implemented.
 
 You can define your own type: After declaring it as a child of `AbstractVce`, define a `vcov` methods for it.
 
