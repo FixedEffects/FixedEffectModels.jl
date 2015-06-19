@@ -46,7 +46,8 @@ end
 # An AbstractVCE  should have two methods: allvars that returns variables needed in the dataframe, and vcov, that returns a covariance matrix
 abstract AbstractVce
 DataFrames.allvars(x::AbstractVce) = nothing
-StatsBase.vcov(x::AbstractVce) = error("not defined")
+StatsBase.vcov(x::AbstractVceModel, v::AbstractVce) = error("not defined")
+StatsBase.vcov(x::AbstractVceModel, v::AbstractVce, df::AbstractDataFrame) = StatsBase.vcov(x::AbstractVceModel, v::AbstractVce)
 
 
 immutable type VceSimple <: AbstractVce 
@@ -65,8 +66,6 @@ function StatsBase.vcov(x::AbstractVceModel, t::VceSimple)
  	hatmatrix(x) * (sum(StatsBase.residuals(x).^2)/  df_residual(x))
 end
 
-StatsBase.vcov(x::AbstractVceModel, t::VceSimple, df) = StatsBase.vcov(x, t)
-
 
 #
 # White
@@ -76,7 +75,7 @@ StatsBase.vcov(x::AbstractVceModel, t::VceSimple, df) = StatsBase.vcov(x, t)
 immutable type VceWhite <: AbstractVce 
 end
 
-function StatsBase.vcov(x::AbstractVceModel, t::VceWhite, df::AbstractDataFrame) 
+function StatsBase.vcov(x::AbstractVceModel, t::VceWhite) 
 	Xu = broadcast(*,  regressors(x), StatsBase.residuals(x))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(x)/df_residual(x))
