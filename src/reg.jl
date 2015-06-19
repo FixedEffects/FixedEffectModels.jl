@@ -7,9 +7,8 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
 	
 	# get all variables
 	t = DataFrames.Terms(f)
-	if t.terms[1].args[1] == :|
+	if (typeof(t.terms[1]) == Expr) && t.terms[1].args[1] == :|
 		hasfe = true
-
 		absorbexpr =  t.terms[1].args[3]
 		absorbf = Formula(nothing, absorbexpr)
 		absorbvars = unique(DataFrames.allvars(absorbexpr))
@@ -18,6 +17,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple())
 		rf = Formula(f.lhs, rexpr)
 		rvars = unique(DataFrames.allvars(rf))
 	else
+		hasfe = false
 		rf = f
 		rvars =  unique(DataFrames.allvars(f))
 		absorbvars = nothing
