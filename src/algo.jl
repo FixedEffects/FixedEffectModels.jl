@@ -75,7 +75,7 @@ end
 # demean_vector_factor. This is the main algorithm
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
-function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+function demean_vector_factor(fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
 	w = fe.w
 	@simd for i in 1:length(ans)
@@ -89,7 +89,7 @@ function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Floa
     end
 end
 
-function demean_vector_factor(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+function demean_vector_factor(fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
 	x = fe.x
 	w = fe.w
@@ -109,8 +109,7 @@ end
 # demean_vector applieds demean_vector_factor repeatedly and stop when convergence
 #
 
-function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVector)
-
+function demean_vector(fes::Vector{AbstractFe}, x::DataVector)
 	max_iter = 1000
 	tolerance = ((1e-8 * length(x))^2)::Float64
 	delta = 1.0
@@ -123,7 +122,6 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 		dict1[fe] = zeros(Float64, length(fe.size))
 		dict2[fe] = 1.0 ./ fe.size
 	end
-
 	for iter in 1:max_iter
 		@simd for i in 1:length(x)
 			@inbounds oldans[i] = ans[i]
@@ -132,7 +130,7 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 	    	mean = dict1[fe]
 	    	scale = dict2[fe]
 	    	fill!(mean, 0.0)
-	    	demean_vector_factor(df, fe, scale, mean,  ans)
+	    	demean_vector_factor(fe, scale, mean,  ans)
 		end
 	    delta =  sqeuclidean(ans, oldans)
 	    if delta < tolerance

@@ -1,4 +1,4 @@
-using FixedEffectModels, RDatasets, DataArrays, DataFrames
+using FixedEffectModels, RDatasets, DataFrames
 using Base.Test
 # values checked from reghdfe
 df = dataset("plm", "Cigar")

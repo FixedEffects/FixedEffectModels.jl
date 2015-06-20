@@ -20,7 +20,7 @@ function helper_demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vec
 	
 	# demean each vector sequentially
 	for x in cols
-		out[condition, x] =  demean_vector(subdf, factors, subdf[x])
+		out[condition, x] =  demean_vector(factors, subdf[x])
 		out[!condition, x] = NA
 	end
 

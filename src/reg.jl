@@ -26,7 +26,6 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	vcevars = DataFrames.allvars(vce)
 	allvars = setdiff(vcat(rvars, absorbvars, vcevars, weight), [nothing])
 	allvars = unique(convert(Vector{Symbol}, allvars))
-	print(allvars)
 	# construct df without NA for all variables
 	esample = complete_cases(df[allvars])
 	df = df[esample, allvars]
@@ -59,13 +58,13 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		# demean each vector sequentially
 		for x in rvars
 			if weight == nothing
-				df[x] =  demean_vector(df, factors, df[x])
+				df[x] =  demean_vector(factors, df[x])
 			else
 				dfx = df[x]
 				for i in 1:length(dfx)
 					@inbounds dfx[i] *= sqrtw[i]
 				end
-				df[x] =  demean_vector(df, factors, dfx) 
+				df[x] =  demean_vector(factors, dfx) 
 				for i in 1:length(dfx)
 					@inbounds dfx[i] /= sqrtw[i]
 				end
