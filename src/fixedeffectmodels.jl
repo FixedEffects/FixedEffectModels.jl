@@ -3,7 +3,12 @@ import StatsBase: coef, nobs, coeftable, vcov, residuals, var
 import GLM: df_residual
 import DataFrames: allvars, Terms
 import Distributions: TDist
-export group, demean!, demean, reg, regife, RegressionResult, AbstractVCE, VceSimple, VceWhite, VceHac, VceCluster
+
+export group, demean!, demean, reg, regife,
+# export type
+RegressionResult,
+AbstractVce, VceSimple, VceWhite, VceHac, VceCluster,
+AbstractVceData, VceData, VceDataHat
 
 include("utils.jl")
 
@@ -55,9 +60,8 @@ function StatsBase.coeftable(x::RegressionResult)
 	se = stderr(x)
 	tt = cc ./ se
 	coefnames = x.coefnames
-	if "(Intercept)" in coefnames
-		i = findin("(Intercept)", coefnames)
-		index = vcat(setdiff(1:length(cc), i), i)
+	if coefnames[1] == symbol("(Intercept)") 
+		index = vcat(2:length(cc), 1)
 		cc = cc[index]
 		se = se[index]
 		coefnames = coefnames[index]

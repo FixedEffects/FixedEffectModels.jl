@@ -164,7 +164,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 
 
 	# standard error
-	vcovmodel = VceModelHat(X, H, residuals,  nobs, df_residual)
+	vcovmodel = VceDataHat(X, H, residuals,  nobs, df_residual)
 	vcov = StatsBase.vcov(vcovmodel, vce, df)
 	
 
