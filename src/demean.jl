@@ -1,7 +1,7 @@
 using DataFrames, DataArrays
 
 
-function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
+function helper_demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 	
 	# construct subdataframe wo NA
 	condition = complete_cases(df)
@@ -27,19 +27,7 @@ function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Sym
 	out
 end
 
-function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
-	demean!(df, df, cols, absorb)
-end
-
-function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
-	out = DataFrame(Float64, size(df, 1), length(cols))
-	names!(out, cols)
-	demean!(out, df, cols, absorb)
-	out
-end
-
-
-function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol})
+function helper_demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol})
 	# construct subdataframe wo NA
 	condition = complete_cases(df)
 	subdf = sub(df, condition)
@@ -50,14 +38,29 @@ function demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Sym
 	return(out)
 end
 
+#
+# Exported function
+#
+
+function demean!(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
+	helper_demean!(df, df, cols, absorb)
+end
+
+function demean(df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
+	out = DataFrame(Float64, size(df, 1), length(cols))
+	names!(out, cols)
+	helper_demean!(out, df, cols, absorb)
+	out
+end
+
 function demean!(df::AbstractDataFrame, cols::Vector{Symbol})
-	demean!(df, df, cols)
+	helper_demean(df, df, cols)
 end
 
 function demean(df::AbstractDataFrame, cols::Vector{Symbol})
 	out = DataFrame(Float64, size(df, 1), length(cols))
 	names!(out, cols)
-	demean!(out, df, cols)
+	helper_demean!(out, df, cols)
 end
 
 

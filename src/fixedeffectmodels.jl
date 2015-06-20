@@ -1,7 +1,8 @@
 module FixedEffectModels
-import StatsBase: coef, nobs, coeftable, vcov, residuals
+import StatsBase: coef, nobs, coeftable, vcov, residuals, var
 import GLM: df_residual
 import DataFrames: allvars
+import Distributions: TDist
 export group, demean!, demean, reg, regife, RegressionResult, AbstractVCE, VceSimple, VceWhite, VceHac, VceCluster
 
 include("utils.jl")
@@ -15,13 +16,16 @@ include("demean.jl")
 
 include("regife.jl")
 
-include("group.jl")
 
 # A light type for regression result
 type RegressionResult <: RegressionModel
 	coef
 	vcov
-	
+
+	r2
+	r2_a
+	F
+
 	coefnames
 	yname
 
@@ -49,14 +53,25 @@ end
 
 
 function StatsBase.coeftable(x::RegressionResult) 
-    cc = coef(x)
-    se = stderr(x)
-    tt = cc ./ se
-    coefnames = x.coefnames
-    CoefTable(hcat(cc,se,tt,ccdf(FDist(1, df_residual(x)), abs2(tt))),
-              ["Estimate","Std.Error","t value", "Pr(>|t|)"],
+	cc = coef(x)
+	se = stderr(x)
+	tt = cc ./ se
+	coefnames = x.coefnames
+	if "(Intercept)" in coefnames
+		i = findin("(Intercept)", coefnames)
+		index = vcat(setdiff(1:length(cc), i), i)
+		cc = cc[index]
+		se = se[index]
+		coefnames = coefnames[index]
+	end
+   
+    scale = quantile(TDist(df_residual(x)), 1 - (1-0.95)/2)
+    CoefTable(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), cc -  scale * se, cc + scale * se),
+              ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
               ["$(coefnames[i])" for i = 1:length(cc)], 4)
 end
+
+
 
 
 function Base.show(io::IO, x::RegressionResult) 
@@ -64,6 +79,9 @@ function Base.show(io::IO, x::RegressionResult)
 	print(      "Dependent variable:        $(x.yname)\n")
 	@printf(io, "Number of obs:             %u\n", x.nobs)
 	@printf(io, "Degree of freedom:         %u\n", x.nobs-x.df_residual)
+	@printf(io, "R2:                        %f\n", x.r2)
+	@printf(io, "R2 adjusted:               %f\n", x.r2_a)
+	@printf(io, "F Statistics:              %f\n", x.F)
 	print("\n")
 	show(coeftable(x))
 end

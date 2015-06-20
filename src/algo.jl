@@ -6,46 +6,53 @@ using DataFrames, DataArrays, Distances
 
 abstract AbstractFe
 
-immutable type Fe{R <: Integer} <: AbstractFe
+immutable type Fe{R} <: AbstractFe
+	refs::Vector{R}
+	w::Vector{Float64}
+	size::Vector{Float64}
 	name::Symbol
-	size::Vector{Uint64}  # store the length of each group
-	refs::Vector{R} # associates to each row a group
 end
 
-immutable type FeInteracted{R <: Integer} <: AbstractFe
-	name::Symbol
-	size::Vector{Float64}  # store the sum of x^2 in each group
-	refs::Vector{R} # associates to each row a group
-	xname::Symbol
+immutable type FeInteracted{R} <: AbstractFe
+	refs::Vector{R}
+	w::Vector{Float64}
+	size::Vector{Float64}
 	x::Vector{Float64} # the continuous interaction 
+	name::Symbol
+	xname::Symbol
 end
 
 
-function clean_fe(f::PooledDataArray)
-    size = Array(Uint64, length(f.pool))
-    fill!(size, 0)
+function Fe(f::PooledDataArray, w::Vector{Float64}, name::Symbol)
+	scale = fill(zero(Float64), length(f.pool))
     refs = f.refs
     for i in 1:length(refs)
-    	size[refs[i]] += 1
+    	scale[refs[i]] += w[i]^2 
     end
-    (size, refs)
+    Fe(refs, w, scale, name)
+end
+
+function FeInteracted(f::PooledDataArray, w::Vector{Float64}, x::Vector{Float64}, name::Symbol, xname::Symbol)
+	scale = fill(zero(Float64), length(f.pool))
+    refs = f.refs
+    for i in 1:length(refs)
+    	scale[refs[i]] += (x[i] * w[i])^2 
+    end
+    FeInteracted(refs, w, scale, x, name, xname)
 end
 
 
-
-
-function construct_fe(df::AbstractDataFrame, a::Expr)
+function construct_fe(df::AbstractDataFrame, a::Expr, w::Vector{Float64})
 	if a.args[1] == :&
 		if (typeof(df[a.args[2]]) <: PooledDataArray) & !(typeof(df[a.args[3]]) <: PooledDataArray)
 			f = df[a.args[2]]
 			x = convert(Vector{Float64}, df[a.args[3]])
-			(size, refs) = clean_fe(f)
-			FeInteracted(a.args[2], size, refs, a.args[3], x)
+			FeInteracted(f, w, x, a.args[2], a.args[3])
+
 		elseif (typeof(df[a.args[3]]) <: PooledDataArray) & !(typeof(df[a.args[2]]) <: PooledDataArray)
 			f = df[a.args[3]]
 			x = convert(Vector{Float64}, df[a.args[2]])
-			(size, refs) = clean_fe(f)
-			FeInteracted(a.args[3], size, refs, a.args[2], x)
+			FeInteracted(f, w, x, a.args[3], a.args[2])
 		else
 			error("& is not of the form factor & nonfactor")
 		end
@@ -54,11 +61,10 @@ function construct_fe(df::AbstractDataFrame, a::Expr)
 	end
 end
 
-function construct_fe(df::AbstractDataFrame, a::Symbol)
+function construct_fe(df::AbstractDataFrame, a::Symbol, w::Vector{Float64})
 	if typeof(df[a]) <: PooledDataArray
 		f = df[a]
-		(size, refs) = clean_fe(f)
-		Fe(a, size, refs)
+		Fe(f, w, a)
 	else
 		error("$(a) is not a pooled data array")
 	end
@@ -69,33 +75,34 @@ end
 # demean_vector_factor. This is the main algorithm
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
-
 function demean_vector_factor(df::AbstractDataFrame, fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
+	w = fe.w
 	@simd for i in 1:length(ans)
-		@inbounds mean[refs[i]] += ans[i]
+		@inbounds mean[refs[i]] += ans[i] * w[i]
     end
 	@simd for i in 1:length(scale)
 		 @inbounds mean[i] = mean[i] * scale[i] 
     end
 	@simd for i in 1:length(ans)
-		@inbounds ans[i] += - mean[refs[i]]
+		@inbounds ans[i] -= mean[refs[i]] * w[i]
     end
 end
 
 function demean_vector_factor(df::AbstractDataFrame, fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
 	refs = fe.refs
+	x = fe.x
+	w = fe.w
 	@simd for i in 1:length(ans)
-		@inbounds mean[refs[i]] += ans[i] * fe.x[i]
+		@inbounds mean[refs[i]] += ans[i] * x[i] * w[i]
     end
 	@simd for i in 1:length(scale)
 		 @inbounds mean[i] = mean[i] * scale[i] 
     end
 	@simd for i in 1:length(ans)
-		@inbounds ans[i] += - mean[refs[i]] * fe.x[i]
+		@inbounds ans[i] -= mean[refs[i]] * x[i] * w[i]
     end
 end
-
 
 
 #
@@ -103,6 +110,7 @@ end
 #
 
 function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVector)
+
 	max_iter = 1000
 	tolerance = ((1e-8 * length(x))^2)::Float64
 	delta = 1.0
@@ -115,6 +123,7 @@ function demean_vector(df::AbstractDataFrame, fes::Vector{AbstractFe}, x::DataVe
 		dict1[fe] = zeros(Float64, length(fe.size))
 		dict2[fe] = 1.0 ./ fe.size
 	end
+
 	for iter in 1:max_iter
 		@simd for i in 1:length(x)
 			@inbounds oldans[i] = ans[i]
