@@ -6,17 +6,17 @@ using DataFrames, StatsBase
 function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool)
 	ess = zero(Float64)
 	@simd for i in 1:length(residuals)
-    	@inbounds ess += residuals[i]^2
+		@inbounds ess += residuals[i]^2
 	end
 	tss = zero(Float64)
-    if hasintercept
-    	m = mean(y)::Float64
-    	@simd for i in 1:length(y)
-	    	@inbounds tss += (y[i] - m)^2
-		end
-	else
+	if hasintercept
+		m = mean(y)::Float64
 		@simd for i in 1:length(y)
-	    	@inbounds tss += y[i]^2
+			@inbounds tss += (y[i] - m)^2
+		end
+		else
+		@simd for i in 1:length(y)
+			@inbounds tss += y[i]^2
 		end
 	end
 	(ess, tss)
@@ -25,18 +25,18 @@ end
 function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, w::Vector{Float64}, sqrtw::Vector{Float64})
 	ess = zero(Float64)
 	@simd for i in 1:length(residuals)
-    	@inbounds ess += residuals[i]^2
+		@inbounds ess += residuals[i]^2
 	end
 	tss = zero(Float64)
-    if hasintercept
-    	m = mean(y)::Float64
-    	m = (m / sum(sqrtw) * nobs)::Float64
-    	@simd for i in 1:length(y)
-	    	@inbounds tss += (y[i] - sqrtw[i] * m)^2
-		end
-	else
+	if hasintercept
+		m = mean(y)::Float64
+		m = (m / sum(sqrtw) * nobs)::Float64
 		@simd for i in 1:length(y)
-	    	@inbounds tss += y[i]^2
+			@inbounds tss += (y[i] - sqrtw[i] * m)^2
+		end
+		else
+		@simd for i in 1:length(y)
+			@inbounds tss += y[i]^2
 		end
 	end
 	(ess, tss)
@@ -134,42 +134,42 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	H = inv(cholfact!(H))
 	coef = H * (X' * y)
 	residuals  = (y - X * coef)
- 
 
-    # compute degree of freedom
-    df_fe = 0
-    if hasfe 
-    	for f in factors
-    		df_fe += (typeof(vce) == VceCluster && in(f.name, vcevars)) ? 0 : length(f.size)
-    	end
-    end
-    if hasfe && typeof(vce) == VceCluster
-    	for f in factors
-    		df_fe += in(f.name, vcevars) ? 0 : length(f.size)
-    	end
-    end
-    nobs = size(X, 1)
-    df_residual = size(X, 1) - size(X, 2) - df_fe 
-    
 
-    # compute ess, tss, r2, r2 adjusted, F
-    if weight == nothing
-    	(ess, tss) = compute_ss(residuals, y, rt.intercept)
+	# compute degree of freedom
+	df_fe = 0
+	if hasfe 
+		for f in factors
+			df_fe += (typeof(vce) == VceCluster && in(f.name, vcevars)) ? 0 : length(f.size)
+		end
+	end
+	if hasfe && typeof(vce) == VceCluster
+		for f in factors
+			df_fe += in(f.name, vcevars) ? 0 : length(f.size)
+		end
+	end
+	nobs = size(X, 1)
+	df_residual = size(X, 1) - size(X, 2) - df_fe 
+
+
+	# compute ess, tss, r2, r2 adjusted, F
+	if weight == nothing
+		(ess, tss) = compute_ss(residuals, y, rt.intercept)
 	else
 		(ess, tss) = compute_ss(residuals, y, rt.intercept, w, sqrtw)
 	end
-    r2 = 1 - ess / tss 
-    r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
-    F = (tss - ess) / ((nobs - df_residual - rt.intercept) * ess/df_residual)
+	r2 = 1 - ess / tss 
+	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
+	F = (tss - ess) / ((nobs - df_residual - rt.intercept) * ess/df_residual)
 
 
-    # standard error
-    vcovmodel = VceModelHat(X, H, residuals,  nobs, df_residual)
+	# standard error
+	vcovmodel = VceModelHat(X, H, residuals,  nobs, df_residual)
 	vcov = StatsBase.vcov(vcovmodel, vce, df)
 	
 
-    # Output object
-    RegressionResult(coef, vcov, r2, r2_a, F,  coefnames, rt.eterms[1], nobs, df_residual, esample, t)
+	# Output object
+	RegressionResult(coef, vcov, r2, r2_a, F,  coefnames, rt.eterms[1], nobs, df_residual, esample, t)
 end
 
 
