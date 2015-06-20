@@ -3,6 +3,46 @@ using DataFrames, StatsBase
 
 
 
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool)
+	ess = zero(Float64)
+	@simd for i in 1:length(residuals)
+    	@inbounds ess += residuals[i]^2
+	end
+	tss = zero(Float64)
+    if hasintercept
+    	m = mean(y)::Float64
+    	@simd for i in 1:length(y)
+	    	@inbounds tss += (y[i] - m)^2
+		end
+	else
+		@simd for i in 1:length(y)
+	    	@inbounds tss += y[i]^2
+		end
+	end
+	(ess, tss)
+end
+
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, w::Vector{Float64}, sqrtw::Vector{Float64})
+	ess = zero(Float64)
+	@simd for i in 1:length(residuals)
+    	@inbounds ess += residuals[i]^2
+	end
+	tss = zero(Float64)
+    if hasintercept
+    	m = mean(y)::Float64
+    	m = (m / sum(sqrtw) * nobs)::Float64
+    	@simd for i in 1:length(y)
+	    	@inbounds tss += (y[i] - sqrtw[i] * m)^2
+		end
+	else
+		@simd for i in 1:length(y)
+	    	@inbounds tss += y[i]^2
+		end
+	end
+	(ess, tss)
+end
+
+
 function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); weight::Union(Symbol, Nothing) = nothing)
 	
 	# get all variables
@@ -22,7 +62,6 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		absorbvars = nothing
 	end
 	rt = DataFrames.Terms(rf)
-
 	vcevars = DataFrames.allvars(vce)
 	allvars = setdiff(vcat(rvars, absorbvars, vcevars, weight), [nothing])
 	allvars = unique(convert(Vector{Symbol}, allvars))
@@ -33,6 +72,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		dropUnusedLevels!(df[v])
 	end
 
+	# create weight vector
 	if weight == nothing
 		w = fill(one(Float64), size(df, 1))
 		sqrtw = w
@@ -42,7 +82,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		sqrtw = sqrt(w)
 	end
 
-	# pre demean if fe
+	# If high dimensional fixed effects, demean all variables
 	if  hasfe
 		# construct an array of factors
 		factors = AbstractFe[]
@@ -74,14 +114,16 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		rt = deepcopy(rt)
 		rt.intercept = false
 	end
+
+	# Estimate usual regression model
 	df1 = DataFrame(map(x -> df[x], rt.eterms))
 	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
 	mf = ModelFrame(df1, rt, esample)
 	mm = ModelMatrix(mf)
 	coefnames = DataFrames.coefnames(mf)
 
-	y = model_response(mf)
-	X = mm.m
+	y = model_response(mf)::Vector{Float64}
+	X = mm.m::Matrix{Float64}
 	if weight != nothing
 		X = broadcast!(*, X, X, sqrt(w))
 		for i in 1:length(y)
@@ -91,9 +133,10 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	H = At_mul_B(X, X)
 	H = inv(cholfact!(H))
 	coef = H * (X' * y)
-	residuals  = (y - X * coef) 
+	residuals  = (y - X * coef)
+ 
 
-    # df
+    # compute degree of freedom
     df_fe = 0
     if hasfe 
     	for f in factors
@@ -109,33 +152,12 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
     df_residual = size(X, 1) - size(X, 2) - df_fe 
     
 
-    #ess, tss
-	ess = zero(Float64)
-	for i in 1:length(residuals)
-    	ess += residuals[i]^2
+    # compute ess, tss, r2, r2 adjusted, F
+    if weight == nothing
+    	(ess, tss) = compute_ss(residuals, y, rt.intercept)
+	else
+		(ess, tss) = compute_ss(residuals, y, rt.intercept, w, sqrtw)
 	end
-	tss = zero(Float64)
-    if rt.intercept
-    	m = mean(y)
-    	if weight == nothing
-	    	for i in 1:length(residuals)
-		    	@inbounds tss += (y[i] - m)^2
-			end
-	    else
-	    	m = m / sum(sqrtw) * nobs
-	    	for i in 1:length(residuals)
-		    	@inbounds tss += (y[i] - sqrtw[i] * m)^2
-			end
-			tss = tss
-		end
-    else
-    	for i in 1:length(residuals)
-	    	@inbounds tss += y[i]^2
-		end
-    end
-
-
-    # r2, r2 adjusted, F
     r2 = 1 - ess / tss 
     r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
     F = (tss - ess) / ((nobs - df_residual - rt.intercept) * ess/df_residual)
@@ -145,14 +167,10 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
     vcovmodel = VceModelHat(X, H, residuals,  nobs, df_residual)
 	vcov = StatsBase.vcov(vcovmodel, vce, df)
 	
+
     # Output object
     RegressionResult(coef, vcov, r2, r2_a, F,  coefnames, rt.eterms[1], nobs, df_residual, esample, t)
 end
-
-
-
-
-
 
 
 

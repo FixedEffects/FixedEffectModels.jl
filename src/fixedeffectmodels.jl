@@ -7,7 +7,6 @@ export group, demean!, demean, reg, regife, RegressionResult, AbstractVCE, VceSi
 
 include("utils.jl")
 
-include("algo.jl")
 
 include("vcov.jl")
 
