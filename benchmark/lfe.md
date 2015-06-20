@@ -14,9 +14,9 @@ df = DataFrame(
   v4 =  randn(N) 
 )
 @time reg(v4~v3 | v1, df)
-# elapsed time: 0.666867215 seconds (269151632 bytes allocated, 23.04% gc time)
+# elapsed time: 0.746867215 seconds (245244128 bytes allocated, 20.77% gc time)
 @time reg(v4~v3 |(v1+v2), df)
-# elapsed time: 1.650180923 seconds (307684448 bytes allocated, 11.86% gc time)
+# elapsed time: 1.909417973 seconds (283775368 bytes allocated, 9.76% gc time)
 ````
 
 R (lfe package, C)

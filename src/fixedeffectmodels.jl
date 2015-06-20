@@ -1,7 +1,7 @@
 module FixedEffectModels
 import StatsBase: coef, nobs, coeftable, vcov, residuals, var
 import GLM: df_residual
-import DataFrames: allvars
+import DataFrames: allvars, Terms
 import Distributions: TDist
 export group, demean!, demean, reg, regife, RegressionResult, AbstractVCE, VceSimple, VceWhite, VceHac, VceCluster
 
@@ -16,24 +16,23 @@ include("demean.jl")
 include("regife.jl")
 
 
-# A light type for regression result
+# A light type for regression results
 type RegressionResult <: RegressionModel
-	coef
-	vcov
+	coef::Vector{Float64}
+	vcov::Matrix{Float64}
 
-	r2
-	r2_a
-	F
+	r2::Float64
+	r2_a::Float64
+	F::Float64
+	nobs::Int
+	df_residual::Int
 
-	coefnames
-	yname
+	coefnames::Vector{Symbol}
+	yname::Symbol
+	terms::DataFrames.Terms
 
-	nobs
-	df_residual
+	esample::Vector{Bool}
 
-	esample
-
-	terms
 end
 
 StatsBase.coef(x::RegressionResult) = x.coef

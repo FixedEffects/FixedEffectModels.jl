@@ -169,7 +169,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	
 
 	# Output object
-	RegressionResult(coef, vcov, r2, r2_a, F,  coefnames, rt.eterms[1], nobs, df_residual, esample, t)
+	RegressionResult(coef, vcov, r2, r2_a, F,  nobs, df_residual, coefnames, rt.eterms[1], t, esample)
 end
 
 
