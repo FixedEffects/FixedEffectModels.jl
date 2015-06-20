@@ -20,7 +20,6 @@ df[:Year] =  pool(df[:Year]
 reg(Sales ~ NDI | (State + Year), df)
 ```
 
-In the `DataFrames` package, the function `pool` transforms one column into a  `PooledDataArray`, the function `group` transforms multiple columns into a `PooledDataArray`.
 
 Add interactions with continuous variable using `&`
 
@@ -29,6 +28,9 @@ df = dataset("plm", "Cigar")
 df[:State] =  pool(df[:State]
 reg(Sales ~ NDI | (State + State&Year))
 ```
+
+
+To transform variables into PooledDataArray, use the function `pool` (to transform one column) or  `group` (to combine multiple columns).
 
 
 
@@ -60,15 +62,5 @@ function StatsBase.vcov(x::AbstractVceModel, t::VceWhite)
 	scale!(S, nobs(X)/df_residual(X))
 	sandwich(x, S) 
 end
-```
-
-## demean
-The function `demean` demeans columns with respect to fixed effects. 
-
-`demean!` replaces columns in the original dataset
-
-```julia
-df[:StateYear] = group(df[:State, :Year])
-demean(df, [:Sales], nothing ~ StateYear)
 ```
 
