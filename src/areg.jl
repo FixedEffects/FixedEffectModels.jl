@@ -1,27 +1,31 @@
 using DataFrames, StatsBase
 
 
-function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); weight::Union(Symbol, Nothing) = nothing)
-	
-	# get all variables
-	t = DataFrames.Terms(f)
-	hasfe = (typeof(t.terms[1]) == Expr) && t.terms[1].args[1] == :|
-	if hasfe
-		absorbexpr = t.terms[1].args[3]
-		absorbf = Formula(nothing, absorbexpr)
-		absorbvars = unique(DataFrames.allvars(absorbexpr))
+# define neutral vector
+immutable Ones <: AbstractVector{Float64}
+    dims::Int
+end
+Base.size(O::Ones) = (O.dims,)
+Base.getindex(O::Ones, I::Int...) = 1.0
 
-		rexpr = t.terms[1].args[2]
-		rf = Formula(f.lhs, rexpr)
-		rvars = unique(DataFrames.allvars(rf))
+
+function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); absorb::Vector = [nothing], weight::Union(Symbol, Nothing) = nothing)
+	# get all variables
+	rt = DataFrames.Terms(f)
+	vars = unique(DataFrames.allvars(f))
+	vcevars = DataFrames.allvars(vce)
+
+	hasfe = absorb != [nothing]
+	if hasfe
+		absorbvars = Symbol[]
+		for a in absorb
+			append!(absorbvars, DataFrames.allvars(a))
+		end
+		absobvars = unique(absorbvars)
 	else
-		rf = f
-		rvars = unique(DataFrames.allvars(f))
 		absorbvars = nothing
 	end
-	rt = DataFrames.Terms(rf)
-	vcevars = DataFrames.allvars(vce)
-	allvars = setdiff(vcat(rvars, absorbvars, vcevars, weight), [nothing])
+	allvars = setdiff(vcat(vars, absorbvars, vcevars, weight), [nothing])
 	allvars = unique(convert(Vector{Symbol}, allvars))
 	# construct df without NA for all variables
 	esample = complete_cases(df[allvars])
@@ -40,21 +44,21 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		sqrtw = sqrt(w)
 	end
 
+
 	# If high dimensional fixed effects, demean all variables
 	if hasfe
 		# construct an array of factors
 		factors = AbstractFe[]
-		for a in DataFrames.Terms(absorbf).terms
+		for a in absorb
 			push!(factors, construct_fe(df, a, sqrtw))
 		end
-
 		# in case where only interacted fixed effect, add constant
 		if all(map(z -> typeof(z) <: FeInteracted, factors))
 			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
 		end
 
 		# demean each vector sequentially
-		for x in rvars
+		for x in vars
 			if weight == nothing
 				df[x] = demean_vector(factors, df[x])
 			else
@@ -69,10 +73,8 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 			end
 		end
 		# Removing intercept 
-		rt = deepcopy(rt)
 		rt.intercept = false
 	end
-
 	# Estimate usual regression model
 	df1 = DataFrame(map(x -> df[x], rt.eterms))
 	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
@@ -126,8 +128,9 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	
 
 	# Output object
-	RegressionResult(coef, vcov, r2, r2_a, F, nobs, df_residual, coefnames, rt.eterms[1], t, esample)
+	RegressionResult(coef, vcov, r2, r2_a, F, nobs, df_residual, coefnames, rt.eterms[1], rt, esample)
 end
+
 
 
 

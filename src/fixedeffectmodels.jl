@@ -4,22 +4,19 @@ import GLM: df_residual
 import DataFrames: allvars, Terms
 import Distributions: TDist
 
-export group, demean!, demean, reg
+export group, demean!, demean, reg,
 # export type
 RegressionResult,
 AbstractVce, VceSimple, VceWhite, VceHac, VceCluster,
 AbstractVceData, VceData, VceDataHat,
-FactorModel
+AbsorbModel, FactorModel
 
 include("utils.jl")
-
-
 include("vcov.jl")
-
-include("reg.jl")
+include("areg.jl")
+include("regife.jl")
 include("demean.jl")
 
-include("regife.jl")
 
 
 # A type that stores light regression results
