@@ -26,8 +26,8 @@ end
 function Fe(f::PooledDataArray, w::Vector{Float64}, name::Symbol)
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
-	for i in 1:length(refs)
-		@inbounds scale[refs[i]] += w[i]^2 
+	@simd for i in 1:length(refs)
+		@inbounds scale[refs[i]] += abs2(w[i])
 	end
 	Fe(refs, w, scale, name)
 end
@@ -35,8 +35,8 @@ end
 function FeInteracted(f::PooledDataArray, w::Vector{Float64}, x::Vector{Float64}, name::Symbol, xname::Symbol)
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
-	for i in 1:length(refs)
-		@inbounds scale[refs[i]] += (x[i] * w[i])^2 
+	@simd for i in 1:length(refs)
+		@inbounds scale[refs[i]] += abs2((x[i] * w[i]))
 	end
 	FeInteracted(refs, w, scale, x, name, xname)
 end
@@ -140,19 +140,18 @@ end
 #
 # helper functions
 #
-
 function dropUnusedLevels!(f::PooledDataArray)
 	rr = f.refs
 	uu = unique(rr)
+	f.pool = uu
 	T = eltype(rr)
-	su = sort!(uu)
-	dict = Dict(su, map(x -> convert(T,x), 1:length(uu)))
-	f.refs = map(x -> dict[x], rr)
-	f.pool = f.pool[uu]
+	dict = Dict(uu, 1:convert(Uint32, length(uu)))
+	@simd for i in 1:length(rr)
+		@inbounds rr[i] = dict[rr[i]]
+	end
 	f
 end
-
-dropUnusedLevels!(f) = f
+dropUnusedLevels!(f::DataArray) = f
 
 function group(df::AbstractDataFrame; skipna = true) 
 	ncols = length(df)
@@ -203,6 +202,36 @@ group(df::AbstractDataFrame, cols::Vector; skipna = true) =  group(df[cols]; ski
 
 
 
+# compute rss and tss from vector of residual and response vector
+
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool)
+	ess = abs2(norm(residuals))
+	if hasintercept
+		tss = zero(Float64)
+		m = mean(y)::Float64
+		@simd for i in 1:length(y)
+			@inbounds tss += abs2((y[i] - m))
+		end
+	else
+		tss = abs2(norm(y))
+	end
+	(ess, tss)
+end
+
+
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, w::Vector{Float64}, sqrtw::Vector{Float64})
+	ess = abs2(norm(residuals))
+	if hasintercept
+		m = (mean(y) / sum(sqrtw) * nobs)::Float64
+		tss = zero(Float64)
+		@simd for i in 1:length(y)
+			@inbounds tss += abs2(y[i] - sqrtw[i] * m)
+		end
+	else
+		tss = abs2(norm(y))
+	end
+	(ess, tss)
+end
 
 
 

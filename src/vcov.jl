@@ -99,6 +99,7 @@ immutable type VceHac <: AbstractVce
 	weightfunction::Function
 end
 
+# default uses the Bartlett kernel 
 VceHac(time, nlag) = VceHac(time, nlag, (i, n) -> 1 - i/(n+1))
 
 DataFrames.allvars(x::VceHac) = x.time

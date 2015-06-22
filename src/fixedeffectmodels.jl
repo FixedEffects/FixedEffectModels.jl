@@ -8,7 +8,8 @@ export group, demean!, demean, reg, regife,
 # export type
 RegressionResult,
 AbstractVce, VceSimple, VceWhite, VceHac, VceCluster,
-AbstractVceData, VceData, VceDataHat
+AbstractVceData, VceData, VceDataHat,
+FactorModel
 
 include("utils.jl")
 
@@ -21,7 +22,7 @@ include("demean.jl")
 include("regife.jl")
 
 
-# A light type for regression results
+# A type that stores light regression results
 type RegressionResult <: RegressionModel
 	coef::Vector{Float64}
 	vcov::Matrix{Float64}
@@ -29,8 +30,8 @@ type RegressionResult <: RegressionModel
 	r2::Float64
 	r2_a::Float64
 	F::Float64
-	nobs::Int
-	df_residual::Int
+	nobs::Int64
+	df_residual::Int64
 
 	coefnames::Vector{Symbol}
 	yname::Symbol
@@ -60,13 +61,13 @@ function StatsBase.coeftable(x::RegressionResult)
 	se = stderr(x)
 	tt = cc ./ se
 	coefnames = x.coefnames
+	# put (intercept) last
 	if coefnames[1] == symbol("(Intercept)") 
-		index = vcat(2:length(cc), 1)
-		cc = cc[index]
-		se = se[index]
-		coefnames = coefnames[index]
+		newindex = vcat(2:length(cc), 1)
+		cc = cc[newindex]
+		se = se[newindex]
+		coefnames = coefnames[newindex]
 	end
-   
     scale = quantile(TDist(df_residual(x)), 1 - (1-0.95)/2)
     CoefTable(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), cc -  scale * se, cc + scale * se),
               ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],

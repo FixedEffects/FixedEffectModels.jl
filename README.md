@@ -1,42 +1,43 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffects.jl?branch=master)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffects.jl)
 
-The function `reg` estimates linear models. Compared to the Julia function `lm`, `reg`
-- computes robust standard errors (White or clustered)
-- estimates models with high dimensional fixed effects
-- returns a very light object (mainly coefficients and covariance matrix). 
+The function `reg` estimates linear models with high dimensional categorical variables. 
 
+
+`reg` computes robust standard errors (White or clustered) 
 It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R.
 
 ## Fixed effects
 
-Add (an arbitrary number of) fixed effects using `|`. Fixed effects must be of type PooledDataArray.
+Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` or  `group` to combine multiple columns into a `PooledDataArray`.
+
 
 ```julia
 df = dataset("plm", "Cigar")
-df[:State] =  pool(df[:State]
-reg(Sales ~ NDI | State, df)
-df[:Year] =  pool(df[:Year]
-reg(Sales ~ NDI | (State + Year), df)
+df[:pState] =  pool(df[:pState])
+df[:pState] =  pool(df[:pYear])
 ```
 
+Add fixed effects after the  `|` separation
+
+```julia
+reg(Sales ~ NDI | pState, df)
+# parenthesis when multiple fixed effects
+reg(Sales ~ NDI | (pState + pYear), df)
+```
 
 Add interactions with continuous variable using `&`
 
 ```julia
-df = dataset("plm", "Cigar")
-df[:State] =  pool(df[:State]
-reg(Sales ~ NDI | (State + State&Year))
+reg(Sales ~ NDI | (pState + pState&Year))
 ```
 
-
-To transform variables into PooledDataArray, use the function `pool` (to transform one column) or  `group` (to combine multiple columns).
 
 
 
 ## Errors
 
-Compute robust standard errors using a third argument
+Compute robust standard errors using elements of type `AbstractVce`. For now, `VceSimple()` (default), `VceWhite()` and `VceCluster(cols)` are implemented.
 
 ```julia
 reg(Sales ~ NDI, df,)
@@ -46,7 +47,6 @@ reg(Sales ~ NDI, df, VceCluster([:State, :Year]))
 
 ```
 
-For now, `VceSimple()` (default), `VceWhite()` and `VceCluster(cols)` are implemented.
 
 You can define your own type: After declaring it as a child of `AbstractVce`, define a `vcov` methods for it.
 
@@ -63,4 +63,7 @@ function StatsBase.vcov(x::AbstractVceModel, t::VceWhite)
 	sandwich(x, S) 
 end
 ```
+
+## Regression Result
+`reg` returns a very light object of type RegressionResult. It is only composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, etc.
 

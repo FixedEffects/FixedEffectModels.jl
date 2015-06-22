@@ -10,12 +10,12 @@ function helper_demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vec
 	# construct an array of factors
 	factors = AbstractFe[]
 	for a in DataFrames.Terms(absorb).terms
-		push!(factors, construct_fe(subdf, a))
+		push!(factors, construct_fe(subdf, a, sqrtw))
 	end
 
 	# case where only interacted fixed effect : add constant
 	if all(map(z -> typeof(z) <: FeInteracted, factors))
-		push!(factors, Fe(PooledDataArray(fill(1, size(subdf, 1)))))
+		push!(factors, Fe(PooledDataArray(fill(1, size(subdf, 1))), sqrtw, :cons))
 	end
 	
 	# demean each vector sequentially

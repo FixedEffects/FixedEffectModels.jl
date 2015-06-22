@@ -5,27 +5,27 @@
 Julia
 ```julia
 using DataArrays, DataFrames, FixedEffectModels
-N = 1000000
-K = 10000
+N = 10000000
+K = 100
 df = DataFrame(
-  v1 =  PooledDataArray(rand(1:N, N)),
+  v1 =  PooledDataArray(rand(1:N/K, N)),
   v2 =  PooledDataArray(rand(1:K, N)),
   v3 =  randn(N), 
   v4 =  randn(N) 
 )
 @time reg(v4~v3 | v1, df)
-# elapsed time: 0.746867215 seconds (245244128 bytes allocated, 20.77% gc time)
+elapsed time: 0.485013326 seconds (189237352 bytes allocated, 15.80% gc time)
 @time reg(v4~v3 |(v1+v2), df)
-# elapsed time: 1.909417973 seconds (283775368 bytes allocated, 9.76% gc time)
+# elapsed time: 1.398623511 seconds (194714280 bytes allocated, 8.86% gc time)
 ````
 
 R (lfe package, C)
 ```R
 library(lfe)
-N = 1000000
-K = N/100
-df = data_frame(
-  v1 =  as.factor(sample(N, N, replace = TRUE)),
+N = 10000000
+K = 100
+df = data.frame(
+  v1 =  as.factor(sample(N/K, N, replace = TRUE)),
   v2 =  as.factor(sample(K, N, replace = TRUE)),
   v3 =  runif(N), 
   v4 =  runif(N) 
