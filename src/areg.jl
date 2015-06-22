@@ -22,6 +22,7 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 			append!(absorbvars, DataFrames.allvars(a))
 		end
 		absobvars = unique(absorbvars)
+		rt.intercept = false
 	else
 		absorbvars = nothing
 	end
@@ -29,6 +30,10 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	allvars = unique(convert(Vector{Symbol}, allvars))
 	# construct df without NA for all variables
 	esample = complete_cases(df[allvars])
+	if weight != nothing
+		#remove_negweight!(esample, df[weight])
+		esample &= convert(BitArray{1}, df[weight] .> zero(eltype(df[weight])))
+	end
 	df = df[esample, allvars]
 	for v in allvars
 		dropUnusedLevels!(df[v])
@@ -44,6 +49,20 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		sqrtw = sqrt(w)
 	end
 
+	# Estimate usual regression model
+	df1 = DataFrame(map(x -> df[x], rt.eterms))
+	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
+	mf = ModelFrame(df1, rt, esample)
+	mm = ModelMatrix(mf)
+	coefnames = DataFrames.coefnames(mf)
+
+	y = model_response(mf)::Vector{Float64}
+	X = mm.m::Matrix{Float64}
+	
+	if weight != nothing
+		X = broadcast!(*, X, X, sqrtw)
+		multiplication_elementwise!(y, sqrtw)
+	end
 
 	# If high dimensional fixed effects, demean all variables
 	if hasfe
@@ -56,40 +75,21 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		if all(map(z -> typeof(z) <: FeInteracted, factors))
 			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
 		end
-
 		# demean each vector sequentially
-		for x in vars
+		if weight == nothing
+			y = demean_vector(factors, y)
+		else
+			y = demean_vector(factors, y) 
+		end
+		for j in size(X, 2)
 			if weight == nothing
-				df[x] = demean_vector(factors, df[x])
+				X[:, j] = demean_vector(factors, X[:, j])
 			else
-				dfx = df[x]
-				for i in 1:length(dfx)
-					@inbounds dfx[i] *= sqrtw[i]
-				end
-				df[x] = demean_vector(factors, dfx) 
-				for i in 1:length(dfx)
-					@inbounds dfx[i] /= sqrtw[i]
-				end
+				X[:, j] = demean_vector(factors, X[:, j]) 
 			end
 		end
-		# Removing intercept 
-		rt.intercept = false
 	end
-	# Estimate usual regression model
-	df1 = DataFrame(map(x -> df[x], rt.eterms))
-	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
-	mf = ModelFrame(df1, rt, esample)
-	mm = ModelMatrix(mf)
-	coefnames = DataFrames.coefnames(mf)
-
-	y = model_response(mf)::Vector{Float64}
-	X = mm.m::Matrix{Float64}
-	if weight != nothing
-		X = broadcast!(*, X, X, sqrt(w))
-		for i in 1:length(y)
-			@inbounds y[i] *= sqrtw[i] 
-		end
-	end
+	
 	H = At_mul_B(X, X)
 	H = inv(cholfact!(H))
 	coef = H * (X' * y)

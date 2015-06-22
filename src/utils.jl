@@ -105,12 +105,15 @@ function demean_vector_factor(fe::FeInteracted,  scale::Vector{Float64}, mean::V
 	return(ans)
 end
 
-function demean_vector(fes::Vector{AbstractFe}, x::DataVector)
-	max_iter = 1000
+function demean_vector(fes::Vector{AbstractFe}, x::Vector{Float64})
 	tolerance = ((1e-8 * length(x))^2)::Float64
 	delta = 1.0
-	ans = convert(Vector{Float64}, x)
-	oldans = similar(ans)
+	if length(fes) ==1 && typeof(fes[1]) <: Fe
+		max_iter = 1
+	else
+		max_iter = 1000
+	end
+	olx = similar(x)
 	# allocate array of means for each factor
 	dict1 = Dict{AbstractFe, Vector{Float64}}()
 	dict2 = Dict{AbstractFe, Vector{Float64}}()
@@ -120,20 +123,20 @@ function demean_vector(fes::Vector{AbstractFe}, x::DataVector)
 	end
 	for iter in 1:max_iter
 		@simd for i in 1:length(x)
-			@inbounds oldans[i] = ans[i]
+			@inbounds olx[i] = x[i]
 		end
 		for fe in fes
 			mean = dict1[fe]
 			scale = dict2[fe]
-			fill!(mean, 0.0)
-			demean_vector_factor(fe, scale, mean,  ans)
+			fill!(mean, zero(Float64))
+			demean_vector_factor(fe, scale, mean,  x)
 		end
-		delta = sqeuclidean(ans, oldans)
+		delta = sqeuclidean(x, olx)
 		if delta < tolerance
 			break
 		end
 	end
-	return(ans)
+	return(x)
 end
 
 
@@ -222,7 +225,7 @@ end
 function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, w::Vector{Float64}, sqrtw::Vector{Float64})
 	ess = abs2(norm(residuals))
 	if hasintercept
-		m = (mean(y) / sum(sqrtw) * nobs)::Float64
+		m = (mean(y) / sum(sqrtw) * length(residuals))::Float64
 		tss = zero(Float64)
 		@simd for i in 1:length(y)
 			@inbounds tss += abs2(y[i] - sqrtw[i] * m)
@@ -232,6 +235,27 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 	end
 	(ess, tss)
 end
+
+function remove_negweight!{R}(esample::BitArray{1}, w::DataVector{R})
+	@simd for (i in 1:length(w))
+		@inbounds esample[i] = esample[i] && (w[i] > zero(R))
+	end
+	esample
+end
+
+function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
+	@simd for i in 1:length(y)
+		@inbounds y[i] *= sqrtw[i] 
+	end
+end
+
+
+function division_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
+	@simd for i in 1:length(y)
+		@inbounds y[i] /= sqrtw[i] 
+	end
+end
+
 
 
 

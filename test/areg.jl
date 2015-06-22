@@ -5,7 +5,6 @@ df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])
 
-reg(Sales~NDI, df, absorb = [:pState])
 
 # coefs
 @test_approx_eq coef(reg(Sales~NDI, df)) [132.9807886574938,-0.0011999855769369572]
