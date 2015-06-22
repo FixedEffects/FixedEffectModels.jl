@@ -3,8 +3,7 @@
 
 The function `reg` estimates linear models with high dimensional categorical variables. 
 
-
-`reg` computes robust standard errors (White or clustered) 
+`reg` also computes robust standard errors (White or clustered). 
 It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R.
 
 ## Fixed effects
@@ -66,4 +65,14 @@ end
 
 ## Regression Result
 `reg` returns a very light object of type RegressionResult. It is only composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, etc.
+
+
+## Interactive fixed effects
+Models with interactive fixed effects can be estimated with the following syntax
+
+```julia
+reg(Sales ~ Price, df, FactorModel(:State, :Year, 2))
+```
+
+
 

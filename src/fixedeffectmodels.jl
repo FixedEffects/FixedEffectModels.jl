@@ -4,7 +4,7 @@ import GLM: df_residual
 import DataFrames: allvars, Terms
 import Distributions: TDist
 
-export group, demean!, demean, reg, regife,
+export group, demean!, demean, reg
 # export type
 RegressionResult,
 AbstractVce, VceSimple, VceWhite, VceHac, VceCluster,

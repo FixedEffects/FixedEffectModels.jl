@@ -14,7 +14,7 @@ type FactorStructure
 end
 
 type FactorEstimate
-    beta::Vector{Float64} 
+    coef::Vector{Float64} 
     factor::FactorStructure
 end
 
