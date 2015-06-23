@@ -20,7 +20,7 @@ df[:pState] =  pool(df[:pYear])
 Add fixed effects with the option `absorb`
 
 ```julia
-reg(Sales ~ NDI, df, absorb = :pState)
+reg(Sales ~ NDI, df, absorb = [:pState])
 # parenthesis when multiple fixed effects
 reg(Sales ~ NDI, df, absorb = [:pState, :pYear]))
 ```
@@ -28,7 +28,7 @@ reg(Sales ~ NDI, df, absorb = [:pState, :pYear]))
 Add interactions with continuous variable using `&`
 
 ```julia
-reg(Sales ~ NDI, absorb = [:pState, :pState&Year])
+reg(Sales ~ NDI, absorb = [:pState, :pState&:Year])
 ```
 
 
