@@ -8,7 +8,7 @@ It is a basic and mostly untested implementation of the packages `reghdfe` in St
 
 ## Fixed effects
 
-Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` or  `group` to combine multiple columns into a `PooledDataArray`.
+Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
 
 ```julia
@@ -17,18 +17,18 @@ df[:pState] =  pool(df[:pState])
 df[:pState] =  pool(df[:pYear])
 ```
 
-Add fixed effects after the  `|` separation
+Add fixed effects with the option `absorb`
 
 ```julia
-reg(Sales ~ NDI | pState, df)
+reg(Sales ~ NDI, df, absorb = :pState)
 # parenthesis when multiple fixed effects
-reg(Sales ~ NDI | (pState + pYear), df)
+reg(Sales ~ NDI, df, absorb = [:pState, :pYear]))
 ```
 
 Add interactions with continuous variable using `&`
 
 ```julia
-reg(Sales ~ NDI | (pState + pState&Year))
+reg(Sales ~ NDI, absorb = [:pState, :pState&Year])
 ```
 
 
@@ -43,7 +43,6 @@ reg(Sales ~ NDI, df,)
 reg(Sales ~ NDI, df, VceWhite())
 reg(Sales ~ NDI, df, VceCluster([:State]))
 reg(Sales ~ NDI, df, VceCluster([:State, :Year]))
-
 ```
 
 
@@ -67,12 +66,7 @@ end
 `reg` returns a very light object of type RegressionResult. It is only composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, etc.
 
 
-## Interactive fixed effects
-Models with interactive fixed effects can be estimated with the following syntax
 
-```julia
-reg(Sales ~ Price, df, FactorModel(:State, :Year, 2))
-```
 
 
 

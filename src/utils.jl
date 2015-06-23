@@ -81,7 +81,7 @@ function demean_vector_factor(fe::Fe,  scale::Vector{Float64}, mean::Vector{Floa
 		@inbounds mean[refs[i]] += ans[i] * w[i]
 	end
 	@simd for i in 1:length(scale)
-		 @inbounds mean[i] = mean[i] * scale[i] 
+		 @inbounds mean[i] *= scale[i] 
 	end
 	@simd for i in 1:length(ans)
 		@inbounds ans[i] -= mean[refs[i]] * w[i]
@@ -97,7 +97,7 @@ function demean_vector_factor(fe::FeInteracted,  scale::Vector{Float64}, mean::V
 		@inbounds mean[refs[i]] += ans[i] * x[i] * w[i]
 	end
 	@simd for i in 1:length(scale)
-		 @inbounds mean[i] = mean[i] * scale[i] 
+		 @inbounds mean[i] *= scale[i] 
 	end
 	@simd for i in 1:length(ans)
 		@inbounds ans[i] -= mean[refs[i]] * x[i] * w[i]
@@ -108,7 +108,7 @@ end
 function demean_vector(fes::Vector{AbstractFe}, x::Vector{Float64})
 	tolerance = ((1e-8 * length(x))^2)::Float64
 	delta = 1.0
-	if length(fes) ==1 && typeof(fes[1]) <: Fe
+	if length(fes) == 1 && typeof(fes[1]) <: Fe
 		max_iter = 1
 	else
 		max_iter = 1000

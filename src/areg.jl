@@ -1,6 +1,7 @@
 using DataFrames, StatsBase
 
 
+
 # define neutral vector
 immutable Ones <: AbstractVector{Float64}
     dims::Int
@@ -9,13 +10,15 @@ Base.size(O::Ones) = (O.dims,)
 Base.getindex(O::Ones, I::Int...) = 1.0
 
 
+
 function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); absorb::Vector = [nothing], weight::Union(Symbol, Nothing) = nothing)
+
+
+	hasfe = (!isequal(absorb, [nothing]))
 	# get all variables
 	rt = DataFrames.Terms(f)
 	vars = unique(DataFrames.allvars(f))
 	vcevars = DataFrames.allvars(vce)
-
-	hasfe = absorb != [nothing]
 	if hasfe
 		absorbvars = Symbol[]
 		for a in absorb
@@ -35,7 +38,8 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 		esample &= convert(BitArray{1}, df[weight] .> zero(eltype(df[weight])))
 	end
 	df = df[esample, allvars]
-	for v in allvars
+	# not doing it for absorbvars speeds up 
+	for v in unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcevars), [nothing])))
 		dropUnusedLevels!(df[v])
 	end
 
@@ -56,9 +60,13 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	mm = ModelMatrix(mf)
 	coefnames = DataFrames.coefnames(mf)
 
-	y = model_response(mf)::Vector{Float64}
-	X = mm.m::Matrix{Float64}
-	
+	py = model_response(mf)[:]
+	if eltype(py) != Float64
+		y = convert(py, Float64)
+	else
+		y = py
+	end
+	X = mm.m
 	if weight != nothing
 		X = broadcast!(*, X, X, sqrtw)
 		multiplication_elementwise!(y, sqrtw)
@@ -100,12 +108,12 @@ function reg(f::Formula, df::AbstractDataFrame, vce::AbstractVce = VceSimple(); 
 	df_fe = 0
 	if hasfe 
 		for f in factors
-			df_fe += (typeof(vce) == VceCluster && in(f.name, vcevars)) ? 0 : length(f.size)
+			df_fe += (typeof(vce) == VceCluster && in(f.name, vcevars)) ? 0 : sum(f.size .> 0)
 		end
 	end
 	if hasfe && typeof(vce) == VceCluster
 		for f in factors
-			df_fe += in(f.name, vcevars) ? 0 : length(f.size)
+			df_fe += in(f.name, vcevars) ? 0 : sum(f.size .> 0)
 		end
 	end
 	nobs = size(X, 1)

@@ -1,6 +1,6 @@
 using DataFrames, Distances
 
-type FactorModel
+type FactorModel <: FeModel
     id::Symbol
     time::Symbol
     dimension::Int64
@@ -19,8 +19,8 @@ type FactorEstimate
 end
 
 
-# demean factors (Bai 2009)
-function reg(f::Formula, df::AbstractDataFrame, factor::FactorModel, vce::AbstractVce = VceSimple())
+# Bai 2009)
+function fit(m::InteractiveFeModel, df::AbstractDataFrame, factor::FactorModel, vce::AbstractVce = VceSimple())
 
     t = DataFrames.Terms(f)
     hasfe = (typeof(t.terms[1]) == Expr) && t.terms[1].args[1] == :|
