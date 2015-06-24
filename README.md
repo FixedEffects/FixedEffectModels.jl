@@ -6,10 +6,8 @@ The function `reg` estimates linear models with
 - high dimensional categorical variable (multiple intercept and slope fixed effects)
 - robust standard errors (White or clustered) 
 
-Its functionality corresponds roughly to the commands `reghdfe` in Stata and `lfe` in R.
 
-
-`reg` returns a very light object simply composed of the coefficients, the covariance matrix, and a set of scalars like the number of observations, the degree of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are still defined as long as you add the original dataframe as a second argument. This allows to estimate multiple models without worrying about your RAM. The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe), [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way).
+Moreover, `reg` returns a very light object simply composed of the coefficients, the covariance matrix, and a set of scalars like the number of observations, the degree of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are still defined as long as you add the original dataframe as a second argument. This allows to estimate multiple models without worrying about your RAM. The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe), [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way).
 
 
 
