@@ -6,7 +6,7 @@ The function `reg` estimates linear models with
 - high dimensional categorical variable (multiple intercept and slope fixed effects)
 - robust standard errors (White or clustered) 
 
-Its functionality corresponds roughly to the packages `reghdfe` in Stata and `lfe` in R.
+Its functionality corresponds roughly to the commands `reghdfe` in Stata and `lfe` in R.
 
 ## Formula Syntax
 
@@ -86,7 +86,7 @@ df = DataFrame(
 )
 @time reg(v4 ~ v3, df)
 # elapsed time: 1.22074119 seconds (1061288240 bytes allocated, 22.01% gc time)
-@time reg(v4 ~ v3 |> v1, df, weight = :w)
+@time reg(v4 ~ v3, df, weight = :w)
 # elapsed time: 1.56727235 seconds (1240040272 bytes allocated, 15.59% gc time)
 @time reg(v4 ~ v3 |> v1, df)
 # elapsed time: 1.563452151 seconds (1269846952 bytes allocated, 17.99% gc time)
