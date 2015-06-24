@@ -6,7 +6,7 @@ The function `reg` estimates linear models with
 - high dimensional categorical variable (both intercept and slope fixed effects)
 - robust standard errors (White or clustered) 
 
-It is a basic implementation of the packages `reghdfe` in Stata and `lfe` in R.
+Its functionality corresponds roughly to the packages `reghdfe` in Stata and `lfe` in R.
 
 ## Formula Syntax
 
@@ -17,7 +17,8 @@ reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, d
 ```
 
 
-Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
+- Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
+- Interactions with a continuous variable can be specified with `&`
 
 
 ```julia
@@ -26,11 +27,6 @@ df[:pState] =  pool(df[:pState])
 df[:pState] =  pool(df[:pYear])
 reg(Sales ~ NDI |> pState, df)
 reg(Sales ~ NDI |> pState + pYear, df)
-```
-
-Interactions with a continuous variable can be specified with `&`
-
-```julia
 reg(Sales ~ NDI |> pState + pState&Year)
 ```
 
