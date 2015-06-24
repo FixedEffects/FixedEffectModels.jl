@@ -9,14 +9,14 @@ abstract AbstractFe
 immutable type Fe{R} <: AbstractFe
 	refs::Vector{R}
 	w::Vector{Float64}
-	size::Vector{Float64}
+	scale::Vector{Float64}
 	name::Symbol
 end
 
 immutable type FeInteracted{R} <: AbstractFe
 	refs::Vector{R}
 	w::Vector{Float64}
-	size::Vector{Float64}
+	scale::Vector{Float64}
 	x::Vector{Float64} # the continuous interaction 
 	name::Symbol
 	xname::Symbol
@@ -26,8 +26,11 @@ end
 function Fe(f::PooledDataArray, w::Vector{Float64}, name::Symbol)
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
-	@simd for i in 1:length(refs)
-		@inbounds scale[refs[i]] += abs2(w[i])
+	@inbounds @simd  for i in 1:length(refs)
+		 scale[refs[i]] += abs2(w[i])
+	end
+	@inbounds @simd  for i in 1:length(scale)
+		 scale[i] = scale[i] > 0 ? (one(Float64) / scale[i]) : zero(Float64)
 	end
 	Fe(refs, w, scale, name)
 end
@@ -35,8 +38,11 @@ end
 function FeInteracted(f::PooledDataArray, w::Vector{Float64}, x::Vector{Float64}, name::Symbol, xname::Symbol)
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
-	@simd for i in 1:length(refs)
-		@inbounds scale[refs[i]] += abs2((x[i] * w[i]))
+	@inbounds @simd  for i in 1:length(refs)
+		 scale[refs[i]] += abs2((x[i] * w[i]))
+	end
+	@inbounds @simd  for i in 1:length(scale)
+		scale[i] = scale[i] > 0 ? (one(Float64) / scale[i]) : zero(Float64)
 	end
 	FeInteracted(refs, w, scale, x, name, xname)
 end
@@ -62,8 +68,7 @@ end
 
 function construct_fe(df::AbstractDataFrame, a::Symbol, w::Vector{Float64})
 	if typeof(df[a]) <: PooledDataArray
-		f = df[a]
-		return(Fe(f, w, a))
+		return(Fe(df[a], w, a))
 	else
 		error("$(a) is not a pooled data array")
 	end
@@ -74,38 +79,40 @@ end
 # This is the demean algorithm
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
-function demean_vector_factor(fe::Fe,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+function demean_vector_factor!(ans::Vector{Float64}, fe::Fe, mean::Vector{Float64})
+	scale = fe.scale
 	refs = fe.refs
 	w = fe.w
-	@simd for i in 1:length(ans)
-		@inbounds mean[refs[i]] += ans[i] * w[i]
+	@inbounds @simd  for i in 1:length(ans)
+		 mean[refs[i]] += ans[i] * w[i]
 	end
-	@simd for i in 1:length(scale)
-		 @inbounds mean[i] *= scale[i] 
+	@inbounds @simd  for i in 1:length(scale)
+		 mean[i] *= scale[i] 
 	end
-	@simd for i in 1:length(ans)
-		@inbounds ans[i] -= mean[refs[i]] * w[i]
+	@inbounds @simd  for i in 1:length(ans)
+		 ans[i] -= mean[refs[i]] * w[i]
 	end
 	return(ans)
 end
 
-function demean_vector_factor(fe::FeInteracted,  scale::Vector{Float64}, mean::Vector{Float64}, ans::Vector{Float64})
+function demean_vector_factor!(ans::Vector{Float64}, fe::FeInteracted, mean::Vector{Float64})
+	scale = fe.scale
 	refs = fe.refs
 	x = fe.x
 	w = fe.w
-	@simd for i in 1:length(ans)
-		@inbounds mean[refs[i]] += ans[i] * x[i] * w[i]
+	@inbounds @simd  for i in 1:length(ans)
+		 mean[refs[i]] += ans[i] * x[i] * w[i]
 	end
-	@simd for i in 1:length(scale)
-		 @inbounds mean[i] *= scale[i] 
+	@inbounds @simd  for i in 1:length(scale)
+		 mean[i] *= scale[i] 
 	end
-	@simd for i in 1:length(ans)
-		@inbounds ans[i] -= mean[refs[i]] * x[i] * w[i]
+	@inbounds @simd  for i in 1:length(ans)
+		 ans[i] -= mean[refs[i]] * x[i] * w[i]
 	end
 	return(ans)
 end
 
-function demean_vector(fes::Vector{AbstractFe}, x::Vector{Float64})
+function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFe})
 	tolerance = ((1e-8 * length(x))^2)::Float64
 	delta = 1.0
 	if length(fes) == 1 && typeof(fes[1]) <: Fe
@@ -118,18 +125,16 @@ function demean_vector(fes::Vector{AbstractFe}, x::Vector{Float64})
 	dict1 = Dict{AbstractFe, Vector{Float64}}()
 	dict2 = Dict{AbstractFe, Vector{Float64}}()
 	for fe in fes
-		dict1[fe] = zeros(Float64, length(fe.size))
-		dict2[fe] = 1.0 ./ fe.size
+		dict1[fe] = zeros(Float64, length(fe.scale))
 	end
 	for iter in 1:max_iter
-		@simd for i in 1:length(x)
-			@inbounds olx[i] = x[i]
+		@inbounds @simd  for i in 1:length(x)
+			olx[i] = x[i]
 		end
 		for fe in fes
 			mean = dict1[fe]
-			scale = dict2[fe]
 			fill!(mean, zero(Float64))
-			demean_vector_factor(fe, scale, mean,  x)
+			demean_vector_factor!(x, fe, mean)
 		end
 		delta = sqeuclidean(x, olx)
 		if delta < tolerance
@@ -137,6 +142,10 @@ function demean_vector(fes::Vector{AbstractFe}, x::Vector{Float64})
 		end
 	end
 	return(x)
+end
+
+function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFe})
+	demean_vector(convert(Vector{Float64}, x), fes)
 end
 
 
@@ -149,8 +158,8 @@ function dropUnusedLevels!(f::PooledDataArray)
 	f.pool = uu
 	T = eltype(rr)
 	dict = Dict(uu, 1:convert(Uint32, length(uu)))
-	@simd for i in 1:length(rr)
-		@inbounds rr[i] = dict[rr[i]]
+	@inbounds @simd  for i in 1:length(rr)
+		 rr[i] = dict[rr[i]]
 	end
 	f
 end
@@ -212,8 +221,8 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 	if hasintercept
 		tss = zero(Float64)
 		m = mean(y)::Float64
-		@simd for i in 1:length(y)
-			@inbounds tss += abs2((y[i] - m))
+		@inbounds @simd  for i in 1:length(y)
+			tss += abs2((y[i] - m))
 		end
 	else
 		tss = abs2(norm(y))
@@ -227,8 +236,8 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 	if hasintercept
 		m = (mean(y) / sum(sqrtw) * length(residuals))::Float64
 		tss = zero(Float64)
-		@simd for i in 1:length(y)
-			@inbounds tss += abs2(y[i] - sqrtw[i] * m)
+		@inbounds @simd  for i in 1:length(y)
+		 tss += abs2(y[i] - sqrtw[i] * m)
 		end
 	else
 		tss = abs2(norm(y))
@@ -237,25 +246,18 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 end
 
 function remove_negweight!{R}(esample::BitArray{1}, w::DataVector{R})
-	@simd for (i in 1:length(w))
-		@inbounds esample[i] = esample[i] && (w[i] > zero(R))
+	@inbounds @simd  for (i in 1:length(w))
+		 esample[i] = esample[i] && (w[i] > zero(R))
 	end
 	esample
 end
 
 function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
-	@simd for i in 1:length(y)
-		@inbounds y[i] *= sqrtw[i] 
+	@inbounds @simd  for i in 1:length(y)
+		 y[i] *= sqrtw[i] 
 	end
+	return(y)
 end
-
-
-function division_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
-	@simd for i in 1:length(y)
-		@inbounds y[i] /= sqrtw[i] 
-	end
-end
-
 
 
 

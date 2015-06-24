@@ -1,12 +1,21 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffects.jl?branch=master)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffects.jl)
 
-The function `reg` estimates linear models with high dimensional categorical variables. 
+The function `reg` estimates linear models with 
+- instrumental variables (via 2SLS)
+- high dimensional categorical variable (fixed effects and slope effects)
+- robust standard errors (White or clustered) 
 
-`reg` also computes robust standard errors (White or clustered). 
-It is a basic and mostly untested implementation of the packages `reghdfe` in Stata and `lfe` in R.
+It is a basic implementation of the packages `reghdfe` in Stata and `lfe` in R.
 
-## Fixed effects
+## Formula Syntax
+
+The general syntax is
+
+```julia
+reg(depvar ~ exogenousvar + (endogeneousvars = instruments) |> absorbvars, df)
+```
+
 
 Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
@@ -15,46 +24,42 @@ Fixed effects must be variables of type PooledDataArray. Use the function `pool`
 df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:pState])
 df[:pState] =  pool(df[:pYear])
+reg(Sales ~ NDI |> pState, df)
+reg(Sales ~ NDI |> pState + pYear, df)
 ```
 
-Add fixed effects with the option `absorb`
+Similarly to the usual syntax, interactions with a continuous variable are specified with `&`
 
 ```julia
-reg(Sales ~ NDI, df, absorb = [:pState])
-# parenthesis when multiple fixed effects
-reg(Sales ~ NDI, df, absorb = [:pState, :pYear]))
+reg(Sales ~ NDI |> pState + pState&Year)
 ```
 
-Add interactions with continuous variable using `&`
 
-```julia
-reg(Sales ~ NDI, absorb = [:pState, :pState&:Year])
-```
+## Regression Result
 
+`reg` returns a light object of type RegressionResult. It is simply composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are defined.
 
 
 
 ## Errors
+Compute robust standart errors with the option `vcov`
 
-Compute robust standard errors using elements of type `AbstractVce`. For now, `VceSimple()` (default), `VceWhite()` and `VceCluster(cols)` are implemented.
+For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
 ```julia
-reg(Sales ~ NDI, df,)
-reg(Sales ~ NDI, df, VceWhite())
-reg(Sales ~ NDI, df, VceCluster([:State]))
-reg(Sales ~ NDI, df, VceCluster([:State, :Year]))
+reg(Sales ~ NDI, df, vcov = VcovWhite())
+reg(Sales ~ NDI, df, vcov = VcovCluster([:State]))
+reg(Sales ~ NDI, df, vcov = VcovCluster([:State, :Year]))
 ```
 
 
-You can define your own type: After declaring it as a child of `AbstractVce`, define a `vcov` methods for it.
-
-For instance,  White errors are implemented with the following code:
+You can define your own type: after declaring it as a child of `AbstractVcov`, define a `vcov` methods for it. For instance,  White errors are implemented with the following code:
 
 ```julia
-immutable type VceWhite <: AbstractVce 
+immutable type VcovWhite <: AbstractVcov 
 end
 
-function StatsBase.vcov(x::AbstractVceModel, t::VceWhite) 
+function StatsBase.vcov(x::AbstractVcovModel, t::VcovWhite) 
 	Xu = broadcast(*,  regressors(X), residuals(X))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(X)/df_residual(X))
@@ -62,13 +67,11 @@ function StatsBase.vcov(x::AbstractVceModel, t::VceWhite)
 end
 ```
 
-## Regression Result
-`reg` returns a light object of type RegressionResult. It is only composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, etc. Usual methods  `coef`, `vcov`, `nobs`, `predict`, `residuals` are defined.
-
 
 
 
 ## Comparison
+
 
 Julia
 ```julia
@@ -84,17 +87,17 @@ df = DataFrame(
 )
 @time reg(v4 ~ v3, df)
 # elapsed time: 1.22074119 seconds (1061288240 bytes allocated, 22.01% gc time)
-@time reg(v4 ~ v3, df, weight = :w)
+@time reg(v4 ~ v3 |> v1, df, weight = :w)
 # elapsed time: 1.56727235 seconds (1240040272 bytes allocated, 15.59% gc time)
-@time reg(v4 ~ v3, df, absorb = [:v1])
+@time reg(v4 ~ v3 |> v1, df)
 # elapsed time: 1.563452151 seconds (1269846952 bytes allocated, 17.99% gc time)
-@time reg(v4 ~ v3, df, absorb = [:v1], weight = :w)
+@time reg(v4 ~ v3 |> v1, df, weight = :w)
 # elapsed time: 2.063922289 seconds (1448598696 bytes allocated, 17.96% gc time)
-@time reg(v4 ~ v3, df, absorb = [:v1, :v2])
+@time reg(v4 ~ v3 |> v1 + v2, df)
 # elapsed time: 2.494780022 seconds (1283607248 bytes allocated, 18.87% gc time)
 ````
 
-R (lfe package, C)
+R (lfe package)
 ```R
 library(lfe)
 N = 10000000
@@ -121,7 +124,7 @@ system.time(felm(v4 ~ v3|v1, df))
 system.time(felm(v4 ~ v3|v1, df, w = w))
 #   user  system elapsed 
 # 19.971   1.595  22.112 
-system.time(felm(v4 ~ v3|(v1+v2), df))
+system.time(felm(v4 ~ v3|(v1 + v2), df))
 #   user  system elapsed 
 # 23.980   1.950  24.942 
 ```

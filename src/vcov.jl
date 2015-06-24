@@ -1,59 +1,59 @@
 using GLM, DataFrames
 # An Abstract VCE model contains object needed to compute errors. Important methods are residuals, regressors, number of obs, degree of freedom
 
-abstract AbstractVceData
-StatsBase.residuals(x::AbstractVceData) = error("not defined")
-regressors(x::AbstractVceData) = error("not defined")
-nobs(x::AbstractVceData) = size(regressors(x), 1)
-GLM.df_residual(x::AbstractVceData) = size(regressors(x), 1)
-function hatmatrix(x::AbstractVceData) 
+abstract AbstractVcovData
+StatsBase.residuals(x::AbstractVcovData) = error("not defined")
+regressors(x::AbstractVcovData) = error("not defined")
+nobs(x::AbstractVcovData) = size(regressors(x), 1)
+GLM.df_residual(x::AbstractVcovData) = size(regressors(x), 1)
+function hatmatrix(x::AbstractVcovData) 
 	temp = At_mul_B(regressors(x), regressors(x))
 	H = inv(cholfact!(temp))
 end
 
 
-immutable type VceData <: AbstractVceData
+immutable type VcovData <: AbstractVcovData
 	regressors::Matrix{Float64} # If weight, matrix should be X\sqrt{W}
 	residuals::Vector{Float64}
 	nobs::Int
 	df_residual::Int
 end
-StatsBase.residuals(x::VceData) = x.residuals
-regressors(x::VceData) = x.regressors
-nobs(x::VceData) = x.nobs
-GLM.df_residual(x::VceData) = x.df_residual
+StatsBase.residuals(x::VcovData) = x.residuals
+regressors(x::VcovData) = x.regressors
+nobs(x::VcovData) = x.nobs
+GLM.df_residual(x::VcovData) = x.df_residual
 
-immutable type VceDataHat <: AbstractVceData
+immutable type VcovDataHat <: AbstractVcovData
 	regressors::Matrix{Float64} # If weight, matrix should be X\sqrt{W}
 	hatmatrix::Matrix{Float64} # If weight, matrix should be X\sqrt{W}
 	residuals::Vector{Float64}
 	nobs::Int
 	df_residual::Int
 end
-StatsBase.residuals(x::VceDataHat) = x.residuals
-regressors(x::VceDataHat) = x.regressors
-hatmatrix(x::VceDataHat) = x.hatmatrix
-nobs(x::VceDataHat) = x.nobs
-GLM.df_residual(x::VceDataHat) = x.df_residual
+StatsBase.residuals(x::VcovDataHat) = x.residuals
+regressors(x::VcovDataHat) = x.regressors
+hatmatrix(x::VcovDataHat) = x.hatmatrix
+nobs(x::VcovDataHat) = x.nobs
+GLM.df_residual(x::VcovDataHat) = x.df_residual
 
-# convert a linear model into VceDataHat
-function VceDataHat(x::LinearModel) 
-	VceDataHat(x.pp.X, inv(cholfact(x)), StatsBase.residuals(x), size(x.pp.X, 1), size(x.pp.X, 2))
+# convert a linear model into VcovDataHat
+function VcovDataHat(x::LinearModel) 
+	VcovDataHat(x.pp.X, inv(cholfact(x)), StatsBase.residuals(x), size(x.pp.X, 1), size(x.pp.X, 2))
 end
 
 
 
 # An AbstractVCE  should have two methods: allvars that returns variables needed in the dataframe, and vcov, that returns a covariance matrix
-abstract AbstractVce
-DataFrames.allvars(x::AbstractVce) = nothing
-StatsBase.vcov(x::AbstractVceData, v::AbstractVce) = error("not defined")
-StatsBase.vcov(x::AbstractVceData, v::AbstractVce, df::AbstractDataFrame) = StatsBase.vcov(x::AbstractVceData, v::AbstractVce)
+abstract AbstractVcov
+DataFrames.allvars(x::AbstractVcov) = nothing
+StatsBase.vcov(x::AbstractVcovData, v::AbstractVcov) = error("not defined")
+StatsBase.vcov(x::AbstractVcovData, v::AbstractVcov, df::AbstractDataFrame) = StatsBase.vcov(x::AbstractVcovData, v::AbstractVcov)
 
 
-immutable type VceSimple <: AbstractVce 
+immutable type VcovSimple <: AbstractVcov 
 end
 
-StatsBase.vcov(x::VceData, t::VceSimple) = StatsBase.vcov(x)
+StatsBase.vcov(x::VcovData, t::VcovSimple) = StatsBase.vcov(x)
 
 
 
@@ -62,7 +62,7 @@ StatsBase.vcov(x::VceData, t::VceSimple) = StatsBase.vcov(x)
 #
 
 
-function StatsBase.vcov(x::AbstractVceData, t::VceSimple)
+function StatsBase.vcov(x::AbstractVcovData, t::VcovSimple)
  	hatmatrix(x) * (sum(StatsBase.residuals(x).^2)/  df_residual(x))
 end
 
@@ -72,10 +72,10 @@ end
 #
 
 
-immutable type VceWhite <: AbstractVce 
+immutable type VcovWhite <: AbstractVcov 
 end
 
-function StatsBase.vcov(x::AbstractVceData, t::VceWhite) 
+function StatsBase.vcov(x::AbstractVcovData, t::VcovWhite) 
 	Xu = broadcast(*,  regressors(x), StatsBase.residuals(x))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(x)/df_residual(x))
@@ -83,7 +83,7 @@ function StatsBase.vcov(x::AbstractVceData, t::VceWhite)
 end
 
 
-function sandwich(x::AbstractVceData, S::Matrix{Float64})
+function sandwich(x::AbstractVcovData, S::Matrix{Float64})
 	H = hatmatrix(x)
 	H * S * H
 end
@@ -93,18 +93,18 @@ end
 # HAC
 #
 
-immutable type VceHac <: AbstractVce
+immutable type VcovHac <: AbstractVcov
 	time::Symbol
 	nlag::Int
 	weightfunction::Function
 end
 
 # default uses the Bartlett kernel 
-VceHac(time, nlag) = VceHac(time, nlag, (i, n) -> 1 - i/(n+1))
+VcovHac(time, nlag) = VcovHac(time, nlag, (i, n) -> 1 - i/(n+1))
 
-DataFrames.allvars(x::VceHac) = x.time
+DataFrames.allvars(x::VcovHac) = x.time
 
-function StatsBase.vcov(x::AbstractVceData, v::VceHac, df)
+function StatsBase.vcov(x::AbstractVcovData, v::VcovHac, df)
 	time = df[v.time]
 	nlag = v.nlag
 	weights = map(i -> v.weightfunction(i, nlag), [1:nlag])
@@ -137,15 +137,15 @@ end
 # Cluster
 #
 
-immutable type VceCluster  <: AbstractVce
+immutable type VcovCluster  <: AbstractVcov
 	clusters::Vector{Symbol}
 end
-VceCluster(x::Symbol) = VceCluster([x])
+VcovCluster(x::Symbol) = VcovCluster([x])
 
-DataFrames.allvars(x::VceCluster) = x.clusters
+DataFrames.allvars(x::VcovCluster) = x.clusters
 
 # Cameron, Gelbach, & Miller (2011).
-function StatsBase.vcov(x::AbstractVceData, v::VceCluster, df::AbstractDataFrame) 
+function StatsBase.vcov(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame) 
 	df = df[v.clusters]
 	S = fill(zero(Float64), (size(regressors(x), 2), size(regressors(x), 2)))
 	for i in 1:length(v.clusters)
@@ -161,7 +161,7 @@ function StatsBase.vcov(x::AbstractVceData, v::VceCluster, df::AbstractDataFrame
 	sandwich(x, S)
 end
 
-function helper_cluster(x::AbstractVceData, f::PooledDataArray)
+function helper_cluster(x::AbstractVcovData, f::PooledDataArray)
 	X = regressors(x)
 	residuals = StatsBase.residuals(x)
 	pool = f.pool

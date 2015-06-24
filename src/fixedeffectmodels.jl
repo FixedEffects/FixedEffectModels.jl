@@ -49,7 +49,7 @@ type RegressionResult <: RegressionModel
 
 	coefnames::Vector{Symbol}
 	yname::Symbol
-	terms::DataFrames.Terms
+	rf::DataFrames.Formula
 
 	esample::Vector{Bool}
 
@@ -91,15 +91,15 @@ function StatsBase.coeftable(x::RegressionResult)
             "F Statistics" sprint(showcompact, x.F);]
 	cc = coef(x)
 	se = stderr(x)
-	tt = cc ./ se
-	coefnames = x.coefnames
+    coefnames = x.coefnames
 	# put (intercept) last
 	if coefnames[1] == symbol("(Intercept)") 
 		newindex = vcat(2:length(cc), 1)
 		cc = cc[newindex]
 		se = se[newindex]
-		coefnames = coefnames[newindex]
+        coefnames = coefnames[newindex]
 	end
+    tt = cc ./ se
     scale = quantile(TDist(df_residual(x)), 1 - (1-0.95)/2)
     CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), cc -  scale * se, cc + scale * se),
               ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
