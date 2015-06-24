@@ -10,11 +10,6 @@ Its functionality corresponds roughly to the commands `reghdfe` in Stata and `lf
 
 ## Formula Syntax
 
-The general syntax is
-
-```julia
-reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
-```
 
 
 ```julia
@@ -22,6 +17,10 @@ using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:State])
 reg(Sales ~ NDI |> pState, df)
+```
+
+returns
+```
 #                          Fixed Effect Model                         
 # =====================================================================
 # Dependent variable          Sales   Number of obs                1380
@@ -35,17 +34,21 @@ reg(Sales ~ NDI |> pState, df)
 ```
 
 
+- The general syntax is
+  ```julia
+  reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
+  ```
 - Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 - Multiple high dimensional fixed effects can be specified
 
- ```julia
- df[:pYear] =  pool(df[:Year])
- reg(Sales ~ NDI |> pState + pYear, df)
- ```
+  ```julia
+  df[:pYear] =  pool(df[:Year])
+  reg(Sales ~ NDI |> pState + pYear, df)
+  ```
 - Interacted fixed effects can be specified with `&`
- ```
- reg(Sales ~ NDI |> pState + pState&Year)
- ```
+  ```
+  reg(Sales ~ NDI |> pState + pState&Year)
+  ```
 
 
 
