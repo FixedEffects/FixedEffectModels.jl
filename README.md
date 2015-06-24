@@ -40,14 +40,14 @@ returns
 ```
 
 
-- Categorical variables (high dimensional or not) must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
+- Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 - You can specify an arbitrary number of high dimensional fixed effects.
 
   ```julia
   df[:pYear] =  pool(df[:Year])
   reg(Sales ~ NDI |> pState + pYear, df)
   ```
-- You can specify fixed effects interacted with a continuous variable using `&`
+- You can interact fixed effects with a continuous variable using `&`
 
   ```julia
   reg(Sales ~ NDI |> pState + pState&Year)
@@ -68,7 +68,7 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
 
-You can define your own type: after declaring it as a child of `AbstractVcov`, define a `vcov` methods for it. For instance,  White errors are implemented with the following code:
+You can easily define your own type: after declaring it as a child of `AbstractVcov`, define a `vcov` methods for it. For instance,  White errors are implemented with the following code:
 
 ```julia
 immutable type VcovWhite <: AbstractVcov 
@@ -82,13 +82,10 @@ function StatsBase.vcov(x::AbstractVcovModel, t::VcovWhite)
 end
 ```
 
-
-
-
-
 ## Regression Result
 
 `reg` returns a light object of type RegressionResult. It is simply composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are defined.
+
 
 
 ## Comparison
