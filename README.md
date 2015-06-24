@@ -3,7 +3,7 @@
 
 The function `reg` estimates linear models with 
 - instrumental variables (via 2SLS)
-- high dimensional categorical variable (both intercept and slope fixed effects)
+- high dimensional categorical variable (multiple intercept and slope fixed effects)
 - robust standard errors (White or clustered) 
 
 Its functionality corresponds roughly to the packages `reghdfe` in Stata and `lfe` in R.
@@ -17,10 +17,6 @@ reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, d
 ```
 
 
-- Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
-- Interactions with a continuous variable can be specified with `&`
-
-
 ```julia
 df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:pState])
@@ -31,21 +27,22 @@ reg(Sales ~ NDI |> pState + pState&Year)
 ```
 
 
-## Regression Result
+- Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
+- Interactions with a continuous variable can be specified with `&`
 
-`reg` returns a light object of type RegressionResult. It is simply composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are defined.
+
 
 
 
 ## Errors
-Compute robust standart errors with the option `vcov`
+Compute robust standart errors with a third argument
 
 For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
 ```julia
-reg(Sales ~ NDI, df, vcov = VcovWhite())
-reg(Sales ~ NDI, df, vcov = VcovCluster([:State]))
-reg(Sales ~ NDI, df, vcov = VcovCluster([:State, :Year]))
+reg(Sales ~ NDI, df, VcovWhite())
+reg(Sales ~ NDI, df, VcovCluster([:State]))
+reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
 
@@ -64,6 +61,12 @@ end
 ```
 
 
+
+
+
+## Regression Result
+
+`reg` returns a light object of type RegressionResult. It is simply composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are defined.
 
 
 ## Comparison

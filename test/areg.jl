@@ -26,4 +26,5 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq coef(reg(Sales ~ (NDI = CPI) |> pState, df)) [-0.001439485582817582]
 @test_approx_eq coef(reg(Sales ~ (NDI = CPI) |> pState, df, weight = :Pop)) [-0.0015040396125277117]
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI), df))   [137.89120963008102, -1.2712981727404156,0.009753824282892953]
+@test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI) |> pState, df))   [-0.958100502807393,0.0069962347229067315]
 

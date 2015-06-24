@@ -7,8 +7,8 @@ import Distributions: TDist
 export group, demean!, demean, reg,
 # export type
 RegressionResult,
-AbstractVce, VceSimple, VceWhite, VceHac, VceCluster,
-AbstractVceData, VceData, VceDataHat,
+AbstractVce, VcovSimple, VcovWhite, VcovHac, VcovCluster,
+AbstractVcovData, VcovData, VcovDataHat,
 FactorModel
 
 include("utils.jl")

@@ -11,7 +11,7 @@ Base.getindex(O::Ones, I::Int...) = 1.0
 
 
 
-function reg(f::Formula, df::AbstractDataFrame; vcov::AbstractVcov = VcovSimple(), weight::Union(Symbol, Nothing) = nothing)
+function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
 
 	rf = deepcopy(f)
 
