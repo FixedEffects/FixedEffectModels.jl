@@ -1,59 +1,48 @@
-using DataFrames, StatsBase
 
-
-
-# define neutral vector
-immutable Ones <: AbstractVector{Float64}
-    dims::Int
-end
-Base.size(O::Ones) = (O.dims,)
-Base.getindex(O::Ones, I::Int...) = 1.0
-
-
-
-function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
+# Definition and constructors for types Fe and FeInteracted.
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
 
 	rf = deepcopy(f)
 
 	# decompose formula into normal + iv vs absorbpart
 	has_absorb = false
-	absorbvars = nothing
+	absorb_vars = nothing
 	if typeof(rf.rhs) == Expr && rf.rhs.args[1] == :(|>)
 		has_absorb = true
 		absorbf = Formula(nothing, rf.rhs.args[3])
-		absorbvars = unique(DataFrames.allvars(absorbf))
-		absorbt = DataFrames.Terms(absorbf)
+		absorb_vars = unique(allvars(rf.rhs.args[3]))
+		absorbt = Terms(absorbf)
 		rf.rhs = rf.rhs.args[2]
 	end
 	
 
-	# decompose into normal vs iv part
+	# decompose formula into normal vs iv part
 	has_iv = false
 	ivvars = nothing
 	if typeof(rf.rhs) == Expr
 		if rf.rhs.head == :(=)
 			has_iv = true
-			ivvars = unique(DataFrames.allvars(rf.rhs.args[2]))
+			ivvars = unique(allvars(rf.rhs.args[2]))
 			ivf = deepcopy(rf)
 			ivf.rhs = rf.rhs.args[2]
-			ivt = DataFrames.Terms(ivf)
+			ivt = Terms(ivf)
 			rf.rhs = rf.rhs.args[1]
 		else
 			for i in 1:length(rf.rhs.args)
 				if typeof(rf.rhs.args[i]) == Expr && rf.rhs.args[i].head == :(=)
 					has_iv = true
-					ivvars = unique(DataFrames.allvars(rf.rhs.args[i].args[2]))
+					ivvars = unique(allvars(rf.rhs.args[i].args[2]))
 					ivf = deepcopy(rf)
 					ivf.rhs.args[i] = rf.rhs.args[i].args[2]
-					ivt = DataFrames.Terms(ivf)
+					ivt = Terms(ivf)
 					rf.rhs.args[i] = rf.rhs.args[i].args[1]
 				end
 			end
 		end
 	end
 
-	rt = DataFrames.Terms(rf)
-	vars = unique(DataFrames.allvars(rf))
+	rt = Terms(rf)
+	vars = unique(allvars(rf))
 	
 	if has_absorb
 		rt.intercept = false
@@ -63,18 +52,18 @@ function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(
 	end
 
 	# get variables used for vcov
-	vcovvars = DataFrames.allvars(vcov)
+	vcov_vars = allvars(vcov_method)
 
 
-	allvars = setdiff(vcat(vars, absorbvars, vcovvars, ivvars, weight), [nothing])
-	allvars = unique(convert(Vector{Symbol}, allvars))
+	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, ivvars, weight), [nothing])
+	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	# construct df without NA for all variables
-	esample = complete_cases(df[allvars])
+	esample = complete_cases(df[all_vars])
 	# also remove elements with zero or negative weights
 	if weight != nothing
 		esample &= convert(BitArray{1}, df[weight] .> zero(eltype(df[weight])))
 	end
-	df = df[esample, allvars]
+	df = df[esample, all_vars]
 
 	# create weight vector
 	if weight == nothing
@@ -85,16 +74,16 @@ function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(
 		sqrtw = sqrt(w)
 	end
 
-	# Similar to DataFrames.ModelFrame function
-	# only remove absent levels for factors not in absorbvars
-	all_except_absorbvars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcovvars, ivvars), [nothing])))
-	for v in all_except_absorbvars
+	# Similar to ModelFrame function
+	# only remove absent levels for factors not in absorb_vars
+	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, ivvars), [nothing])))
+	for v in all_except_absorb_vars
 		dropUnusedLevels!(df[v])
 	end
 	df1 = DataFrame(map(x -> df[x], rt.eterms))
 	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
 	mf = ModelFrame(df1, rt, esample)
-	coefnames = DataFrames.coefnames(mf)
+	coef_names = coefnames(mf)
 
 
 
@@ -131,7 +120,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(
 
 	# build Z
 	if has_iv
-		ivt = DataFrames.Terms(ivf)
+		ivt = Terms(ivf)
 		df1 = DataFrame(map(x -> df[x], ivt.eterms))
 		names!(df1, convert(Vector{Symbol}, map(string, ivt.eterms)))
 		mf = ModelFrame(df1, ivt, esample)
@@ -166,7 +155,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(
 	if has_absorb 
 		## poor man adjustement when clustering: if fe name == cluster name
 		for fe in factors
-			df_absorb += (typeof(vcov) == VcovCluster && in(fe.name, vcovvars)) ? 0 : sum(fe.scale .> 0)
+			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .> 0)
 		end
 	end
 	nobs = size(X, 1)
@@ -184,10 +173,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov::AbstractVcov = VcovSimple(
 
 	# standard error
 	vcovmodel = VcovDataHat(Xhat, H, residuals, nobs, df_residual)
-	vcov = StatsBase.vcov(vcovmodel, vcov, df)	
+	matrix_vcov = vcov(vcovmodel, vcov_method, df)
 
 	# Output object
-	RegressionResult(coef, vcov, r2, r2_a, F, nobs, df_residual, coefnames, rt.eterms[1], f, esample)
+	RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F)
 end
 
 

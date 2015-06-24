@@ -1,4 +1,3 @@
-using DataFrames, Distances
 
 type FactorModel <: FeModel
     id::Symbol
@@ -19,7 +18,7 @@ type FactorEstimate
 end
 
 
-# Bai 2009)
+# Bai 2009
 function fit(m::InteractiveFeModel, df::AbstractDataFrame, factor::FactorModel, vce::AbstractVce = VceSimple())
 
     t = DataFrames.Terms(f)

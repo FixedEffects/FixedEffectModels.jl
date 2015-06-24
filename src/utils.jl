@@ -1,4 +1,3 @@
-using DataFrames, DataArrays, Distances
 
 # Definition and constructors for types Fe and FeInteracted.
 # For each fixed effect, this stores the reference vector (ie a map of each row to a group), the weights, the size of each group, and, for FeInteracted, the interaction variable
@@ -259,6 +258,14 @@ function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
 	return(y)
 end
 
+
+function allvars(ex::Expr)
+    if ex.head != :call error("Non-call expression encountered") end
+    [[allvars(a) for a in ex.args[2:end]]...]
+end
+allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
+allvars(sym::Symbol) = [sym]
+allvars(v::Any) = Array(Symbol, 0)
 
 
 

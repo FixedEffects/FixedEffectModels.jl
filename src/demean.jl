@@ -1,5 +1,3 @@
-using DataFrames, DataArrays
-
 
 function helper_demean!(out::AbstractDataFrame, df::AbstractDataFrame, cols::Vector{Symbol}, absorb::Formula)
 	
