@@ -13,7 +13,7 @@ It is a basic implementation of the packages `reghdfe` in Stata and `lfe` in R.
 The general syntax is
 
 ```julia
-reg(depvar ~ exogenousvar + (endogeneousvars = instruments) |> absorbvars, df)
+reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
 ```
 
 
@@ -28,7 +28,7 @@ reg(Sales ~ NDI |> pState, df)
 reg(Sales ~ NDI |> pState + pYear, df)
 ```
 
-Similarly to the usual syntax, interactions with a continuous variable are specified with `&`
+Interactions with a continuous variable can be specified with `&`
 
 ```julia
 reg(Sales ~ NDI |> pState + pState&Year)
