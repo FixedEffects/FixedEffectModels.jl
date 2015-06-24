@@ -16,6 +16,7 @@ The general syntax is
 reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
 ```
 
+As an example, 
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
@@ -39,15 +40,14 @@ returns
 ```
 
 
-- 
-- Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
-- Multiple high dimensional fixed effects can be specified
+- Categorical variables (high dimensional or not) must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
+- You can specify an arbitrary number of high dimensional fixed effects.
 
   ```julia
   df[:pYear] =  pool(df[:Year])
   reg(Sales ~ NDI |> pState + pYear, df)
   ```
-- Interacted fixed effects can be specified with `&`
+- You can specify fixed effects interacted with a continuous variable using `&`
 
   ```julia
   reg(Sales ~ NDI |> pState + pState&Year)
