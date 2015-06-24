@@ -16,7 +16,6 @@ The general syntax is
 reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
 ```
 
-As an example, 
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
