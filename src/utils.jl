@@ -1,7 +1,10 @@
+##############################################################################
+##
+## Fe and Feinteracted
+##
+##############################################################################
 
-# Definition and constructors for types Fe and FeInteracted.
 # For each fixed effect, this stores the reference vector (ie a map of each row to a group), the weights, the size of each group, and, for FeInteracted, the interaction variable
-
 
 abstract AbstractFe
 
@@ -73,9 +76,23 @@ function construct_fe(df::AbstractDataFrame, a::Symbol, w::Vector{Float64})
 	end
 end
 
+function construct_fe(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
+	factors = AbstractFe[]
+	for a in v
+		push!(factors, construct_fe(df, a, sqrtw))
+	end
+	return(factors)
+end
 
-#
-# This is the demean algorithm
+
+
+
+##############################################################################
+##
+## Demean algorithm
+##
+##############################################################################
+
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
 function demean_vector_factor!(ans::Vector{Float64}, fe::Fe, mean::Vector{Float64})
@@ -148,9 +165,13 @@ function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFe})
 end
 
 
-#
-# helper functions
-#
+
+##############################################################################
+##
+## helper functions
+##
+##############################################################################
+
 function dropUnusedLevels!(f::PooledDataArray)
 	rr = f.refs
 	uu = unique(rr)
@@ -164,11 +185,13 @@ function dropUnusedLevels!(f::PooledDataArray)
 end
 dropUnusedLevels!(f::DataArray) = f
 
+
+# group transform multiple vectors into one PooledDataArray
 function group(df::AbstractDataFrame; skipna = true) 
 	ncols = length(df)
 	dv = DataArrays.PooledDataArray(df[ncols])
 	if skipna
-		x = map(z -> convert(Uint32, z), dv.refs)
+		x = map(z -> convert(Uint64, z), dv.refs)
 		ngroups = length(dv.pool)
 		for j = (ncols - 1):-1:1
 			dv = DataArrays.PooledDataArray(df[j])
@@ -186,7 +209,7 @@ function group(df::AbstractDataFrame; skipna = true)
 	else
 		# code from groupby
 		dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
-		x = map(z -> convert(Uint32, z) + dv_has_nas, dv.refs)
+		x = map(z -> convert(Uint64, z) + dv_has_nas, dv.refs)
 		ngroups = length(dv.pool) + dv_has_nas
 		for j = (ncols - 1):-1:1
 			dv = DataArrays.PooledDataArray(df[j])
@@ -204,8 +227,6 @@ function group(df::AbstractDataFrame; skipna = true)
 		compact(PooledDataArray(DataArrays.RefArray(map(z -> dict[z], x)),  [1:length(uu);]))
 	end
 end
-
-
 group(df::AbstractDataFrame, cols::Vector; skipna = true) =  group(df[cols]; skipna = skipna)
 
 
@@ -214,7 +235,6 @@ group(df::AbstractDataFrame, cols::Vector; skipna = true) =  group(df[cols]; ski
 
 
 # compute rss and tss from vector of residual and response vector
-
 function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool)
 	ess = abs2(norm(residuals))
 	if hasintercept
@@ -228,8 +248,6 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 	end
 	(ess, tss)
 end
-
-
 function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, w::Vector{Float64}, sqrtw::Vector{Float64})
 	ess = abs2(norm(residuals))
 	if hasintercept
@@ -243,6 +261,8 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 	end
 	(ess, tss)
 end
+
+
 
 function remove_negweight!{R}(esample::BitArray{1}, w::DataVector{R})
 	@inbounds @simd  for (i in 1:length(w))

@@ -90,10 +90,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	# If high dimensional fixed effects, demean all variables
 	if has_absorb
 		# construct an array of factors
-		factors = AbstractFe[]
-		for a in absorbt.terms
-			push!(factors, construct_fe(df, a, sqrtw))
-		end
+		factors = construct_fe(df, absorbt.terms, w)
 		# in case where only interacted fixed effect, add constant
 		if all(map(z -> typeof(z) <: FeInteracted, factors))
 			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))

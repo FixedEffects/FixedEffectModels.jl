@@ -41,6 +41,6 @@ VcovDataHat
 include("utils.jl")
 include("vcov.jl")
 include("RegressionResult.jl")
-include("areg.jl")
+include("reg.jl")
 
 end  # module FixedEffectModels
