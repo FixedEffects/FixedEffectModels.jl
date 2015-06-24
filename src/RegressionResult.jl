@@ -24,13 +24,30 @@ vcov(x::RegressionResult) = x.vcov
 nobs(x::RegressionResult) = x.nobs
 df_residual(x::RegressionResult) = x.df_residual
 function predict(x::RegressionResult, df::AbstractDataFrame)
-    newTerms = remove_response(x.terms)
-    newX = ModelMatrix(ModelFrame(newTerms, df)).m
-    newX * x.beta
+    f = x.formula
+    (f, has_absorb, absorb_vars, absorbt) = decompose_absorb!(f)
+    has_absorb && error("predict is not defined for fixed effect models (yet)")
+
+    (f, has_iv, iv_vars, ivt) = decompose_iv!(f)
+
+    newTerms = remove_response(Terms(f))
+    mf = ModelFrame(newTerms, df)
+    newX = ModelMatrix(mf).m
+
+    out = DataArray(Float64, size(df, 1))
+    out[mf.msng] = newX * x.coef
 end
+
 function residuals(x::RegressionResult, df::AbstractDataFrame)
-    mf = ModelFrame(x.terms, df)
-    model_response(mf) -  ModelMatrix(mf).m * beta
+    f = x.formula
+    (f, has_absorb, absorb_vars, absorbt) = decompose_absorb!(f)
+    has_absorb && error("predict is not defined for fixed effect models (yet)")
+
+    (f, has_iv, iv_vars, ivt) = decompose_iv!(f)
+
+    mf = ModelFrame(Terms(f), df)
+    out = DataArray(Float64, size(df, 1))
+    out[mf.msng] = model_response(mf) -  ModelMatrix(mf).m * x.coef
 end
 function model_response(x::RegressionResult, df::AbstractDataFrame)
     model_response(ModelFrame(newTerms, df))

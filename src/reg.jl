@@ -5,41 +5,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	rf = deepcopy(f)
 
 	# decompose formula into normal + iv vs absorbpart
-	has_absorb = false
-	absorb_vars = nothing
-	if typeof(rf.rhs) == Expr && rf.rhs.args[1] == :(|>)
-		has_absorb = true
-		absorbf = Formula(nothing, rf.rhs.args[3])
-		absorb_vars = unique(allvars(rf.rhs.args[3]))
-		absorbt = Terms(absorbf)
-		rf.rhs = rf.rhs.args[2]
-	end
-	
+	(rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
+	(rf, has_iv, iv_vars, ivt) = decompose_iv!(rf)
 
-	# decompose formula into normal vs iv part
-	has_iv = false
-	ivvars = nothing
-	if typeof(rf.rhs) == Expr
-		if rf.rhs.head == :(=)
-			has_iv = true
-			ivvars = unique(allvars(rf.rhs.args[2]))
-			ivf = deepcopy(rf)
-			ivf.rhs = rf.rhs.args[2]
-			ivt = Terms(ivf)
-			rf.rhs = rf.rhs.args[1]
-		else
-			for i in 1:length(rf.rhs.args)
-				if typeof(rf.rhs.args[i]) == Expr && rf.rhs.args[i].head == :(=)
-					has_iv = true
-					ivvars = unique(allvars(rf.rhs.args[i].args[2]))
-					ivf = deepcopy(rf)
-					ivf.rhs.args[i] = rf.rhs.args[i].args[2]
-					ivt = Terms(ivf)
-					rf.rhs.args[i] = rf.rhs.args[i].args[1]
-				end
-			end
-		end
-	end
+	
 
 	rt = Terms(rf)
 	vars = unique(allvars(rf))
@@ -55,7 +24,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	vcov_vars = allvars(vcov_method)
 
 
-	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, ivvars, weight), [nothing])
+	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, iv_vars, weight), [nothing])
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	# construct df without NA for all variables
 	esample = complete_cases(df[all_vars])
@@ -76,7 +45,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# Similar to ModelFrame function
 	# only remove absent levels for factors not in absorb_vars
-	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, ivvars), [nothing])))
+	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, iv_vars), [nothing])))
 	for v in all_except_absorb_vars
 		dropUnusedLevels!(df[v])
 	end
@@ -90,13 +59,13 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	# If high dimensional fixed effects, demean all variables
 	if has_absorb
 		# construct an array of factors
-		factors = construct_fe(df, absorbt.terms, w)
+		factors = construct_fe(df, absorbt.terms, sqrtw)
 		# in case where only interacted fixed effect, add constant
 		if all(map(z -> typeof(z) <: FeInteracted, factors))
 			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
 		end
 		# demean y
-		for x in setdiff(vcat(vars, ivvars), [nothing])
+		for x in setdiff(vcat(vars, iv_vars), [nothing])
 			xv = convert(Vector{Float64}, df[x])
 			multiplication_elementwise!(xv, sqrtw)
 			df[x] = demean_vector!(xv, factors)
@@ -117,7 +86,6 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# build Z
 	if has_iv
-		ivt = Terms(ivf)
 		df1 = DataFrame(map(x -> df[x], ivt.eterms))
 		names!(df1, convert(Vector{Symbol}, map(string, ivt.eterms)))
 		mf = ModelFrame(df1, ivt, esample)

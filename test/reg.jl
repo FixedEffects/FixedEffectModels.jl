@@ -29,14 +29,25 @@ df[:pYear] = pool(df[:Year])
 
 # iv
 @test_approx_eq coef(reg(Sales ~ (NDI = CPI), df))  [134.78303171546634,-0.0014394855828175762]
-@test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI), df))  [[137.89120963008102,-1.2712981727404156,0.009753824282892953]
+@test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI), df))  [137.89120963008102,-1.2712981727404156,0.009753824282892953]
 
 # iv + weight
 @test_approx_eq coef(reg(Sales ~ (NDI = CPI), df, weight = :Pop))   [133.1064411919292,-0.0015409019511033184]
 
 # iv + weight + absorb
 @test_approx_eq coef(reg(Sales ~ (NDI = CPI) |> pState, df)) [-0.001439485582817582]
-@test_approx_eq coef(reg(Sales ~ (NDI = CPI) |> pState, df, weight = :Pop)) [-0.0015040396125277117]
+@test_approx_eq coef(reg(Sales ~ (NDI = CPI) |> pState, df, weight = :Pop)) [-0.0015040259980679328]
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI), df))   [137.89120963008102, -1.2712981727404156,0.009753824282892953]
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI) |> pState, df))   [-0.958100502807393,0.0069962347229067315]
 
+
+
+# predict 
+result = reg(Sales ~ NDI, df)
+predict(result, df)
+residuals(result, df)
+
+
+result = reg(Sales ~ Price + (NDI = CPI), df)
+predict(result, df)
+residuals(result, df)

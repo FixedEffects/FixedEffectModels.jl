@@ -79,7 +79,7 @@ end
 function construct_fe(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
 	factors = AbstractFe[]
 	for a in v
-		push!(factors, construct_fe(df, a, sqrtw))
+		push!(factors, construct_fe(df, a, w))
 	end
 	return(factors)
 end
@@ -279,6 +279,68 @@ function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
 end
 
 
+
+# decompose formula into normal + iv vs absorbpart
+function decompose_absorb!(rf::Formula)
+	has_absorb = false
+	absorb_vars = nothing
+	absorbt = nothing
+	if typeof(rf.rhs) == Expr && rf.rhs.args[1] == :(|>)
+		has_absorb = true
+		absorbf = Formula(nothing, rf.rhs.args[3])
+		absorb_vars = unique(allvars(rf.rhs.args[3]))
+		absorbt = Terms(absorbf)
+		rf.rhs = rf.rhs.args[2]
+	end
+	return(rf, has_absorb, absorb_vars, absorbt)
+end
+
+# decompose formula into normal vs iv part
+function decompose_iv!(rf::Formula)
+	has_iv = false
+	iv_vars = nothing
+	ivt = nothing
+	if typeof(rf.rhs) == Expr
+		if rf.rhs.head == :(=)
+			has_iv = true
+			iv_vars = unique(allvars(rf.rhs.args[2]))
+			ivf = deepcopy(rf)
+			ivf.rhs = rf.rhs.args[2]
+			ivt = Terms(ivf)
+			rf.rhs = rf.rhs.args[1]
+		else
+			for i in 1:length(rf.rhs.args)
+				if typeof(rf.rhs.args[i]) == Expr && rf.rhs.args[i].head == :(=)
+					has_iv = true
+					iv_vars = unique(allvars(rf.rhs.args[i].args[2]))
+					ivf = deepcopy(rf)
+					ivf.rhs.args[i] = rf.rhs.args[i].args[2]
+					ivt = Terms(ivf)
+					rf.rhs.args[i] = rf.rhs.args[i].args[1]
+				end
+			end
+		end
+	end
+	return(rf, has_iv, iv_vars, ivt)
+end
+
+
+
+# Directly from DataFrames.jl
+
+function remove_response(t::Terms)
+    # shallow copy original terms
+    t = Terms(t.terms, t.eterms, t.factors, t.order, t.response, t.intercept)
+    if t.response
+        t.order = t.order[2:end]
+        t.eterms = t.eterms[2:end]
+        t.factors = t.factors[2:end, 2:end]
+        t.response = false
+    end
+    return t
+end
+
+
 function allvars(ex::Expr)
     if ex.head != :call error("Non-call expression encountered") end
     [[allvars(a) for a in ex.args[2:end]]...]
@@ -286,8 +348,3 @@ end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
 allvars(v::Any) = Array(Symbol, 0)
-
-
-
-
-
