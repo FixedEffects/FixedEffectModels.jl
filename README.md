@@ -21,27 +21,31 @@ reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, d
 using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:State])
-df[:pYear] =  pool(df[:Year])
 reg(Sales ~ NDI |> pState, df)
-#                         Fixed Effect Model                         
-#=====================================================================
-#Dependent variable          Sales   Number of obs                1380
-#Degree of freedom              47   R2                          0.207
-#R2 Adjusted                 0.179   F Statistics:             7.40264
-#=====================================================================
-#        Estimate  Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
-#---------------------------------------------------------------------
-#NDI  -0.00170468 9.13903e-5 -18.6527    0.000 -0.00188396 -0.00152539
-#=====================================================================
-
-reg(Sales ~ NDI |> pState + pYear, df)
-reg(Sales ~ NDI |> pState + pState&Year)
+#                          Fixed Effect Model                         
+# =====================================================================
+# Dependent variable          Sales   Number of obs                1380
+# Degree of freedom              47   R2                          0.207
+# R2 Adjusted                 0.179   F Statistics:             7.40264
+# =====================================================================
+#         Estimate  Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
+# ---------------------------------------------------------------------
+# NDI  -0.00170468 9.13903e-5 -18.6527    0.000 -0.00188396 -0.00152539
+# =====================================================================
 ```
 
 
 - Fixed effects must be variables of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
-- Interactions with a continuous variable can be specified with `&`
+- Multiple high dimensional fixed effects can be specified
 
+ ```julia
+ df[:pYear] =  pool(df[:Year])
+ reg(Sales ~ NDI |> pState + pYear, df)
+ ```
+- Interacted fixed effects can be specified with `&`
+ ```
+ reg(Sales ~ NDI |> pState + pState&Year)
+ ```
 
 
 
