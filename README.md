@@ -23,6 +23,16 @@ df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:State])
 df[:pYear] =  pool(df[:Year])
 reg(Sales ~ NDI |> pState, df)
+#                         Fixed Effect Model                         
+#=====================================================================
+#Dependent variable          Sales   Number of obs                1380
+#Degree of freedom              47   R2                          0.207
+#R2 Adjusted                 0.179   F Statistics:             7.40264
+#=====================================================================
+#        Estimate  Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
+#---------------------------------------------------------------------
+#NDI  -0.00170468 9.13903e-5 -18.6527    0.000 -0.00188396 -0.00152539
+#=====================================================================
 reg(Sales ~ NDI |> pState + pYear, df)
 reg(Sales ~ NDI |> pState + pState&Year)
 ```
