@@ -78,8 +78,10 @@ end
 
 ## Regression Result
 
-`reg` returns a light object of type RegressionResult. It is simply composed of coefficients, covariance matrix, and some scalars like number of observations, degrees of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are defined.
+`reg` returns a light object of type RegressionResult. 
+It is simply composed of the coefficients, the covariance matrix, and a set of scalars like number of observations, degrees of freedoms, r2, etc. Usual methods `coef`, `vcov`, `nobs`, `predict`, `residuals` are still defined if you add a dataframe.
 
+This allows to estimate multiple models without worrying about your RAM. The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe), [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)
 
 
 ## Comparison
