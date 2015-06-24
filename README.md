@@ -24,7 +24,8 @@ reg(Sales ~ NDI |> pState, df)
 ```
 
 returns
-```
+
+```julia
 #                          Fixed Effect Model                         
 # =====================================================================
 # Dependent variable          Sales   Number of obs                1380
