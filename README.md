@@ -3,7 +3,7 @@
 
 The function `reg` estimates linear models with 
 - instrumental variables (via 2SLS)
-- high dimensional categorical variable (fixed effects and slope effects)
+- high dimensional categorical variable (both intercept and slope fixed effects)
 - robust standard errors (White or clustered) 
 
 It is a basic implementation of the packages `reghdfe` in Stata and `lfe` in R.
