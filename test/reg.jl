@@ -42,6 +42,12 @@ df[:pYear] = pool(df[:Year])
 
 
 
+# non high dimensional factors
+@test_approx_eq coef(reg(Sales ~ NDI + pYear |> pState, df))[1]  [-0.006843845412979117]
+@test_approx_eq coef(reg(Sales ~ NDI + pYear |> pState, df,  weight = :Pop))[1]   -0.005262640642375475
+@test_approx_eq coef(reg(Sales ~ Price + (NDI = Pimin) + pYear |> pState, df))[1]  [-0.7063946354191657]
+
+
 # predict 
 result = reg(Sales ~ NDI, df)
 predict(result, df)

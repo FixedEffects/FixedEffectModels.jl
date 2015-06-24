@@ -18,9 +18,10 @@ reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, d
 
 
 ```julia
+using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:pState] =  pool(df[:pState])
-df[:pState] =  pool(df[:pYear])
+df[:pState] =  pool(df[:State])
+df[:pYear] =  pool(df[:Year])
 reg(Sales ~ NDI |> pState, df)
 reg(Sales ~ NDI |> pState + pYear, df)
 reg(Sales ~ NDI |> pState + pState&Year)

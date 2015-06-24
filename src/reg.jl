@@ -54,24 +54,6 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	mf = ModelFrame(df1, rt, esample)
 	coef_names = coefnames(mf)
 
-
-
-	# If high dimensional fixed effects, demean all variables
-	if has_absorb
-		# construct an array of factors
-		factors = construct_fe(df, absorbt.terms, sqrtw)
-		# in case where only interacted fixed effect, add constant
-		if all(map(z -> typeof(z) <: FeInteracted, factors))
-			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
-		end
-		# demean y
-		for x in setdiff(vcat(vars, iv_vars), [nothing])
-			xv = convert(Vector{Float64}, df[x])
-			multiplication_elementwise!(xv, sqrtw)
-			df[x] = demean_vector!(xv, factors)
-		end
-	end
-
 	# build X
 	mm = ModelMatrix(mf)
 	X = mm.m
@@ -93,16 +75,32 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		Z = mm.m
 	end
 
-	if !has_absorb
-		multiplication_elementwise!(y, sqrtw)
-		broadcast!(*, X, sqrtw, X)
-		if has_iv
-			broadcast!(*, Z, sqrtw, Z)
-		end
+	multiplication_elementwise!(y, sqrtw)
+	broadcast!(*, X, sqrtw, X)
+	if has_iv
+		broadcast!(*, Z, sqrtw, Z)
 	end
 
 
-
+	# If high dimensional fixed effects, demean all variables
+	if has_absorb
+		# construct an array of factors
+		factors = construct_fe(df, absorbt.terms, sqrtw)
+		# in case where only interacted fixed effect, add constant
+		if all(map(z -> typeof(z) <: FeInteracted, factors))
+			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
+		end
+		# demean y
+		y = demean_vector!(y, factors)
+		for j in 1:size(X, 2)
+			X[:,j] = demean_vector!(X[:,j], factors)
+		end
+		if has_iv
+			for j in 1:size(Z, 2)
+				Z[:,j] = demean_vector!(Z[:,j], factors)
+			end
+		end
+	end
 	if has_iv
 		Hz = At_mul_B(Z, Z)
 		Hz = inv(cholfact!(Hz))
