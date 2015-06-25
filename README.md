@@ -7,7 +7,7 @@ The function `reg` estimates linear models with
   - robust standard errors (White or clustered) 
 
 
- reg is fast (code used for this benchmark [here](benchmark/result.md))
+reg is fast (code used for this benchmark [here](benchmark/result.md))
 
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
 
