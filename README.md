@@ -1,13 +1,19 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 
-1. The function `reg` estimates linear models with 
+The function `reg` estimates linear models with 
   - instrumental variables (via 2SLS)
   - high dimensional categorical variable (as intercept or interacted with continuous variables)
   - robust standard errors (White or clustered) 
 
 
-2. `reg` returns a very light object. This allows to estimate multiple models on the same DataFrame without worrying about your RAM. It is simply composed of 
+ reg is fast (code used for this benchmark [here](benchmark/result.md))
+
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
+
+
+
+`reg` returns a very light object. This allows you to estimate multiple models on the same DataFrame without worrying about your RAM. It is simply composed of 
  
   - the vector of coefficients, 
   - the covariance matrix, 
@@ -18,10 +24,7 @@
 
 
 
-3. reg is fast (code used for this benchmark [here](benchmark/result.md))
-
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
-
+3.
 ## Syntax
 
 The general syntax is
