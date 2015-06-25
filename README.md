@@ -20,7 +20,7 @@
 
 3. reg is [fast](benchmark/result.md)
 
-![benchmark](http://www.princeton.edu/~mattg/pictures/result.svg)
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
 
 ## Syntax
 
