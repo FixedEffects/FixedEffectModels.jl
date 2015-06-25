@@ -18,7 +18,7 @@
 
 
 
-3. reg is fast (simple benchmark [here](benchmark/result.md))
+3. reg is fast (code used for this benchmark [here](benchmark/result.md))
 
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
 
