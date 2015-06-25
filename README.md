@@ -80,7 +80,7 @@ end
 ```
 
 ## Weights
-Weights are supported (corresponding to R weights and analytical weights in Stata).
+Weights are supported with the option `weight` (corresponding to R weights and analytical weights in Stata).
 
 
 
