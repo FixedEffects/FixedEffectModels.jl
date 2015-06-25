@@ -55,9 +55,15 @@ function residuals(x::RegressionResult, df::AbstractDataFrame)
     out = DataArray(Float64, size(df, 1))
     out[mf.msng] = model_response(mf) -  ModelMatrix(mf).m * x.coef
 end
+
+
 function model_response(x::RegressionResult, df::AbstractDataFrame)
-    model_response(ModelFrame(newTerms, df))
+    f = x.formula
+    mf = ModelFrame(Terms(f), df)
+    model_response(mf)
 end
+
+
 function Base.show(io::IO, x::RegressionResult) 
     show(io, coeftable(x))
 end

@@ -71,3 +71,5 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq stderr(reg(Sales ~ NDI , df, VcovCluster(:State)))[2] [0.0002707729157107782]
 @test_approx_eq stderr(reg(Sales ~ NDI |> pState, df, VcovCluster(:Year)))  [0.00028740748422023774]
 @test_approx_eq stderr(reg(Sales ~ NDI |> pState, df, VcovCluster(:pState))) [0.00037490907349394426]
+# to check with some good command
+@test_approx_eq stderr(reg(Sales ~ NDI, df, VcovCluster([:pState, :pYear])))[1] [5.531951676890601]
