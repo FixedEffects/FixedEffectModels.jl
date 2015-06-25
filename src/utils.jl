@@ -27,7 +27,7 @@ function group(df::AbstractDataFrame; skipna = true)
 		ngroups = length(dv.pool)
 		for j = (ncols - 1):-1:1
 			dv = PooledDataArray(df[j])
-			for i = 1:DataFrames.size(df, 1)
+			for i = 1:size(df, 1)
 				x[i] += ((dv.refs[i] == 0 | x[i] == 0) ? 0 : (dv.refs[i] - 1) * ngroups)
 			end
 			ngroups = ngroups * length(dv.pool)
@@ -46,7 +46,7 @@ function group(df::AbstractDataFrame; skipna = true)
 		for j = (ncols - 1):-1:1
 			dv = PooledDataArray(df[j])
 			dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
-			for i = 1:DataFrames.size(df, 1)
+			for i = 1:size(df, 1)
 				x[i] += (dv.refs[i] + dv_has_nas- 1) * ngroups
 			end
 			ngroups = ngroups * (length(dv.pool) + dv_has_nas)
@@ -95,13 +95,6 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 end
 
 
-
-function remove_negweight!{R}(esample::BitArray{1}, w::DataVector{R})
-	@inbounds @simd  for (i in 1:length(w))
-		 esample[i] = esample[i] && (w[i] > zero(R))
-	end
-	esample
-end
 
 function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
 	@inbounds @simd  for i in 1:length(y)

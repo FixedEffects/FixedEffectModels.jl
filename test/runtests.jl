@@ -1,7 +1,7 @@
 fatalerrors = length(ARGS) > 0 && ARGS[1] == "-f"
 quiet = length(ARGS) > 0 && ARGS[1] == "-q"
 anyerrors = false
-tests = ["reg.jl", "RegressionResult.jl", "partial_out.jl"]
+tests = ["reg.jl", "RegressionResult.jl", "partial_out.jl", "utils.jl"]
 
 
 println("Running tests:")
