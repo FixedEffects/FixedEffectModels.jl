@@ -150,7 +150,7 @@ partial_out(Sales + Price ~ CPI |> pState, df)
 #> | 1380 | -13.7996 | 20.4683  |
 ```
 
-
+With the option `add_mean = TRUE`, the initial variable mean is added to the residuals.
 
 
 
