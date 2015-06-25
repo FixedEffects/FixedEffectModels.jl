@@ -1,6 +1,6 @@
 julia 0.3
-Distributions 
-Distances 
-StatsBase 
-DataFrames 
+Distributions 0.4.6
+Distances 0.1.1
+StatsBase 0.3
+DataFrames 0.6
 GLM
