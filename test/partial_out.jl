@@ -1,6 +1,5 @@
-using  RDatasets, DataFrames, FixedEffectModels
-using Base.Test
-# values checked from reghdfe
+using RDatasets, DataFrames, FixedEffectModels, Base.Test
+
 df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])

@@ -1,5 +1,3 @@
-using FixedEffectModels
-
 tests = ["reg.jl", "RegressionResult.jl", "partial_out.jl"]
 
 

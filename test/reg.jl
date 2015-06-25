@@ -1,5 +1,5 @@
-using  RDatasets, DataFrames, FixedEffectModels
-using Base.Test
+using RDatasets, DataFrames, FixedEffectModels, Base.Test
+
 # values checked from reghdfe
 df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
