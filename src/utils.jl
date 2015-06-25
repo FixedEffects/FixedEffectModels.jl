@@ -156,6 +156,11 @@ function decompose_iv!(rf::Formula)
 	return(rf, has_iv, iv_vars, ivt)
 end
 
+function simpleModelFrame(df, t, esample)
+	df1 = DataFrame(map(x -> df[x], t.eterms))
+	names!(df1, convert(Vector{Symbol}, map(string, t.eterms)))
+	mf = ModelFrame(df1, t, esample)
+end
 
 
 # Directly from DataFrames.jl

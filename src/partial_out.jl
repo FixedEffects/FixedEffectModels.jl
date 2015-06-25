@@ -39,11 +39,8 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	yf = Formula(nothing, rf.lhs)
 	yt = Terms(yf)
 	yt.intercept = false
-	df1 = DataFrame(map(x -> df[x], yt.eterms))
-	names!(df1, convert(Vector{Symbol}, map(string, yt.eterms)))
-	mf = ModelFrame(df1, yt, esample)
-	mm = ModelMatrix(mf)
-	Y = mm.m
+	mfY = simpleModelFrame(df, yt, esample)
+	Y = ModelMatrix(mfY).m
 	if weight != nothing
 		broadcast!(*, Y, sqrtw, Y)
 	end
@@ -63,12 +60,8 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	xvars = allvars(xf)
 	if length(xvars) > 0 || xt.intercept
 		if length(xvars) > 0 
-			df2 = DataFrame(map(x -> df[x], xt.eterms))
-			names!(df2, convert(Vector{Symbol}, map(string, xt.eterms)))
-			mf = ModelFrame(df2, xt, esample)
-			coef_names = coefnames(mf)
-			mm = ModelMatrix(mf)
-			X = mm.m
+			mf = simpleModelFrame(df, xt, esample)
+			X = ModelMatrix(mf).m
 		else
 			X = fill(one(Float64), (size(df, 1), 1))
 		end 	
@@ -95,12 +88,13 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 
 
 	# Return a dataframe
+	out = mfY.df
 	for j in 1:size(Y, 2)
-		df1[:, j] = DataArray(Float64, size(df1, 1))
-		df1[esample, j] = residuals[:, j]
+		out[:, j] = DataArray(Float64, size(out, 1))
+		out[esample, j] = residuals[:, j]
 	end
 
-	return(df1)
+	return(out)
 end
 
 

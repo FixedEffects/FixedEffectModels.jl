@@ -50,12 +50,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	end
 
 	# Compute demeaned X
-	df1 = DataFrame(map(x -> df[x], rt.eterms))
-	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
-	mf = ModelFrame(df1, rt, esample)
+	mf = simpleModelFrame(df, rt, esample)
 	coef_names = coefnames(mf)
-	mm = ModelMatrix(mf)
-	X = mm.m
+	X = ModelMatrix(mf).m
 	if weight != nothing
 		broadcast!(*, X, sqrtw, X)
 	end
@@ -81,11 +78,8 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# Compute demeaned Z
 	if has_iv
-		df1 = DataFrame(map(x -> df[x], ivt.eterms))
-		names!(df1, convert(Vector{Symbol}, map(string, ivt.eterms)))
-		mf = ModelFrame(df1, ivt, esample)
-		mm = ModelMatrix(mf)
-		Z = mm.m
+		mf = simpleModelFrame(df, ivt, esample)
+		Z = ModelMatrix(mf).m
 		if weight != nothing
 			broadcast!(*, Z, sqrtw, Z)
 		end
