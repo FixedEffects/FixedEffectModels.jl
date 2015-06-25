@@ -2,7 +2,7 @@
 
 The function `reg` estimates linear models with 
 - instrumental variables (via 2SLS)
-- high dimensional categorical variable (any number of intercept and slope fixed effects)
+- high dimensional categorical variable (as intercept or interacted with continuous variables)
 - robust standard errors (White or clustered) 
 
 
@@ -12,11 +12,11 @@ Moreover, `reg` returns a very light object simply composed of
 - a boolean vector reporting rows used in the estimation
 - a set of scalars (number of observations, the degree of freedoms, r2, etc). 
 
-This allows you to estimate multiple models on the same DataFrame without worrying about your RAM. The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way))
+This allows to estimate multiple models on the same DataFrame without worrying about your RAM. The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 Methods such as `predict`, `residuals` are still defined but require a dataframe as a second argument. 
 
 
-## Formula Syntax
+## Syntax
 
 The general syntax is
 
@@ -42,25 +42,34 @@ reg(Sales ~ NDI |> pState, df)
 ```
 
 
-- Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
-- You can specify an arbitrary number of high dimensional fixed effects.
+### Fixed effects
+
+
+- Specify multiple high dimensional fixed effects.
 
   ```julia
   df[:pYear] =  pool(df[:Year])
   reg(Sales ~ NDI |> pState + pYear, df)
   ```
-- You can interact fixed effects with a continuous variable using `&`
+- Interact fixed effects with continuous variables using `&`
 
   ```julia
   reg(Sales ~ NDI |> pState + pState&Year)
   ```
 
+- Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
-  Weights are supported with the option `weight`, and they correspond to R weights and analytical weights in Stata.
 
+### Weights
+
+ Weights are supported with the option `weight`. They correspond to R weights and analytical weights in Stata.
+
+```julia
+reg(Sales ~ NDI |> pState, weight = :Pop)
+```
 
 ## Errors
-Compute robust standart errors with a third argument
+Compute robust standard errors with a third argument
 
 For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 

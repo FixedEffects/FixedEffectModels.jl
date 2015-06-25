@@ -1,5 +1,5 @@
 
-function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, Nothing) = nothing)
+function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, Nothing) = nothing, add_mean = false)
 
 	rf = deepcopy(f)
 
@@ -44,6 +44,9 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	if weight != nothing
 		broadcast!(*, Y, sqrtw, Y)
 	end
+	if add_mean
+		m = mean(Y, 1)
+	end
 	if has_absorb
 		for j in 1:size(Y, 2)
 			Y[:,j] = demean_vector!(Y[:,j], factors)
@@ -86,6 +89,12 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 		residuals = Y
 	end
 
+	if weight != nothing
+		broadcast!(/, residuals,  residuals, sqrtw)
+	end
+	if add_mean
+		broadcast!(+, residuals, m, residuals)
+	end
 
 	# Return a dataframe
 	out = mfY.df
