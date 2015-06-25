@@ -1,16 +1,17 @@
 function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
 
+
+	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
-
-	# decompose formula into normal + iv vs absorbpart
 	(rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
+	# rf is now y ~ exogeneousvars + (endoegeneousvars = instruments)
+	# absorbt is Terms(nothing ~ absorbvars)
 	(rf, has_iv, iv_vars, ivt) = decompose_iv!(rf)
-
-	
-
+	# rf is now y ~ exogeneousvars + endoegeneousvars
+	# ivt is Terms(y ~ exogeneousvars + instruments)
 	rt = Terms(rf)
-	vars = unique(allvars(rf))
 	
+	# remove intercept if high dimensional categorical variables
 	if has_absorb
 		rt.intercept = false
 		if has_iv
@@ -18,19 +19,21 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		end
 	end
 
-	# get variables used for vcov
+
+	# create a dataframe without missing values & negative weights
+	vars = unique(allvars(rf))
 	vcov_vars = allvars(vcov_method)
-
-
 	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, iv_vars, weight), [nothing])
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
-	# construct df without NA for all variables
 	esample = complete_cases(df[all_vars])
-	# also remove elements with zero or negative weights
 	if weight != nothing
 		esample &= convert(BitArray{1}, df[weight] .> zero(eltype(df[weight])))
 	end
 	df = df[esample, all_vars]
+	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, iv_vars), [nothing])))
+	for v in all_except_absorb_vars
+		dropUnusedLevels!(df[v])
+	end
 
 	# create weight vector
 	if weight == nothing
@@ -41,29 +44,16 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		sqrtw = sqrt(w)
 	end
 
-	# Similar to ModelFrame function
-	# only remove absent levels for factors not in absorb_vars
-	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, iv_vars), [nothing])))
-	for v in all_except_absorb_vars
-		dropUnusedLevels!(df[v])
-	end
-
+	# Compute factors, an array of AbtractFixedEffects
 	if has_absorb
-		# construct an array of factors
 		factors = construct_fe(df, absorbt.terms, sqrtw)
-		# in case where only interacted fixed effect, add constant
-		if all(map(z -> typeof(z) <: FixedEffectSlope, factors))
-			push!(factors, FixedEffectIntercept(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
-		end
 	end
 
-
+	# Compute demeaned X
 	df1 = DataFrame(map(x -> df[x], rt.eterms))
 	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
 	mf = ModelFrame(df1, rt, esample)
 	coef_names = coefnames(mf)
-
-	# build X
 	mm = ModelMatrix(mf)
 	X = mm.m
 	if weight != nothing
@@ -74,7 +64,8 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 			X[:,j] = demean_vector!(X[:,j], factors)
 		end
 	end
-	# build y
+
+	# Compute demeaned y
 	py = model_response(mf)[:]
 	if eltype(py) != Float64
 		y = convert(py, Float64)
@@ -88,10 +79,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		y = demean_vector!(y, factors)
 	end
 
-
-	Xhat = X
-
-	# build Z
+	# Compute demeaned Z
 	if has_iv
 		df1 = DataFrame(map(x -> df[x], ivt.eterms))
 		names!(df1, convert(Vector{Symbol}, map(string, ivt.eterms)))
@@ -106,22 +94,27 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 				Z[:,j] = demean_vector!(Z[:,j], factors)
 			end
 		end
+	end
+
+	# Compute Xhat
+	if has_iv
 		Hz = At_mul_B(Z, Z)
 		Hz = inv(cholfact!(Hz))
 		Xhat = A_mul_Bt(Z * Hz, Z) * X
+	else
+		Xhat = X
 	end
 
-
-	# regression
+	# Compute coef and residuals
 	H = At_mul_B(Xhat, Xhat)
 	H = inv(cholfact!(H))
 	coef = H * (At_mul_B(Xhat, y))
 	residuals = y - X * coef
 
-	# compute degree of freedom
+	# Compute degree of freedom
 	df_absorb = 0
 	if has_absorb 
-		## poor man adjustement when clustering: if fe name == cluster name
+		## poor man clustering adjustement of df: only if fe name == cluster name
 		for fe in factors
 			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .> 0)
 		end
@@ -139,7 +132,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
 	F = (tss - ess) / ((nobs - df_residual - rt.intercept) * ess/df_residual)
 
-	# standard error
+	# compute standard error
 	vcovmodel = VcovDataHat(Xhat, H, residuals, nobs, df_residual)
 	matrix_vcov = vcov(vcovmodel, vcov_method, df)
 

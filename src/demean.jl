@@ -81,6 +81,10 @@ function construct_fe(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
 	for a in v
 		push!(factors, construct_fe(df, a, w))
 	end
+	# in case where only interacted fixed effect, add constant
+	if all(map(z -> typeof(z) <: FixedEffectSlope, factors))
+		push!(factors, FixedEffectIntercept(PooledDataArray(fill(1, size(df, 1))), w, :cons))
+	end
 	return(factors)
 end
 
