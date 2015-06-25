@@ -20,7 +20,7 @@
 
 3. reg is [fast](benchmark/result.md)
 
-<img  src="/benchmark/result.svg" />
+![benchmark](/benchmark/result.svg)
 
 ## Syntax
 
