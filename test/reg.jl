@@ -1,9 +1,15 @@
 using RDatasets, DataFrames, FixedEffectModels, Base.Test
 
-# values checked from reghdfe
 df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])
+
+
+##############################################################################
+##
+## Check coefficients (result compared with Stata reghdfe)
+##
+##############################################################################
 
 
 # simple
@@ -43,6 +49,25 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = Pimin) + pYear |> pState, df))[1]  [-0.7063946354191657]
 
 
+##############################################################################
+##
+## Check errors (result compared with Stata reghdfe)
+##
+##############################################################################
 
 
 
+# Simple
+@test_approx_eq stderr(reg(Sales ~ NDI , df)) [1.537724332603002,0.00017284152555886948]
+@test_approx_eq stderr(reg(Sales ~ (NDI = CPI) , df)) [1.5930914162234808,0.00018143551700490045]
+@test_approx_eq stderr(reg(Sales ~ NDI |> pState, df)) [9.139033511351627e-5]
+
+# White
+@test_approx_eq stderr(reg(Sales ~ NDI , df, VcovWhite())) [1.6078664457460958,0.00015389800338122924]
+@test_approx_eq stderr(reg(Sales ~ (NDI = CPI) , df, VcovWhite())) [1.755052008901572,0.00017285313708536313]
+@test_approx_eq stderr(reg(Sales ~ NDI |> pState, df, VcovWhite())) [0.00011195235772951868]
+
+# cluster
+@test_approx_eq stderr(reg(Sales ~ NDI , df, VcovCluster(:State)))[2] [0.0002707729157107782]
+@test_approx_eq stderr(reg(Sales ~ NDI |> pState, df, VcovCluster(:Year)))  [0.00028740748422023774]
+@test_approx_eq stderr(reg(Sales ~ NDI |> pState, df, VcovCluster(:pState))) [0.00037490907349394426]

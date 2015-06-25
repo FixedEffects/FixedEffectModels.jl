@@ -111,6 +111,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		for fe in factors
 			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .> 0)
 		end
+		# still one in case all are removed
+		#if df_absorb == 0
+		#	df_absorb = 1
+		#end
 	end
 	nobs = size(X, 1)
 	df_residual = size(X, 1) - size(X, 2) - df_absorb 

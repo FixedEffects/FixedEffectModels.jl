@@ -7,6 +7,7 @@ df[:pYear] = pool(df[:Year])
 
 
 result = reg(Sales ~ NDI, df)
+show(result)
 predict(result, df)
 residuals(result, df)
 

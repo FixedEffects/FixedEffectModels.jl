@@ -82,11 +82,11 @@ function coeftable(x::RegressionResult)
         newindex = vcat(2:length(cc), 1)
         cc = cc[newindex]
         se = se[newindex]
-        conf_int = conf_in[newindex]
+        conf_int = conf_int[newindex, :]
         coefnames = coefnames[newindex]
     end
     tt = cc ./ se
-    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int),
+    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
               ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
               ["$(coefnames[i])" for i = 1:length(cc)], 4, title, top)
 end

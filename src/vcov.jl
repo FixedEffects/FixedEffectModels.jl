@@ -156,13 +156,13 @@ function vcov(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame)
 			end
 		end
 	end
-	scale!(S, (nobs(x) - 1) / df_residual(x))
+	scale!(S, (nobs(x)-1) / df_residual(x))
 	sandwich(x, S)
 end
 
 function helper_cluster(x::AbstractVcovData, f::PooledDataArray)
 	X = regressors(x)
-	residuals = residuals(x)
+	res = residuals(x)
 	pool = f.pool
 	refs = f.refs
 
@@ -176,11 +176,11 @@ function helper_cluster(x::AbstractVcovData, f::PooledDataArray)
 		X2 = fill(zero(Float64), (size(X, 2), length(f.pool)))
 		for j in 1:size(X, 2)
 			for i in 1:size(X, 1)
-				@inbounds X2[j, refs[i]] += X[i, j] * residuals[i]
+				@inbounds X2[j, refs[i]] += X[i, j] * res[i]
 			end
 		end
 		out = A_mul_Bt(X2, X2)
-		scale!(out, length(pool) / length(pool - 1))
+		scale!(out, length(pool) / (length(pool) - 1))
 		return(out)
 	end
 end
