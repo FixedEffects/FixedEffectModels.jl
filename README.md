@@ -18,7 +18,9 @@
 
 
 
-3. reg is [fast](BENCHMARK.md)
+3. reg is [fast](benchmark/result.md)
+
+<img class = "img-responsive"  src="/benchmark/result.svg" />
 
 ## Syntax
 

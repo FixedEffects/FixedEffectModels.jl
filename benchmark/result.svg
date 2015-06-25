@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:gadfly="http://www.gadflyjl.org/ns"
+     version="1.2"
+     width="203.2mm" height="125.58mm" viewBox="0 0 203.2 125.58"
+     stroke="none"
+     fill="#000000"
+     stroke-width="0.3"
+     font-size="3.88"
+>
+<g class="plotroot yscalable" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-1">
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-2">
+    <text x="105.07" y="117.58" text-anchor="middle">model</text>
+  </g>
+  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-3">
+    <text x="42.75" y="109.97" text-anchor="middle">simple reg</text>
+    <text x="84.3" y="109.97" text-anchor="middle">cluster</text>
+    <text x="125.85" y="109.97" text-anchor="middle">1 hd fe</text>
+    <text x="167.39" y="109.97" text-anchor="middle">2 hd fe</text>
+  </g>
+  <g class="guide colorkey" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-4">
+    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-5">
+      <text x="191.98" y="53.84" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-6" class="color_Julia">Julia</text>
+      <text x="191.98" y="57.46" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-7" class="color_R">R</text>
+      <text x="191.98" y="61.09" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-8" class="color_Stata">Stata</text>
+    </g>
+    <g stroke="#000000" stroke-opacity="0.000" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-9">
+      <rect x="189.17" y="52.93" width="1.81" height="1.81" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-10" fill="#00BFFF" class="color_Julia"/>
+      <rect x="189.17" y="56.56" width="1.81" height="1.81" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-11" fill="#D4CA3A" class="color_R"/>
+      <rect x="189.17" y="60.18" width="1.81" height="1.81" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-12" fill="#FF5EA0" class="color_Stata"/>
+    </g>
+    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-13">
+      <text x="189.17" y="50.02" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-14">Color</text>
+    </g>
+  </g>
+  <g clip-path="url(#fig-d51e797040cd4580b2e587c1b0b30cee-element-16)" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-15">
+    <g pointer-events="visible" opacity="1" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-17">
+      <rect x="21.98" y="5" width="166.19" height="101.3" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-18"/>
+    </g>
+    <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-19">
+      <path fill="none" d="M21.98,104.3 L 188.17 104.3" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-20"/>
+      <path fill="none" d="M21.98,79.97 L 188.17 79.97" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-21"/>
+      <path fill="none" d="M21.98,55.65 L 188.17 55.65" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-22"/>
+      <path fill="none" d="M21.98,31.32 L 188.17 31.32" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-23"/>
+      <path fill="none" d="M21.98,7 L 188.17 7" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-24"/>
+    </g>
+    <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-25">
+      <path fill="none" d="M63.53,5 L 63.53 106.3" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-26"/>
+      <path fill="none" d="M105.07,5 L 105.07 106.3" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-27"/>
+      <path fill="none" d="M146.62,5 L 146.62 106.3" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-28"/>
+    </g>
+    <g class="plotpanel" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-29">
+      <g class="geometry" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-30">
+        <g stroke-width="0.3" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-31">
+          <circle cx="42.75" cy="100.1" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-32" fill="#00BFFF" class="color_Julia" stroke="#FFFFFF"/>
+          <circle cx="84.3" cy="98.94" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-33" fill="#00BFFF" class="color_Julia" stroke="#FFFFFF"/>
+          <circle cx="125.85" cy="89.03" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-34" fill="#00BFFF" class="color_Julia" stroke="#FFFFFF"/>
+          <circle cx="167.39" cy="84.99" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-35" fill="#00BFFF" class="color_Julia" stroke="#FFFFFF"/>
+          <circle cx="42.75" cy="45.14" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-36" fill="#D4CA3A" class="color_R" stroke="#FFFFFF"/>
+          <circle cx="84.3" cy="54.53" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-37" fill="#D4CA3A" class="color_R" stroke="#FFFFFF"/>
+          <circle cx="125.85" cy="38.88" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-38" fill="#D4CA3A" class="color_R" stroke="#FFFFFF"/>
+          <circle cx="167.39" cy="36.34" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-39" fill="#D4CA3A" class="color_R" stroke="#FFFFFF"/>
+          <circle cx="42.75" cy="94.24" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-40" fill="#FF5EA0" class="color_Stata" stroke="#FFFFFF"/>
+          <circle cx="84.3" cy="54.78" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-41" fill="#FF5EA0" class="color_Stata" stroke="#FFFFFF"/>
+          <circle cx="125.85" cy="45.76" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-42" fill="#FF5EA0" class="color_Stata" stroke="#FFFFFF"/>
+          <circle cx="167.39" cy="15.7" r="0.9" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-43" fill="#FF5EA0" class="color_Stata" stroke="#FFFFFF"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-44">
+    <text x="20.98" y="104.3" text-anchor="end" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-45">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">0.0</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="20.98" y="79.97" text-anchor="end" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-46">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">0.5</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="20.98" y="55.65" text-anchor="end" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-47">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">1.0</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="20.98" y="31.32" text-anchor="end" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-48">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">1.5</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="20.98" y="7" text-anchor="end" dy="0.35em" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-49">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">2.0</tspan><tspan dy="0.498000em"></tspan></text>
+  </g>
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-50">
+    <text x="8.81" y="53.65" text-anchor="middle" dy="0.35em" transform="rotate(-90, 8.81, 55.65)" id="fig-d51e797040cd4580b2e587c1b0b30cee-element-51">time</text>
+  </g>
+</g>
+<defs>
+<clipPath id="fig-d51e797040cd4580b2e587c1b0b30cee-element-16">
+  <path d="M21.98,5 L 188.17 5 188.17 106.3 21.98 106.3" />
+</clipPath
+></defs>
+</svg>
