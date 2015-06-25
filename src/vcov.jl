@@ -146,13 +146,20 @@ allvars(x::VcovCluster) = x.clusters
 # Cameron, Gelbach, & Miller (2011).
 function vcov(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame) 
 	df = df[v.clusters]
-	S = fill(zero(Float64), (size(regressors(x), 2), size(regressors(x), 2)))
+	X = regressors(x)
+	Xu = broadcast(*,  X, residuals(x))
+	S = fill(zero(Float64), (size(X, 2), size(X, 2)))
 	for i in 1:length(v.clusters)
 		for c in combinations(v.clusters, i)
-			if rem(length(c), 2) == 1
-				S += helper_cluster(x, group(df[c]))
+			if length(c) == 1
+				f = df[c[1]]
 			else
-				S -= helper_cluster(x, group(df[c]))
+				f = group(df[c])
+			end
+			if rem(length(c), 2) == 1
+				S += helper_cluster(Xu, f)
+			else
+				S -= helper_cluster(Xu, f)
 			end
 		end
 	end
@@ -160,31 +167,31 @@ function vcov(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame)
 	sandwich(x, S)
 end
 
-function helper_cluster(x::AbstractVcovData, f::PooledDataArray)
-	X = regressors(x)
-	res = residuals(x)
+function helper_cluster(Xu::Matrix{Float64}, f::PooledDataArray)
 	pool = f.pool
 	refs = f.refs
-
 	# if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
-	if length(pool) == size(X, 1)
-		Xu = broadcast(*,  regressors(x), residuals(x))
+	if length(pool) == size(Xu, 1)
 		At_mul_B(Xu, Xu)
 		return(At_mul_B(Xu, Xu))
 	else
 		# otherwise
-		X2 = fill(zero(Float64), (size(X, 2), length(f.pool)))
-		for j in 1:size(X, 2)
-			for i in 1:size(X, 1)
-				@inbounds X2[j, refs[i]] += X[i, j] * res[i]
-			end
-		end
-		out = A_mul_Bt(X2, X2)
+		X2 = fill(zero(Float64), (length(f.pool), size(Xu, 2)))
+		aggregate_matrix!(X2, Xu, refs)
+		out = At_mul_B(X2, X2)
 		scale!(out, length(pool) / (length(pool) - 1))
 		return(out)
 	end
 end
 
+
+function aggregate_matrix!{T <: Integer}(X2::Matrix{Float64}, Xu::Matrix{Float64}, refs::Vector{T})
+	for j in 1:size(Xu, 2)
+		@simd for i in 1:size(Xu, 1)
+			@inbounds X2[refs[i], j] += Xu[i, j]
+		end
+	end
+end
 
 
 
