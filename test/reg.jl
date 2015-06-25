@@ -5,9 +5,6 @@ df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])
 
-#
-# coefs
-#
 
 # simple
 @test_approx_eq coef(reg(Sales ~ NDI, df)) [132.9807886574938,-0.0011999855769369572]
@@ -40,20 +37,12 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI), df))   [137.89120963008102, -1.2712981727404156,0.009753824282892953]
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = CPI) |> pState, df))   [-0.958100502807393,0.0069962347229067315]
 
-
-
 # non high dimensional factors
 @test_approx_eq coef(reg(Sales ~ NDI + pYear |> pState, df))[1]  [-0.006843845412979117]
 @test_approx_eq coef(reg(Sales ~ NDI + pYear |> pState, df,  weight = :Pop))[1]   -0.005262640642375475
 @test_approx_eq coef(reg(Sales ~ Price + (NDI = Pimin) + pYear |> pState, df))[1]  [-0.7063946354191657]
 
 
-# predict 
-result = reg(Sales ~ NDI, df)
-predict(result, df)
-residuals(result, df)
 
 
-result = reg(Sales ~ Price + (NDI = CPI), df)
-predict(result, df)
-residuals(result, df)
+

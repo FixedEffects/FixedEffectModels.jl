@@ -22,7 +22,13 @@ coef(x::RegressionResult) = x.coef
 coefnames(x::RegressionResult) = x.coefnames
 vcov(x::RegressionResult) = x.vcov
 nobs(x::RegressionResult) = x.nobs
+function confint(x::RegressionResult) 
+    scale = quantile(TDist(df_residual(x)), 1 - (1-0.95)/2)
+    se = stderr(x)
+    hcat(x.coef -  scale * se, x.coef + scale * se)
+end
 df_residual(x::RegressionResult) = x.df_residual
+
 function predict(x::RegressionResult, df::AbstractDataFrame)
     f = x.formula
     (f, has_absorb, absorb_vars, absorbt) = decompose_absorb!(f)
@@ -70,16 +76,17 @@ function coeftable(x::RegressionResult)
     cc = coef(x)
     se = stderr(x)
     coefnames = x.coefnames
+    conf_int = confint(x)
     # put (intercept) last
     if coefnames[1] == symbol("(Intercept)") 
         newindex = vcat(2:length(cc), 1)
         cc = cc[newindex]
         se = se[newindex]
+        conf_int = conf_in[newindex]
         coefnames = coefnames[newindex]
     end
     tt = cc ./ se
-    scale = quantile(TDist(df_residual(x)), 1 - (1-0.95)/2)
-    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), cc -  scale * se, cc + scale * se),
+    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int),
               ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
               ["$(coefnames[i])" for i = 1:length(cc)], 4, title, top)
 end

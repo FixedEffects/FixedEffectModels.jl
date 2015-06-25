@@ -1,6 +1,6 @@
 using FixedEffectModels
 
-tests = ["areg", "regife"]
+tests = ["reg", "RegressionResult", "partial_out"]
 
 
 println("Running tests:")

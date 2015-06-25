@@ -1,5 +1,3 @@
-
-# Definition and constructors for types Fe and FeInteracted.
 function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
 
 	rf = deepcopy(f)
@@ -49,6 +47,17 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	for v in all_except_absorb_vars
 		dropUnusedLevels!(df[v])
 	end
+
+	if has_absorb
+		# construct an array of factors
+		factors = construct_fe(df, absorbt.terms, sqrtw)
+		# in case where only interacted fixed effect, add constant
+		if all(map(z -> typeof(z) <: FixedEffectSlope, factors))
+			push!(factors, FixedEffectIntercept(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
+		end
+	end
+
+
 	df1 = DataFrame(map(x -> df[x], rt.eterms))
 	names!(df1, convert(Vector{Symbol}, map(string, rt.eterms)))
 	mf = ModelFrame(df1, rt, esample)
@@ -57,7 +66,14 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	# build X
 	mm = ModelMatrix(mf)
 	X = mm.m
-
+	if weight != nothing
+		broadcast!(*, X, sqrtw, X)
+	end
+	if has_absorb
+		for j in 1:size(X, 2)
+			X[:,j] = demean_vector!(X[:,j], factors)
+		end
+	end
 	# build y
 	py = model_response(mf)[:]
 	if eltype(py) != Float64
@@ -65,6 +81,15 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	else
 		y = py
 	end
+	if weight != nothing
+		multiplication_elementwise!(y, sqrtw)
+	end
+	if has_absorb
+		y = demean_vector!(y, factors)
+	end
+
+
+	Xhat = X
 
 	# build Z
 	if has_iv
@@ -73,41 +98,21 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		mf = ModelFrame(df1, ivt, esample)
 		mm = ModelMatrix(mf)
 		Z = mm.m
-	end
-
-	multiplication_elementwise!(y, sqrtw)
-	broadcast!(*, X, sqrtw, X)
-	if has_iv
-		broadcast!(*, Z, sqrtw, Z)
-	end
-
-
-	# If high dimensional fixed effects, demean all variables
-	if has_absorb
-		# construct an array of factors
-		factors = construct_fe(df, absorbt.terms, sqrtw)
-		# in case where only interacted fixed effect, add constant
-		if all(map(z -> typeof(z) <: FeInteracted, factors))
-			push!(factors, Fe(PooledDataArray(fill(1, size(df, 1))), sqrtw, :cons))
+		if weight != nothing
+			broadcast!(*, Z, sqrtw, Z)
 		end
-		# demean y
-		y = demean_vector!(y, factors)
-		for j in 1:size(X, 2)
-			X[:,j] = demean_vector!(X[:,j], factors)
-		end
-		if has_iv
+		if has_absorb
 			for j in 1:size(Z, 2)
 				Z[:,j] = demean_vector!(Z[:,j], factors)
 			end
 		end
-	end
-	if has_iv
 		Hz = At_mul_B(Z, Z)
 		Hz = inv(cholfact!(Hz))
 		Xhat = A_mul_Bt(Z * Hz, Z) * X
-	else
-		Xhat = X
 	end
+
+
+	# regression
 	H = At_mul_B(Xhat, Xhat)
 	H = inv(cholfact!(H))
 	coef = H * (At_mul_B(Xhat, y))

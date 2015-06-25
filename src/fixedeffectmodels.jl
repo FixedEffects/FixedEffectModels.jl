@@ -9,7 +9,7 @@ import Distributions: TDist, ccdf, FDist
 import Distances: sqeuclidean
 import DataArrays: PooledDataArray, DataArray, DataVector
 import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint
 import GLM: df_residual, LinearModel
 
 ##############################################################################
@@ -20,7 +20,7 @@ import GLM: df_residual, LinearModel
 
 export group, 
 reg,
-
+partial_out,
 RegressionResult,
 
 allvars,
@@ -39,8 +39,10 @@ VcovDataHat
 ##
 ##############################################################################
 include("utils.jl")
+include("demean.jl")
 include("vcov.jl")
 include("RegressionResult.jl")
 include("reg.jl")
+include("partial_out.jl")
 
 end  # module FixedEffectModels
