@@ -79,6 +79,9 @@ function StatsBase.vcov(x::AbstractVcovModel, t::VcovWhite)
 end
 ```
 
+## Weights
+Weights are supported (corresponding to R weights and analytical weights in Stata).
+
 
 
 
