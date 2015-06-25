@@ -5,10 +5,10 @@ df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])
 
 
-function glm_helper(formula, df) 
+function glm_helper(formula::Formula, df::DataFrame) 
 	 model_response(ModelFrame(formula, df)) - predict(glm(formula, df, Normal(), IdentityLink()))
 end
-function glm_helper(formula, df, wts) 
+function glm_helper(formula::Formula, df::DataFrame, wts::Symbol) 
 	 model_response(ModelFrame(formula, df)) - predict(glm(formula, df, Normal(), IdentityLink(), wts = convert(Array{Float64}, df[wts])))
 end
 

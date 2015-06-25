@@ -29,12 +29,14 @@ function FixedEffectIntercept(f::PooledDataArray, w::Vector{Float64}, name::Symb
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
 	@inbounds @simd  for i in 1:length(refs)
-		 scale[refs[i]] += abs2(w[i])
+		scale[refs[i]] += abs2(w[i])
 	end
 	@inbounds @simd  for i in 1:length(scale)
-		 scale[i] = scale[i] > 0 ? (one(Float64) / scale[i]) : zero(Float64)
+		scale[i] = scale[i] > 0 ? (one(Float64) / scale[i]) : zero(Float64)
 	end
-	FixedEffectIntercept(refs, w, scale, name)
+
+
+FixedEffectIntercept(refs, w, scale, name)
 end
 
 function FixedEffectSlope(f::PooledDataArray, w::Vector{Float64}, x::Vector{Float64}, name::Symbol, xname::Symbol)
