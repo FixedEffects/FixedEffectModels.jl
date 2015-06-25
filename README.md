@@ -20,7 +20,7 @@
 
 3. reg is [fast](benchmark/result.md)
 
-![benchmark](benchmark/result.svg)
+![benchmark](https://github.com/matthieugomez/FixedEffectModels/raw/master/benchmark/benchmark.svg)
 
 ## Syntax
 
