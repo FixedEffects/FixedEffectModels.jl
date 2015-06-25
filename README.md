@@ -57,6 +57,7 @@ reg(Sales ~ NDI |> pState, df)
   ```
 
 
+  Weights are supported with the option `weight`, and they correspond to R weights and analytical weights in Stata.
 
 
 ## Errors
@@ -85,8 +86,62 @@ function StatsBase.vcov(x::AbstractVcovModel, t::VcovWhite)
 end
 ```
 
-## Weights
-Weights are supported with the option `weight` (corresponding to R weights and analytical weights in Stata).
+
+## Partial out
+
+`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. Models are estimated on only the rows where *none* of the dependent variables is missing. The result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+The syntax is similar to `reg` - just with multiple `lhs`. 
+
+```julia
+using  RDatasets, DataFrames, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:pState] =  pool(df[:State])
+partial_out(Sales + Price ~ 1 |> pState, df)
+#> 1380x2 DataFrame
+#> | Row  | Sales    | Price    |
+#> |------|----------|----------|
+#> | 1    | -13.5767 | -40.5467 |
+#> | 2    | -12.0767 | -39.3467 |
+#> | 3    | -8.97667 | -39.3467 |
+#> | 4    | -11.0767 | -37.6467 |
+#> | 5    | -11.9767 | -37.5467 |
+#> | 6    | -19.0767 | -33.5467 |
+#> | 7    | -17.3767 | -32.5467 |
+#> | 8    | -17.6767 | -29.5467 |
+#> ⋮
+#> | 1372 | -7.59667 | 19.8367  |
+#> | 1373 | -10.7967 | 25.5367  |
+#> | 1374 | -11.6967 | 35.9367  |
+#> | 1375 | -26.0967 | 40.8367  |
+#> | 1376 | -22.1967 | 51.0367  |
+#> | 1377 | -25.0967 | 56.7367  |
+#> | 1378 | -39.5967 | 67.6367  |
+#> | 1379 | -27.3967 | 65.1367  |
+#> | 1380 | -25.6967 | 93.2367  |
+partial_out(Sales + Price ~ CPI |> pState, df)
+#> 1380x2 DataFrame
+#> | Row  | Sales    | Price    |
+#> |------|----------|----------|
+#> | 1    | -21.2454 | 6.35952  |
+#> | 2    | -19.6741 | 7.12315  |
+#> | 3    | -16.4849 | 6.57769  |
+#> | 4    | -18.4244 | 7.29585  |
+#> | 5    | -19.146  | 6.30493  |
+#> | 6    | -25.9963 | 8.77763  |
+#> | 7    | -23.9575 | 7.70487  |
+#> | 8    | -23.8829 | 8.41392  |
+#> ⋮
+#> | 1372 | -2.19184 | -13.222  |
+#> | 1373 | -4.73191 | -11.5585 |
+#> | 1374 | -5.2752  | -3.34031 |
+#> | 1375 | -18.9618 | -2.80401 |
+#> | 1376 | -14.2235 | 2.26863  |
+#> | 1377 | -16.1069 | 1.75036  |
+#> | 1378 | -29.4119 | 5.34115  |
+#> | 1379 | -16.2309 | -3.15894 |
+#> | 1380 | -13.7996 | 20.4683  |
+```
+
 
 
 
@@ -196,13 +251,3 @@ timer off 5
 
 
 
-## Partial out
-
-`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. Models are estimated on only the rows where *none* of the dependent variables is missing. The result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The syntax is similar to `reg` - just with multiple `lhs`. 
-
-```julia
-partial_out(Sales + Price ~ 1, df)
-partial_out(Sales + Price ~ 1 |> pState, df)
-partial_out(Sales + Price ~ CPI |> pState, df)
-```
