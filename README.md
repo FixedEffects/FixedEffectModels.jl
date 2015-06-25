@@ -20,7 +20,7 @@
 
 3. reg is [fast](benchmark/result.md)
 
-![benchmark](/benchmark/result.svg)
+![benchmark](benchmark/result.svg)
 
 ## Syntax
 
