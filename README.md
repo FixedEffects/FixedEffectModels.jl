@@ -158,6 +158,7 @@ With the option `add_mean = TRUE`, the initial variable mean is added to the res
 ## Comparison
 
 
+
 Julia
 ```julia
 using DataFrames, FixedEffectModels
