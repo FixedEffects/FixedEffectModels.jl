@@ -1,4 +1,6 @@
-using DataFrames, FixedEffectModels, Base.Test
+using DataArrays, DataFrames, FixedEffectModels, Base.Test
+
+
 df = DataFrame(v1 = @data([1, NA, 2, 1]), v2 = @data([1, 3, 2, 1]), v3 = @data([NA, 1, 1, NA]))
 
 @test group(df, skipna = false).pool == [1, 2, 3]
