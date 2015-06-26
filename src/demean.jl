@@ -142,17 +142,16 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect})
 	end
 	olx = similar(x)
 	# allocate array of means for each factor
-	dict1 = Dict{AbstractFixedEffect, Vector{Float64}}()
-	dict2 = Dict{AbstractFixedEffect, Vector{Float64}}()
+	dict = Dict{AbstractFixedEffect, Vector{Float64}}()
 	for fe in fes
-		dict1[fe] = zeros(Float64, length(fe.scale))
+		dict[fe] = zeros(Float64, length(fe.scale))
 	end
 	for iter in 1:max_iter
 		@inbounds @simd  for i in 1:length(x)
 			olx[i] = x[i]
 		end
 		for fe in fes
-			mean = dict1[fe]
+			mean = dict[fe]
 			fill!(mean, zero(Float64))
 			demean_vector_factor!(x, fe, mean)
 		end
