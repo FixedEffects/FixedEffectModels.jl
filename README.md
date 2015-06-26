@@ -21,7 +21,7 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
 
 `reg` is fast:
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result2.svg)
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result1.svg)
 (more timing [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/files/benchmark.md))
 
 To install the package, 
@@ -171,7 +171,7 @@ plot(
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/second.svg)
 
 
-When the number of groups is high, another way to visualize this fact is to `partial_out` by the Species factor
+When there is large number of groups, a better way to visualize this fact is to plot the variabled partialed ouf by the factor Species 
 ```
 result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
 using Gadfly

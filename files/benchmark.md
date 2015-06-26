@@ -65,27 +65,15 @@ Code to reproduce this graph:
   gen   x2 =  runiform()
   timer clear
 
-  timer on 1
-  reg y x1 x2
-  timer off 1
-
-  timer on 2
-  reg y x1 x2, cl(id2)
-  timer off 2
-
-  timer on 3
-  areg y x1 x2, a(id1)
-  timer off 3
-
-  timer on 4
-  reghdfe y x1 x2, a(id1 id2)
-  timer off 4
-
-  . . timer list
-     1:      1.61 /        1 =       1.4270
-     3:     10.42 /        1 =      10.4190
-     4:     15.97 /        1 =      15.9690
-     6:     67.24 /        1 =      67.2430
+  set rmsg on
+  reg y x1 
+  # r; t=1.14 17:38:24
+  reg y x1 , cl(id2)
+  # r; t=9.72 17:38:34
+  areg y x1 , a(id1)
+  # r; t=15.59 17:38:50
+  reghdfe y x1 , a(id1 id2) fast keepsingletons
+  # r; t=83.11 17:41:23
   ````
 
 
