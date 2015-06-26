@@ -2,8 +2,8 @@
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 
 The function `reg` estimates linear models with 
+  - high dimensional categorical variable (intercept or interacted with continuous variables)
   - instrumental variables (via 2SLS)
-  - high dimensional categorical variable (as intercept or interacted with continuous variables)
   - robust standard errors (White or clustered) 
 
 
@@ -13,14 +13,14 @@ reg is fast (code used for this benchmark [here](benchmark/result.md))
 
 
 
-`reg` returns a very light object. This allows you to estimate multiple models on the same DataFrame without worrying about your RAM. It is simply composed of 
+`reg` returns a very light object. This allows to estimate multiple models on the same DataFrame without worrying about RAM. It is simply composed of 
  
   - the vector of coefficients, 
   - the covariance matrix, 
+  - a set of scalars (number of observations, the degree of freedoms, r2, etc)
   - a boolean vector reporting rows used in the estimation
-  - a set of scalars (number of observations, the degree of freedoms, r2, etc). 
 
-Methods such as `predict`, `residuals` are still defined but require a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
+Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
 ## Syntax
@@ -111,50 +111,34 @@ The syntax is similar to `reg` - just with multiple `lhs`.
 using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:State])
-partial_out(Sales + Price ~ 1 |> pState, df)
-#> 1380x2 DataFrame
-#> | Row  | Sales    | Price    |
-#> |------|----------|----------|
-#> | 1    | -13.5767 | -40.5467 |
-#> | 2    | -12.0767 | -39.3467 |
-#> | 3    | -8.97667 | -39.3467 |
-#> | 4    | -11.0767 | -37.6467 |
-#> | 5    | -11.9767 | -37.5467 |
-#> | 6    | -19.0767 | -33.5467 |
-#> | 7    | -17.3767 | -32.5467 |
-#> | 8    | -17.6767 | -29.5467 |
-#> ⋮
-#> | 1372 | -7.59667 | 19.8367  |
-#> | 1373 | -10.7967 | 25.5367  |
-#> | 1374 | -11.6967 | 35.9367  |
-#> | 1375 | -26.0967 | 40.8367  |
-#> | 1376 | -22.1967 | 51.0367  |
-#> | 1377 | -25.0967 | 56.7367  |
-#> | 1378 | -39.5967 | 67.6367  |
-#> | 1379 | -27.3967 | 65.1367  |
-#> | 1380 | -25.6967 | 93.2367  |
-partial_out(Sales + Price ~ CPI |> pState, df)
-#> 1380x2 DataFrame
-#> | Row  | Sales    | Price    |
-#> |------|----------|----------|
-#> | 1    | -21.2454 | 6.35952  |
-#> | 2    | -19.6741 | 7.12315  |
-#> | 3    | -16.4849 | 6.57769  |
-#> | 4    | -18.4244 | 7.29585  |
-#> | 5    | -19.146  | 6.30493  |
-#> | 6    | -25.9963 | 8.77763  |
-#> | 7    | -23.9575 | 7.70487  |
-#> | 8    | -23.8829 | 8.41392  |
-#> ⋮
-#> | 1372 | -2.19184 | -13.222  |
-#> | 1373 | -4.73191 | -11.5585 |
-#> | 1374 | -5.2752  | -3.34031 |
-#> | 1375 | -18.9618 | -2.80401 |
-#> | 1376 | -14.2235 | 2.26863  |
-#> | 1377 | -16.1069 | 1.75036  |
-#> | 1378 | -29.4119 | 5.34115  |
-#> | 1379 | -16.2309 | -3.15894 |
-#> | 1380 | -13.7996 | 20.4683  |
+df[:pYear] =  pool(df[:Year])
+result = partial_out(Sales + Price ~ 1|> pYear + pState, df)
+1380x2 DataFrame
+| Row  | Sales    | Price     |
+|------|----------|-----------|
+| 1    | -16.9214 | 1.06848   |
+| 2    | -11.8519 | 1.46413   |
+| 3    | -10.6258 | 1.24457   |
+| 4    | -13.428  | 1.44022   |
+| 5    | -14.4497 | 0.818478  |
+| 6    | -19.6193 | 2.75109   |
+| 7    | -16.6845 | 2.64891   |
+| 8    | -14.1823 | 2.5837    |
+⋮
+| 1372 | -5.97623 | -4.13514  |
+| 1373 | -7.73493 | -3.8221   |
+| 1374 | -6.3458  | 0.0996377 |
+| 1375 | -17.6697 | -1.67428  |
+| 1376 | -10.2436 | -0.300362 |
+| 1377 | -8.80667 | -5.20254  |
+| 1378 | -18.8523 | -7.59167  |
+| 1379 | -4.01536 | -18.7634  |
+| 1380 | -1.44797 | -10.9982  |
+plot(
++   result, x="Price", y="Sales", color="Species", Stat.binmean(n=5), Geom.point),
++   result, x="Price", y="Sales", color="Species", Geom.smooth(method=:lm))
++ )
+
 ```
 
 With the option `add_mean = TRUE`, the initial variable mean is added to the residuals.
