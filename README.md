@@ -83,7 +83,7 @@ reg(Sales ~ NDI |> pState, df, weight = :Pop)
 
 ### Subset
 
-You can estimate a model on a subset of your data using the option `subset` 
+You can estimate a model on a subset of your data with the option `subset` 
 
 ```julia
 reg(Sales ~ NDI |> pState, weight = :Pop, subset = df[:pState] .< 30)
@@ -99,13 +99,13 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
 
-You can easily define your own type: after declaring it as a child of `AbstractVcov`, define a `vcov` methods for it. For instance,  White errors are implemented with the following code:
+You can easily define your own type: after declaring it as a child of `AbstractVcov`, define a `allvars` and a `vcov!` methods for it. For instance,  White errors are implemented with the following code:
 
 ```julia
 immutable type VcovWhite <: AbstractVcov 
 end
 
-function StatsBase.vcov(x::AbstractVcovData, t::VcovWhite) 
+function vcov!(x::AbstractVcovData, t::VcovWhite) 
 	Xu = broadcast(*,  regressors(X), residuals(X))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(X)/df_residual(X))
