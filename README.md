@@ -104,8 +104,8 @@ end
 
 ## Partial out
 
-`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. Models are estimated on only the rows where *none* of the dependent variables is missing. The result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The syntax is similar to `reg` - just with multiple `lhs`. With the option `add_mean = true`, the mean of the initial variable mean is added to the residuals.
+`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. MThe result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+The syntax is similar to `reg` - just with multiple `lhs`. odels are estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
 
 
 
@@ -141,7 +141,7 @@ result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
 This allows to examine graphically the relation between two variables after partialing out the variation due to control variables.
 
 
-For instance, the relationship between SepalLength and SepalWidth is decreasing in the `iris` dataset
+For instance, the relationship between SepalLength and SepalWidth appears to be decreasing in the `iris` dataset
 ```julia
 using  RDatasets, DataFrames, Gadfly, FixedEffectModels
 df = dataset("datasets", "iris")
@@ -152,7 +152,7 @@ plot(
 ```
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
 
-However, the relationship is increasing within each species
+Plotting the relationship within species, the relationship is actually increasing.
 ```
 plot(
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Stat.binmean(n=10), Geom.point),
@@ -162,7 +162,7 @@ plot(
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
 
 
-Instead of plotting for each group, another visualization (helpful when the number of different group is high) is to `partial_out` the Species factor first
+Another visualizatio, helpful when the number of different group is high, is to `partial_out` the Species factor
 ```
 result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
 using Gadfly
