@@ -78,8 +78,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 			end
 		end
 	end
-
-
+	
 	# Compute residuals
 	if length(xvars) > 0 || xt.intercept
 		H = At_mul_B(X, X)
