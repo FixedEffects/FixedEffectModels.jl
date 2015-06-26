@@ -171,7 +171,7 @@ plot(
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/second.svg)
 
 
-When there is large number of groups, a better way to visualize this fact is to plot the variabled partialed ouf by the factor Species 
+When there is large number of groups, a better way to visualize this fact is to plot the variables after partialing them out by Species 
 ```
 result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
 using Gadfly
