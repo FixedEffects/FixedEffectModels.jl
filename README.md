@@ -150,7 +150,7 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
 
 Plotting the relationship within species, the relationship is actually increasing.
 ```
@@ -159,7 +159,7 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
 
 
 Another visualizatio, helpful when the number of different group is high, is to `partial_out` the Species factor
@@ -171,7 +171,7 @@ plot(
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/third.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/third.svg)
 
 The combination of `partial_out` and the `Stat.binmean` in Gadfly basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
