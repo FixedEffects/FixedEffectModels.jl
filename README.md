@@ -158,8 +158,9 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Stat.binmean(n=10), Geom.point),
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Geom.smooth(method=:lm))
 )
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
 ```
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
+
 
 Instead of plotting for each group, another visualization (helpful when the number of different group is high) is to `partial_out` the Species factor first
 ```
@@ -170,7 +171,7 @@ plot(
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/third.svg)
 
 The combination of `partial_out` and the `Stat.binmean` in Gadfly basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
