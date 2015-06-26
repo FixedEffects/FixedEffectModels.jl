@@ -133,7 +133,7 @@ timer off 4
   #> N = 100000, T = 100, K = 2 :elapsed time: 2.038136114 seconds (1520761528 bytes allocated, 8.28% gc time)
   #> N = 100000, T = 100, K = 10 :elapsed time: 6.834395734 seconds (5028378640 bytes allocated, 11.08% gc time)
   ```
--  `reg`, `reghdfe` (Stata) and `lfe`  use the same repeated demeaning procedure by default. However, when the demean procedure is slow to converge, `reghdfe` and `lfe` switch to different algorithms. If you're working with datasets where the demean procedure is extremly slow, this may make them faster ( = `reg` is fast because Julia allows to write fast code, not because it uses a superior algorithm).
+-  `reg`, `reghdfe` (Stata) and `lfe`  use the same repeated demeaning procedure by default. When the demean procedure is slow to converge, `reghdfe` and `lfe` switch to different algorithms. If you're working with datasets where the demean procedure is extremly slow, they may become faster (in other words, `reg` is fast because Julia allows to write fast code, not because of a superior algorithm).
 
 
 
