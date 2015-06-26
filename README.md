@@ -152,7 +152,7 @@ plot(
 ```
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
 
-Plotting the relationship within species, the relationship is actually increasing.
+But the relationship is actually increasing within species.
 ```
 plot(
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Stat.binmean(n=10), Geom.point),
@@ -162,7 +162,7 @@ plot(
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
 
 
-Another visualizatio, helpful when the number of different group is high, is to `partial_out` the Species factor
+Another way to make the same point, helpful when the number of different group is high, is to `partial_out` the Species factor
 ```
 result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
 using Gadfly
