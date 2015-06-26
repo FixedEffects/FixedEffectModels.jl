@@ -1,7 +1,6 @@
 function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing )
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
-
 	rf = deepcopy(f)
 	(rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
 	(rf, has_iv, iv_vars, ivt) = decompose_iv!(rf)

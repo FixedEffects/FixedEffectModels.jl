@@ -4,21 +4,20 @@
 ##
 ##############################################################################
 
-# For each fixed effect, this stores the reference vector (ie a map of each row to a group), the weights, the size of each group, and, for FixedEffectSlope, the interaction variable
 
 abstract AbstractFixedEffect
 
 immutable type FixedEffectIntercept{R} <: AbstractFixedEffect
-	refs::Vector{R}
-	w::Vector{Float64}
-	scale::Vector{Float64}
+	refs::Vector{R} # each row points to a group
+	w::Vector{Float64} # weights
+	scale::Vector{Float64} #  inv(sum of weights) for each group
 	name::Symbol
 end
 
 immutable type FixedEffectSlope{R} <: AbstractFixedEffect
 	refs::Vector{R}
 	w::Vector{Float64}
-	scale::Vector{Float64}
+	scale::Vector{Float64} #  inv(sum of weights * x) for each group
 	x::Vector{Float64} # the continuous interaction 
 	name::Symbol
 	xname::Symbol
