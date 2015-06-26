@@ -136,8 +136,9 @@ result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
 #> | 1378 | -18.8523 | -7.59167  |
 #> | 1379 | -4.01536 | -18.7634  |
 #> | 1380 | -1.44797 | -10.9982  |
+```
 
-This allows to check the relation between multiple variables after removing the variation due to control variables, as in [binscatter](https://michaelstepner.com/binscatter/)
+This can allow to examine graphically the relation between two variables after removing the variation due to control variables, as in [binscatter](https://michaelstepner.com/binscatter/)
 
 ```julia
 using Gadfly
