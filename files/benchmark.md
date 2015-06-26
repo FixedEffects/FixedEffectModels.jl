@@ -1,4 +1,7 @@
 ### Simple benchmark 
+Code to reproduce the graph
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result2.svg)
+
 Julia
 ```julia
 using DataFrames, FixedEffectModels
@@ -88,8 +91,8 @@ timer off 4
 
 
 
-### More on multiple high dimensional fixed effects
 
+-  `reg` is fast because Julia allows to write fast code, not because of a superior algorithm. `reg`, `reghdfe` (Stata) and `lfe`  use the same repeated demeaning procedure by default. When the demean procedure is slow to converge, `reghdfe` and `lfe` even switch to different algorithms. For some "hard" datasets, these commands may become faster (in other words, 
 
 - [Somaini and Wolak (2014](http://web.stanford.edu/group/fwolak/cgi-bin/sites/default/files/jem-2014-0008.pdf) compare several Stata programs for the case of two high dimensional fixed effects. Below are the results for `reg` (corresponding to Table 1)
 
@@ -133,7 +136,6 @@ timer off 4
   #> N = 100000, T = 100, K = 2 :elapsed time: 2.038136114 seconds (1520761528 bytes allocated, 8.28% gc time)
   #> N = 100000, T = 100, K = 10 :elapsed time: 6.834395734 seconds (5028378640 bytes allocated, 11.08% gc time)
   ```
--  `reg`, `reghdfe` (Stata) and `lfe`  use the same repeated demeaning procedure by default. When the demean procedure is slow to converge, `reghdfe` and `lfe` switch to different algorithms. If you're working with datasets where the demean procedure is extremly slow, they may become faster (in other words, `reg` is fast because Julia allows to write fast code, not because of a superior algorithm).
 
 
 
