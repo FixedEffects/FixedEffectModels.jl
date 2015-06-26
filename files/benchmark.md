@@ -93,4 +93,4 @@ Code to reproduce this graph:
 
 
 
-`reg` is fast because Julia allows to write fast code, not because of a superior algorithm. `reg`, `reghdfe` (Stata) and `lfe`  roughly use the same repeated demeaning procedure by default. When the demean procedure is slow to converge, however, `reghdfe` and `lfe` switch to different algorithms. For some "hard" datasets, these commands may therefore be faster.
+`reg`, `reghdfe` (Stata) and `lfe`  roughly use the same repeated demeaning procedure by default. When the demean procedure is slow to converge, however, `reghdfe` and `lfe` switch to different algorithms. For some "hard" datasets, these commands may therefore be faster ( = `reg` is fast because Julia allows to write fast code, not because of a superior algorithm).
