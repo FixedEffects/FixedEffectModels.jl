@@ -104,8 +104,8 @@ end
 
 ## Partial out
 
-`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. MThe result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The syntax is similar to `reg` - just with multiple `lhs`. odels are estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
+`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - just with multiple `lhs`. It returns  a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+The regression model is estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
 
 
 
@@ -138,10 +138,7 @@ result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
 #> | 1380 | 122.503 | 57.7017 |
 ```
 
-This allows to examine graphically the relation between two variables after partialing out the variation due to control variables.
-
-
-For instance, the relationship between SepalLength and SepalWidth appears to be decreasing in the `iris` dataset
+This allows to examine graphically the relation between two variables after partialing out the variation due to control variables. For instance, the relationship between SepalLength seems to be decreasing in SepalWidth in the `iris` dataset
 ```julia
 using  RDatasets, DataFrames, Gadfly, FixedEffectModels
 df = dataset("datasets", "iris")
@@ -162,7 +159,7 @@ plot(
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/second.svg)
 
 
-Another way to make the same point, helpful when the number of different group is high, is to `partial_out` the Species factor
+When the number of groups is high, another way to visualize this fact is to `partial_out` by the Species factor
 ```
 result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
 using Gadfly
@@ -173,7 +170,7 @@ plot(
 ```
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/third.svg)
 
-The combination of `partial_out` and Gadfly `Stat.binmean` basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
+The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
 
 
