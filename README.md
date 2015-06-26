@@ -145,7 +145,7 @@ plot(
 
 ```
 
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/benchmark/binscatter.svg)
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/binscatter.svg)
 
 
 
