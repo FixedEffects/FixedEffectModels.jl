@@ -1,0 +1,1 @@
+using DataFrames, Gadflymdf = melt(df[[:Command, :Julia, :R, :Stata]], :Command)p = plot(mdf, x = "Command", y = "value", color = "variable", Scale.y_log10, Guide.ylabel("seconds"), Guide.xlabel("Model"))draw(SVG("result.svg", 8inch, 5inch), p)

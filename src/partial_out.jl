@@ -15,8 +15,9 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 		esample &= isnaorneg(df[weight])
 		all_vars = unique(vcat(all_vars, weight))
 	end
+	#subdf = sub(df[all_vars], esample)
 	subdf = df[esample, all_vars]
-	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars), [nothing])))
+	all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
 	for v in all_except_absorb_vars
 		dropUnusedLevels!(subdf[v])
 	end

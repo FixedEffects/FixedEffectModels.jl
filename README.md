@@ -23,6 +23,12 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 `reg` is fast (benchmark code [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/files/benchmark.md)).
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result.svg)
 
+
+To install the package, 
+
+```julia
+Pkg.add("FixedEffectModels")
+```
 ## Syntax
 
 The general syntax is
@@ -61,7 +67,7 @@ reg(Sales ~ NDI |> pState, df)
 - Interact fixed effects with continuous variables using `&`
 
   ```julia
-  reg(Sales ~ NDI |> pState + pState&Year)
+  reg(Sales ~ NDI |> pState + pState&Year, df)
   ```
 
 - Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
@@ -72,13 +78,19 @@ reg(Sales ~ NDI |> pState, df)
  Weights are supported with the option `weight`. They correspond to R weights and analytical weights in Stata.
 
 ```julia
-reg(Sales ~ NDI |> pState, weight = :Pop)
+reg(Sales ~ NDI |> pState, df, weight = :Pop)
+```
+
+### Subset
+
+You can estimate a model on a subset of your data using the option `subset` 
+
+```julia
+reg(Sales ~ NDI |> pState, weight = :Pop, subset = df[:pState] .< 30)
 ```
 
 ## Errors
-Compute robust standard errors with a third argument
-
-For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
+Compute robust standard errors by constructing an object of type `AbstractVcov`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
 ```julia
 reg(Sales ~ NDI, df, VcovWhite())

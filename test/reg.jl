@@ -73,3 +73,17 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq stderr(reg(Sales ~ NDI |> pState, df, VcovCluster(:pState))) [0.00037490907349394426]
 # to check with some good command
 @test_approx_eq stderr(reg(Sales ~ NDI, df, VcovCluster([:pState, :pYear])))[1] [5.531951676890601]
+
+
+
+##############################################################################
+##
+## Check subdataframe (result compared with Stata reghdfe)
+##
+##############################################################################
+result = reg(Sales ~ NDI + pState, df, subset = df[:State] .<= 30)
+@test length(result.esample) == size(df, 1)
+@test_approx_eq coef(result)  coef(reg(Sales ~ NDI + pState, df[df[:State] .<= 30, :]))
+@test_approx_eq vcov(result)  vcov(reg(Sales ~ NDI + pState, df[df[:State] .<= 30, :]))
+@test_throws ErrorException reg(Sales ~ NDI, df, subset = df[:pYear] .<= 30)
+reg((Sales ~ NDI |> pState), df, subset = df[:pYear] .<= 80)

@@ -1,4 +1,4 @@
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing )
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 
@@ -28,11 +28,20 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		esample &= isnaorneg(df[weight])
 		all_vars = unique(vcat(all_vars, weight))
 	end
-	subdf = sub(df[all_vars], esample)
+	if subset != nothing
+		length(subset) == size(df, 1) || error("the number of rows in df is $(size(df, 1)) but the length of subset is $(size(df, 2))")
+		esample &= convert(BitArray, subset)
+	end
+	# I take a new dataframe because I dont know how to remove pooled data array otherwise from a subdataframe
+	subdf = df[esample, all_vars]
+	(size(subdf, 1) > 0) || error("sample is empty")
 	#subdf = df[esample, all_vars]
-	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, iv_vars), [nothing])))
-	for v in all_except_absorb_vars
-		dropUnusedLevels!(subdf[v])
+	potential_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, iv_vars), [nothing])))
+	for v in potential_vars
+		# in case subdataframe, don't construct subdf[v] if you dont need to do it
+		if typeof(df[v]) <: PooledDataArray
+			dropUnusedLevels!(subdf[v])
+		end
 	end
 
 	# create weight vector
@@ -132,7 +141,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# compute standard error
 	vcovmodel = VcovDataHat(Xhat, H, residuals, nobs, df_residual)
-	matrix_vcov = vcov(vcovmodel, vcov_method, subdf)
+	matrix_vcov = vcov!(vcovmodel, vcov_method, subdf)
 
 	# Return RegressionResult object
 	RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F)

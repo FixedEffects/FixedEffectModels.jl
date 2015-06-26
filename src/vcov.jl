@@ -55,8 +55,8 @@ end
 
 abstract AbstractVcov
 allvars(x::AbstractVcov) = nothing
-vcov(x::AbstractVcovData, v::AbstractVcov) = error("not defined")
-vcov(x::AbstractVcovData, v::AbstractVcov, df::AbstractDataFrame) = vcov(x::AbstractVcovData, v::AbstractVcov)
+vcov!(x::AbstractVcovData, v::AbstractVcov) = error("not defined")
+vcov!(x::AbstractVcovData, v::AbstractVcov, df::AbstractDataFrame) = vcov!(x::AbstractVcovData, v::AbstractVcov)
 
 
 immutable type VcovSimple <: AbstractVcov 
@@ -71,8 +71,8 @@ vcov(x::VcovData, t::VcovSimple) = vcov(x)
 #
 
 
-function vcov(x::AbstractVcovData, t::VcovSimple)
- 	hatmatrix(x) * (sum(residuals(x).^2)/  df_residual(x))
+function vcov!(x::AbstractVcovData, t::VcovSimple)
+ 	scale!(hatmatrix(x), abs2(norm(residuals(x), 2)) /  df_residual(x))
 end
 
 
@@ -84,8 +84,8 @@ end
 immutable type VcovWhite <: AbstractVcov 
 end
 
-function vcov(x::AbstractVcovData, t::VcovWhite) 
-	Xu = broadcast(*,  regressors(x), residuals(x))
+function vcov!(x::AbstractVcovData, t::VcovWhite) 
+	Xu = broadcast!(*,  regressors(x), regressors(x), residuals(x))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(x)/df_residual(x))
 	sandwich(x, S) 
@@ -113,12 +113,12 @@ VcovHac(time, nlag) = VcovHac(time, nlag, (i, n) -> 1 - i/(n+1))
 
 allvars(x::VcovHac) = x.time
 
-function vcov(x::AbstractVcovData, v::VcovHac, df)
+function vcov!(x::AbstractVcovData, v::VcovHac, df)
 	time = df[v.time]
 	nlag = v.nlag
 	weights = map(i -> v.weightfunction(i, nlag), [1:nlag])
 
-	Xu = broadcast(*,  regressors(x), residuals(x))
+	Xu = broadcast!(*,  regressors(x), regressors(x), residuals(x))
 	rhos = Array(Matrix{Float64}, nlag)
 
 	# 1 is juste White
@@ -154,10 +154,10 @@ VcovCluster(x::Symbol) = VcovCluster([x])
 allvars(x::VcovCluster) = x.clusters
 
 # Cameron, Gelbach, & Miller (2011).
-function vcov(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame) 
+function vcov!(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame) 
 	df = df[v.clusters]
 	X = regressors(x)
-	Xu = broadcast(*,  X, residuals(x))
+	Xu = broadcast!(*,  X, X, residuals(x))
 	S = fill(zero(Float64), (size(X, 2), size(X, 2)))
 	for i in 1:length(v.clusters)
 		for c in combinations(v.clusters, i)
@@ -188,18 +188,26 @@ function helper_cluster(Xu::Matrix{Float64}, f::PooledDataArray)
 	else
 		# otherwise
 		X2 = fill(zero(Float64), (length(f.pool), size(Xu, 2)))
-		aggregate_matrix!(X2, Xu, refs)
+		fsize = fill(zero(Int64),  length(f.pool))
+		aggregate_matrix!(X2, Xu, refs, fsize)
 		out = At_mul_B(X2, X2)
-		scale!(out, length(pool) / (length(pool) - 1))
+		scale!(out, sum(fsize .> 0) / (sum(fsize .> 0) - 1))
 		return(out)
 	end
 end
 
 
-function aggregate_matrix!{T <: Integer}(X2::Matrix{Float64}, Xu::Matrix{Float64}, refs::Vector{T})
+function aggregate_matrix!{T <: Integer}(X2::Matrix{Float64}, Xu::Matrix{Float64}, refs::Vector{T}, fsize::Vector{Int64})
 	for j in 1:size(Xu, 2)
-		@simd for i in 1:size(Xu, 1)
-			@inbounds X2[refs[i], j] += Xu[i, j]
+		if j == 1
+			 @inbounds @simd for i in 1:size(Xu, 1)
+			 	fsize[refs[i]] += 1
+				X2[refs[i], j] += Xu[i, j]
+			end
+		else
+			 @inbounds @simd for i in 1:size(Xu, 1)
+				X2[refs[i], j] += Xu[i, j]
+			end
 		end
 	end
 end
