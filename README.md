@@ -105,7 +105,7 @@ end
 ## Partial out
 
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. Models are estimated on only the rows where *none* of the dependent variables is missing. The result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The syntax is similar to `reg` - just with multiple `lhs`. With the option `add_mean = TRUE`, the mean of the initial variable mean is added to the residuals.
+The syntax is similar to `reg` - just with multiple `lhs`. With the option `add_mean = true`, the mean of the initial variable mean is added to the residuals.
 
 
 
@@ -116,29 +116,29 @@ df[:pState] =  pool(df[:State])
 df[:pYear] =  pool(df[:Year])
 result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
 #> 1380x2 DataFrame
-#> | Row  | Sales    | Price     |
-#> |------|----------|-----------|
-#> | 1    | -16.9214 | 1.06848   |
-#> | 2    | -11.8519 | 1.46413   |
-#> | 3    | -10.6258 | 1.24457   |
-#> | 4    | -13.428  | 1.44022   |
-#> | 5    | -14.4497 | 0.818478  |
-#> | 6    | -19.6193 | 2.75109   |
-#> | 7    | -16.6845 | 2.64891   |
-#> | 8    | -14.1823 | 2.5837    |
+#> | Row  | Sales   | Price   |
+#> |------|---------|---------|
+#> | 1    | 107.029 | 69.7684 |
+#> | 2    | 112.099 | 70.1641 |
+#> | 3    | 113.325 | 69.9445 |
+#> | 4    | 110.523 | 70.1401 |
+#> | 5    | 109.501 | 69.5184 |
+#> | 6    | 104.332 | 71.451  |
+#> | 7    | 107.266 | 71.3488 |
+#> | 8    | 109.769 | 71.2836 |
 #> ⋮
-#> | 1372 | -5.97623 | -4.13514  |
-#> | 1373 | -7.73493 | -3.8221   |
-#> | 1374 | -6.3458  | 0.0996377 |
-#> | 1375 | -17.6697 | -1.67428  |
-#> | 1376 | -10.2436 | -0.300362 |
-#> | 1377 | -8.80667 | -5.20254  |
-#> | 1378 | -18.8523 | -7.59167  |
-#> | 1379 | -4.01536 | -18.7634  |
-#> | 1380 | -1.44797 | -10.9982  |
+#> | 1372 | 117.975 | 64.5648 |
+#> | 1373 | 116.216 | 64.8778 |
+#> | 1374 | 117.605 | 68.7996 |
+#> | 1375 | 106.281 | 67.0257 |
+#> | 1376 | 113.707 | 68.3996 |
+#> | 1377 | 115.144 | 63.4974 |
+#> | 1378 | 105.099 | 61.1083 |
+#> | 1379 | 119.936 | 49.9365 |
+#> | 1380 | 122.503 | 57.7017 |
 ```
 
-This can allow to examine graphically the relation between two variables after removing the variation due to control variables, as in [binscatter](https://michaelstepner.com/binscatter/)
+One can then examine graphically the relation between two variables after removing the variation due to control variables.
 
 ```julia
 using Gadfly
@@ -148,9 +148,8 @@ plot(
 )
 
 ```
-
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/binscatter.svg)
-
+(this basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/)
 
 
 
