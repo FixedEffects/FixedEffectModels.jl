@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:gadfly="http://www.gadflyjl.org/ns"
+     version="1.2"
+     width="203.2mm" height="127mm" viewBox="0 0 203.2 127"
+     stroke="none"
+     fill="#000000"
+     stroke-width="0.3"
+     font-size="3.88"
+>
+<g class="plotroot yscalable" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-1">
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-2">
+    <text x="104" y="115.39" text-anchor="middle" dy="0.6em">Model</text>
+  </g>
+  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-3">
+    <text x="43.32" y="108.72" text-anchor="middle" dy="0.6em">simple model</text>
+    <text x="83.78" y="108.72" text-anchor="middle" dy="0.6em">cluster</text>
+    <text x="124.23" y="108.72" text-anchor="middle" dy="0.6em">1 hd fixed effect</text>
+    <text x="164.69" y="108.72" text-anchor="middle" dy="0.6em">2 hd fixed effects</text>
+  </g>
+  <g class="guide colorkey" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-4">
+    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-5">
+      <text x="188.73" y="54.54" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-6" class="color_Julia">Julia</text>
+      <text x="188.73" y="58.17" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-7" class="color_R">R</text>
+      <text x="188.73" y="61.8" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-8" class="color_Stata">Stata</text>
+    </g>
+    <g stroke="#000000" stroke-opacity="0.000" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-9">
+      <rect x="185.92" y="53.64" width="1.81" height="1.81" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-10" fill="#00BFFF" class="color_Julia"/>
+      <rect x="185.92" y="57.26" width="1.81" height="1.81" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-11" fill="#D4CA3A" class="color_R"/>
+      <rect x="185.92" y="60.89" width="1.81" height="1.81" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-12" fill="#FF5EA0" class="color_Stata"/>
+    </g>
+    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-13">
+      <text x="185.92" y="50.72" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-14">variable</text>
+    </g>
+  </g>
+  <g clip-path="url(#fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-16)" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-15">
+    <g pointer-events="visible" opacity="1" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-17">
+      <rect x="23.09" y="5" width="161.83" height="102.72" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-18"/>
+    </g>
+    <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-19">
+      <path fill="none" d="M23.09,105.72 L 184.92 105.72" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-20"/>
+      <path fill="none" d="M23.09,85.97 L 184.92 85.97" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-21"/>
+      <path fill="none" d="M23.09,66.23 L 184.92 66.23" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-22"/>
+      <path fill="none" d="M23.09,46.49 L 184.92 46.49" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-23"/>
+      <path fill="none" d="M23.09,26.74 L 184.92 26.74" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-24"/>
+      <path fill="none" d="M23.09,7 L 184.92 7" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-25"/>
+    </g>
+    <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-26">
+      <path fill="none" d="M63.55,5 L 63.55 107.72" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-27"/>
+      <path fill="none" d="M104,5 L 104 107.72" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-28"/>
+      <path fill="none" d="M144.46,5 L 144.46 107.72" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-29"/>
+    </g>
+    <g class="plotpanel" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-30">
+      <g class="geometry" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-31">
+        <g stroke-width="0.3" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-32">
+          <circle cx="43.32" cy="89.38" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-33" fill="#00BFFF" stroke="#FFFFFF" class="color_Julia"/>
+          <circle cx="83.78" cy="85.55" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-34" fill="#00BFFF" stroke="#FFFFFF" class="color_Julia"/>
+          <circle cx="124.23" cy="83.83" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-35" fill="#00BFFF" stroke="#FFFFFF" class="color_Julia"/>
+          <circle cx="164.69" cy="76.8" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-36" fill="#00BFFF" stroke="#FFFFFF" class="color_Julia"/>
+          <circle cx="43.32" cy="37.95" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-37" fill="#D4CA3A" stroke="#FFFFFF" class="color_R"/>
+          <circle cx="83.78" cy="45.58" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-38" fill="#D4CA3A" stroke="#FFFFFF" class="color_R"/>
+          <circle cx="124.23" cy="32.88" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-39" fill="#D4CA3A" stroke="#FFFFFF" class="color_R"/>
+          <circle cx="164.69" cy="30.81" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-40" fill="#D4CA3A" stroke="#FFFFFF" class="color_R"/>
+          <circle cx="43.32" cy="77.81" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-41" fill="#FF5EA0" stroke="#FFFFFF" class="color_Stata"/>
+          <circle cx="83.78" cy="45.78" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-42" fill="#FF5EA0" stroke="#FFFFFF" class="color_Stata"/>
+          <circle cx="124.23" cy="38.46" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-43" fill="#FF5EA0" stroke="#FFFFFF" class="color_Stata"/>
+          <circle cx="164.69" cy="14.06" r="0.9" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-44" fill="#FF5EA0" stroke="#FFFFFF" class="color_Stata"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-45">
+    <text x="22.09" y="105.72" text-anchor="end" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-46">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">-0.5</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="22.09" y="85.97" text-anchor="end" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-47">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">0.0</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="22.09" y="66.23" text-anchor="end" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-48">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">0.5</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="22.09" y="46.49" text-anchor="end" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-49">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">1.0</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="22.09" y="26.74" text-anchor="end" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-50">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">1.5</tspan><tspan dy="0.498000em"></tspan></text>
+    <text x="22.09" y="7" text-anchor="end" dy="0.35em" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-51">10<tspan style="dominant-baseline:inherit" dy="-0.6em" font-size="83%">2.0</tspan><tspan dy="0.498000em"></tspan></text>
+  </g>
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-52">
+    <text x="8.81" y="54.36" text-anchor="middle" dy="0.35em" transform="rotate(-90, 8.81, 56.36)" id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-53">seconds</text>
+  </g>
+</g>
+<defs>
+<clipPath id="fig-e1ae80799ef34b019dcd3ee5ca6d3c62-element-16">
+  <path d="M23.09,5 L 184.92 5 184.92 107.72 23.09 107.72" />
+</clipPath
+></defs>
+</svg>
