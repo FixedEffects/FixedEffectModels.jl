@@ -1,4 +1,4 @@
-# Simple benchmark 
+### Simple benchmark 
 Julia
 ```julia
 using DataFrames, FixedEffectModels
@@ -88,7 +88,7 @@ timer off 4
 
 
 
-## Benchmark with multiple high dimensional fixed effects
+### More on multiple high dimensional fixed effects
 
 
 - [Somaini and Wolak (2014](http://web.stanford.edu/group/fwolak/cgi-bin/sites/default/files/jem-2014-0008.pdf) compare several Stata programs for the case of two high dimensional fixed effects. Below are the results for `reg` (corresponding to Table 1)
