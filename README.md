@@ -10,7 +10,7 @@ The function `reg` estimates linear models with
 
 
 
-`reg` returns a very light object. This allows to estimate multiple models on the same DataFrame without worrying about RAM. It is simply composed of 
+`reg` returns a very light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
  
   - the vector of coefficients, 
   - the covariance matrix, 
@@ -20,7 +20,7 @@ The function `reg` estimates linear models with
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
-`reg` is [fast](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/result.md)
+`reg` is fast (benchmark code [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/result.md)).
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
 
 ## Syntax
@@ -138,18 +138,41 @@ result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
 #> | 1380 | 122.503 | 57.7017 |
 ```
 
-This allows to examine graphically the relation between two variables after removing the variation due to control variables.
+This allows to examine graphically the relation between two variables after partialing out the variation due to control variables.
 
+
+For instance, the relationship between SepalLength and SepalWidth is decreasing in the `iris` dataset
 ```julia
+using  RDatasets, DataFrames, Gadfly, FixedEffectModels
+df = dataset("datasets", "iris")
+plot(
+   layer(df, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
+   layer(df, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
+)
+```
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
+
+However, the relationship is increasing within each species
+```
+plot(
+   layer(df, x="SepalWidth", y="SepalLength", color = "Species", Stat.binmean(n=10), Geom.point),
+   layer(df, x="SepalWidth", y="SepalLength", color = "Species", Geom.smooth(method=:lm))
+)
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
+```
+
+Instead of plotting for each group, another visualization (helpful when the number of different group is high) is to `partial_out` the Species factor first
+```
+result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
 using Gadfly
 plot(
-   layer(result, x="Price", y="Sales", Stat.binmean(n=10), Geom.point),
-   layer(result, x="Price", y="Sales", Geom.smooth(method=:lm))
+   layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
+   layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
-
 ```
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/binscatter.svg)
-This basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
+
+The combination of `partial_out` and the `Stat.binmean` in Gadfly basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
 
 
