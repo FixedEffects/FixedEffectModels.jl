@@ -173,7 +173,7 @@ plot(
 ```
 ![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/third.svg)
 
-The combination of `partial_out` and the `Stat.binmean` in Gadfly basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
+The combination of `partial_out` and Gadfly `Stat.binmean` basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
 
 
