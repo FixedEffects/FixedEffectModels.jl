@@ -149,7 +149,7 @@ plot(
 
 ```
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/binscatter.svg)
-(this basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/)
+This basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
 
 
