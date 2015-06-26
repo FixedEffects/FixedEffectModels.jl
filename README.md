@@ -21,7 +21,7 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
 
 `reg` is fast:
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result.svg)
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result2.svg)
 (benchmark code [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/files/benchmark.md))
 
 To install the package, 
