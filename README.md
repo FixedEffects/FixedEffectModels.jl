@@ -107,37 +107,41 @@ end
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. Models are estimated on only the rows where *none* of the dependent variables is missing. The result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
 The syntax is similar to `reg` - just with multiple `lhs`. 
 
+
+This allows to check the relation between multiple variables after removing the variation due to control variables, as in [binscatter](https://michaelstepner.com/binscatter/)
+
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:pState] =  pool(df[:State])
 df[:pYear] =  pool(df[:Year])
-result = partial_out(Sales + Price ~ 1|> pYear + pState, df)
-1380x2 DataFrame
-| Row  | Sales    | Price     |
-|------|----------|-----------|
-| 1    | -16.9214 | 1.06848   |
-| 2    | -11.8519 | 1.46413   |
-| 3    | -10.6258 | 1.24457   |
-| 4    | -13.428  | 1.44022   |
-| 5    | -14.4497 | 0.818478  |
-| 6    | -19.6193 | 2.75109   |
-| 7    | -16.6845 | 2.64891   |
-| 8    | -14.1823 | 2.5837    |
-⋮
-| 1372 | -5.97623 | -4.13514  |
-| 1373 | -7.73493 | -3.8221   |
-| 1374 | -6.3458  | 0.0996377 |
-| 1375 | -17.6697 | -1.67428  |
-| 1376 | -10.2436 | -0.300362 |
-| 1377 | -8.80667 | -5.20254  |
-| 1378 | -18.8523 | -7.59167  |
-| 1379 | -4.01536 | -18.7634  |
-| 1380 | -1.44797 | -10.9982  |
+result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
+#> 1380x2 DataFrame
+#> | Row  | Sales    | Price     |
+#> |------|----------|-----------|
+#> | 1    | -16.9214 | 1.06848   |
+#> | 2    | -11.8519 | 1.46413   |
+#> | 3    | -10.6258 | 1.24457   |
+#> | 4    | -13.428  | 1.44022   |
+#> | 5    | -14.4497 | 0.818478  |
+#> | 6    | -19.6193 | 2.75109   |
+#> | 7    | -16.6845 | 2.64891   |
+#> | 8    | -14.1823 | 2.5837    |
+#> ⋮
+#> | 1372 | -5.97623 | -4.13514  |
+#> | 1373 | -7.73493 | -3.8221   |
+#> | 1374 | -6.3458  | 0.0996377 |
+#> | 1375 | -17.6697 | -1.67428  |
+#> | 1376 | -10.2436 | -0.300362 |
+#> | 1377 | -8.80667 | -5.20254  |
+#> | 1378 | -18.8523 | -7.59167  |
+#> | 1379 | -4.01536 | -18.7634  |
+#> | 1380 | -1.44797 | -10.9982  |
+using Gadfly
 plot(
-+   result, x="Price", y="Sales", color="Species", Stat.binmean(n=5), Geom.point),
-+   result, x="Price", y="Sales", color="Species", Geom.smooth(method=:lm))
-+ )
+   layer(result, x="Price", y="Sales", Stat.binmean(n=10), Geom.point),
+   layer(result, x="Price", y="Sales", Geom.smooth(method=:lm))
+)
 
 ```
 
