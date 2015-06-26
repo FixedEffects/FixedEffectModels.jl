@@ -5,7 +5,7 @@ using DataFrames, FixedEffectModels
 N = 10000000
 K = 100
 df = DataFrame(
-  v1 =  pool(rand(@data([NA, 1:(N/K)], N)),
+  v1 =  pool(rand(1:(N/K), N)),
   v2 =  pool(rand(1:K, N)),
   v3 =  randn(N), 
   v4 =  randn(N) 

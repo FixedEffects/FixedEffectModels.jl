@@ -156,8 +156,26 @@ function simpleModelFrame(df, t, esample)
 end
 
 
-# Directly from DataFrames.jl
+function isnaorneg{T <: Real}(a::Vector{T}) 
+	bitpack(a .> zero(eltype(a)))
+end
 
+function isnaorneg{T <: Real}(a::DataVector{T}) 
+	out = !a.na
+	@simd for i in 1:length(a)
+		if out[i]
+			@inbounds out[i] = a[i] > zero(Float64)
+		end
+	end
+	bitpack(out)
+end
+
+
+function isna2{T <: Real}(a::DataVector{T}) 
+	map(x -> isa(x, NAtype), a)
+end
+
+# Directly from DataFrames.jl
 function remove_response(t::Terms)
     # shallow copy original terms
     t = Terms(t.terms, t.eterms, t.factors, t.order, t.response, t.intercept)

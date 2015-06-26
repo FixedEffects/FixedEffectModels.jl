@@ -21,34 +21,35 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	# create a dataframe without missing values & negative weights
 	vars = unique(allvars(rf))
 	vcov_vars = allvars(vcov_method)
-	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, iv_vars, weight), [nothing])
+	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, iv_vars), [nothing])
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	esample = complete_cases(df[all_vars])
 	if weight != nothing
-		esample &= convert(BitArray{1}, df[weight] .> zero(eltype(df[weight])))
+		esample &= isnaorneg(df[weight])
+		all_vars = unique(vcat(all_vars, weight))
 	end
-	df = df[esample, all_vars]
+	subdf = df[esample, all_vars]
 	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, vcov_vars, iv_vars), [nothing])))
 	for v in all_except_absorb_vars
-		dropUnusedLevels!(df[v])
+		dropUnusedLevels!(subdf[v])
 	end
 
 	# create weight vector
 	if weight == nothing
-		w = fill(one(Float64), size(df, 1))
+		w = fill(one(Float64), size(subdf, 1))
 		sqrtw = w
 	else
-		w = convert(Vector{Float64}, df[weight])
+		w = convert(Vector{Float64}, subdf[weight])
 		sqrtw = sqrt(w)
 	end
 
 	# Compute factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = construct_fe(df, absorbt.terms, sqrtw)
+		factors = construct_fe(subdf, absorbt.terms, sqrtw)
 	end
 
 	# Compute demeaned X
-	mf = simpleModelFrame(df, rt, esample)
+	mf = simpleModelFrame(subdf, rt, esample)
 	coef_names = coefnames(mf)
 	X = ModelMatrix(mf).m
 	if weight != nothing
@@ -76,7 +77,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# Compute demeaned Z
 	if has_iv
-		mf = simpleModelFrame(df, ivt, esample)
+		mf = simpleModelFrame(subdf, ivt, esample)
 		Z = ModelMatrix(mf).m
 		if weight != nothing
 			broadcast!(*, Z, sqrtw, Z)
@@ -130,7 +131,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# compute standard error
 	vcovmodel = VcovDataHat(Xhat, H, residuals, nobs, df_residual)
-	matrix_vcov = vcov(vcovmodel, vcov_method, df)
+	matrix_vcov = vcov(vcovmodel, vcov_method, subdf)
 
 	# Return RegressionResult object
 	RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F)

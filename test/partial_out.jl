@@ -45,3 +45,10 @@ answer = (
 for i in 1:12
     @test_approx_eq test[i] answer[i]	
 end
+
+
+df[1, :Sales] = NA
+df[2, :Price]  = NA
+df[5, :Pop]  = NA
+df[6, :Pop]  = -1.0
+partial_out(Sales + Price ~ 1, df, weight = :Pop)

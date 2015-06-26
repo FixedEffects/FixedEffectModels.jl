@@ -8,30 +8,31 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 
 	# create a dataframe without missing values & negative weights
 	vars = unique(allvars(rf))
-	all_vars = setdiff(vcat(vars, absorb_vars, weight), [nothing])
+	all_vars = setdiff(vcat(vars, absorb_vars), [nothing])
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	esample = complete_cases(df[all_vars])
 	if weight != nothing
-		esample &= convert(BitArray{1}, df[weight] .> zero(eltype(df[weight])))
+		esample &= isnaorneg(df[weight])
+		all_vars = unique(vcat(all_vars, weight))
 	end
-	df = df[esample, all_vars]
+	subdf = df[esample, all_vars]
 	all_except_absorb_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars), [nothing])))
 	for v in all_except_absorb_vars
-		dropUnusedLevels!(df[v])
+		dropUnusedLevels!(subdf[v])
 	end
 
 	# Compute weight vector
 	if weight == nothing
-		w = fill(one(Float64), size(df, 1))
+		w = fill(one(Float64), size(subdf, 1))
 		sqrtw = w
 	else
-		w = convert(Vector{Float64}, df[weight])
+		w = convert(Vector{Float64}, subdf[weight])
 		sqrtw = sqrt(w)
 	end
 
 	# Build factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = construct_fe(df, absorbt.terms, sqrtw)
+		factors = construct_fe(subdf, absorbt.terms, sqrtw)
 	end
 
 
@@ -39,7 +40,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	yf = Formula(nothing, rf.lhs)
 	yt = Terms(yf)
 	yt.intercept = false
-	mfY = simpleModelFrame(df, yt, esample)
+	mfY = simpleModelFrame(subdf, yt, esample)
 	Y = ModelMatrix(mfY).m
 	if weight != nothing
 		broadcast!(*, Y, sqrtw, Y)
@@ -63,10 +64,10 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	xvars = allvars(xf)
 	if length(xvars) > 0 || xt.intercept
 		if length(xvars) > 0 
-			mf = simpleModelFrame(df, xt, esample)
+			mf = simpleModelFrame(subdf, xt, esample)
 			X = ModelMatrix(mf).m
 		else
-			X = fill(one(Float64), (size(df, 1), 1))
+			X = fill(one(Float64), (size(subdf, 1), 1))
 		end 	
 		if weight != nothing
 			broadcast!(*, X, sqrtw, X)
@@ -97,12 +98,14 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	end
 
 	# Return a dataframe
-	out = mfY.df
-	for j in 1:size(Y, 2)
-		out[:, j] = DataArray(Float64, size(out, 1))
-		out[esample, j] = residuals[:, j]
+	yvars = convert(Vector{Symbol}, map(string, yt.eterms))
+	out = DataFrame()
+	j = 0
+	for y in yvars
+		j += 1
+		out[y] = DataArray(Float64, size(df, 1))
+		out[esample, y] = residuals[:, j]
 	end
-
 	return(out)
 end
 
