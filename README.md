@@ -1,15 +1,13 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
+
+
 The function `reg` estimates linear models with 
   - high dimensional categorical variable (intercept or interacted with continuous variables)
   - instrumental variables (via 2SLS)
   - robust standard errors (White or clustered) 
-
-
-reg is fast (code used for this benchmark [here](benchmark/result.md))
-
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
 
 
 
@@ -93,7 +91,7 @@ You can easily define your own type: after declaring it as a child of `AbstractV
 immutable type VcovWhite <: AbstractVcov 
 end
 
-function StatsBase.vcov(x::AbstractVcovModel, t::VcovWhite) 
+function StatsBase.vcov(x::AbstractVcovData, t::VcovWhite) 
 	Xu = broadcast(*,  regressors(X), residuals(X))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(X)/df_residual(X))
@@ -138,7 +136,7 @@ result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
 #> | 1380 | 122.503 | 57.7017 |
 ```
 
-One can then examine graphically the relation between two variables after removing the variation due to control variables.
+This allows to examine graphically the relation between two variables after removing the variation due to control variables.
 
 ```julia
 using Gadfly

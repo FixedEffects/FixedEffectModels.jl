@@ -1,4 +1,8 @@
-# An Abstract VCE model contains object needed to compute errors. Important methods are residuals, regressors, number of obs, degree of freedom
+##############################################################################
+##
+## AbstractVcovData (and its children) has four important methods: residuals, regressors, hatmatrix (by default (X'X)^{-1}), number of obs, degree of freedom
+##
+##############################################################################
 
 abstract AbstractVcovData
 residuals(x::AbstractVcovData) = error("not defined")
@@ -9,7 +13,6 @@ function hatmatrix(x::AbstractVcovData)
 	temp = At_mul_B(regressors(x), regressors(x))
 	H = inv(cholfact!(temp))
 end
-
 
 immutable type VcovData <: AbstractVcovData
 	regressors::Matrix{Float64} # If weight, matrix should be X\sqrt{W}
@@ -41,8 +44,15 @@ function VcovDataHat(x::LinearModel)
 end
 
 
+##############################################################################
+##
+## AbstractVcov (and its children) has two methods: 
+## allvars that returns variables needed in the dataframe
+## vcov, that returns a covariance matrix
+##
+##############################################################################
 
-# An AbstractVCE  should have two methods: allvars that returns variables needed in the dataframe, and vcov, that returns a covariance matrix
+
 abstract AbstractVcov
 allvars(x::AbstractVcov) = nothing
 vcov(x::AbstractVcovData, v::AbstractVcov) = error("not defined")
@@ -57,7 +67,7 @@ vcov(x::VcovData, t::VcovSimple) = vcov(x)
 
 
 #
-# simple
+# simple standard errors
 #
 
 
@@ -67,7 +77,7 @@ end
 
 
 #
-# White
+# White standard errors
 #
 
 
@@ -89,7 +99,7 @@ end
 
 
 #
-# HAC
+# HAC standard errors
 #
 
 immutable type VcovHac <: AbstractVcov
@@ -133,7 +143,7 @@ function lag(x::Array, n::Int, time::Vector)
 end
 
 #
-# Cluster
+# Cluster standard errors
 #
 
 immutable type VcovCluster  <: AbstractVcov
@@ -152,6 +162,7 @@ function vcov(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame)
 	for i in 1:length(v.clusters)
 		for c in combinations(v.clusters, i)
 			if length(c) == 1
+				# because twice faster
 				f = df[c[1]]
 			else
 				f = group(df[c])
