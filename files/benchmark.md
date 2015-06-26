@@ -1,6 +1,7 @@
 ### Simple benchmark 
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result2.svg)
-- Code to reproduce the graph:
+- Code to reproduce this graph:
+
   Julia
   ```julia
   using DataFrames, FixedEffectModels
