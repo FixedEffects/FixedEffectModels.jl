@@ -105,7 +105,7 @@ end
 ## Partial out
 
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. Models are estimated on only the rows where *none* of the dependent variables is missing. The result is a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The syntax is similar to `reg` - just with multiple `lhs`. 
+The syntax is similar to `reg` - just with multiple `lhs`. With the option `add_mean = TRUE`, the mean of the initial variable mean is added to the residuals.
 
 
 This allows to check the relation between multiple variables after removing the variation due to control variables, as in [binscatter](https://michaelstepner.com/binscatter/)
@@ -145,7 +145,8 @@ plot(
 
 ```
 
-With the option `add_mean = TRUE`, the initial variable mean is added to the residuals.
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/benchmark/binscatter.svg)
+
 
 
 
