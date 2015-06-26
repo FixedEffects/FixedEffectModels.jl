@@ -20,8 +20,8 @@ The function `reg` estimates linear models with
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
-`reg` is fast (benchmark code [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/result.md)).
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result.svg)
+`reg` is fast (benchmark code [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/files/result.md)).
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result.svg)
 
 ## Syntax
 
@@ -150,7 +150,7 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/first.svg)
 
 But the relationship is actually increasing within species.
 ```
@@ -159,7 +159,7 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/second.svg)
 
 
 Another way to make the same point, helpful when the number of different group is high, is to `partial_out` the Species factor
@@ -171,7 +171,7 @@ plot(
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/third.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/third.svg)
 
 The combination of `partial_out` and the `Stat.binmean` in Gadfly basically replicates the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
