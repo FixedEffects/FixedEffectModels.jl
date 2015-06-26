@@ -1,14 +1,14 @@
 function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
+
 	rf = deepcopy(f)
 	(rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
-	# rf is now y ~ exogeneousvars + (endoegeneousvars = instruments)
-	# absorbt is Terms(nothing ~ absorbvars)
 	(rf, has_iv, iv_vars, ivt) = decompose_iv!(rf)
-	# rf is now y ~ exogeneousvars + endoegeneousvars
-	# ivt is Terms(y ~ exogeneousvars + instruments)
 	rt = Terms(rf)
+	# rt is Terms(y ~ exogeneousvars + endoegeneousvars)
+	# ivt is Terms(y ~ exogeneousvars + instruments)
+	# absorbt is Terms(nothing ~ absorbvars)
 	
 	# remove intercept if high dimensional categorical variables
 	if has_absorb
@@ -17,7 +17,6 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 			ivt.intercept = false
 		end
 	end
-
 
 	# create a dataframe without missing values & negative weights
 	vars = unique(allvars(rf))
@@ -133,7 +132,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	vcovmodel = VcovDataHat(Xhat, H, residuals, nobs, df_residual)
 	matrix_vcov = vcov(vcovmodel, vcov_method, df)
 
-	# Output object
+	# Return RegressionResult object
 	RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F)
 end
 
