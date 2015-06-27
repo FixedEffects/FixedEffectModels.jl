@@ -81,6 +81,8 @@ function sandwich(H::Matrix{Float64}, S::Matrix{Float64})
 	H * S * H
 end
 
+
+
 #
 # Clustered standard errors
 #
@@ -101,9 +103,9 @@ function vcov!(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame)
 	for i in 1:length(v.clusters)
 		for c in combinations(v.clusters, i)
 			if length(c) == 1
-				# no need to group in this case: it is already a PooledDataArray
-				# but there may be less groups then length(f.pool)
+				# no need to group in this case
 				f = df[c[1]]
+				# but there may be less groups then length(f.pool) due to NA/subset : count them
 				fsize = length(unique(f.refs))
 			else
 				f = group(df[c])

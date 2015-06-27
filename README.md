@@ -21,8 +21,8 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
 
 `reg` is fast:
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result1.svg)
-The code used for this graph can be found [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/files/benchmark.md).
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result3.svg)
+The code used for this graph can be found [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md).
 
 To install the package, 
 
@@ -159,7 +159,7 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/first.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/first.svg)
 
 But the relationship is actually increasing within species.
 ```
@@ -168,7 +168,7 @@ plot(
    layer(df, x="SepalWidth", y="SepalLength", color = "Species", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/second.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/second.svg)
 
 
 If there is large number of groups, a better way to visualize this fact is to plot the variables after partialing them out:
@@ -180,7 +180,7 @@ plot(
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/third.svg)
+![binscatter](http://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/third.svg)
 
 The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
