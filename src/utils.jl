@@ -1,7 +1,10 @@
+
 ##############################################################################
 ##
-## helper functions
-##
+## group transform multiple PooledDataArray into one
+## Output is a PooledArray where pool is type Int64, equal to ranking of group
+## NA in some row mean result has NA on this row
+## 
 ##############################################################################
 
 function reftype(sz) 
@@ -11,77 +14,63 @@ function reftype(sz)
 	Uint64
 end
 
-
-#  similar todrop unused levels but (i) may be NA (ii) change pool to integer
+#  similar todropunusedlevels! but (i) may be NA (ii) change pool to integer
 function factorize!(refs::Array)
 	uu = unique(refs)
-	vv = setdiff(uu, 0)
-	sort!(vv)
-	T = reftype(length(vv))
-	dict = Dict(vv, 1:convert(T, length(vv)))
-	dict[0] = 0
+	sort!(uu)
+	has_na = uu[1] == 0
+	T = reftype(length(uu)-has_na)
+	dict = Dict(uu, (1-has_na):convert(T, length(uu)-has_na))
 	@inbounds @simd for i in 1:length(refs)
 		 refs[i] = dict[refs[i]]
 	end
-	PooledDataArray(RefArray(refs), [1:length(vv);])
+	PooledDataArray(RefArray(refs), [1:(length(uu)-has_na);])
 end
 
-
-
-function make_integer{T, R, N}(f::PooledDataArray{T, R, N}; skipna = true)
-	if skipna
-		PooledDataArray(RefArray(f.refs), [1:length(f.pool);])
-	else
-		index = findfirst(f.refs, 0)
-		if index == 0 
-			PooledDataArray(RefArray(f.refs), [1:length(f.pool);])
-		else
-			newvalue = length(f.pool) + 1
-			NR = reftype(newvalue)
-			refs = convert(Array{NR}, f.refs)
-			newvalue = convert(NR, newvalue)
-			for i in 1:length(f.refs)
-				refs[i] = refs[i] == 0 ? newvalue : refs[i]
-			end
-			PooledDataArray(RefArray(refs), [1:newvalue;])
-		end
+function pool_combine!{T}(x::Array{Uint64, T}, dv::PooledDataArray, ngroups::Int64)
+	@inbounds for i in 1:length(x)
+	    # if previous one is NA or this one is NA, set to NA
+	    x[i] = (dv.refs[i] == 0 || x[i] == zero(Uint64)) ? zero(Uint64) : x[i] + (dv.refs[i] - 1) * ngroups
 	end
+	return(x, ngroups * length(dv.pool))
 end
 
 
-# group transform multiple vectors into one PooledDataArray
-# with skipna = false, NA is max(value) + 1
-function group(df::AbstractDataFrame; skipna = true) 
+
+function group(x::AbstractVector) 
+	v = PooledDataArray(x)
+	PooledDataArray(RefArray(v.refs), [1:length(v.pool);])
+end
+# faster specialization
+function group(x::PooledDataArray)
+	PooledDataArray(RefArray(copy(x.refs)), [1:length(x.pool);])
+end
+function group(df::AbstractDataFrame) 
 	ncols = size(df, 2)
-	dv = PooledDataArray(df[1])
-	dv = make_integer(dv; skipna = skipna)
-	if ncols == 1
-		return(dv)
+	v = df[1]
+	ncols = size(df, 2)
+	ncols == 1 && return(group(v))
+	if typeof(v) <: PooledDataArray
+		x = convert(Array{Uint64}, v.refs)
 	else
-		x = convert(Vector{Uint64}, dv.refs)
-		ngroups = length(dv.pool)
-		if skipna
-			for j = 2:ncols
-				dv = PooledDataArray(df[j])
-				for i in 1:size(df, 1)
-					# if previous one is NA or this one is NA, set to NA
-					x[i] = (dv.refs[i] == 0 || x[i] == zero(Uint64)) ? zero(Uint64) : x[i] + (dv.refs[i] - 1) * ngroups
-				end
-				ngroups = ngroups * length(dv.pool)
-			end
-		else
-			for j = (ncols - 1):-1:1
-				dv = PooledDataArray(df[j])
-				for i in 1:size(df, 1)
-					x[i] += dv.refs[i] == 0 ? length(dv.pool) * ngroups : (dv.refs[i] - 1) * ngroups
-				end
-				ngroups = ngroups * (length(dv.pool) + 1)
-			end
-		end
-		return(factorize!(x))
+		v = PooledDataArray(v, v.na, Uint64)
+		x = v.refs
 	end
+	ngroups = length(v.pool)
+	for j = 2:ncols
+		v = PooledDataArray(df[j])
+		(x, ngroups) = pool_combine!(x, v, ngroups)
+	end
+	return(factorize!(x))
 end
-group(df::AbstractDataFrame, cols::Vector; skipna = true) =  group(df[cols]; skipna = skipna)
+group(df::AbstractDataFrame, cols::Vector) =  group(df[cols])
+
+
+##############################################################################
+##
+## sum of square
+##
+##############################################################################
 
 
 
@@ -122,6 +111,13 @@ function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
 	return(y)
 end
 
+
+
+##############################################################################
+##
+## read formula
+##
+##############################################################################
 
 
 # decompose formula into normal + iv vs absorbpart
@@ -167,6 +163,14 @@ function decompose_iv!(rf::Formula)
 	end
 	return(rf, has_iv, iv_vars, ivt)
 end
+
+
+##############################################################################
+##
+## build model
+##
+##############################################################################
+
 
 function simpleModelFrame(df, t, esample)
 	df1 = DataFrame(map(x -> df[x], t.eterms))
