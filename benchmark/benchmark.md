@@ -1,5 +1,5 @@
 ### Simple benchmark 
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/files/result2.svg)
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/master/benchmark/result3.svg)
 
 Code to reproduce this graph:
 
@@ -77,7 +77,7 @@ Code to reproduce this graph:
   reg y x1 x2, cl(id2)
   #> r; t=11.15 12:32:57
   areg y x1 x2, a(id1)
-  #> r; t=53.02 12:34:06
+  #>r; t=15.51 12:33:13
   areg y x1 x2, a(id1) cl(id1)
   #> r; t=53.02 12:34:06
   reghdfe y x1 x2, a(id1 id2) fast keepsingletons
