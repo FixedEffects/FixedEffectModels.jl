@@ -139,7 +139,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	F = (tss - ess) / ((nobs - df_residual - rt.intercept) * ess/df_residual)
 
 	# compute standard error
-	vcovmodel = VcovDataHat(Xhat, H, residuals, nobs, df_residual)
+	vcovmodel = VcovDataHat(Xhat, H, residuals, df_residual)
 	matrix_vcov = vcov!(vcovmodel, vcov_method, subdf)
 
 	# Return RegressionResult object

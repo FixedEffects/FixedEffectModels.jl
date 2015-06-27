@@ -16,7 +16,7 @@ Code to reproduce this graph:
     x2 =  randn(N)
   )
   @time reg(y ~ x1, df)
-  # elapsed time: 0.819534136 seconds (1061291480 bytes allocated, 22.60% gc time)
+  # elapsed time: 0.88427742 seconds (1061291456 bytes allocated, 30.18% gc time)
   @time reg(y ~ x1, df, VcovCluster(:id2))
   # elapsed time: 1.024682163 seconds (1075061296 bytes allocated, 26.10% gc time)
   @time reg(y ~ x1 |> id1, df)

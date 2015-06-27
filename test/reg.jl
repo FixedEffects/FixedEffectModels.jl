@@ -1,3 +1,4 @@
+
 using RDatasets, DataFrames, FixedEffectModels, Base.Test
 
 df = dataset("plm", "Cigar")
@@ -7,7 +8,7 @@ df[:pYear] = pool(df[:Year])
 
 ##############################################################################
 ##
-## Check coefficients (result compared with Stata reghdfe)
+## Check coefficients 
 ##
 ##############################################################################
 
@@ -51,7 +52,7 @@ df[:pYear] = pool(df[:Year])
 
 ##############################################################################
 ##
-## Check errors (result compared with Stata reghdfe)
+## Check errors 
 ##
 ##############################################################################
 
@@ -78,7 +79,7 @@ df[:pYear] = pool(df[:Year])
 
 ##############################################################################
 ##
-## Check subdataframe (result compared with Stata reghdfe)
+## Check subdataframe 
 ##
 ##############################################################################
 result = reg(Sales ~ NDI + pState, df, subset = df[:State] .<= 30)

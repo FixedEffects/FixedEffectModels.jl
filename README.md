@@ -106,7 +106,7 @@ immutable type VcovWhite <: AbstractVcov
 end
 
 function vcov!(x::AbstractVcovData, t::VcovWhite) 
-	Xu = broadcast(*,  regressors(X), residuals(X))
+	Xu = broadcast!(*,  regressormatrix(x), residuals(X))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(X)/df_residual(X))
 	sandwich(x, S) 

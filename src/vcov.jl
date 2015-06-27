@@ -12,42 +12,29 @@
 abstract AbstractVcovData
 residuals(x::AbstractVcovData) = error("not defined")
 regressormatrix(x::AbstractVcovData) = error("not defined")
+df_residual(x::AbstractVcovData) = size(regressormatrix(x), 2)
 nobs(x::AbstractVcovData) = size(regressormatrix(x), 1)
-df_residual(x::AbstractVcovData) = size(regressormatrix(x), 1)
 function hatmatrix(x::AbstractVcovData) 
 	temp = At_mul_B(regressormatrix(x), regressormatrix(x))
 	H = inv(cholfact!(temp))
 end
 
-immutable type VcovData <: AbstractVcovData
-	regressormatrix::Matrix{Float64} # If weight, matrix should be X\sqrt{W}, if IV, it is a function of Z
-	residuals::Vector{Float64}
-	nobs::Int
-	df_residual::Int
-end
-residuals(x::VcovData) = x.residuals
-regressormatrix(x::VcovData) = x.regressormatrix
-nobs(x::VcovData) = x.nobs
-df_residual(x::VcovData) = x.df_residual
 
-
-# in case hatmatrix was already computed, this type holds the hadmatrix
+# An implementation of this abstract type that just holds everything
 immutable type VcovDataHat <: AbstractVcovData
 	regressormatrix::Matrix{Float64} 
 	hatmatrix::Matrix{Float64} 
 	residuals::Vector{Float64}
-	nobs::Int
 	df_residual::Int
 end
 residuals(x::VcovDataHat) = x.residuals
 regressormatrix(x::VcovDataHat) = x.regressormatrix
 hatmatrix(x::VcovDataHat) = x.hatmatrix
-nobs(x::VcovDataHat) = x.nobs
 df_residual(x::VcovDataHat) = x.df_residual
 
 # convert a linear model into VcovDataHat
 function VcovDataHat(x::LinearModel) 
-	VcovDataHat(x.pp.X, inv(cholfact(x)), residuals(x), size(x.pp.X, 1), size(x.pp.X, 2))
+	VcovDataHat(x.pp.X, inv(cholfact(x)), residuals(x), size(x.pp.X, 1))
 end
 
 
@@ -60,17 +47,18 @@ end
 ##############################################################################
 
 abstract AbstractVcov
-allvars(x::AbstractVcov) = nothing
 vcov!(x::AbstractVcovData, v::AbstractVcov) = error("not defined")
+
+# These default methods will be called for errors that do not require access to variables from the initial dataframe (like simple and White standard errors)
+allvars(x::AbstractVcov) = nothing
 vcov!(x::AbstractVcovData, v::AbstractVcov, df::AbstractDataFrame) = vcov!(x::AbstractVcovData, v::AbstractVcov)
 
 #
 # simple standard errors
 #
 
-immutable type VcovSimple <: AbstractVcov 
-end
-vcov(x::VcovData, t::VcovSimple) = vcov(x)
+immutable type VcovSimple <: AbstractVcov end
+
 function vcov!(x::AbstractVcovData, t::VcovSimple)
  	scale!(hatmatrix(x), abs2(norm(residuals(x), 2)) /  df_residual(x))
 end
@@ -80,32 +68,32 @@ end
 # White standard errors
 #
 
-immutable type VcovWhite <: AbstractVcov 
-end
+immutable type VcovWhite <: AbstractVcov end
+
 function vcov!(x::AbstractVcovData, t::VcovWhite) 
 	Xu = broadcast!(*,  regressormatrix(x), regressormatrix(x), residuals(x))
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(x)/df_residual(x))
-	sandwich(x, S) 
+	sandwich(hatmatrix(x), S) 
 end
-function sandwich(x::AbstractVcovData, S::Matrix{Float64})
-	H = hatmatrix(x)
+
+function sandwich(H::Matrix{Float64}, S::Matrix{Float64})
 	H * S * H
 end
 
-
 #
-# Cluster standard errors
+# Clustered standard errors
 #
 
 immutable type VcovCluster  <: AbstractVcov
 	clusters::Vector{Symbol}
 end
 VcovCluster(x::Symbol) = VcovCluster([x])
+
 allvars(x::VcovCluster) = x.clusters
 
-# Cameron, Gelbach, & Miller (2011).
 function vcov!(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame) 
+	# Cameron, Gelbach, & Miller (2011).
 	df = df[v.clusters]
 	X = regressormatrix(x)
 	Xu = broadcast!(*,  X, X, residuals(x))
@@ -113,51 +101,44 @@ function vcov!(x::AbstractVcovData, v::VcovCluster, df::AbstractDataFrame)
 	for i in 1:length(v.clusters)
 		for c in combinations(v.clusters, i)
 			if length(c) == 1
-				# because twice faster
+				# no need to group in this case: it is already a PooledDataArray
+				# but there may be less groups then length(f.pool)
 				f = df[c[1]]
+				fsize = length(unique(f.refs))
 			else
 				f = group(df[c])
+				fsize = length(f.pool)
 			end
 			if rem(length(c), 2) == 1
-				S += helper_cluster(Xu, f)
+				S += helper_cluster(Xu, f, fsize)
 			else
-				S -= helper_cluster(Xu, f)
+				S -= helper_cluster(Xu, f, fsize)
 			end
 		end
 	end
 	scale!(S, (nobs(x)-1) / df_residual(x))
-	sandwich(x, S)
+	sandwich(hatmatrix(x), S)
 end
 
-function helper_cluster(Xu::Matrix{Float64}, f::PooledDataArray)
-	pool = f.pool
+function helper_cluster(Xu::Matrix{Float64}, f::PooledDataArray, fsize::Int64)
 	refs = f.refs
-	if length(pool) == size(Xu, 1)
+	if fsize == size(Xu, 1)
 		# if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
-		At_mul_B(Xu, Xu)
 		return(At_mul_B(Xu, Xu))
 	else
 		# otherwise
-		X2 = fill(zero(Float64), (length(f.pool), size(Xu, 2)))
-		fsize = fill(zero(Int64),  length(f.pool))
-		aggregate_matrix!(X2, Xu, refs, fsize)
+		X2 = fill(zero(Float64), (fsize, size(Xu, 2)))
+		aggregate_matrix!(X2, Xu, refs)
 		out = At_mul_B(X2, X2)
-		scale!(out, sum(fsize .> 0) / (sum(fsize .> 0) - 1))
+		scale!(out, fsize / (fsize- 1))
 		return(out)
 	end
 end
 
-function aggregate_matrix!{T <: Integer}(X2::Matrix{Float64}, Xu::Matrix{Float64}, refs::Vector{T}, fsize::Vector{Int64})
+function aggregate_matrix!{T <: Integer}(X2::Matrix{Float64}, Xu::Matrix{Float64}, refs::Vector{T})
 	for j in 1:size(Xu, 2)
-		if j == 1
-			 @inbounds @simd for i in 1:size(Xu, 1)
-			 	fsize[refs[i]] += 1
-				X2[refs[i], j] += Xu[i, j]
-			end
-		else
-			 @inbounds @simd for i in 1:size(Xu, 1)
-				X2[refs[i], j] += Xu[i, j]
-			end
+		 @inbounds @simd for i in 1:size(Xu, 1)
+			X2[refs[i], j] += Xu[i, j]
 		end
 	end
 end
@@ -175,7 +156,9 @@ immutable type VcovHac <: AbstractVcov
 end
 # default uses the Bartlett kernel 
 VcovHac(time, nlag) = VcovHac(time, nlag, (i, n) -> 1 - i/(n+1))
+
 allvars(x::VcovHac) = x.time
+
 function vcov!(x::AbstractVcovData, v::VcovHac, df)
 	time = df[v.time]
 	nlag = v.nlag
@@ -195,8 +178,9 @@ function vcov!(x::AbstractVcovData, v::VcovHac, df)
 	end
 	S = sum(rhos)
 	scale!(S, nobs(x)/df_residual(x))
-	sandwich(x, S) 
+	sandwich(hatmatrix(x), S) 
 end
+
 function lag(x::Array, n::Int, time::Vector) 
 	index = findin(time - n, time)
 	lagx = DataArray(eltype(x), dim(x))

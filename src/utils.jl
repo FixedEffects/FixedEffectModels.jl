@@ -4,65 +4,84 @@
 ##
 ##############################################################################
 
-function dropUnusedLevels!(f::PooledDataArray)
-	rr = f.refs
-	uu = unique(rr)
-	f.pool = uu
-	T = eltype(rr)
-	dict = Dict(uu, 1:convert(Uint32, length(uu)))
-	@inbounds @simd  for i in 1:length(rr)
-		 rr[i] = dict[rr[i]]
-	end
-	f
+function reftype(sz) 
+	sz <= typemax(Uint8)  ? Uint8 :
+	sz <= typemax(Uint16) ? Uint16 :
+	sz <= typemax(Uint32) ? Uint32 :
+	Uint64
 end
-dropUnusedLevels!(f::DataArray) = f
+
+
+#  similar todrop unused levels but (i) may be NA (ii) change pool to integer
+function factorize!(refs::Array)
+	uu = unique(refs)
+	vv = setdiff(uu, 0)
+	sort!(vv)
+	T = reftype(length(vv))
+	dict = Dict(vv, 1:convert(T, length(vv)))
+	dict[0] = 0
+	@inbounds @simd for i in 1:length(refs)
+		 refs[i] = dict[refs[i]]
+	end
+	PooledDataArray(RefArray(refs), [1:length(vv);])
+end
+
+
+
+function make_integer{T, R, N}(f::PooledDataArray{T, R, N}; skipna = true)
+	if skipna
+		PooledDataArray(RefArray(f.refs), [1:length(f.pool);])
+	else
+		index = findfirst(f.refs, 0)
+		if index == 0 
+			PooledDataArray(RefArray(f.refs), [1:length(f.pool);])
+		else
+			newvalue = length(f.pool) + 1
+			NR = reftype(newvalue)
+			refs = convert(Array{NR}, f.refs)
+			newvalue = convert(NR, newvalue)
+			for i in 1:length(f.refs)
+				refs[i] = refs[i] == 0 ? newvalue : refs[i]
+			end
+			PooledDataArray(RefArray(refs), [1:newvalue;])
+		end
+	end
+end
 
 
 # group transform multiple vectors into one PooledDataArray
+# with skipna = false, NA is max(value) + 1
 function group(df::AbstractDataFrame; skipna = true) 
-	ncols = length(df)
-	dv = PooledDataArray(df[ncols])
-	if skipna
-		x = map(z -> convert(Uint64, z), dv.refs)
-		ngroups = length(dv.pool)
-		for j = (ncols - 1):-1:1
-			dv = PooledDataArray(df[j])
-			for i = 1:size(df, 1)
-				x[i] += ((dv.refs[i] == 0 | x[i] == 0) ? 0 : (dv.refs[i] - 1) * ngroups)
-			end
-			ngroups = ngroups * length(dv.pool)
-		end
-		# factorize
-		uu = unique(x)
-		T = eltype(x)
-		vv = setdiff(uu, zero(T))
-		dict = Dict(vv, 1:(length(vv)))
-		compact(PooledDataArray(RefArray(map(z -> z == 0 ? zero(T) : dict[z], x)),  [1:length(vv);]))
+	ncols = size(df, 2)
+	dv = PooledDataArray(df[1])
+	dv = make_integer(dv; skipna = skipna)
+	if ncols == 1
+		return(dv)
 	else
-		# code from groupby
-		dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
-		x = map(z -> convert(Uint64, z) + dv_has_nas, dv.refs)
-		ngroups = length(dv.pool) + dv_has_nas
-		for j = (ncols - 1):-1:1
-			dv = PooledDataArray(df[j])
-			dv_has_nas = (findfirst(dv.refs, 0) > 0 ? 1 : 0)
-			for i = 1:size(df, 1)
-				x[i] += (dv.refs[i] + dv_has_nas- 1) * ngroups
+		x = convert(Vector{Uint64}, dv.refs)
+		ngroups = length(dv.pool)
+		if skipna
+			for j = 2:ncols
+				dv = PooledDataArray(df[j])
+				for i in 1:size(df, 1)
+					# if previous one is NA or this one is NA, set to NA
+					x[i] = (dv.refs[i] == 0 || x[i] == zero(Uint64)) ? zero(Uint64) : x[i] + (dv.refs[i] - 1) * ngroups
+				end
+				ngroups = ngroups * length(dv.pool)
 			end
-			ngroups = ngroups * (length(dv.pool) + dv_has_nas)
+		else
+			for j = (ncols - 1):-1:1
+				dv = PooledDataArray(df[j])
+				for i in 1:size(df, 1)
+					x[i] += dv.refs[i] == 0 ? length(dv.pool) * ngroups : (dv.refs[i] - 1) * ngroups
+				end
+				ngroups = ngroups * (length(dv.pool) + 1)
+			end
 		end
-		# end of code from groupby
-		# factorize
-		uu = unique(x)
-		T = eltype(x)
-		dict = Dict(uu, 1:length(uu))
-		compact(PooledDataArray(RefArray(map(z -> dict[z], x)),  [1:length(uu);]))
+		return(factorize!(x))
 	end
 end
 group(df::AbstractDataFrame, cols::Vector; skipna = true) =  group(df[cols]; skipna = skipna)
-
-
-
 
 
 
@@ -156,10 +175,10 @@ function simpleModelFrame(df, t, esample)
 end
 
 
+#  remove observations with negative weights
 function isnaorneg{T <: Real}(a::Vector{T}) 
 	bitpack(a .> zero(eltype(a)))
 end
-
 function isnaorneg{T <: Real}(a::DataVector{T}) 
 	out = !a.na
 	@simd for i in 1:length(a)
@@ -170,10 +189,6 @@ function isnaorneg{T <: Real}(a::DataVector{T})
 	bitpack(out)
 end
 
-
-function isna2{T <: Real}(a::DataVector{T}) 
-	map(x -> isa(x, NAtype), a)
-end
 
 # Directly from DataFrames.jl
 function remove_response(t::Terms)
@@ -196,3 +211,24 @@ end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
 allvars(v::Any) = Array(Symbol, 0)
+
+
+# used when removing certain rows in a dataset
+# NA always removed
+function dropUnusedLevels!(f::PooledDataArray)
+	uu = unique(f.refs)
+	length(uu) == length(f.pool) && return f
+	sort!(uu)
+	T = reftype(length(uu))
+	dict = Dict(uu, 1:convert(T, length(uu)))
+	@inbounds @simd  for i in 1:length(f.refs)
+		 f.refs[i] = dict[f.refs[i]]
+	end
+	f.pool = f.pool[uu]
+	f
+end
+
+dropUnusedLevels!(f::DataArray) = f
+
+
+
