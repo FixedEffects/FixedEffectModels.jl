@@ -180,7 +180,7 @@ plot(
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
-![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/9a12681d81f9d713cec3b88b1abf362cdddb9a14/benchmark/result3.svg)
+![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/9a12681d81f9d713cec3b88b1abf362cdddb9a14/benchmark/third.svg)
 
 The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
