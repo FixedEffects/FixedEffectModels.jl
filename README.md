@@ -73,8 +73,8 @@ reg(Sales ~ NDI |> pState, df)
 
 #### Instrumental variables
 
-Models with instruments variables are estimated using 2SLS.
-Following the Stata command `ivreg2`, `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistics, a generalization of the Cragg-Donald Wald F statistics for non i.i.d. errors. 
+- Models with instruments variables are estimated using 2SLS.
+- `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistics, a generalization of the Cragg-Donald Wald F statistics for non i.i.d. errors. The statistics is similar to the one returned by the Stata command `ivreg2`.
 
 #### Weights
 
