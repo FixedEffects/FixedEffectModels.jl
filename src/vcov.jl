@@ -42,16 +42,14 @@ end
 ##
 ## AbstractVcovMethod (and its children) has two methods: 
 ## allvars that returns variables needed in the dataframe
-## shat!, that returns a covariance matrix. It may change regressors in place, (but not invcrossmatrix).
+## shat! returns a S hat matrix. It may change regressors in place
+## vcov! returns a covariance matrix
 ##
 ##############################################################################
 
 abstract AbstractVcovMethod
 allvars(x::AbstractVcovMethod) = nothing
 abstract AbstractVcovMethodData
-
-
-# These default methods will be called for errors that do not require access to variables from the initial dataframe (like simple and White standard errors)
 
 
 #
@@ -300,16 +298,16 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 	svd = svdfact(theta, thin = false) 
 	u = svd.U
 	vt = svd.Vt
-	if p > 1
+	if K == 1
+		a_qq = u * inv(u) * sqrtm(A_mul_Bt(u, u))
+		b_qq = sqrtm(A_mul_Bt(vt, vt)) * inv(vt') * vt'
+	else
 	    u_12 = u[1:(K-1),(K:L)]
 	    v_12 = vt[1:(K-1),K]
 	    u_22 = u[(K:L),(K:L)]
 	    v_22 = vt[K,K]
 	    a_qq = vcat(u_12, u_22) * inv(u_22) * sqrtm(A_mul_Bt(u_22, u_22))
 	    b_qq = sqrtm(A_mul_Bt(v_22, v_22)) * inv(v_22') * vcat(v_12, v_22)'
-	else
-	    a_qq = u * inv(u) * sqrtm(A_mul_Bt(u, u))
-	    b_qq = sqrtm(A_mul_Bt(vt, vt)) * inv(vt') * vt'
 	end
 	if typeof(vcov_method_data) == VcovSimpleData
 		vhat= eye(L*K) / size(X, 1)
