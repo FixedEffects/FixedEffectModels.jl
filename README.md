@@ -72,6 +72,9 @@ reg(Sales ~ NDI |> pState, df)
 
 - Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
+#### Instrumental variables
+
+Following the Stata command `ivreg2`, `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistics, a generalization of Cragg-Donald Wald F statistics for non iid errors. 
 
 #### Weights
 
