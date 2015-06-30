@@ -1,7 +1,9 @@
-# A type that stores light regression results 
+# An abstract type that stores light regression results 
 
 abstract AbstractRegressionResult <: RegressionModel
 
+
+# Type for non IV models
 type RegressionResult <: AbstractRegressionResult
     coef::Vector{Float64}
     vcov::Matrix{Float64}
@@ -20,7 +22,7 @@ type RegressionResult <: AbstractRegressionResult
     p::Float64
 end
 
-# A type that stores light regression results 
+# Type for IV models 
 type RegressionResultIV <: AbstractRegressionResult
     coef::Vector{Float64}
     vcov::Matrix{Float64}
@@ -45,8 +47,6 @@ end
 
 
 
-
-# Usual Methods for RegressionResult
 coef(x::AbstractRegressionResult) = x.coef
 coefnames(x::AbstractRegressionResult) = x.coefnames
 vcov(x::AbstractRegressionResult) = x.vcov
