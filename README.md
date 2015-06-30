@@ -1,5 +1,7 @@
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
-[![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
+[![FixedEffectModels](http://pkg.julialang.org/badges/FixedEffectModels_release.svg)](http://pkg.julialang.org/?pkg=FixedEffectModels&ver=release)
+[![FixedEffectModels](http://pkg.julialang.org/badges/FixedEffectModels_nightly.svg)](http://pkg.julialang.org/?pkg=MixedModels&ver=nightly)
+
 
 
 
