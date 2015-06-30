@@ -89,15 +89,6 @@ function construct_fe(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
 end
 
 
-function count(f::AbstractFixedEffect)
-	n = 0
-	scale = f.scale
-	for i in 1:length(scale)
-		n += scale[i] != zero(Float64)
-	end
-	return(n)
-end
-
 ##############################################################################
 ##
 ## Demean algorithm

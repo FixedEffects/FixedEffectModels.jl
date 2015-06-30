@@ -127,7 +127,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	if has_absorb 
 		## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
 		for fe in factors
-			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : count(fe)
+			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .!= zero(Float64))
 		end
 	end
 	nobs = size(X, 1)
