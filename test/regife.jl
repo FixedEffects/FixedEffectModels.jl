@@ -6,5 +6,5 @@ df[:pYear] = pool(df[:Year])
 
 
 result = reg(Sales ~ Price, df, InteractiveFixedEffectModel(:pState, :pYear, 2))
-@test_approx_eq reg(Sales ~ Price, df, InteractiveFixedEffectModel(:pState, :pYear, 2)).coef -0.348821
-@test_approx_eq reg(Sales ~ Price |> pState, df, InteractiveFixedEffectModel(:pState, :pYear, 2)).coef  -0.425389
+@test_approx_eq reg(Sales ~ Price, df, InteractiveFixedEffectModel(:pState, :pYear, 2)).coef [0.348820780059964]
+@test_approx_eq reg(Sales ~ Price |> pState, df, InteractiveFixedEffectModel(:pState, :pYear, 2)).coef  [-0.42538935900021146]
