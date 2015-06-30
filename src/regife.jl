@@ -12,7 +12,7 @@ end
 
 
 # Bai 2009
-function fit(m::InteractiveFixedEffectModel, f::Formula, df::AbstractDataFrame, vcov::AbstractVcovMethod = VcovSimple(); weight = nothing)
+function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; weight = nothing)
 
     rf = deepcopy(f)
 
