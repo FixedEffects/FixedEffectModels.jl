@@ -46,8 +46,7 @@ df[:pYear] = pool(df[:Year])
 # non high dimensional factors
 @test_approx_eq coef(reg(Sales ~ Price + pYear |> pState, df))[1]   -1.0847116771619385
 @test_approx_eq coef(reg(Sales ~ Price + pYear |> pState, df,  weight = :Pop))[1]   -0.887940962263503
-@test_approx_eq coef(reg(Sales ~ Price + (Price = Pimin) + pYear |> pState, df))[1]  -1.0847116771621677
-
+@test_approx_eq coef(reg(Sales ~ NDI + (Price = Pimin) + pYear |> pState, df))[1]   -0.00525881287252726
 
 @test_throws ErrorException reg(Sales ~ Price + (NDI + Pop = CPI), df)
 
