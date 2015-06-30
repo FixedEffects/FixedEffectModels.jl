@@ -96,7 +96,7 @@ function shat!(t::VcovWhiteData, x::VcovData{2})
 	S = fill(zero(Float64), (dim, dim))
 	temp = similar(S)
 	kronv = fill(zero(Float64), dim)
-	for i in 1:nobs(x)
+	@inbounds for i in 1:nobs(x)
 		j = 0
 		for l in 1:size(res, 2)
 			for k in 1:size(X, 2)
@@ -237,9 +237,9 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataA
 		S = fill(zero(Float64), (dim, dim))
 		temp = similar(S)
 		kronv = fill(zero(Float64), dim)
-		for i in 1:size(X, 1)
+		@inbounds for i in 1:size(X, 1)
 			j = 0
-			for l in 1:size(res, 2)
+			 for l in 1:size(res, 2)
 				for k in 1:size(X, 2)
 					j += 1
 					kronv[j] = X[i, k] * res[i, l]
@@ -252,9 +252,9 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataA
 	else
 		# otherwise
 		kronv = fill(zero(Float64), fsize, dim)
-		for i in 1:size(X, 1)
+		@inbounds for i in 1:size(X, 1)
 			j = 0
-			for l in 1:size(res, 2)
+			 for l in 1:size(res, 2)
 				for k in 1:size(X, 2)
 					j += 1
 					kronv[refs[i], j] += X[i, k] * res[i, l]
