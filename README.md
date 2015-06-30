@@ -9,6 +9,10 @@ The function `reg` estimates linear models with
   - robust standard errors (White or clustered) 
 
 
+`reg` is fast:
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
+The code used for this graph can be found [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md).
+
 
 `reg` returns a very light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
  
@@ -19,16 +23,13 @@ The function `reg` estimates linear models with
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
-`reg` is fast:
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
-The code used for this graph can be found [here](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md).
 
 To install the package, 
 
 ```julia
 Pkg.add("FixedEffectModels")
 ```
-## Syntax
+## reg
 
 The general syntax is
 
@@ -54,7 +55,7 @@ reg(Sales ~ NDI |> pState, df)
 ```
 
 
-### Fixed effects
+#### Fixed effects
 
 
 - Specify multiple high dimensional fixed effects.
@@ -72,7 +73,7 @@ reg(Sales ~ NDI |> pState, df)
 - Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
 
-### Weights
+#### Weights
 
  Weights are supported with the option `weight`. They correspond to R weights and analytical weights in Stata.
 
@@ -80,7 +81,7 @@ reg(Sales ~ NDI |> pState, df)
 reg(Sales ~ NDI |> pState, df, weight = :Pop)
 ```
 
-### Subset
+#### Subset
 
 You can estimate a model on a subset of your data with the option `subset` 
 
@@ -88,28 +89,13 @@ You can estimate a model on a subset of your data with the option `subset`
 reg(Sales ~ NDI |> pState, weight = :Pop, subset = df[:pState] .< 30)
 ```
 
-## Errors
-Compute robust standard errors by constructing an object of type `AbstractVcov`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
+#### Errors
+Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
 ```julia
 reg(Sales ~ NDI, df, VcovWhite())
 reg(Sales ~ NDI, df, VcovCluster([:State]))
 reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
-```
-
-
-You can easily define your own type: after declaring it as a child of `AbstractVcov`, define a `allvars` and a `vcov!` methods for it. For instance,  White errors are implemented with the following code:
-
-```julia
-immutable type VcovWhite <: AbstractVcov 
-end
-
-function vcov!(x::AbstractVcovData, t::VcovWhite) 
-	Xu = broadcast!(*,  regressormatrix(x), residuals(X))
-	S = At_mul_B(Xu, Xu)
-	scale!(S, nobs(X)/df_residual(X))
-	sandwich(x, S) 
-end
 ```
 
 

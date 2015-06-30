@@ -111,6 +111,12 @@ function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
 	return(y)
 end
 
+function addition_elementwise!(y::Vector{Float64}, m::Float64)
+	@inbounds @simd  for i in 1:length(y)
+		 y[i] += m
+	end
+	return(y)
+end
 
 
 ##############################################################################
@@ -233,6 +239,5 @@ function dropUnusedLevels!(f::PooledDataArray)
 end
 
 dropUnusedLevels!(f::DataArray) = f
-
 
 

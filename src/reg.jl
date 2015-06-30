@@ -1,4 +1,4 @@
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing )
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing )
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
@@ -31,7 +31,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 		length(subset) == size(df, 1) || error("the number of rows in df is $(size(df, 1)) but the length of subset is $(size(df, 2))")
 		esample &= convert(BitArray, subset)
 	end
-	# I take a new dataframe because I dont know how to remove pooled data array otherwise from a subdataframe
+	# new dataframe (not subdataframe because issue with sub pooled data array)
 	subdf = df[esample, all_vars]
 	(size(subdf, 1) > 0) || error("sample is empty")
 	#subdf = df[esample, all_vars]
@@ -56,6 +56,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	if has_absorb
 		factors = construct_fe(subdf, absorbt.terms, sqrtw)
 	end
+
+	# Compute data for std errors
+	vcov_method_data = VcovMethodData(vcov_method, subdf)
+
 
 	# Compute demeaned X
 	mf = simpleModelFrame(subdf, rt, esample)
@@ -88,6 +92,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	if has_iv
 		mf = simpleModelFrame(subdf, ivt, esample)
 		Z = ModelMatrix(mf).m
+		size(Z, 2) >= size(X, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
 		if weight != nothing
 			broadcast!(*, Z, sqrtw, Z)
 		end
@@ -100,30 +105,31 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 
 	# Compute Xhat
 	if has_iv
-		Hz = At_mul_B(Z, Z)
-		Hz = inv(cholfact!(Hz))
-		Xhat = A_mul_Bt(Z * Hz, Z) * X
+		crossz = At_mul_B(Z, Z)
+		invcrossz = inv(cholfact!(crossz))
+		Pi = invcrossz * (At_mul_B(Z, X))
+		Xhat = Z * Pi
 	else
 		Xhat = X
 	end
 
 	# Compute coef and residuals
-	H = At_mul_B(Xhat, Xhat)
-	H = inv(cholfact!(H))
-	coef = H * (At_mul_B(Xhat, y))
+	crossx = At_mul_B(Xhat, Xhat)
+	invcrossx = inv(cholfact!(crossx))
+	coef = invcrossx * At_mul_B(Xhat, y)
 	residuals = y - X * coef
 
 	# Compute degree of freedom
+	df_intercept = 0
+	if has_absorb | rt.intercept
+		df_intercept = 1
+	end
 	df_absorb = 0
 	if has_absorb 
-		## poor man clustering adjustement of df: only if fe name == cluster name
+		## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
 		for fe in factors
-			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .> 0)
+			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : count(fe)
 		end
-		# still one in case all are removed
-		#if df_absorb == 0
-		#	df_absorb = 1
-		#end
 	end
 	nobs = size(X, 1)
 	df_residual = size(X, 1) - size(X, 2) - df_absorb 
@@ -136,14 +142,45 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcov = Vcov
 	end
 	r2 = 1 - ess / tss 
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
-	F = (tss - ess) / ((nobs - df_residual - rt.intercept) * ess/df_residual)
-
+	
 	# compute standard error
-	vcovmodel = VcovDataHat(Xhat, H, residuals, df_residual)
-	matrix_vcov = vcov!(vcovmodel, vcov_method, subdf)
+	vcov_data = VcovData{1}(invcrossx, Xhat, residuals, df_residual)
+	matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
-	# Return RegressionResult object
-	RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F)
+	# Fstat
+	coefF = coef
+	matrix_vcovF = matrix_vcov
+	if rt.intercept
+		coefF = coefF[2:end]
+		matrix_vcovF = matrix_vcovF[2:end, 2:end]
+	end
+	R = eye(length(coefF))
+	F = diagm(coefF)' * inv(matrix_vcovF) * diagm(coefF)
+	F = F[1]
+	if typeof(vcov_method) != VcovCluster
+		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
+	else
+		nclust = minimum(values(vcov_method_data.size))
+		p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
+	end
+
+	if !has_iv
+		# Return RegressionResult object
+		RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p)
+	else
+		# test of weak identification based on Kleibergen-Paap
+		# center variables
+		rX  = X - Z * Pi
+		if ivt.intercept
+			rX = broadcast!(-, rX, rX, mean(rX, 1))[:, 2:end]
+			Z = broadcast!(-, Z, Z, mean(Z, 1))[:, 2:end]
+			Pi = Pi[2:end, 2:end]
+		end
+		(F_kp, p_kp) = rank_test!(rX, Z, Pi, vcov_method_data, df_absorb)
+		RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp)
+	end
+
+
 end
 
 
