@@ -35,15 +35,15 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	subdf = df[esample, all_vars]
 	(size(subdf, 1) > 0) || error("sample is empty")
 	#subdf = df[esample, all_vars]
-	potential_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, iv_vars), [nothing])))
-	for v in potential_vars
+	main_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, iv_vars), [nothing])))
+	for v in main_vars
 		# in case subdataframe, don't construct subdf[v] if you dont need to do it
 		if typeof(df[v]) <: PooledDataArray
 			dropUnusedLevels!(subdf[v])
 		end
 	end
 
-	# create weight vector
+	# Compute weight vector
 	if weight == nothing
 		w = fill(one(Float64), size(subdf, 1))
 		sqrtw = w
@@ -60,8 +60,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	# Compute data for std errors
 	vcov_method_data = VcovMethodData(vcov_method, subdf)
 
-
-	# Compute demeaned X
+	# Compute X
 	mf = simpleModelFrame(subdf, rt, esample)
 	coef_names = coefnames(mf)
 	X = ModelMatrix(mf).m
@@ -74,7 +73,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 	end
 
-	# Compute demeaned y
+	# Compute y
 	py = model_response(mf)[:]
 	if eltype(py) != Float64
 		y = convert(py, Float64)
@@ -88,7 +87,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		y = demean_vector!(y, factors)
 	end
 
-	# Compute demeaned Z
+	# Compute Z
 	if has_iv
 		mf = simpleModelFrame(subdf, ivt, esample)
 		Z = ModelMatrix(mf).m
@@ -119,7 +118,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	coef = invcrossx * At_mul_B(Xhat, y)
 	residuals = y - X * coef
 
-	# Compute degree of freedom
+	# Compute degrees of freedom
 	df_intercept = 0
 	if has_absorb | rt.intercept
 		df_intercept = 1
@@ -134,7 +133,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	nobs = size(X, 1)
 	df_residual = size(X, 1) - size(X, 2) - df_absorb 
 
-	# compute ess, tss, r2, r2 adjusted, F
+	# Compute ess, tss, r2, r2 adjusted
 	if weight == nothing
 		(ess, tss) = compute_ss(residuals, y, rt.intercept)
 	else
@@ -143,11 +142,11 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	r2 = 1 - ess / tss 
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
 	
-	# compute standard error
+	# Compute standard error
 	vcov_data = VcovData{1}(invcrossx, Xhat, residuals, df_residual)
 	matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
-	# Fstat
+	# Compute Fstat
 	coefF = coef
 	matrix_vcovF = matrix_vcov
 	if rt.intercept
@@ -163,11 +162,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
 	end
 
-	if !has_iv
-		# Return RegressionResult object
-		RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p)
-	else
-		# test of weak identification based on Kleibergen-Paap
+
+	# Compute Fstat first stage based on Kleibergen-Paap
+	if has_iv
 		rX  = X - Z * Pi
 		if ivt.intercept
 			# center variables
@@ -176,7 +173,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 			Pi = Pi[2:end, 2:end]
 		end
 		(F_kp, p_kp) = rank_test!(rX, Z, Pi, vcov_method_data, df_absorb)
-		RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp)
+		return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
+	else
+		return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
 	end
 
 
