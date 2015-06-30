@@ -107,6 +107,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		crossz = At_mul_B(Z, Z)
 		invcrossz = inv(cholfact!(crossz))
 		Pi = invcrossz * (At_mul_B(Z, X))
+		# Can't really update X -> Xhat in place because I need it for the vetor of errors
 		Xhat = Z * Pi
 	else
 		Xhat = X
@@ -165,7 +166,8 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute Fstat first stage based on Kleibergen-Paap
 	if has_iv
-		rX  = X - Z * Pi
+		# update X in place. no speed gain but original dataframe + X, Z, Xhat already use a lot of memory
+		rX = BLAS.gemm!('N', 'N', -1.0, Z, Pi, 1.0, X)
 		if ivt.intercept
 			# center variables
 			rX = broadcast!(-, rX, rX, mean(rX, 1))[:, 2:end]
