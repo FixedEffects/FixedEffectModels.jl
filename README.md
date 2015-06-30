@@ -15,11 +15,6 @@ The function `reg` estimates linear models with
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 
-To install the package, 
-
-```julia
-Pkg.add("FixedEffectModels")
-```
 
 
 
@@ -48,6 +43,11 @@ reg(Sales ~ NDI |> pState, df)
 
 
 
+To install the package, 
+
+```julia
+Pkg.add("FixedEffectModels")
+```
 
 #### Result
 
