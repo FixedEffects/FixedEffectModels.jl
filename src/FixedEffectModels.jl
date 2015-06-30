@@ -29,9 +29,7 @@ VcovSimple,
 VcovWhite, 
 VcovHac, 
 VcovCluster,
-AbstractVcovData, 
-VcovData, 
-VcovDataHat,
+VcovData,
 
 InteractiveFixedEffectModel
 
