@@ -78,7 +78,6 @@ immutable type VcovWhiteData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovWhite, df::AbstractDataFrame) = VcovWhiteData()
 function vcov!(v::VcovWhiteData, x::VcovData) 
 	S = shat!(v, x)
-	scale!(S, nobs(x)/df_residual(x))
 	sandwich(invcrossmatrix(x), S) 
 end
 
@@ -87,6 +86,7 @@ function shat!(v::VcovWhiteData, x::VcovData{1})
 	res = residuals(x)
 	Xu = broadcast!(*, X, X, res)
 	S = At_mul_B(Xu, Xu)
+	scale!(S, nobs(x)/df_residual(x))
 end
 
 function shat!(t::VcovWhiteData, x::VcovData{2}) 
@@ -107,6 +107,7 @@ function shat!(t::VcovWhiteData, x::VcovData{2})
 		temp = A_mul_Bt!(temp, kronv, kronv)
 		S += temp
 	end
+	scale!(S, nobs(x)/df_residual(x))
 	return(S)
 end
 
@@ -148,7 +149,6 @@ end
 
 function vcov!(v::VcovClusterData, x::VcovData)
 	S = shat!(v, x)
-	scale!(S, (nobs(x)-1) / df_residual(x))
 	sandwich(invcrossmatrix(x), S)
 end
 function shat!(v::VcovClusterData, x::VcovData{1}) 
@@ -175,6 +175,7 @@ function shat!(v::VcovClusterData, x::VcovData{1})
 			end
 		end
 	end
+	scale!(S, (nobs(x)-1) / df_residual(x))
 	return(S)
 end
 
@@ -227,6 +228,7 @@ function shat!(v::VcovClusterData, x::VcovData{2})
 			end
 		end
 	end
+	scale!(S, (nobs(x)-1) / df_residual(x))
 	return(S)
 end
 
@@ -248,7 +250,6 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataA
 			temp = A_mul_Bt!(temp, kronv, kronv)
 			S += temp
 		end
-		return(S)
 	else
 		# otherwise
 		kronv = fill(zero(Float64), fsize, dim)
@@ -263,8 +264,8 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataA
 		end
 		S = At_mul_B(kronv, kronv)
 		scale!(S, fsize / (fsize- 1))
-		return(S)
 	end
+	return(S)
 end
 
 

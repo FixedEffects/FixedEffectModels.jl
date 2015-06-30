@@ -76,6 +76,24 @@ reg(Sales ~ NDI |> pState, df)
 - Models with instruments variables are estimated using 2SLS.
 - `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
+```julia
+reg(Sales ~ (Price = Pimin), df)
+```
+```julia
+#>                           Fixed Effect Model                          
+#> ======================================================================
+#> Number of obs                 1380  Degree of freedom                2
+#> R2                          -0.428  R2 Adjusted                 -0.429
+#> F Statistic                12.0099  Prob > F                     0.000
+#> First Stage F-stat (KP)    16.1913  First State p-val (KP):      0.000
+#> ======================================================================
+#>               Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
+#> ----------------------------------------------------------------------
+#> Price        -0.764258  0.220531 -3.46553    0.001  -1.19687 -0.331645
+#> (Intercept)    176.455   15.1832  11.6217    0.000   146.671    206.24
+#> ======================================================================
+```
+
 #### Weights
 
  Weights are supported with the option `weight`. They correspond to nalytical weights in Stata.

@@ -151,17 +151,16 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	coefF = coef
 	matrix_vcovF = matrix_vcov
 	if rt.intercept
-		coefF = coefF[2:end]
+ 		coefF = coefF[2:end]
 		matrix_vcovF = matrix_vcovF[2:end, 2:end]
 	end
-	R = eye(length(coefF))
 	F = diagm(coefF)' * inv(matrix_vcovF) * diagm(coefF)
 	F = F[1]
-	if typeof(vcov_method) != VcovCluster
-		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
-	else
+	if typeof(vcov_method) == VcovCluster 
 		nclust = minimum(values(vcov_method_data.size))
 		p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
+	else
+		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
 	end
 
 	if !has_iv
