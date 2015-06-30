@@ -74,11 +74,12 @@ reg(Sales ~ NDI |> pState, df)
 
 #### Instrumental variables
 
-Following the Stata command `ivreg2`, `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistics, a generalization of Cragg-Donald Wald F statistics for non iid errors. 
+Models with instruments variables are estimated using 2SLS.
+Following the Stata command `ivreg2`, `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistics, a generalization of the Cragg-Donald Wald F statistics for non i.i.d. errors. 
 
 #### Weights
 
- Weights are supported with the option `weight`. They correspond to R weights and analytical weights in Stata.
+ Weights are supported with the option `weight`. They correspond to nalytical weights in Stata.
 
 ```julia
 reg(Sales ~ NDI |> pState, df, weight = :Pop)
@@ -86,7 +87,7 @@ reg(Sales ~ NDI |> pState, df, weight = :Pop)
 
 #### Subset
 
-You can estimate a model on a subset of your data with the option `subset` 
+Estimate a model on a subset of your data with the option `subset` 
 
 ```julia
 reg(Sales ~ NDI |> pState, weight = :Pop, subset = df[:pState] .< 30)
