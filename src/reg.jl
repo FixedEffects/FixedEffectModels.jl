@@ -168,9 +168,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p)
 	else
 		# test of weak identification based on Kleibergen-Paap
-		# center variables
 		rX  = X - Z * Pi
 		if ivt.intercept
+			# center variables
 			rX = broadcast!(-, rX, rX, mean(rX, 1))[:, 2:end]
 			Z = broadcast!(-, Z, Z, mean(Z, 1))[:, 2:end]
 			Pi = Pi[2:end, 2:end]
