@@ -39,7 +39,8 @@ Pkg.add("FixedEffectModels")
 
 The general syntax is
 ```julia
-reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df, 
+reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars::Formula, 
+    df::AbstractDataFrame, 
     vcov_method::AbstractVcovMethod = VcovSimple(); 
     weight::Union(Symbol, Nothing) = nothing, 
     subset::Union(AbstractVector{Bool}, Nothing) = nothing, 
