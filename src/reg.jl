@@ -26,7 +26,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	rt = Terms(rf)
 	# rt is Terms(y ~ exogeneousvars + endoegeneousvars)
 	# endo_terms is Terms(nothing ~ endovars)
-	# iv_terms is Terms(nothing ~ instruments)
+	# instrument_terms is Terms(nothing ~ instruments)
 	# absorb_terms is Terms(nothing ~ absorbvars)
 
 	# remove intercept if high dimensional categorical variables
