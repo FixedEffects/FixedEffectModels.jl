@@ -285,16 +285,22 @@ end
 ##############################################################################
 
 function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64}, vcov_method_data::AbstractVcovMethodData, df_small::Int, df_absorb::Int)
+
+	K = size(X, 2) 
+	L = size(Z, 2) 
+
 	crossz = cholfact!(At_mul_B(Z, Z), :L)
 	crossx = cholfact!(At_mul_B(X, X), :L)
-	K = size(crossx, 2) 
-	L = size(crossz, 2) 
+
 	Fmatrix = crossz[:L] 
 	Gmatrix = inv(crossx[:L])
 	theta = A_mul_Bt(At_mul_B(Fmatrix, Pi),  Gmatrix)
+
 	svd = svdfact(theta, thin = false) 
 	u = svd.U
 	vt = svd.Vt
+
+	# compute lambda
 	if K == 1
 		a_qq = sqrtm(A_mul_Bt(u, u))
 		b_qq = sqrtm(A_mul_Bt(vt, vt)) 
@@ -306,6 +312,10 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 	    a_qq = vcat(u_12, u_22) * (u_22 \ sqrtm(A_mul_Bt(u_22, u_22)))
 	    b_qq = sqrtm(A_mul_Bt(v_22, v_22)) * (v_22' \ vcat(v_12, v_22)')
 	end
+	kronv = kron(b_qq, a_qq')
+	lambda = kronv * vec(theta)
+
+	# compute vhat
 	if typeof(vcov_method_data) == VcovSimpleData
 		vhat= eye(L*K) / size(X, 1)
 	else
@@ -317,8 +327,8 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 		matrix_vcov2 = shat!(vcov_method_data, vcovmodel)
 		vhat = A_mul_Bt(k * matrix_vcov2, k) 
 	end
-	kronv = kron(b_qq, a_qq')
-	lambda = kronv * vec(theta)
+
+	# return statistics
 	vlab = cholfact!(A_mul_Bt(kronv * vhat, kronv))
 	r_kp = lambda' * (vlab \ lambda)
 	p_kp = ccdf(Chisq((L-K+1 )), r_kp[1])

@@ -118,7 +118,6 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 			end
 		end
 		
-
 		mf = simpleModelFrame(subdf, instrument_terms, esample)
 		Z = ModelMatrix(mf).m
 		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
@@ -132,26 +131,34 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 	end
 
-	# Compute Xhat
-	if has_instrument
-		newZ = hcat(Xexo, Z)
-		crossz = cholfact!(At_mul_B(newZ, newZ))
-		Pi = crossz \ (At_mul_B(newZ, Xendo))
-		# Can't update X -> Xhat in place because needed to compute residuals
-		Xhat = hcat(Xexo, newZ * Pi)
-	else
-		Xhat = Xexo
-		Xall = Xexo
-	end
-	# Compute coef and residuals
-	crossx = cholfact!(At_mul_B(Xhat, Xhat))
-	coef = crossx \ At_mul_B(Xhat, y)
-
 	if has_instrument
 		X = hcat(Xexo, Xendo)
 	else
 		X = Xexo
 	end
+
+	# Compute Xhat
+	if has_instrument
+		newZ = hcat(Xexo, Z)
+		crossz = cholfact!(At_mul_B(newZ, newZ))
+		Pi = crossz \ (At_mul_B(newZ, Xendo))
+		Xhat = hcat(Xexo, newZ * Pi)
+
+		# prepare residuals used for first stage F statistic
+		## partial out Xendo in place wrt (Xexo, Z)
+		Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
+
+		## partial out Z in place wrt Xexo
+		Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
+		Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
+	else
+		Xhat = Xexo
+	end
+
+
+	# Compute coef and residuals
+	crossx = cholfact!(At_mul_B(Xhat, Xhat))
+	coef = crossx \ At_mul_B(Xhat, y)
 	residuals = y - X * coef
 
 	# Compute degrees of freedom
@@ -201,12 +208,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute Fstat first stage based on Kleibergen-Paap
 	if has_instrument
-		# residualize Xendo and Z in place
-		Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
-		Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
-		Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
-		Pi_res = Pi[(size(Xexo, 2) + 1):end, :]
-		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi_res, vcov_method_data, size(Xhat, 2), df_absorb)
+		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
 		return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
 	else
 		return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
