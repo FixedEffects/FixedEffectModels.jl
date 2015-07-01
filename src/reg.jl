@@ -216,28 +216,25 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
 	end
 
+
 	# iter and convergence
 	if has_absorb
 		iterations = sum(iterationsv)
 		converged = all(convergedv)
 	end
 
-
 	# Compute Fstat first stage based on Kleibergen-Paap
-	if !has_instrument
-		if !has_absorb
-			return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
-		else
-			return(RegressionResultFE(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p, iterations, converged))
-		end
-	else
+	if has_instrument
 		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
-		if !has_absorb
-			return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
-		else
-			return(RegressionResultFEIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp, iterations, converged))
-		end
 	end
+
+
+
+	# return
+	!has_instrument && !has_absorb && return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
+	!has_instrument && has_absorb && return(RegressionResultFE(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p, iterations, converged))
+	has_instrument && !has_absorb && return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
+	has_instrument && has_absorb && return(RegressionResultFEIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp, iterations, converged))
 end
 
 
