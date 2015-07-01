@@ -84,23 +84,23 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 - Models with instruments variables are estimated using 2SLS.
 - `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
-```julia
-reg(Sales ~ (Price = Pimin), df)
-```
-```julia
-#>                           Fixed Effect Model                          
-#> ======================================================================
-#> Number of obs                 1380  Degree of freedom                2
-#> R2                           0.096  R2 Adjusted                  0.095
-#> F Statistic                117.173  Prob > F                     0.000
-#> First Stage F-stat (KP)    52210.9  First State p-val (KP):      0.000
-#> ======================================================================
-#>               Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
-#> ----------------------------------------------------------------------
-#> Price        -0.207335  0.019154 -10.8247    0.000  -0.24491 -0.169761
-#> (Intercept)    138.195   1.53661  89.9347    0.000    135.18   141.209
-#> ======================================================================
-```
+  ```julia
+  reg(Sales ~ (Price = Pimin), df)
+  ```
+  ```julia
+  #>                           Fixed Effect Model                          
+  #> ======================================================================
+  #> Number of obs                 1380  Degree of freedom                2
+  #> R2                           0.096  R2 Adjusted                  0.095
+  #> F Statistic                117.173  Prob > F                     0.000
+  #> First Stage F-stat (KP)    52210.9  First State p-val (KP):      0.000
+  #> ======================================================================
+  #>               Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
+  #> ----------------------------------------------------------------------
+  #> Price        -0.207335  0.019154 -10.8247    0.000  -0.24491 -0.169761
+  #> (Intercept)    138.195   1.53661  89.9347    0.000    135.18   141.209
+  #> ======================================================================
+  ```
 
 #### Weights
 
