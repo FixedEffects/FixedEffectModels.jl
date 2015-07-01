@@ -17,14 +17,22 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
     rf = deepcopy(f)
 
     # decompose formula into normal  vs absorbpart
-    (rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
+    (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
+    if has_absorb
+        absorb_vars = allvars(absorb_formula)
+        absorb_terms = Terms(absorb_formula)
+    else
+        absorb_vars = Symbol[]
+    end
+
+
     rt = Terms(rf)
     rt.intercept = false
 
     # create a dataframe without missing values & negative weights
     factor_vars = [m.id, m.time]
-    vars = unique(allvars(rf))
-    all_vars = setdiff(vcat(vars, absorb_vars, factor_vars), [nothing])
+    vars = allvars(rf)
+    all_vars = vcat(vars, absorb_vars, factor_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = complete_cases(df[all_vars])
     if weight != nothing
@@ -49,7 +57,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
 
     # Compute factors, an array of AbtractFixedEffects
     if has_absorb
-        factors = construct_fe(subdf, absorbt.terms, sqrtw)
+        factors = construct_fe(subdf, absorb_terms.terms, sqrtw)
     end
 
     # Compute demeaned X

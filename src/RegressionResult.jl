@@ -8,18 +8,26 @@ type RegressionResult <: AbstractRegressionResult
     coef::Vector{Float64}
     vcov::Matrix{Float64}
 
-    esample::Vector{Bool}
+    esample::BitVector
 
-    coefnames::Vector{Symbol}
+    coefnames::Vector
     yname::Symbol
     formula::Formula
 
     nobs::Int64
     df_residual::Int64
+
     r2::Float64
     r2_a::Float64
     F::Float64    
     p::Float64
+
+    function RegressionResult(coef::Vector{Float64}, vcov::Matrix{Float64}, esample::BitVector, coefnames::Vector, yname::Symbol, formula::Formula, nobs::Int64, df_residual::Int64, r2::Float64, r2_a::Float64, F::Float64, p::Float64)
+        length(coef) == length(coefnames) || error("Coef and coefnames should have the same size")
+        length(coef) == size(vcov, 1) || error("Coef and vcov should have the same dimension")
+        length(coef) == size(vcov, 2) || error("Coef and vcov should have the same dimension")
+        new(coef, vcov, esample, coefnames, yname, formula, nobs, df_residual, r2, r2_a, F, p)
+    end
 end
 
 # Type for IV models 
@@ -27,21 +35,28 @@ type RegressionResultIV <: AbstractRegressionResult
     coef::Vector{Float64}
     vcov::Matrix{Float64}
 
-    esample::Vector{Bool}
+    esample::BitVector
 
-    coefnames::Vector{Symbol}
+    coefnames::Vector
     yname::Symbol
     formula::Formula
 
     nobs::Int64
     df_residual::Int64
+
     r2::Float64
     r2_a::Float64
     F::Float64    
     p::Float64    
-
     F_kp::Float64
     p_kp::Float64
+
+    function RegressionResultIV(coef::Vector{Float64}, vcov::Matrix{Float64}, esample::BitVector, coefnames::Vector, yname::Symbol, formula::Formula, nobs::Int64, df_residual::Int64, r2::Float64, r2_a::Float64, F::Float64, p::Float64, F_kp::Float64, p_kp::Float64)
+        length(coef) == length(coefnames) || error("Coef and coefnames should have the same size")
+        length(coef) == size(vcov, 1) || error("Coef and vcov should have the same dimension")
+        length(coef) == size(vcov, 2) || error("Coef and vcov should have the same dimension")
+        new(coef, vcov, esample, coefnames, yname, formula, nobs, df_residual, r2, r2_a, F, p, F_kp, p_kp)
+    end
 end
 
 
@@ -59,13 +74,20 @@ end
 df_residual(x::AbstractRegressionResult) = x.df_residual
 
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
-    f = x.formula
-    (f, has_absorb, absorb_vars, absorbt) = decompose_absorb!(f)
+    rf = x.formula
+    (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
     has_absorb && error("predict is not defined for fixed effect models (yet)")
 
-    (f, has_iv, iv_vars, ivt) = decompose_iv!(f)
+    (rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
+    if has_instrument
+        if typeof(rf.rhs) == Symbol
+            rf.rhs = endo_formula.rhs
+        else        
+            push!(rf.rhs.args, endo_formula.rhs)
+        end
+    end
 
-    newTerms = remove_response(Terms(f))
+    newTerms = remove_response(Terms(rf))
     mf = ModelFrame(newTerms, df)
     newX = ModelMatrix(mf).m
 
@@ -74,15 +96,23 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
 end
 
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
-    f = x.formula
-    (f, has_absorb, absorb_vars, absorbt) = decompose_absorb!(f)
+    rf = x.formula
+    (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
     has_absorb && error("predict is not defined for fixed effect models (yet)")
 
-    (f, has_iv, iv_vars, ivt) = decompose_iv!(f)
+    (rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
+    if has_instrument
+        if typeof(rf.rhs) == Symbol
+            rf.rhs = endo_formula.rhs
+        else        
+            push!(rf.rhs.args, endo_formula.rhs)
+        end
+    end
 
-    mf = ModelFrame(Terms(f), df)
+    mf = ModelFrame(Terms(rf), df)
+    newX = ModelMatrix(mf).m 
     out = DataArray(Float64, size(df, 1))
-    out[mf.msng] = model_response(mf) -  ModelMatrix(mf).m * x.coef
+    out[mf.msng] = model_response(mf) -  newX * x.coef
 end
 
 
@@ -117,7 +147,7 @@ function coeftable(x::RegressionResult)
     coefnames = x.coefnames
     conf_int = confint(x)
     # put (intercept) last
-    if coefnames[1] == symbol("(Intercept)") 
+    if (coefnames[1] == symbol("(Intercept)")) || (coefnames[1] == "(Intercept)")
         newindex = vcat(2:length(cc), 1)
         cc = cc[newindex]
         se = se[newindex]
@@ -148,7 +178,7 @@ function coeftable(x::RegressionResultIV)
     coefnames = x.coefnames
     conf_int = confint(x)
     # put (intercept) last
-    if coefnames[1] == symbol("(Intercept)") 
+    if (coefnames[1] == symbol("(Intercept)")) || (coefnames[1] == "(Intercept)")
         newindex = vcat(2:length(cc), 1)
         cc = cc[newindex]
         se = se[newindex]

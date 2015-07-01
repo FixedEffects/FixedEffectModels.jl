@@ -48,7 +48,7 @@ end
 ##############################################################################
 
 abstract AbstractVcovMethod
-allvars(x::AbstractVcovMethod) = nothing
+allvars(x::AbstractVcovMethod) = Symbol[]
 abstract AbstractVcovMethodData
 
 
@@ -276,62 +276,53 @@ end
 
 ##############################################################################
 ##
-## ranktest
-## Stata ranktest  (X) (Z), wald full
+## The following function follows the command ranktest (called by ivreg2)
+## RANKTEST: Stata module to test the rank of a matrix using the Kleibergen-Paap rk statistic
+## Authors: Frank Kleibergen, Mark E Schaffer
+## IVREG2: Stata module for extended instrumental variables/2SLS and GMM estimation
+## Authors: Christopher F Baum, Mark E Schaffer, Steven Stillman
+## More precisely, it corresponds to the Stata command:  ranktest  (X) (Z), wald full
 ##############################################################################
 
-
-
-function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64}, vcov_method_data::AbstractVcovMethodData, df_absorb::Int64)
-	count_instruments = size(Pi, 1)
-	for i in 1:min(size(Pi, 1), size(Pi, 2))
-		count_instruments -= isapprox(Pi[i, i], 1.0)
-	end
-	crossz = At_mul_B(Z, Z)
-	crossx = At_mul_B(X, X)
+function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64}, vcov_method_data::AbstractVcovMethodData, df_small::Int, df_absorb::Int)
+	crossz = cholfact!(At_mul_B(Z, Z), :L)
+	crossx = cholfact!(At_mul_B(X, X), :L)
 	K = size(crossx, 2) 
 	L = size(crossz, 2) 
-	p = K
-	Fmatrix = cholfact(crossz, :L)[:L] 
-	Gmatrix = inv(cholfact(crossx, :L)[:L])
+	Fmatrix = crossz[:L] 
+	Gmatrix = inv(crossx[:L])
 	theta = A_mul_Bt(At_mul_B(Fmatrix, Pi),  Gmatrix)
 	svd = svdfact(theta, thin = false) 
 	u = svd.U
 	vt = svd.Vt
 	if K == 1
-		a_qq = u * inv(u) * sqrtm(A_mul_Bt(u, u))
-		b_qq = sqrtm(A_mul_Bt(vt, vt)) * inv(vt') * vt'
+		a_qq = sqrtm(A_mul_Bt(u, u))
+		b_qq = sqrtm(A_mul_Bt(vt, vt)) 
 	else
 	    u_12 = u[1:(K-1),(K:L)]
 	    v_12 = vt[1:(K-1),K]
 	    u_22 = u[(K:L),(K:L)]
 	    v_22 = vt[K,K]
-	    a_qq = vcat(u_12, u_22) * inv(u_22) * sqrtm(A_mul_Bt(u_22, u_22))
-	    b_qq = sqrtm(A_mul_Bt(v_22, v_22)) * inv(v_22') * vcat(v_12, v_22)'
+	    a_qq = vcat(u_12, u_22) * (u_22 \ sqrtm(A_mul_Bt(u_22, u_22)))
+	    b_qq = sqrtm(A_mul_Bt(v_22, v_22)) * (v_22' \ vcat(v_12, v_22)')
 	end
 	if typeof(vcov_method_data) == VcovSimpleData
 		vhat= eye(L*K) / size(X, 1)
 	else
 		temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix')
-		temp2 = inv(cholfact(crossz, :L)[:L])'
+		temp2 = inv(crossz[:L])'
 		temp2 = convert(Matrix{eltype(temp2)}, temp2)
 		k = kron(temp1, temp2)'
-		vcovmodel = VcovData{2}(k, Z, X, size(Z, 1) - size(Z, 2) - df_absorb) 
+		vcovmodel = VcovData{2}(k, Z, X, size(Z, 1) - df_small - df_absorb) 
 		matrix_vcov2 = shat!(vcov_method_data, vcovmodel)
 		vhat = A_mul_Bt(k * matrix_vcov2, k) 
 	end
 	kronv = kron(b_qq, a_qq')
 	lambda = kronv * vec(theta)
-	vlab = A_mul_Bt(kronv * vhat, kronv)
-	invvlab = inv(cholfact!(vlab))
-	r_kp = lambda' * invvlab * lambda 
+	vlab = cholfact!(A_mul_Bt(kronv * vhat, kronv))
+	r_kp = lambda' * (vlab \ lambda)
 	p_kp = ccdf(Chisq((L-K+1 )), r_kp[1])
-	if typeof(vcov_method_data) != VcovClusterData
-		F_kp = r_kp[1]  / count_instruments * (size(Z, 1) - size(Z, 2) - df_absorb)/size(Z, 1)
-	else
-		nclust = minimum(values(vcov_method_data.size))
-		F_kp = r_kp[1]  / count_instruments * (size(Z, 1) - size(Z, 2))/(size(Z, 1)-1) * (nclust - 1) / nclust
-	end
+	F_kp = r_kp[1] / size(Z, 2)
 	return(F_kp, p_kp)
 end
 

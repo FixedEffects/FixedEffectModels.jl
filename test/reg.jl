@@ -5,7 +5,6 @@ df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])
 
-
 ##############################################################################
 ##
 ## coefficients 
@@ -30,8 +29,11 @@ df[:pYear] = pool(df[:Year])
 
 # iv
 @test_approx_eq coef(reg(Sales ~ (Price = Pimin), df))  [138.19479876266445,-0.20733543263106036]
-@test_approx_eq coef(reg(Sales ~ Price + (Price = Pimin), df))   [139.73446398061674,-0.22974688593482195]
-@test_approx_eq coef(reg(Sales ~ Price + (Price = Pimin + Pop), df))  [139.734463980616,-0.22974688593483705]
+@test_approx_eq coef(reg(Sales ~ NDI + (Price = Pimin), df))   [137.45096580480387,0.005169677634275297,-0.7627670265757879]
+@test_approx_eq coef(reg(Sales ~ NDI + (Price = Pimin + Pop), df))  [137.57335924022877,0.00534407899181186,-0.7836515852263581]
+result =  [125.2625186785851,0.00426797157619262,-0.4008539252879306,-0.3601265722369686,-0.3437871337260198,-0.34446698651969243,-0.4133823974894119,-0.45733784871835853,-0.5236947552358436,-0.4458389339688059,-0.3588894799553996,-0.36710183734328794,-0.3185077037497715,-0.3044293074955216,-0.2522467465631883,-0.29850950642431934,-0.3243795734788026,-0.39829347905530105,-0.41551734057304207,-0.4466928724499465,-0.46166868245781545,-0.4847134751121637,-0.5265252856149685,-0.5377055415686451,-0.5505433728335279,-0.5691301350473928,-0.588207112580848,-0.600526572322477,-0.6047075271270297,-0.5994956988287091,-0.5644067529587178] 
+@test_approx_eq coef(reg(Sales ~ NDI + (Price&pYear = Pimin&pYear), df)) result
+
 
 # iv + weight
 @test_approx_eq coef(reg(Sales ~ (Price = Pimin), df, weight = :Pop))  [137.03637388628948,-0.22802072465514023]
@@ -121,25 +123,25 @@ result = reg(Sales ~ Price + pState, df, subset = df[:State] .<= 30)
 ## 
 ##############################################################################
 
-@test_approx_eq reg(Sales ~ (Price = Pimin), df).F_kp   52210.93102804621
-@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df).F_kp   4106.410962963775
-@test_approx_eq reg(Sales ~ (Price = Pimin + CPI), df).F_kp   26972.293789145497
-@test_approx_eq reg(Sales ~ (Price = Pimin) |> pState, df).F_kp 97490.36247893337
+@test_approx_eq reg(Sales ~ (Price = Pimin), df).F_kp    52248.79247186642
+@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df).F_kp   4112.37092082018
+@test_approx_eq reg(Sales ~ (Price = Pimin + CPI), df).F_kp   27011.440804805163
+@test_approx_eq reg(Sales ~ (Price = Pimin) |> pState, df).F_kp 100927.75710497228
 
 
-@test_approx_eq reg(Sales ~ (Price = Pimin), df, VcovWhite()).F_kp   23160.075684433177
-@test_approx_eq reg(Sales ~ (Price = Pimin) |> pState, df, VcovWhite()).F_kp  36380.10858079424
-@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df, VcovWhite()).F_kp    2091.950196184545
-@test_approx_eq reg(Sales ~ (Price = Pimin + CPI), df, VcovWhite()).F_kp   16394.417451458183
+@test_approx_eq reg(Sales ~ (Price = Pimin), df, VcovWhite()).F_kp    23160.06350543851
+@test_approx_eq reg(Sales ~ (Price = Pimin) |> pState, df, VcovWhite()).F_kp  37662.82808814408
+@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df, VcovWhite()).F_kp    2093.4660989306267
+@test_approx_eq reg(Sales ~ (Price = Pimin + CPI), df, VcovWhite()).F_kp  16418.211961547782
 
 
 
 
-@test_approx_eq reg(Sales ~ (Price = Pimin), df, VcovCluster(:pState)).F_kp    7097.426639083516
-@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df, VcovCluster(:pState)).F_kp   526.6997786943028
-@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df, VcovCluster([:pState, :pYear])).F_kp   408.903526978258
-@test_approx_eq reg(Sales ~ (Price = Pimin + CPI), df, VcovCluster(:pState)).F_kp     3989.0559781012853
-@test_approx_eq reg(Sales ~  (Price = Pimin + CPI), df, VcovCluster([:pState, :pYear])).F_kp    2779.995871693709
+@test_approx_eq reg(Sales ~ (Price = Pimin), df, VcovCluster(:pState)).F_kp     7249.886065558404
+@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df, VcovCluster(:pState)).F_kp   538.4039346836805
+@test_approx_eq reg(Sales ~ CPI + (Price = Pimin), df, VcovCluster([:pState, :pYear])).F_kp   423.00342583390733
+@test_approx_eq reg(Sales ~ (Price = Pimin + CPI), df, VcovCluster(:pState)).F_kp      4080.6608113994753
+@test_approx_eq reg(Sales ~  (Price = Pimin + CPI), df, VcovCluster([:pState, :pYear])).F_kp     2877.9447778386134
 
 
 

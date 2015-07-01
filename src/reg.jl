@@ -2,25 +2,42 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
-	(rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
-	(rf, has_iv, iv_vars, ivt) = decompose_iv!(rf)
+	(rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
+	if has_absorb
+		absorb_vars = allvars(absorb_formula)
+		absorb_terms = Terms(absorb_formula)
+	else
+		absorb_vars = Symbol[]
+	end
+
+	(rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
+	if has_instrument
+		instrument_vars = allvars(instrument_formula)
+		instrument_terms = Terms(instrument_formula)
+		instrument_terms.intercept = false
+		endo_vars = allvars(endo_formula)
+		endo_terms = Terms(endo_formula)
+		endo_terms.intercept = false
+	else
+		instrument_vars = Symbol[]
+		endo_vars = Symbol[]
+	end
+
 	rt = Terms(rf)
 	# rt is Terms(y ~ exogeneousvars + endoegeneousvars)
-	# ivt is Terms(y ~ exogeneousvars + instruments)
-	# absorbt is Terms(nothing ~ absorbvars)
-	
+	# endo_terms is Terms(nothing ~ endovars)
+	# iv_terms is Terms(nothing ~ instruments)
+	# absorb_terms is Terms(nothing ~ absorbvars)
+
 	# remove intercept if high dimensional categorical variables
 	if has_absorb
 		rt.intercept = false
-		if has_iv
-			ivt.intercept = false
-		end
 	end
 
 	# create a dataframe without missing values & negative weights
-	vars = unique(allvars(rf))
+	vars = allvars(rf)
 	vcov_vars = allvars(vcov_method)
-	all_vars = setdiff(vcat(vars, absorb_vars, vcov_vars, iv_vars), [nothing])
+	all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, instrument_vars)
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	esample = complete_cases(df[all_vars])
 	if weight != nothing
@@ -35,7 +52,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	subdf = df[esample, all_vars]
 	(size(subdf, 1) > 0) || error("sample is empty")
 	#subdf = df[esample, all_vars]
-	main_vars = unique(convert(Vector{Symbol}, setdiff(vcat(vars, iv_vars), [nothing])))
+	main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, instrument_vars)))
 	for v in main_vars
 		# in case subdataframe, don't construct subdf[v] if you dont need to do it
 		if typeof(df[v]) <: PooledDataArray
@@ -54,7 +71,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = construct_fe(subdf, absorbt.terms, sqrtw)
+		factors = construct_fe(subdf, absorb_terms.terms, sqrtw)
 	end
 
 	# Compute data for std errors
@@ -63,13 +80,13 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	# Compute X
 	mf = simpleModelFrame(subdf, rt, esample)
 	coef_names = coefnames(mf)
-	X = ModelMatrix(mf).m
+	Xexo = ModelMatrix(mf).m
 	if weight != nothing
-		broadcast!(*, X, sqrtw, X)
+		broadcast!(*, Xexo, sqrtw, Xexo)
 	end
 	if has_absorb
-		for j in 1:size(X, 2)
-			X[:,j] = demean_vector!(X[:,j], factors)
+		for j in 1:size(Xexo, 2)
+			Xexo[:,j] = demean_vector!(Xexo[:,j], factors)
 		end
 	end
 
@@ -87,11 +104,24 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		y = demean_vector!(y, factors)
 	end
 
-	# Compute Z
-	if has_iv
-		mf = simpleModelFrame(subdf, ivt, esample)
+	# Compute Xendo and Z
+	if has_instrument
+		mf = simpleModelFrame(subdf, endo_terms, esample)
+		coef_names = vcat(coef_names, coefnames(mf))
+		Xendo = ModelMatrix(mf).m
+		if weight != nothing
+			broadcast!(*, Xendo, sqrtw, Xendo)
+		end
+		if has_absorb
+			for j in 1:size(Xendo, 2)
+				Xendo[:,j] = demean_vector!(Xendo[:,j], factors)
+			end
+		end
+		
+
+		mf = simpleModelFrame(subdf, instrument_terms, esample)
 		Z = ModelMatrix(mf).m
-		size(Z, 2) >= size(X, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
+		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
 		if weight != nothing
 			broadcast!(*, Z, sqrtw, Z)
 		end
@@ -103,20 +133,25 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	end
 
 	# Compute Xhat
-	if has_iv
-		crossz = At_mul_B(Z, Z)
-		invcrossz = inv(cholfact!(crossz))
-		Pi = invcrossz * (At_mul_B(Z, X))
-		# Can't really update X -> Xhat in place because I need it for the vetor of errors
-		Xhat = Z * Pi
+	if has_instrument
+		newZ = hcat(Xexo, Z)
+		crossz = cholfact!(At_mul_B(newZ, newZ))
+		Pi = crossz \ (At_mul_B(newZ, Xendo))
+		# Can't update X -> Xhat in place because needed to compute residuals
+		Xhat = hcat(Xexo, newZ * Pi)
 	else
-		Xhat = X
+		Xhat = Xexo
+		Xall = Xexo
 	end
-
 	# Compute coef and residuals
-	crossx = At_mul_B(Xhat, Xhat)
-	invcrossx = inv(cholfact!(crossx))
-	coef = invcrossx * At_mul_B(Xhat, y)
+	crossx = cholfact!(At_mul_B(Xhat, Xhat))
+	coef = crossx \ At_mul_B(Xhat, y)
+
+	if has_instrument
+		X = hcat(Xexo, Xendo)
+	else
+		X = Xexo
+	end
 	residuals = y - X * coef
 
 	# Compute degrees of freedom
@@ -144,7 +179,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
 	
 	# Compute standard error
-	vcov_data = VcovData{1}(invcrossx, Xhat, residuals, df_residual)
+	vcov_data = VcovData{1}(inv(crossx), Xhat, residuals, df_residual)
 	matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
 	# Compute Fstat
@@ -155,7 +190,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		matrix_vcovF = matrix_vcovF[2:end, 2:end]
 	end
 	F = diagm(coefF)' * inv(matrix_vcovF) * diagm(coefF)
-	F = F[1]
+	F = F[1] 
 	if typeof(vcov_method) == VcovCluster 
 		nclust = minimum(values(vcov_method_data.size))
 		p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
@@ -165,16 +200,13 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 
 	# Compute Fstat first stage based on Kleibergen-Paap
-	if has_iv
-		# update X in place. no speed gain but original dataframe + X, Z, Xhat already use a lot of memory
-		rX = BLAS.gemm!('N', 'N', -1.0, Z, Pi, 1.0, X)
-		if ivt.intercept
-			# center variables
-			rX = broadcast!(-, rX, rX, mean(rX, 1))[:, 2:end]
-			Z = broadcast!(-, Z, Z, mean(Z, 1))[:, 2:end]
-			Pi = Pi[2:end, 2:end]
-		end
-		(F_kp, p_kp) = rank_test!(rX, Z, Pi, vcov_method_data, df_absorb)
+	if has_instrument
+		# residualize Xendo and Z in place
+		Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
+		Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
+		Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
+		Pi_res = Pi[(size(Xexo, 2) + 1):end, :]
+		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi_res, vcov_method_data, size(Xhat, 2), df_absorb)
 		return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
 	else
 		return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))

@@ -4,11 +4,16 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	rf = deepcopy(f)
 
 	# decompose formula into normal  vs absorbpart
-	(rf, has_absorb, absorb_vars, absorbt) = decompose_absorb!(rf)
-
+	(rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
+	if has_absorb
+		absorb_vars = allvars(absorb_formula)
+		absorb_terms = Terms(absorb_formula)
+	else
+		absorb_vars = Symbol[]
+	end
 	# create a dataframe without missing values & negative weights
-	vars = unique(allvars(rf))
-	all_vars = setdiff(vcat(vars, absorb_vars), [nothing])
+	vars = allvars(rf)
+	all_vars = vcat(vars, absorb_vars)
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	esample = complete_cases(df[all_vars])
 	if weight != nothing
@@ -29,10 +34,9 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 		w = convert(Vector{Float64}, subdf[weight])
 		sqrtw = sqrt(w)
 	end
-
 	# Build factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = construct_fe(subdf, absorbt.terms, sqrtw)
+		factors = construct_fe(subdf, absorb_terms.terms, sqrtw)
 	end
 
 

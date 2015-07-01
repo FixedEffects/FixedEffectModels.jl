@@ -129,45 +129,42 @@ end
 # decompose formula into normal + iv vs absorbpart
 function decompose_absorb!(rf::Formula)
 	has_absorb = false
-	absorb_vars = nothing
-	absorbt = nothing
+	absorb_formula = nothing
 	if typeof(rf.rhs) == Expr && rf.rhs.args[1] == :(|>)
 		has_absorb = true
-		absorbf = Formula(nothing, rf.rhs.args[3])
-		absorb_vars = unique(allvars(rf.rhs.args[3]))
-		absorbt = Terms(absorbf)
+		absorb_formula = Formula(nothing, rf.rhs.args[3])
 		rf.rhs = rf.rhs.args[2]
 	end
-	return(rf, has_absorb, absorb_vars, absorbt)
+	return(rf, has_absorb, absorb_formula)
 end
 
 # decompose formula into normal vs iv part
 function decompose_iv!(rf::Formula)
-	has_iv = false
-	iv_vars = nothing
-	ivt = nothing
+	has_instrument = false
+	instrument_formula = nothing
+	endo_formula = nothing
 	if typeof(rf.rhs) == Expr
 		if rf.rhs.head == :(=)
-			has_iv = true
-			iv_vars = unique(allvars(rf.rhs.args[2]))
-			ivf = deepcopy(rf)
-			ivf.rhs = rf.rhs.args[2]
-			ivt = Terms(ivf)
-			rf.rhs = rf.rhs.args[1]
+			has_instrument = true
+			instrument_formula = Formula(nothing,  rf.rhs.args[2])
+			endo_formula = Formula(nothing, rf.rhs.args[1])
+			rf.rhs = :1
 		else
-			for i in 1:length(rf.rhs.args)
+			i = 1
+			while !has_instrument && i <= length(rf.rhs.args)
 				if typeof(rf.rhs.args[i]) == Expr && rf.rhs.args[i].head == :(=)
-					has_iv = true
-					iv_vars = unique(allvars(rf.rhs.args[i].args[2]))
-					ivf = deepcopy(rf)
-					ivf.rhs.args[i] = rf.rhs.args[i].args[2]
-					ivt = Terms(ivf)
-					rf.rhs.args[i] = rf.rhs.args[i].args[1]
+					has_instrument = true
+					iv_vars = rf.rhs.args[2]
+					instrument_formula = Formula(nothing,  rf.rhs.args[i].args[2])
+					endo_formula = Formula(nothing, rf.rhs.args[i].args[1])
+					splice!(rf.rhs.args, i)
+				else
+					i += 1
 				end
 			end
 		end
 	end
-	return(rf, has_iv, iv_vars, ivt)
+	return(rf, has_instrument, instrument_formula, endo_formula)
 end
 
 
