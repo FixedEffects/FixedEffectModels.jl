@@ -39,7 +39,7 @@ Pkg.add("FixedEffectModels")
 
 The general syntax is
 ```julia
-reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars::Formula, 
+reg(f::Formula, 
     df::AbstractDataFrame, 
     vcov_method::AbstractVcovMethod = VcovSimple(); 
     weight::Union(Symbol, Nothing) = nothing, 
@@ -49,51 +49,81 @@ reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars::F
 ```
 
 
+#### formula
 
-#### Fixed effects
+A typical formula is written
+
+```
+depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars
+```
+
+##### Fixed effects
 
 
-- Specify multiple high dimensional fixed effects.
+- Estimate models with an arbitrary number of high dimensional fixed effects.
 
   ```julia
+  using RDatasets, DataFrames, FixedEffectModels
+  df = dataset("plm", "Cigar")
+  df[:pState] =  pool(df[:State])
   df[:pYear] =  pool(df[:Year])
-  reg(Sales ~ NDI |> pState + pYear, df)
+  reg(Sales ~ Price |> pState + pYear, df)
+  # ===============================================================
+  # Number of obs             1380   Degree of freedom           77
+  # R2                       0.137   R2 Adjusted              0.085
+  # F Stat                 205.989   p-val                    0.000
+  # Iterations                   2   Converged:                true
+  # ===============================================================
+  #        Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
+  # ---------------------------------------------------------------
+  # Price  -1.08471 0.0755775 -14.3523    0.000  -1.23298 -0.936445
+  # ===============================================================
   ```
 - Interact fixed effects with continuous variables using `&`
 
   ```julia
   reg(Sales ~ NDI |> pState + pState&Year, df)
+  # =====================================================================
+  # Number of obs                1380   Degree of freedom              93
+  # R2                          0.245   R2 Adjusted                 0.190
+  # F Stat                    417.342   p-val                       0.000
+  # Iterations                      2   Converged:                   true
+  # =====================================================================
+  #         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
+  # ---------------------------------------------------------------------
+  # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
+  # =====================================================================
   ```
 
 - Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
-#### Instrumental variables
+##### Instrumental variables
 
 - Models with instruments variables are estimated using 2SLS.
 - `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
   ```julia
   reg(Sales ~ (Price = Pimin), df)
-  #>                           Fixed Effect Model                          
-  #> ======================================================================
-  #> Number of obs                 1380  Degree of freedom                2
-  #> R2                           0.096  R2 Adjusted                  0.095
-  #> F Statistic                117.173  Prob > F                     0.000
-  #> First Stage F-stat (KP)    52210.9  First State p-val (KP):      0.000
-  #> ======================================================================
-  #>               Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
-  #> ----------------------------------------------------------------------
-  #> Price        -0.207335  0.019154 -10.8247    0.000  -0.24491 -0.169761
-  #> (Intercept)    138.195   1.53661  89.9347    0.000    135.18   141.209
-  #> ======================================================================
+  #                                IV Model                               
+  # ======================================================================
+  # Number of obs                 1380  Degree of freedom                2
+  # R2                           0.096  R2 Adjusted                  0.095
+  # F Statistic                117.173  Prob > F                     0.000
+  # First Stage F-stat (KP)    52248.8  First State p-val (KP):      0.000
+  # ======================================================================
+  #               Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
+  # ----------------------------------------------------------------------
+  # Price        -0.207335  0.019154 -10.8247    0.000  -0.24491 -0.169761
+  # (Intercept)    138.195   1.53661  89.9347    0.000    135.18   141.209
+  # ======================================================================
   ```
 
 #### Weights
 
- Weights are supported with the option `weight`. They correspond to nalytical weights in Stata.
+ Weights are supported with the option `weight`. They correspond to analytical weights in Stata.
 
 ```julia
-reg(Sales ~ NDI |> pState, df, weight = :Pop)
+reg(Sales ~ Price |> pState, df, weight = :Pop)
 ```
 
 #### Subset
