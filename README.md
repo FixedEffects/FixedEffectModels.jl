@@ -49,12 +49,12 @@ reg(f::Formula,
 ```
 
 
-#### formula
+#### Formula
 
-A typical formula is written
+A typical formula is decomposed into one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
 
 ```
-depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars
+depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
 ##### Fixed effects
