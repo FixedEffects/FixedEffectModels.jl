@@ -51,7 +51,7 @@ reg(f::Formula,
 
 #### Formula
 
-A typical formula is decomposed into one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
 
 ```
 depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars

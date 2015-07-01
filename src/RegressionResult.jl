@@ -216,8 +216,8 @@ top(x::RegressionResult) = [
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
-            "F Stat" sprint(showcompact, x.F);
-            "p-val" format_scientific(x.p);
+            "F Statistic" sprint(showcompact, x.F);
+            "p-value" format_scientific(x.p);
             ]
 
 
@@ -249,8 +249,8 @@ top(x::RegressionResultIV) = [
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
-            "F Statistic" sprint(showcompact, x.F);
-            "Prob > F" format_scientific(x.p);
+            "F-Statistic" sprint(showcompact, x.F);
+            "p-value" format_scientific(x.p);
             "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
             "First State p-val (KP)" format_scientific(x.p_kp);
             ]
@@ -284,8 +284,8 @@ top(x::RegressionResultFE) = [
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
-            "F Stat" sprint(showcompact, x.F);
-            "p-val" format_scientific(x.p);
+            "F-Statistic" sprint(showcompact, x.F);
+            "p-value" format_scientific(x.p);
             "Iterations" sprint(showcompact, x.iterations);
             "Converged" sprint(showcompact, x.converged)
             ]
@@ -321,7 +321,7 @@ top(x::RegressionResultFEIV) = [
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
             "F Statistic" sprint(showcompact, x.F);
-            "Prob > F" format_scientific(x.p);
+            "p-value" format_scientific(x.p);
             "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
             "First State p-val (KP)" format_scientific(x.p_kp);
             "Iterations" sprint(showcompact, x.iterations);
