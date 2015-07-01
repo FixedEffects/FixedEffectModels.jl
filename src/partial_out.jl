@@ -54,7 +54,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	end
 	if has_absorb
 		for j in 1:size(Y, 2)
-			Y[:,j] = demean_vector!(Y[:,j], factors)
+			(Y[:,j], iterations, converged)  = demean_vector!(Y[:,j], factors)
 		end	
 	end
 
@@ -78,7 +78,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 		end
 		if has_absorb
 			for j in 1:size(X, 2)
-				X[:,j] = demean_vector!(X[:,j], factors)
+				(X[:,j], iterations, converged)  = demean_vector!(X[:,j], factors)
 			end
 		end
 	end

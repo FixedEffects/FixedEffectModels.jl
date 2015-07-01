@@ -1,78 +1,26 @@
-# An abstract type that stores light regression results 
+##############################################################################
+##
+## The lightest type that can (i) print table (ii) predict etc
+##
+##############################################################################
 
 abstract AbstractRegressionResult <: RegressionModel
 
 
-# Type for non IV models
-type RegressionResult <: AbstractRegressionResult
-    coef::Vector{Float64}
-    vcov::Matrix{Float64}
-
-    esample::BitVector
-
-    coefnames::Vector
-    yname::Symbol
-    formula::Formula
-
-    nobs::Int64
-    df_residual::Int64
-
-    r2::Float64
-    r2_a::Float64
-    F::Float64    
-    p::Float64
-
-    function RegressionResult(coef::Vector{Float64}, vcov::Matrix{Float64}, esample::BitVector, coefnames::Vector, yname::Symbol, formula::Formula, nobs::Int64, df_residual::Int64, r2::Float64, r2_a::Float64, F::Float64, p::Float64)
-        length(coef) == length(coefnames) || error("Coef and coefnames should have the same size")
-        length(coef) == size(vcov, 1) || error("Coef and vcov should have the same dimension")
-        length(coef) == size(vcov, 2) || error("Coef and vcov should have the same dimension")
-        new(coef, vcov, esample, coefnames, yname, formula, nobs, df_residual, r2, r2_a, F, p)
-    end
-end
-
-# Type for IV models 
-type RegressionResultIV <: AbstractRegressionResult
-    coef::Vector{Float64}
-    vcov::Matrix{Float64}
-
-    esample::BitVector
-
-    coefnames::Vector
-    yname::Symbol
-    formula::Formula
-
-    nobs::Int64
-    df_residual::Int64
-
-    r2::Float64
-    r2_a::Float64
-    F::Float64    
-    p::Float64    
-    F_kp::Float64
-    p_kp::Float64
-
-    function RegressionResultIV(coef::Vector{Float64}, vcov::Matrix{Float64}, esample::BitVector, coefnames::Vector, yname::Symbol, formula::Formula, nobs::Int64, df_residual::Int64, r2::Float64, r2_a::Float64, F::Float64, p::Float64, F_kp::Float64, p_kp::Float64)
-        length(coef) == length(coefnames) || error("Coef and coefnames should have the same size")
-        length(coef) == size(vcov, 1) || error("Coef and vcov should have the same dimension")
-        length(coef) == size(vcov, 2) || error("Coef and vcov should have the same dimension")
-        new(coef, vcov, esample, coefnames, yname, formula, nobs, df_residual, r2, r2_a, F, p, F_kp, p_kp)
-    end
-end
-
-
-
-
+# fields
 coef(x::AbstractRegressionResult) = x.coef
 coefnames(x::AbstractRegressionResult) = x.coefnames
 vcov(x::AbstractRegressionResult) = x.vcov
 nobs(x::AbstractRegressionResult) = x.nobs
+df_residual(x::AbstractRegressionResult) = x.df_residual
 function confint(x::AbstractRegressionResult) 
-    scale = quantile(TDist(df_residual(x)), 1 - (1-0.95)/2)
+    scale = quantile(TDist(x.df_residual), 1 - (1-0.95)/2)
     se = stderr(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
-df_residual(x::AbstractRegressionResult) = x.df_residual
 
+
+# predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     rf = x.formula
     (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
@@ -94,7 +42,6 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     out = DataArray(Float64, size(df, 1))
     out[mf.msng] = newX * x.coef
 end
-
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
     rf = x.formula
     (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
@@ -114,14 +61,37 @@ function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
     out = DataArray(Float64, size(df, 1))
     out[mf.msng] = model_response(mf) -  newX * x.coef
 end
-
-
 function model_response(x::AbstractRegressionResult, df::AbstractDataFrame)
     f = x.formula
     mf = ModelFrame(Terms(f), df)
     model_response(mf)
 end
 
+
+
+# Display Results
+title(x::AbstractRegressionResult) = error("function title has no general method for AbstractRegressionResult")
+top(x::AbstractRegressionResult) = top("function top has no general method for AbstractRegressionResult")
+function coeftable(x::AbstractRegressionResult)
+    ctitle = title(x)
+    ctop = top(x)
+    cc = coef(x)
+    se = stderr(x)
+    coefnms = coefnames(x)
+    conf_int = confint(x)
+    # put (intercept) last
+    if (coefnms[1] == symbol("(Intercept)")) || (coefnms[1] == "(Intercept)")
+        newindex = vcat(2:length(cc), 1)
+        cc = cc[newindex]
+        se = se[newindex]
+        conf_int = conf_int[newindex, :]
+        coefnms = coefnms[newindex]
+    end
+    tt = cc ./ se
+    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
+              ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
+              ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
+end
 
 function Base.show(io::IO, x::AbstractRegressionResult) 
     show(io, coeftable(x))
@@ -130,69 +100,6 @@ end
 
 ## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients. 
 ## Pull request: https://github.com/JuliaStats/StatsBase.jl/pull/119
-
-
-function coeftable(x::RegressionResult) 
-    title = "Fixed Effect Model"
-    top = [
-            "Number of obs" sprint(showcompact, x.nobs);
-            "Degree of freedom" sprint(showcompact, x.nobs-x.df_residual);
-            "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.r2_a);
-            "F Statistic" sprint(showcompact, x.F);
-            "Prob > F" format_scientific(x.p);
-            ]
-    cc = coef(x)
-    se = stderr(x)
-    coefnames = x.coefnames
-    conf_int = confint(x)
-    # put (intercept) last
-    if (coefnames[1] == symbol("(Intercept)")) || (coefnames[1] == "(Intercept)")
-        newindex = vcat(2:length(cc), 1)
-        cc = cc[newindex]
-        se = se[newindex]
-        conf_int = conf_int[newindex, :]
-        coefnames = coefnames[newindex]
-    end
-    tt = cc ./ se
-    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
-              ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
-              ["$(coefnames[i])" for i = 1:length(cc)], 4, title, top)
-end
-
-
-function coeftable(x::RegressionResultIV) 
-    title = "Fixed Effect Model"
-    top = [
-            "Number of obs" sprint(showcompact, x.nobs);
-            "Degree of freedom" sprint(showcompact, x.nobs-x.df_residual);
-            "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.r2_a);
-            "F Statistic" sprint(showcompact, x.F);
-            "Prob > F" format_scientific(x.p);
-            "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
-            "First State p-val (KP)" format_scientific(x.p_kp);
-            ]
-    cc = coef(x)
-    se = stderr(x)
-    coefnames = x.coefnames
-    conf_int = confint(x)
-    # put (intercept) last
-    if (coefnames[1] == symbol("(Intercept)")) || (coefnames[1] == "(Intercept)")
-        newindex = vcat(2:length(cc), 1)
-        cc = cc[newindex]
-        se = se[newindex]
-        conf_int = conf_int[newindex, :]
-        coefnames = coefnames[newindex]
-    end
-    tt = cc ./ se
-    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
-              ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
-              ["$(coefnames[i])" for i = 1:length(cc)], 4, title, top)
-end
-
-
-
 
 type CoefTable2
     mat::Matrix
@@ -211,6 +118,7 @@ type CoefTable2
     end
 end
 
+
 ## format numbers in the p-value column
 function format_scientific(pv::Number)
     return @sprintf("%.3f", pv)
@@ -218,7 +126,7 @@ end
 
 
 function show(io::IO, ct::CoefTable2)
-    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; pvc = ct.pvalcol; title = ct.title; top = ct.top
+    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; pvc = ct.pvalcol; title = ct.title;   top = ct.top
     if length(rownms) == 0
         rownms = [lpad("[$i]",floor(Integer, log10(nr))+3)::String for i in 1:nr]
     end
@@ -276,3 +184,152 @@ function show(io::IO, ct::CoefTable2)
     end
     println("=" ^totalwidth)
 end
+
+
+##############################################################################
+##
+## Subtypes of Regression Result
+##
+##############################################################################
+
+type RegressionResult <: AbstractRegressionResult
+    coef::Vector{Float64}
+    vcov::Matrix{Float64}
+
+    esample::BitVector
+
+    coefnames::Vector
+    yname::Symbol
+    formula::Formula
+
+    nobs::Int64
+    df_residual::Int64
+
+    r2::Float64
+    r2_a::Float64
+    F::Float64    
+    p::Float64
+end
+title(x::RegressionResult) =  "Linear Model"
+top(x::RegressionResult) = [
+            "Number of obs" sprint(showcompact, nobs(x));
+            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "R2" format_scientific(x.r2);
+            "R2 Adjusted" format_scientific(x.r2_a);
+            "F Stat" sprint(showcompact, x.F);
+            "p-val" format_scientific(x.p);
+            ]
+
+
+type RegressionResultIV <: AbstractRegressionResult
+    coef::Vector{Float64}
+    vcov::Matrix{Float64}
+
+    esample::BitVector
+
+    coefnames::Vector
+    yname::Symbol
+    formula::Formula
+
+    nobs::Int64
+    df_residual::Int64
+
+    r2::Float64
+    r2_a::Float64
+    F::Float64    
+    p::Float64
+
+    F_kp::Float64
+    p_kp::Float64
+end
+
+title(x::RegressionResultIV) = "IV Model"
+top(x::RegressionResultIV) = [
+            "Number of obs" sprint(showcompact, nobs(x));
+            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "R2" format_scientific(x.r2);
+            "R2 Adjusted" format_scientific(x.r2_a);
+            "F Statistic" sprint(showcompact, x.F);
+            "Prob > F" format_scientific(x.p);
+            "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
+            "First State p-val (KP)" format_scientific(x.p_kp);
+            ]
+
+
+type RegressionResultFE <: AbstractRegressionResult
+    coef::Vector{Float64}
+    vcov::Matrix{Float64}
+
+    esample::BitVector
+
+    coefnames::Vector
+    yname::Symbol
+    formula::Formula
+
+    nobs::Int64
+    df_residual::Int64
+
+    r2::Float64
+    r2_a::Float64
+    F::Float64    
+    p::Float64
+
+    iterations::Int        
+    converged::Bool       
+end
+
+title(x::RegressionResultFE) = "Fixed Effect Model"
+top(x::RegressionResultFE) = [ 
+            "Number of obs" sprint(showcompact, nobs(x));
+            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "R2" format_scientific(x.r2);
+            "R2 Adjusted" format_scientific(x.r2_a);
+            "F Stat" sprint(showcompact, x.F);
+            "p-val" format_scientific(x.p);
+            "Iterations" sprint(showcompact, x.iterations);
+            "Converged" sprint(showcompact, x.converged)
+            ]
+
+type RegressionResultFEIV <: AbstractRegressionResult
+    coef::Vector{Float64}
+    vcov::Matrix{Float64}
+
+    esample::BitVector
+
+    coefnames::Vector
+    yname::Symbol
+    formula::Formula
+
+    nobs::Int64
+    df_residual::Int64
+
+    r2::Float64
+    r2_a::Float64
+    F::Float64    
+    p::Float64    
+
+    F_kp::Float64
+    p_kp::Float64
+
+    iterations:: Int        
+    converged:: Bool  
+end
+title(x::RegressionResultFEIV) = "Fixed effect IV Model"
+top(x::RegressionResultFEIV) = [
+            "Number of obs" sprint(showcompact, nobs(x));
+            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "R2" format_scientific(x.r2);
+            "R2 Adjusted" format_scientific(x.r2_a);
+            "F Statistic" sprint(showcompact, x.F);
+            "Prob > F" format_scientific(x.p);
+            "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
+            "First State p-val (KP)" format_scientific(x.p_kp);
+            "Iterations" sprint(showcompact, x.iterations);
+            "Converged" sprint(showcompact, x.converged)
+            ]
+
+
+
+
+
+

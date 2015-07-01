@@ -11,9 +11,16 @@ predict(result, df)
 residuals(result, df)
 
 
-result = reg(Sales ~ Price + (NDI = CPI), df)
+
+reg(Sales ~ CPI + (Price = Pimin), df)
+
+result = reg(Sales ~ CPI + (Price = Pimin), df)
 predict(result, df)
 residuals(result, df)
 model_response(result, df)
 @test  nobs(result) == 1380
-@test_approx_eq  vcov(result)[1]  2.1197498605509337
+@test_approx_eq  vcov(result)[1]  3.5384578251636785
+
+
+show(reg(Sales ~ Price |> pState, df))
+show(reg(Sales ~ CPI + (Price = Pimin) |> pState, df))

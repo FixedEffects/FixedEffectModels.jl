@@ -9,7 +9,7 @@ import Distributions: TDist, ccdf, FDist, Chisq
 import Distances: sqeuclidean, euclidean
 import DataArrays: RefArray, PooledDataArray, DataArray, DataVector, compact, NAtype
 import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable
 import GLM: df_residual, LinearModel
 
 ##############################################################################

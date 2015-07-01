@@ -12,7 +12,7 @@ end
 
 
 # Bai 2009
-function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; weight = nothing)
+function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; weight = nothing, maxiter::Int64 = 10000, tol::Float64 = 1e-10)
 
     rf = deepcopy(f)
 
@@ -69,7 +69,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
     end
     if has_absorb
         for j in 1:size(X, 2)
-            X[:,j] = demean_vector!(X[:,j], factors)
+            (X[:,j], iterations, converged) = demean_vector!(X[:,j], factors)
         end
     else
         meanv = - mean(X, 1)
@@ -91,7 +91,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         multiplication_elementwise!(y, sqrtw)
     end
     if has_absorb
-        y = demean_vector!(y, factors)
+        (y, iterations, converged) = demean_vector!(y, factors)
     else
         meanv = - mean(y)
         addition_elementwise!(y, meanv)
@@ -100,7 +100,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
     H = At_mul_B(X, X)
     M = A_mul_Bt(inv(cholfact!(H)), X)
     # get factors
-    estimate_factor_model(X, M,  y, df[m.id], df[m.time], m.dimension) 
+    estimate_factor_model(X, M,  y, df[m.id], df[m.time], m.dimension, maxiter = maxiter, tol = tol) 
 end
 
 
@@ -118,7 +118,8 @@ type FactorEstimate
     coef::Vector{Float64} 
     lambda::Matrix{Float64}  # N x d
     ft::Matrix{Float64} # d x T
-    iter::Int64
+    iterations::Int64
+    converged::Bool
 end
 
 function fill_matrix!(res_matrix, y, res_vector, idrefs, timerefs)
@@ -133,17 +134,18 @@ function fill_vector!(res_vector, y, res_matrix, idrefs, timerefs)
     end
 end
 
-function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector{Float64}, id::PooledDataArray, time::PooledDataArray, d::Int64) 
+function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector{Float64}, id::PooledDataArray, time::PooledDataArray, d::Int64; maxiter::Int64 = 10000, tol::Float64 = 1e-10)
     b = M * y
     res_vector = Array(Float64, length(y))
     # initialize at zero for missing values
     res_matrix = fill(zero(Float64), (length(id.pool), length(time.pool)))
     Lambda = Array(Float64, (length(id.pool), d))
     Ft = Array(Float64, (length(time.pool), d))
-    max_iter = 10000
-    tolerance = 1e-9
+    converged = false
+    iterations = maxiter
+    tolerance = tol * length(b)
     iter = 0
-    while iter < max_iter
+    while iter < maxiter
         iter += 1
         oldb = deepcopy(b)
         # Compute predicted(regressor)
@@ -155,15 +157,17 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         fill_vector!(res_vector, y, res_matrix, id.refs, time.refs)
         # regress y - predicted(factor) over X
         b = M * res_vector
-        error = euclidean(b, oldb)
+        error = sqeuclidean(b, oldb)
         if error < tolerance
+            converged = true
+            iterations = iter
             Ft = sub(svdresult.Vt, 1:d, :)
             break
         end
     end
     scale!(Lambda, 1 / sqrt(length(time.pool)))
     scale!(Ft, sqrt(length(time.pool)))
-    FactorEstimate(id, time, b, Lambda, Ft, iter)
+    FactorEstimate(id, time, b, Lambda, Ft, iterations, converged)
 end
 
 

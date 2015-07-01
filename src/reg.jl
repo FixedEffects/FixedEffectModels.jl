@@ -1,4 +1,4 @@
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing )
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int64 = 10000, tol::Float64 = 1e-8)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
@@ -6,6 +6,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	if has_absorb
 		absorb_vars = allvars(absorb_formula)
 		absorb_terms = Terms(absorb_formula)
+		# initialize convergence
+		convergedv = Bool[]
+		iterationsv = Bool[]
 	else
 		absorb_vars = Symbol[]
 	end
@@ -86,7 +89,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	end
 	if has_absorb
 		for j in 1:size(Xexo, 2)
-			Xexo[:,j] = demean_vector!(Xexo[:,j], factors)
+			(Xexo[:,j] , iterations, converged)= demean_vector!(Xexo[:,j], factors; maxiter = maxiter::Int64, tol = tol::Float64)
+			push!(iterationsv, iterations)
+			push!(convergedv, converged)
 		end
 	end
 
@@ -101,7 +106,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		multiplication_elementwise!(y, sqrtw)
 	end
 	if has_absorb
-		y = demean_vector!(y, factors)
+		(y , iterations, converged)= demean_vector!(y, factors; maxiter = maxiter::Int64, tol = tol::Float64)
+		push!(iterationsv, iterations)
+		push!(convergedv, converged)
 	end
 
 	# Compute Xendo and Z
@@ -114,10 +121,12 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 		if has_absorb
 			for j in 1:size(Xendo, 2)
-				Xendo[:,j] = demean_vector!(Xendo[:,j], factors)
+				(Xendo[:,j] , iterations, converged)= demean_vector!(Xendo[:,j], factors; maxiter = maxiter::Int64, tol = tol::Float64)
+				push!(iterationsv, iterations)
+				push!(convergedv, converged)
 			end
 		end
-		
+
 		mf = simpleModelFrame(subdf, instrument_terms, esample)
 		Z = ModelMatrix(mf).m
 		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
@@ -126,7 +135,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 		if has_absorb
 			for j in 1:size(Z, 2)
-				Z[:,j] = demean_vector!(Z[:,j], factors)
+				(Z[:,j] , iteration, converged)= demean_vector!(Z[:,j], factors; maxiter = maxiter::Int64, tol = tol::Float64)
+				push!(iterationsv, iterations)
+				push!(convergedv, converged)
 			end
 		end
 	end
@@ -184,7 +195,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	end
 	r2 = 1 - ess / tss 
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
-	
+
 	# Compute standard error
 	vcov_data = VcovData{1}(inv(crossx), Xhat, residuals, df_residual)
 	matrix_vcov = vcov!(vcov_method_data, vcov_data)
@@ -193,7 +204,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	coefF = coef
 	matrix_vcovF = matrix_vcov
 	if rt.intercept
- 		coefF = coefF[2:end]
+		coefF = coefF[2:end]
 		matrix_vcovF = matrix_vcovF[2:end, 2:end]
 	end
 	F = diagm(coefF)' * inv(matrix_vcovF) * diagm(coefF)
@@ -205,16 +216,28 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
 	end
 
-
-	# Compute Fstat first stage based on Kleibergen-Paap
-	if has_instrument
-		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
-		return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
-	else
-		return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
+	# iter and convergence
+	if has_absorb
+		iterations = sum(iterationsv)
+		converged = all(convergedv)
 	end
 
 
+	# Compute Fstat first stage based on Kleibergen-Paap
+	if !has_instrument
+		if !has_absorb
+			return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
+		else
+			return(RegressionResultFE(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p, iterations, converged))
+		end
+	else
+		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
+		if !has_absorb
+			return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
+		else
+			return(RegressionResultFEIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp, iterations, converged))
+		end
+	end
 end
 
 

@@ -130,21 +130,25 @@ function demean_vector_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean:
 	return(ans)
 end
 
-function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect})
-	tolerance = ((1e-8 * length(x))^2)::Float64
-	delta = 1.0
-	if length(fes) == 1 && typeof(fes[1]) <: FixedEffectIntercept
-		max_iter = 1
-	else
-		max_iter = 1000
-	end
-	olx = similar(x)
+function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int64 = 1000, tol::Float64 = 1e-8)
 	# allocate array of means for each factor
 	dict = Dict{AbstractFixedEffect, Vector{Float64}}()
 	for fe in fes
 		dict[fe] = zeros(Float64, length(fe.scale))
 	end
-	for iter in 1:max_iter
+
+
+	iterations = maxiter
+	converged = false
+	if length(fes) == 1 && typeof(fes[1]) <: FixedEffectIntercept
+		converged = true
+		iterations = 1
+		maxiter = 1
+	end
+	tolerance = ((tol * length(x))^2)::Float64
+	delta = 1.0
+	olx = similar(x)
+	for iter in 1:maxiter
 		@inbounds @simd  for i in 1:length(x)
 			olx[i] = x[i]
 		end
@@ -155,13 +159,15 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect})
 		end
 		delta = sqeuclidean(x, olx)
 		if delta < tolerance
+			converged = true
+			iterations = iter
 			break
 		end
 	end
-	return(x)
+	return(x, converged, iterations)
 end
 
-function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect})
-	demean_vector(convert(Vector{Float64}, x), fes)
+function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int64 = 1000, tol::Float64 = 1e-8)
+	demean_vector(convert(Vector{Float64}, x), fes, maxiter = maxiter, tol = tol)
 end
 
