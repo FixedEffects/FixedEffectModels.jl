@@ -86,8 +86,6 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
   ```julia
   reg(Sales ~ (Price = Pimin), df)
-  ```
-  ```julia
   #>                           Fixed Effect Model                          
   #> ======================================================================
   #> Number of obs                 1380  Degree of freedom                2
