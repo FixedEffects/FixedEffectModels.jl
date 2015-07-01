@@ -18,11 +18,6 @@ The function `reg` estimates linear models with
 
 
 
-The general syntax is
-
-```julia
-reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
-```
 
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels
@@ -60,6 +55,14 @@ Pkg.add("FixedEffectModels")
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
+#### Formula 
+
+
+The general syntax is
+
+```julia
+reg(depvar ~ exogenousvars + (endogeneousvars = instrumentvars) |> absorbvars, df)
+```
 
 
 #### Fixed effects
@@ -124,6 +127,7 @@ reg(Sales ~ NDI, df, VcovWhite())
 reg(Sales ~ NDI, df, VcovCluster([:State]))
 reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
+
 
 
 ## Partial out

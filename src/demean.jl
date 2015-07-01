@@ -9,19 +9,19 @@
 abstract AbstractFixedEffect
 
 immutable type FixedEffectIntercept{R} <: AbstractFixedEffect
-	refs::Vector{R} # each row points to a group
-	w::Vector{Float64} # weights
-	scale::Vector{Float64} #  inv(sum of weights) for each group
-	name::Symbol
+	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataArray
+	w::Vector{Float64}     # scale
+	scale::Vector{Float64} # 1/(sum of scale) within each group
+	name::Symbol           # Name of variable in the original dataframe
 end
 
 immutable type FixedEffectSlope{R} <: AbstractFixedEffect
-	refs::Vector{R}
-	w::Vector{Float64}
-	scale::Vector{Float64} #  inv(sum of weights * x) for each group
-	x::Vector{Float64} # the continuous interaction 
-	name::Symbol
-	xname::Symbol
+	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataArray
+	w::Vector{Float64}     # weights
+	scale::Vector{Float64} # 1/(sum of weights * x) for each group
+	x::Vector{Float64}     # the continuous interaction 
+	name::Symbol           # Name of factor variable in the original dataframe
+	xname::Symbol          # Name of continuous variable in the original dataframe
 end
 
 
@@ -137,7 +137,6 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; ma
 		dict[fe] = zeros(Float64, length(fe.scale))
 	end
 
-
 	iterations = maxiter
 	converged = false
 	if length(fes) == 1 && typeof(fes[1]) <: FixedEffectIntercept
@@ -145,7 +144,7 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; ma
 		iterations = 1
 		maxiter = 1
 	end
-	tolerance = ((tol * length(x))^2)::Float64
+	tolerance = tol * length(x)
 	delta = 1.0
 	olx = similar(x)
 	for iter in 1:maxiter
@@ -157,7 +156,7 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; ma
 			fill!(mean, zero(Float64))
 			demean_vector_factor!(x, fe, mean)
 		end
-		delta = sqeuclidean(x, olx)
+		delta = euclidean(x, olx)
 		if delta < tolerance
 			converged = true
 			iterations = iter

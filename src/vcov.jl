@@ -1,18 +1,13 @@
 ##############################################################################
 ##
 ## VcovData (and its children) has four important methods: 
-## residuals
-## regressors
-## invcrossmatrix (by default (X'X)^{-1})
-## number of obs
-## degree of freedom
-## Parametrized by whether residuals is vector (as usual) or matrix (used for weak identification test in iv)
+##
 ##############################################################################
 
 immutable type VcovData{N} 
-	invcrossmatrix::Matrix{Float64} 
-	regressors::Matrix{Float64} 
-	residuals::Array{Float64, N}
+	invcrossmatrix::Matrix{Float64}   # (X'X)^{-1} in the simplest case 
+	regressors::Matrix{Float64}       # X
+	residuals::Array{Float64, N}      # vector or matrix of residuals (matrix in the case of IV, residuals of Xendo on (Z, Xexo))
 	df_residual::Int64
 	function VcovData(invcrossmatrix::Matrix{Float64}, regressors::Matrix{Float64}, residuals::Array{Float64, N}, 	df_residual::Int64)
 		size(regressors, 1) == size(residuals, 1) || error("regressors and residuals should have same  number of rows")
@@ -21,20 +16,15 @@ immutable type VcovData{N}
 		new(invcrossmatrix, regressors, residuals, df_residual)
 	end
 end
-residuals(x::VcovData) = x.residuals
-regressors(x::VcovData) = x.regressors
-invcrossmatrix(x::VcovData) = x.invcrossmatrix
-df_residual(x::VcovData) = x.df_residual
-nobs(x::VcovData) = size(regressors(x), 1)
+nobs(x::VcovData) = size(x.regressors, 1)
 
 
 typealias VcovDataVector VcovData{1} 
 typealias VcovDataMatrix VcovData{2} 
 
-
 # convert a linear model into VcovData
 function VcovData(x::LinearModel) 
-	VcovData(inv(cholfact(x)), x.pp.X, residuals(x), size(x.pp.X, 1))
+	VcovData(inv(cholfact(x)), x.pp.X, x.residuals, size(x.pp.X, 1))
 end
 
 
@@ -60,10 +50,10 @@ immutable type VcovSimple <: AbstractVcovMethod end
 immutable type VcovSimpleData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovSimple, df::AbstractDataFrame) = VcovSimpleData()
 function vcov!(v::VcovSimpleData, x::VcovData)
- 	scale!(invcrossmatrix(x), abs2(norm(residuals(x), 2)) /  df_residual(x))
+ 	scale!(x.invcrossmatrix, abs2(norm(x.residuals, 2)) /  x.df_residual)
 end
 function shat!(v::VcovSimpleData, x::VcovData)
- 	scale(inv(invcrossmatrix(x)), abs2(norm(residuals(x), 2)))
+ 	scale(inv(x.invcrossmatrix), abs2(norm(x.residuals, 2)))
 end
 
 
@@ -76,20 +66,20 @@ immutable type VcovWhiteData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovWhite, df::AbstractDataFrame) = VcovWhiteData()
 function vcov!(v::VcovWhiteData, x::VcovData) 
 	S = shat!(v, x)
-	sandwich(invcrossmatrix(x), S) 
+	sandwich(x.invcrossmatrix, S) 
 end
 
 function shat!(v::VcovWhiteData, x::VcovData{1}) 
-	X = regressors(x)
-	res = residuals(x)
+	X = x.regressors
+	res = x.residuals
 	Xu = broadcast!(*, X, X, res)
 	S = At_mul_B(Xu, Xu)
-	scale!(S, nobs(x)/df_residual(x))
+	scale!(S, nobs(x)/x.df_residual)
 end
 
 function shat!(t::VcovWhiteData, x::VcovData{2}) 
-	X = regressors(x)
-	res = residuals(x)
+	X = x.regressors
+	res = x.residuals
 	dim = size(X, 2) * size(res, 2)
 	S = fill(zero(Float64), (dim, dim))
 	temp = similar(S)
@@ -105,7 +95,7 @@ function shat!(t::VcovWhiteData, x::VcovData{2})
 		temp = A_mul_Bt!(temp, kronv, kronv)
 		S += temp
 	end
-	scale!(S, nobs(x)/df_residual(x))
+	scale!(S, nobs(x)/x.df_residual)
 	return(S)
 end
 
@@ -147,13 +137,13 @@ end
 
 function vcov!(v::VcovClusterData, x::VcovData)
 	S = shat!(v, x)
-	sandwich(invcrossmatrix(x), S)
+	sandwich(x.invcrossmatrix, S)
 end
 function shat!(v::VcovClusterData, x::VcovData{1}) 
 	# Cameron, Gelbach, & Miller (2011).
 	clusternames = names(v.clusters)
-	X = regressors(x)
-	Xu = broadcast!(*,  X, X, residuals(x))
+	X = x.regressors
+	Xu = broadcast!(*,  X, X, x.residuals)
 	S = fill(zero(Float64), (size(X, 2), size(X, 2)))
 	for i in 1:length(clusternames)
 		for c in combinations(clusternames, i)
@@ -173,7 +163,7 @@ function shat!(v::VcovClusterData, x::VcovData{1})
 			end
 		end
 	end
-	scale!(S, (nobs(x)-1) / df_residual(x))
+	scale!(S, (nobs(x)-1) / x.df_residual)
 	return(S)
 end
 
@@ -204,8 +194,8 @@ end
 function shat!(v::VcovClusterData, x::VcovData{2}) 
 	# Cameron, Gelbach, & Miller (2011).
 	clusternames = names(v.clusters)
-	X = regressors(x)
-	res = residuals(x)
+	X = x.regressors
+	res = x.residuals
 	dim = (size(X, 2) *size(res, 2))
 	S = fill(zero(Float64), (dim, dim))
 	for i in 1:length(clusternames)
@@ -226,7 +216,7 @@ function shat!(v::VcovClusterData, x::VcovData{2})
 			end
 		end
 	end
-	scale!(S, (nobs(x)-1) / df_residual(x))
+	scale!(S, (nobs(x)-1) / x.df_residual)
 	return(S)
 end
 

@@ -193,22 +193,22 @@ end
 ##############################################################################
 
 type RegressionResult <: AbstractRegressionResult
-    coef::Vector{Float64}
-    vcov::Matrix{Float64}
+    coef::Vector{Float64}   # Vector of coefficients
+    vcov::Matrix{Float64}   # Covariance matrix
 
-    esample::BitVector
+    esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
 
-    coefnames::Vector
-    yname::Symbol
-    formula::Formula
+    coefnames::Vector       # Name of coefficients
+    yname::Symbol           # Name of dependent variable
+    formula::Formula        # Original formula 
 
-    nobs::Int64
-    df_residual::Int64
+    nobs::Int64             # Number of observations
+    df_residual::Int64      # degree of freedoms
 
-    r2::Float64
-    r2_a::Float64
-    F::Float64    
-    p::Float64
+    r2::Float64             # R squared
+    r2_a::Float64           # R squared adjusted
+    F::Float64              # F statistics
+    p::Float64              # p value for the F statistics
 end
 title(x::RegressionResult) =  "Linear Model"
 top(x::RegressionResult) = [
@@ -222,25 +222,25 @@ top(x::RegressionResult) = [
 
 
 type RegressionResultIV <: AbstractRegressionResult
-    coef::Vector{Float64}
-    vcov::Matrix{Float64}
+    coef::Vector{Float64}   # Vector of coefficients
+    vcov::Matrix{Float64}   # Covariance matrix
 
-    esample::BitVector
+    esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
 
-    coefnames::Vector
-    yname::Symbol
-    formula::Formula
+    coefnames::Vector       # Name of coefficients
+    yname::Symbol           # Name of dependent variable
+    formula::Formula        # Original formula 
 
-    nobs::Int64
-    df_residual::Int64
+    nobs::Int64             # Number of observations
+    df_residual::Int64      # degree of freedoms
 
-    r2::Float64
-    r2_a::Float64
-    F::Float64    
-    p::Float64
+    r2::Float64             # R squared
+    r2_a::Float64           # R squared adjusted
+    F::Float64              # F statistics
+    p::Float64              # p value for the F statistics
 
-    F_kp::Float64
-    p_kp::Float64
+    F_kp::Float64           # First Stage F statistics KP 
+    p_kp::Float64           # First Stage p value KP
 end
 
 title(x::RegressionResultIV) = "IV Model"
@@ -257,25 +257,25 @@ top(x::RegressionResultIV) = [
 
 
 type RegressionResultFE <: AbstractRegressionResult
-    coef::Vector{Float64}
-    vcov::Matrix{Float64}
+    coef::Vector{Float64}   # Vector of coefficients
+    vcov::Matrix{Float64}   # Covariance matrix
 
-    esample::BitVector
+    esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
 
-    coefnames::Vector
-    yname::Symbol
-    formula::Formula
+    coefnames::Vector       # Name of coefficients
+    yname::Symbol           # Name of dependent variable
+    formula::Formula        # Original formula 
 
-    nobs::Int64
-    df_residual::Int64
+    nobs::Int64             # Number of observations
+    df_residual::Int64      # degree of freedoms
 
-    r2::Float64
-    r2_a::Float64
-    F::Float64    
-    p::Float64
+    r2::Float64             # R squared
+    r2_a::Float64           # R squared adjusted
+    F::Float64              # F statistics
+    p::Float64              # p value for the F statistics
 
-    iterations::Int        
-    converged::Bool       
+    iterations::Int         # Number of iterations        
+    converged::Bool         # Has the demeaning algorithm converged?
 end
 
 title(x::RegressionResultFE) = "Fixed Effect Model"
@@ -291,28 +291,28 @@ top(x::RegressionResultFE) = [
             ]
 
 type RegressionResultFEIV <: AbstractRegressionResult
-    coef::Vector{Float64}
-    vcov::Matrix{Float64}
+    coef::Vector{Float64}   # Vector of coefficients
+    vcov::Matrix{Float64}   # Covariance matrix
 
-    esample::BitVector
+    esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
 
-    coefnames::Vector
-    yname::Symbol
-    formula::Formula
+    coefnames::Vector       # Name of coefficients
+    yname::Symbol           # Name of dependent variable
+    formula::Formula        # Original formula 
 
-    nobs::Int64
-    df_residual::Int64
+    nobs::Int64             # Number of observations
+    df_residual::Int64      # degree of freedoms
 
-    r2::Float64
-    r2_a::Float64
-    F::Float64    
-    p::Float64    
+    r2::Float64             # R squared
+    r2_a::Float64           # R squared adjusted
+    F::Float64              # F statistics
+    p::Float64              # p value for the F statistics
+    
+    F_kp::Float64           # First Stage F statistics KP 
+    p_kp::Float64           # First Stage p value KP
 
-    F_kp::Float64
-    p_kp::Float64
-
-    iterations:: Int        
-    converged:: Bool  
+    iterations::Int         # Number of iterations        
+    converged::Bool         # Has the demeaning algorithm converged?
 end
 title(x::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [

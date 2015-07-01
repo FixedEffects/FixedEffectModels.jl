@@ -89,7 +89,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	end
 	if has_absorb
 		for j in 1:size(Xexo, 2)
-			(Xexo[:,j] , iterations, converged)= demean_vector!(Xexo[:,j], factors; maxiter = maxiter::Int64, tol = tol::Float64)
+			(Xexo[:,j] , iterations, converged)= demean_vector!(Xexo[:,j], factors; maxiter = maxiter, tol = tol)
 			push!(iterationsv, iterations)
 			push!(convergedv, converged)
 		end
@@ -121,7 +121,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 		if has_absorb
 			for j in 1:size(Xendo, 2)
-				(Xendo[:,j] , iterations, converged)= demean_vector!(Xendo[:,j], factors; maxiter = maxiter::Int64, tol = tol::Float64)
+				(Xendo[:,j] , iterations, converged)= demean_vector!(Xendo[:,j], factors; maxiter = maxiter, tol = tol)
 				push!(iterationsv, iterations)
 				push!(convergedv, converged)
 			end
@@ -135,7 +135,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 		if has_absorb
 			for j in 1:size(Z, 2)
-				(Z[:,j] , iteration, converged)= demean_vector!(Z[:,j], factors; maxiter = maxiter::Int64, tol = tol::Float64)
+				(Z[:,j] , iteration, converged)= demean_vector!(Z[:,j], factors; maxiter = maxiter, tol = tol)
 				push!(iterationsv, iterations)
 				push!(convergedv, converged)
 			end

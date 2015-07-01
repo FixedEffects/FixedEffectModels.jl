@@ -157,7 +157,7 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         fill_vector!(res_vector, y, res_matrix, id.refs, time.refs)
         # regress y - predicted(factor) over X
         b = M * res_vector
-        error = sqeuclidean(b, oldb)
+        error = euclidean(b, oldb)
         if error < tolerance
             converged = true
             iterations = iter
