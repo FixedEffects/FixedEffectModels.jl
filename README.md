@@ -231,7 +231,7 @@ The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to th
 # References
 
 Main demeaning algorithm:
- - Simen Gaure. "OLS with multiple high dimensional category variables." Computational Statistics & Data Analysis 66 (2013): 8-18.
+ - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
 
 First Stage F-Stat when estimating IV models:
 
