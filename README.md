@@ -229,14 +229,13 @@ The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to th
 
 
 # References
-
-Main demeaning algorithm:
+Estimate high dimensional fixed effects:
  - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
+ -  Sergio Correia, 2015. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*  https://ideas.repec.org/c/boc/bocode/s457874.html
+
 
 First Stage F-Stat when estimating IV models:
-
 - Frank Kleibergen, Mark E Schaffer. 2014 *ranktest: Stata module to test the rank of a matrix using the Kleibergen-Paap rk statistic* https://ideas.repec.org/c/boc/bocode/s456865.html
-
 - Christopher F Baum, Mark E Schaffer, Steven Stillman, 2015. *ivreg2: Stata module for extended instrumental variables/2SLS and GMM estimation* https://ideas.repec.org/c/boc/bocode/s457874.html
 
 
