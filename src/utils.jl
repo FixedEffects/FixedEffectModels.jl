@@ -27,7 +27,7 @@ function factorize!(refs::Array)
 	PooledDataArray(RefArray(refs), [1:(length(uu)-has_na);])
 end
 
-function pool_combine!{T}(x::Array{Uint64, T}, dv::PooledDataArray, ngroups::Int64)
+function pool_combine!{T}(x::Array{Uint64, T}, dv::PooledDataArray, ngroups::Integer)
 	@inbounds for i in 1:length(x)
 	    # if previous one is NA or this one is NA, set to NA
 	    x[i] = (dv.refs[i] == 0 || x[i] == zero(Uint64)) ? zero(Uint64) : x[i] + (dv.refs[i] - 1) * ngroups
@@ -104,19 +104,6 @@ end
 
 
 
-function multiplication_elementwise!(y::Vector{Float64}, sqrtw::Vector{Float64})
-	@inbounds @simd  for i in 1:length(y)
-		 y[i] *= sqrtw[i] 
-	end
-	return(y)
-end
-
-function addition_elementwise!(y::Vector{Float64}, m::Float64)
-	@inbounds @simd  for i in 1:length(y)
-		 y[i] += m
-	end
-	return(y)
-end
 
 
 ##############################################################################

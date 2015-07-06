@@ -130,7 +130,7 @@ function demean_vector_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean:
 	return(ans)
 end
 
-function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int64 = 1000, tol::Float64 = 1e-8)
+function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
 	# allocate array of means for each factor
 	dict = Dict{AbstractFixedEffect, Vector{Float64}}()
 	for fe in fes
@@ -166,7 +166,7 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; ma
 	return(x, converged, iterations)
 end
 
-function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int64 = 1000, tol::Float64 = 1e-8)
+function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
 	demean_vector(convert(Vector{Float64}, x), fes, maxiter = maxiter, tol = tol)
 end
 

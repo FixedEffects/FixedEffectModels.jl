@@ -1,4 +1,4 @@
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int64 = 10000, tol::Float64 = 1e-8)
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Integer = 10000, tol::FloatingPoint = 1e-8)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
@@ -103,10 +103,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		y = py
 	end
 	if weight != nothing
-		multiplication_elementwise!(y, sqrtw)
+		broadcast!(*, y, y, sqrtw)
 	end
 	if has_absorb
-		(y , iterations, converged)= demean_vector!(y, factors; maxiter = maxiter::Int64, tol = tol::Float64)
+		(y , iterations, converged)= demean_vector!(y, factors; maxiter = maxiter::Integer, tol = tol::FloatingPoint)
 		push!(iterationsv, iterations)
 		push!(convergedv, converged)
 	end

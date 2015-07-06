@@ -27,7 +27,9 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
 
 
     rt = Terms(rf)
-    rt.intercept = false
+    if has_absorb
+        rt.intercept = false
+    end
 
     # create a dataframe without missing values & negative weights
     factor_vars = [m.id, m.time]
@@ -65,16 +67,11 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
     coef_names = coefnames(mf)
     X = ModelMatrix(mf).m
     if weight != nothing
-        broadcast!(*, X, sqrtw, X)
+        broadcast!(*, X, X, sqrtw)
     end
     if has_absorb
         for j in 1:size(X, 2)
             (X[:,j], iterations, converged) = demean_vector!(X[:,j], factors)
-        end
-    else
-        meanv = - mean(X, 1)
-        for j in 1:size(X, 2)
-           X[:,j] =  addition_elementwise!(X[:,j], meanv[j])
         end
     end
     
@@ -88,19 +85,17 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         y = py
     end
     if weight != nothing
-        multiplication_elementwise!(y, sqrtw)
+        broadcast!(*, y, y, sqrtw)
     end
     if has_absorb
         (y, iterations, converged) = demean_vector!(y, factors)
-    else
-        meanv = - mean(y)
-        addition_elementwise!(y, meanv)
     end
 
     H = At_mul_B(X, X)
     M = A_mul_Bt(inv(cholfact!(H)), X)
     # get factors
     estimate_factor_model(X, M,  y, df[m.id], df[m.time], m.dimension, maxiter = maxiter, tol = tol) 
+    
 end
 
 
@@ -122,13 +117,13 @@ type FactorEstimate
     converged::Bool
 end
 
-function fill_matrix!(res_matrix, y, res_vector, idrefs, timerefs)
+function fill_matrix!{F <: FloatingPoint}(res_matrix::Matrix{F}, y::Vector{F}, res_vector::Vector{F}, idrefs, timerefs)
     @inbounds @simd for i in 1:length(y)
         res_matrix[idrefs[i], timerefs[i]] = y[i] - res_vector[i]
     end
 end
 
-function fill_vector!(res_vector, y, res_matrix, idrefs, timerefs)
+function fill_vector!{F <: FloatingPoint}(res_vector::Vector{F}, y::Vector{F}, res_matrix::Matrix{F}, idrefs, timerefs)
     @inbounds @simd for i in 1:length(y)
         res_vector[i] = y[i] - res_matrix[idrefs[i], timerefs[i]]
     end
@@ -165,7 +160,7 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
             break
         end
     end
-    scale!(Lambda, 1 / sqrt(length(time.pool)))
+    scale!(Lambda, 1/sqrt(length(time.pool)))
     scale!(Ft, sqrt(length(time.pool)))
     FactorEstimate(id, time, b, Lambda, Ft, iterations, converged)
 end

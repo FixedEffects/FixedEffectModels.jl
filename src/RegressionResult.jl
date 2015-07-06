@@ -23,9 +23,6 @@ end
 # predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     rf = x.formula
-    (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
-    has_absorb && error("predict is not defined for fixed effect models (yet)")
-
     (rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
     if has_instrument
         if typeof(rf.rhs) == Symbol
@@ -44,9 +41,6 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
 end
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
     rf = x.formula
-    (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
-    has_absorb && error("predict is not defined for fixed effect models (yet)")
-
     (rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
     if has_instrument
         if typeof(rf.rhs) == Symbol
@@ -277,7 +271,8 @@ type RegressionResultFE <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-
+predict(x::RegressionResultFE, df::AbstractDataFrame) = error("predict is not defined for fixed effect models (yet)")
+residuals(x::RegressionResultFE, df::AbstractDataFrame) = error("residuals is not defined for fixed effect models. Use the function partial_out")
 title(x::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
             "Number of obs" sprint(showcompact, nobs(x));
@@ -314,6 +309,8 @@ type RegressionResultFEIV <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
+predict(x::RegressionResultFEIV, df::AbstractDataFrame) = error("predict is not defined for fixed effect models (yet)")
+residuals(x::RegressionResultFEIV, df::AbstractDataFrame) = error("residuals is not defined for fixed effect models. Use the function partial_out")
 title(x::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
