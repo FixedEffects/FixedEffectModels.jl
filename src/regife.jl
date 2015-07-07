@@ -141,22 +141,22 @@ end
 
 function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector{Float64}, id::PooledDataArray, time::PooledDataArray, d::Int64; maxiter::Int64 = 10000, tol::Float64 = 1e-10)
     b = M * y
+    new_b = deepcopy(b)
     res_vector = Array(Float64, length(y))
     # initialize at zero for missing values
     res_matrix = fill(zero(Float64), (length(id.pool), length(time.pool)))
-    res_matrix2 = fill(zero(Float64), (length(id.pool), length(time.pool)))
+    new_res_matrix = deepcopy(res_matrix)
     loadings = Array(Float64, (length(id.pool), d))
     factors = Array(Float64, (length(time.pool), d))
     variance = Array(Float64, (length(time.pool), length(time.pool)))
-
     converged = false
     iterations = maxiter
     tolerance = tol * length(b)
     iter = 0
     while iter < maxiter
         iter += 1
-        oldb = deepcopy(b)
-        (res_matrix2, res_matrix) = (res_matrix, res_matrix2)
+        (new_b, b) = (b, new_b)
+        (new_res_matrix, res_matrix) = (res_matrix, new_res_matrix)
         A_mul_B!(res_vector, X, b)
         # res_vector -> res_matrix
         fill_matrix!(res_matrix, y, res_vector, id.refs, time.refs)
@@ -167,11 +167,11 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         factors = sub(F[:vectors], :, (length(time.pool) - d + 1):length(time.pool))
         # compute the low rank approximation of res_matrix
         A_mul_Bt!(variance, factors, factors)
-        A_mul_B!(res_matrix2, res_matrix, variance)
+        A_mul_B!(new_res_matrix, res_matrix, variance)
         # res_matrix -> res_vector
-        fill_vector!(res_vector, y, res_matrix2, id.refs, time.refs)
-        b = M * res_vector
-        error = euclidean(b, oldb)
+        fill_vector!(res_vector, y, new_res_matrix, id.refs, time.refs)
+        new_b = M * res_vector
+        error = euclidean(new_b, b)
         if error < tolerance
             converged = true
             iterations = iter
@@ -182,7 +182,7 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
     end
     scale!(loadings, 1/sqrt(length(time.pool)))
     scale!(factors, sqrt(length(time.pool)))
-    FactorEstimate(id, time, b, loadings, factors, iterations, converged)
+    InteractiveFixedEffectResult(id, time, b, loadings, factors, iterations, converged)
 end
 
 
