@@ -23,11 +23,15 @@ end
 
 
 
+
 function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; weight = nothing, maxiter::Int64 = 10000, tol::Float64 = 1e-10)
 
+    #################
+    # Prepare the data (transform dataframe to matrix, demean if fixed effects, multiply by weight
+    #################
     rf = deepcopy(f)
 
-    # decompose formula into normal  vs absorbpart
+    ## decompose formula into normal  vs absorbpart
     (rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
     if has_absorb
         absorb_vars = allvars(absorb_formula)
@@ -42,7 +46,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         rt.intercept = false
     end
 
-    # create a dataframe without missing values & negative weights
+    ## create a dataframe without missing values & negative weights
     factor_vars = [m.id, m.time]
     vars = allvars(rf)
     all_vars = vcat(vars, absorb_vars, factor_vars)
@@ -52,14 +56,13 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         esample &= isnaorneg(df[weight])
         all_vars = unique(vcat(all_vars, weight))
     end
-    #subdf = sub(df[all_vars], esample)
     subdf = df[esample, all_vars]
     all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
     for v in all_except_absorb_vars
         dropUnusedLevels!(subdf[v])
     end
 
-    # create weight vector
+    ## create weight vector
     if weight == nothing
         w = fill(one(Float64), size(subdf, 1))
         sqrtw = w
@@ -68,12 +71,12 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         sqrtw = sqrt(w)
     end
 
-    # Compute factors, an array of AbtractFixedEffects
+    ## Compute factors, an array of AbtractFixedEffects
     if has_absorb
         factors = construct_fe(subdf, absorb_terms.terms, sqrtw)
     end
 
-    # Compute demeaned X
+    ## Compute demeaned X
     mf = simpleModelFrame(subdf, rt, esample)
     coef_names = coefnames(mf)
     X = ModelMatrix(mf).m
@@ -88,7 +91,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
     
 
 
-    # Compute demeaned y
+    ## Compute demeaned y
     py = model_response(mf)[:]
     if eltype(py) != Float64
         y = convert(py, Float64)
@@ -103,7 +106,10 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
     end
 
 
-    # at this stage, y is a vector, X is a matrix, and they are potentially demeaned wrt fixed effects / multiplied by sqrt(W) in case of weights. Now the real loop begins.
+    #################
+    # Do the loop that estimates jointly (beta, factors, loadings)
+    #################
+    
     H = At_mul_B(X, X)
     M = A_mul_Bt(inv(cholfact!(H)), X)
     estimate_factor_model(X, M,  y, df[m.id], df[m.time], m.dimension, maxiter = maxiter, tol = tol) 
@@ -142,7 +148,7 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
     loadings = Array(Float64, (length(id.pool), d))
     factors = Array(Float64, (length(time.pool), d))
     variance = Array(Float64, (length(time.pool), length(time.pool)))
-    
+
     converged = false
     iterations = maxiter
     tolerance = tol * length(b)
