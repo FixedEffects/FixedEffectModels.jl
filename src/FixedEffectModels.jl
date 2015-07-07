@@ -31,8 +31,8 @@ VcovHac,
 VcovCluster,
 VcovData,
 
-InteractiveFixedEffectModel
-
+InteractiveFixedEffectModel,
+InteractiveFixedEffectResult
 ##############################################################################
 ##
 ## Load files

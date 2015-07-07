@@ -3,15 +3,26 @@
 ## Factor models (Bai 2009)
 ##
 ##############################################################################
-
+# Object constructed by the user
 type InteractiveFixedEffectModel 
     id::Symbol
     time::Symbol
     dimension::Int64
 end
 
+# Object output by idfe
+type InteractiveFixedEffectResult 
+    id::PooledDataArray
+    time::PooledDataArray
+    coef::Vector{Float64} 
+    loadings::Matrix{Float64}  # N x d
+    factors::Matrix{Float64} # T x d
+    iterations::Int64
+    converged::Bool
+end
 
-# Bai 2009
+
+
 function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; weight = nothing, maxiter::Int64 = 10000, tol::Float64 = 1e-10)
 
     rf = deepcopy(f)
@@ -91,9 +102,10 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         (y, iterations, converged) = demean_vector!(y, factors)
     end
 
+
+    # at this stage, y is a vector, X is a matrix, and they are potentially demeaned wrt fixed effects / multiplied by sqrt(W) in case of weights. Now the real loop begins.
     H = At_mul_B(X, X)
     M = A_mul_Bt(inv(cholfact!(H)), X)
-    # get factors
     estimate_factor_model(X, M,  y, df[m.id], df[m.time], m.dimension, maxiter = maxiter, tol = tol) 
     
 end
@@ -102,20 +114,12 @@ end
 
 ##############################################################################
 ##
-## Result
+## Factor / beta iteration
 ##
 ##############################################################################
 
 
-type FactorEstimate
-    id::PooledDataArray
-    time::PooledDataArray
-    coef::Vector{Float64} 
-    loadings::Matrix{Float64}  # N x d
-    factors::Matrix{Float64} # T x d
-    iterations::Int64
-    converged::Bool
-end
+
 
 function fill_matrix!{F <: FloatingPoint}(res_matrix::Matrix{F}, y::Vector{F}, res_vector::Vector{F}, idrefs, timerefs)
     @inbounds @simd for i in 1:length(y)
@@ -136,8 +140,9 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
     res_matrix = fill(zero(Float64), (length(id.pool), length(time.pool)))
     res_matrix2 = fill(zero(Float64), (length(id.pool), length(time.pool)))
     loadings = Array(Float64, (length(id.pool), d))
-     factors = Array(Float64, (length(time.pool), d))
-     variance = Array(Float64, (length(time.pool), length(time.pool)))
+    factors = Array(Float64, (length(time.pool), d))
+    variance = Array(Float64, (length(time.pool), length(time.pool)))
+    
     converged = false
     iterations = maxiter
     tolerance = tol * length(b)
@@ -146,14 +151,18 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         iter += 1
         oldb = deepcopy(b)
         (res_matrix2, res_matrix) = (res_matrix, res_matrix2)
-        # Compute predicted(regressor)
         A_mul_B!(res_vector, X, b)
+        # res_vector -> res_matrix
         fill_matrix!(res_matrix, y, res_vector, id.refs, time.refs)
+        # create covariance matrix and do PCA
         At_mul_B!(variance, res_matrix, res_matrix)
         F = eigfact!(variance)
+        # obtain d larger factors
         factors = sub(F[:vectors], :, (length(time.pool) - d + 1):length(time.pool))
+        # compute the low rank approximation of res_matrix
         A_mul_Bt!(variance, factors, factors)
         A_mul_B!(res_matrix2, res_matrix, variance)
+        # res_matrix -> res_vector
         fill_vector!(res_vector, y, res_matrix2, id.refs, time.refs)
         b = M * res_vector
         error = euclidean(b, oldb)
@@ -165,7 +174,6 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
             break
         end
     end
-
     scale!(loadings, 1/sqrt(length(time.pool)))
     scale!(factors, sqrt(length(time.pool)))
     FactorEstimate(id, time, b, loadings, factors, iterations, converged)
