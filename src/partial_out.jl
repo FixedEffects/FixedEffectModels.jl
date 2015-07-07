@@ -47,7 +47,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 	mfY = simpleModelFrame(subdf, yt, esample)
 	Y = ModelMatrix(mfY).m
 	if weight != nothing
-		broadcast!(*, Y, sqrtw, Y)
+		scale!(sqrtw, Y)
 	end
 	if add_mean
 		m = mean(Y, 1)
@@ -74,7 +74,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 			X = fill(one(Float64), (size(subdf, 1), 1))
 		end 	
 		if weight != nothing
-			broadcast!(*, X, sqrtw, X)
+			scale!(sqrtw, X)
 		end
 		if has_absorb
 			for j in 1:size(X, 2)

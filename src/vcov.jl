@@ -72,7 +72,7 @@ end
 function shat!(v::VcovWhiteData, x::VcovData{1}) 
 	X = x.regressors
 	res = x.residuals
-	Xu = broadcast!(*, X, X, res)
+	Xu = scale!(res, X)
 	S = At_mul_B(Xu, Xu)
 	scale!(S, nobs(x)/x.df_residual)
 end
@@ -143,7 +143,7 @@ function shat!(v::VcovClusterData, x::VcovData{1})
 	# Cameron, Gelbach, & Miller (2011).
 	clusternames = names(v.clusters)
 	X = x.regressors
-	Xu = broadcast!(*,  X, X, x.residuals)
+	Xu = scale!(x.residuals,  X)
 	S = fill(zero(Float64), (size(X, 2), size(X, 2)))
 	for i in 1:length(clusternames)
 		for c in combinations(clusternames, i)

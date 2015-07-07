@@ -85,7 +85,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	coef_names = coefnames(mf)
 	Xexo = ModelMatrix(mf).m
 	if weight != nothing
-		broadcast!(*, Xexo, sqrtw, Xexo)
+		scale!(sqrtw, Xexo)
 	end
 	if has_absorb
 		for j in 1:size(Xexo, 2)
@@ -103,7 +103,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		y = py
 	end
 	if weight != nothing
-		broadcast!(*, y, y, sqrtw)
+		broadcast!(*, y, sqrtw, y)
 	end
 	if has_absorb
 		(y , iterations, converged)= demean_vector!(y, factors; maxiter = maxiter::Integer, tol = tol::FloatingPoint)
@@ -117,7 +117,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		coef_names = vcat(coef_names, coefnames(mf))
 		Xendo = ModelMatrix(mf).m
 		if weight != nothing
-			broadcast!(*, Xendo, sqrtw, Xendo)
+			scale!(sqrtw, Xendo)
 		end
 		if has_absorb
 			for j in 1:size(Xendo, 2)
@@ -131,7 +131,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		Z = ModelMatrix(mf).m
 		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
 		if weight != nothing
-			broadcast!(*, Z, sqrtw, Z)
+			scale!(sqrtw, Z)
 		end
 		if has_absorb
 			for j in 1:size(Z, 2)

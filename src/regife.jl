@@ -163,12 +163,12 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         # create covariance matrix and do PCA
         At_mul_B!(variance, res_matrix, res_matrix)
         F = eigfact!(variance)
-        # obtain d larger factors
+        # obtain d largest eigenvectors
         factors = sub(F[:vectors], :, (length(time.pool) - d + 1):length(time.pool))
         # compute the low rank approximation of res_matrix
         A_mul_Bt!(variance, factors, factors)
         A_mul_B!(new_res_matrix, res_matrix, variance)
-        # res_matrix -> res_vector
+        # new_res_matrix -> res_vector
         fill_vector!(res_vector, y, new_res_matrix, id.refs, time.refs)
         new_b = M * res_vector
         error = euclidean(new_b, b)
