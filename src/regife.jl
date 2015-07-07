@@ -111,8 +111,8 @@ type FactorEstimate
     id::PooledDataArray
     time::PooledDataArray
     coef::Vector{Float64} 
-    lambda::Matrix{Float64}  # N x d
-    ft::Matrix{Float64} # d x T
+    loadings::Matrix{Float64}  # N x d
+    factors::Matrix{Float64} # T x d
     iterations::Int64
     converged::Bool
 end
@@ -134,8 +134,10 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
     res_vector = Array(Float64, length(y))
     # initialize at zero for missing values
     res_matrix = fill(zero(Float64), (length(id.pool), length(time.pool)))
-    Lambda = Array(Float64, (length(id.pool), d))
-    Ft = Array(Float64, (length(time.pool), d))
+    res_matrix2 = fill(zero(Float64), (length(id.pool), length(time.pool)))
+    loadings = Array(Float64, (length(id.pool), d))
+     factors = Array(Float64, (length(time.pool), d))
+     variance = Array(Float64, (length(time.pool), length(time.pool)))
     converged = false
     iterations = maxiter
     tolerance = tol * length(b)
@@ -143,26 +145,30 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
     while iter < maxiter
         iter += 1
         oldb = deepcopy(b)
+        (res_matrix2, res_matrix) = (res_matrix, res_matrix2)
         # Compute predicted(regressor)
         A_mul_B!(res_vector, X, b)
         fill_matrix!(res_matrix, y, res_vector, id.refs, time.refs)
-        svdresult = svdfact!(res_matrix) 
-        A_mul_B!(Lambda, sub(svdresult.U, :, 1:d), diagm(sub(svdresult.S, 1:d)))
-        A_mul_B!(res_matrix, Lambda, sub(svdresult.Vt, 1:d, :))
-        fill_vector!(res_vector, y, res_matrix, id.refs, time.refs)
-        # regress y - predicted(factor) over X
+        At_mul_B!(variance, res_matrix, res_matrix)
+        F = eigfact!(variance)
+        factors = sub(F[:vectors], :, (length(time.pool) - d + 1):length(time.pool))
+        A_mul_Bt!(variance, factors, factors)
+        A_mul_B!(res_matrix2, res_matrix, variance)
+        fill_vector!(res_vector, y, res_matrix2, id.refs, time.refs)
         b = M * res_vector
         error = euclidean(b, oldb)
         if error < tolerance
             converged = true
             iterations = iter
-            Ft = sub(svdresult.Vt, 1:d, :)
+            factors = deepcopy(factors)
+            loadings = res_matrix * factors
             break
         end
     end
-    scale!(Lambda, 1/sqrt(length(time.pool)))
-    scale!(Ft, sqrt(length(time.pool)))
-    FactorEstimate(id, time, b, Lambda, Ft, iterations, converged)
+
+    scale!(loadings, 1/sqrt(length(time.pool)))
+    scale!(factors, sqrt(length(time.pool)))
+    FactorEstimate(id, time, b, loadings, factors, iterations, converged)
 end
 
 
