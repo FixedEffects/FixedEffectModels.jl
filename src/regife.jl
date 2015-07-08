@@ -172,16 +172,14 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         fill_vector!(res_vector, y, new_res_matrix, id.refs, time.refs)
         new_b = M * res_vector
         error = euclidean(new_b, b)
-        if error < tolerance
+        if error < tolerance 
             converged = true
             iterations = iter
-            factors = deepcopy(factors)
-            loadings = res_matrix * factors
             break
         end
+        factors = scale(factors, length(time.pool))
+        loadings = scale!(res_matrix * factors, 1/length(id.pool))
     end
-    scale!(loadings, 1/sqrt(length(time.pool)))
-    scale!(factors, sqrt(length(time.pool)))
     InteractiveFixedEffectResult(id, time, b, loadings, factors, iterations, converged)
 end
 
