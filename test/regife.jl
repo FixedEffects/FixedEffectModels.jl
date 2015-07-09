@@ -8,8 +8,8 @@ result = reg(Sales ~ Price, df, InteractiveFixedEffectModel(:pState, :pYear, 2),
 
 # test coef
 @test_approx_eq_eps result.coef [163.0135038895678,-0.4061036361588258] 1e-8
-@test_approx_eq result.factors[1]  1.248038
-@test_approx_eq result.loadings[1]  33.627644
+@test_approx_eq_eps result.factors[1]  -1.248038 1e-4
+@test_approx_eq result.loadings[1]  33.62829 1e-4
 
 # check normalization F'F/T = Id and Lambda' Lambda = diag
 @test_approx_eq transpose(result.factors) * result.factors  30 * eye(size(result.factors, 2))

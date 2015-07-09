@@ -97,7 +97,7 @@ end
 
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
-function demean_vector_factor!(ans::Vector{Float64}, fe::FixedEffectIntercept, mean::Vector{Float64})
+function demean_factor!(ans::Vector{Float64}, fe::FixedEffectIntercept, mean::Vector{Float64})
 	scale = fe.scale
 	refs = fe.refs
 	w = fe.w
@@ -110,10 +110,9 @@ function demean_vector_factor!(ans::Vector{Float64}, fe::FixedEffectIntercept, m
 	@inbounds @simd  for i in 1:length(ans)
 		 ans[i] -= mean[refs[i]] * w[i]
 	end
-	return(ans)
 end
 
-function demean_vector_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean::Vector{Float64})
+function demean_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean::Vector{Float64})
 	scale = fe.scale
 	refs = fe.refs
 	x = fe.x
@@ -127,16 +126,14 @@ function demean_vector_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean:
 	@inbounds @simd  for i in 1:length(ans)
 		 ans[i] -= mean[refs[i]] * x[i] * w[i]
 	end
-	return(ans)
 end
 
-function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
+function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
 	# allocate array of means for each factor
 	dict = Dict{AbstractFixedEffect, Vector{Float64}}()
 	for fe in fes
 		dict[fe] = zeros(Float64, length(fe.scale))
 	end
-
 	iterations = maxiter
 	converged = false
 	if length(fes) == 1 && typeof(fes[1]) <: FixedEffectIntercept
@@ -154,7 +151,7 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; ma
 		for fe in fes
 			mean = dict[fe]
 			fill!(mean, zero(Float64))
-			demean_vector_factor!(x, fe, mean)
+			demean_factor!(x, fe, mean)
 		end
 		delta = euclidean(x, olx)
 		if delta < tolerance
@@ -166,7 +163,20 @@ function demean_vector!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; ma
 	return(x, converged, iterations)
 end
 
-function demean_vector!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
-	demean_vector(convert(Vector{Float64}, x), fes, maxiter = maxiter, tol = tol)
+function demean!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
+	demean(convert(Vector{Float64}, x), fes, maxiter = maxiter, tol = tol)
+end
+
+
+
+function demean!(X::Matrix{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
+	convergedv = Bool[]
+	iterationsv = Bool[]
+	for j in 1:size(X, 2)
+		(X[:,j], iterations, converged) = demean!(X[:,j], fes; maxiter = maxiter, tol = tol)
+		push!(iterationsv, iterations)
+		push!(convergedv, converged)
+	end
+	return(X, convergedv, iterationsv)
 end
 

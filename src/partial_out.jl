@@ -1,5 +1,5 @@
 
-function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, Nothing) = nothing, add_mean = false)
+function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight::Union(Symbol, Nothing) = nothing,  maxiter::Integer = 10000, tol::FloatingPoint = 1e-8)
 
 	rf = deepcopy(f)
 
@@ -53,9 +53,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 		m = mean(Y, 1)
 	end
 	if has_absorb
-		for j in 1:size(Y, 2)
-			(Y[:,j], iterations, converged)  = demean_vector!(Y[:,j], factors)
-		end	
+		(Y, iterations, converged)= demean!(Y, factors; maxiter = maxiter, tol = tol)
 	end
 
 
@@ -77,9 +75,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; weight::Union(Symbol, No
 			scale!(sqrtw, X)
 		end
 		if has_absorb
-			for j in 1:size(X, 2)
-				(X[:,j], iterations, converged)  = demean_vector!(X[:,j], factors)
-			end
+			(X, iterations, converged)= demean!(X, factors; maxiter = maxiter, tol = tol)
 		end
 	end
 	

@@ -88,11 +88,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		scale!(sqrtw, Xexo)
 	end
 	if has_absorb
-		for j in 1:size(Xexo, 2)
-			(Xexo[:,j] , iterations, converged)= demean_vector!(Xexo[:,j], factors; maxiter = maxiter, tol = tol)
-			push!(iterationsv, iterations)
-			push!(convergedv, converged)
-		end
+		(Xexo, iterations, converged) = demean!(Xexo, factors; maxiter = maxiter, tol = tol)
+		iterationsv = vcat(iterationsv, iterations)
+		iterationsv = vcat(convergedv, converged)
 	end
 
 	# Compute y
@@ -106,7 +104,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		broadcast!(*, y, sqrtw, y)
 	end
 	if has_absorb
-		(y , iterations, converged)= demean_vector!(y, factors; maxiter = maxiter::Integer, tol = tol::FloatingPoint)
+		(y, iterations, converged) = demean!(y, factors; maxiter = maxiter::Integer, tol = tol::FloatingPoint)
 		push!(iterationsv, iterations)
 		push!(convergedv, converged)
 	end
@@ -121,9 +119,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 		if has_absorb
 			for j in 1:size(Xendo, 2)
-				(Xendo[:,j] , iterations, converged)= demean_vector!(Xendo[:,j], factors; maxiter = maxiter, tol = tol)
-				push!(iterationsv, iterations)
-				push!(convergedv, converged)
+				(Xendo, iterations, converged)= demean!(Xendo, factors; maxiter = maxiter, tol = tol)
+				iterationsv = vcat(iterationsv, iterations)
+				iterationsv = vcat(convergedv, converged)
 			end
 		end
 
@@ -135,9 +133,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 		if has_absorb
 			for j in 1:size(Z, 2)
-				(Z[:,j] , iteration, converged)= demean_vector!(Z[:,j], factors; maxiter = maxiter, tol = tol)
-				push!(iterationsv, iterations)
-				push!(convergedv, converged)
+				(Z, iterations, converged) = demean!(Z, factors; maxiter = maxiter, tol = tol)
+				iterationsv = vcat(iterationsv, iterations)
+				iterationsv = vcat(convergedv, converged)
 			end
 		end
 	end

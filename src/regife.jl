@@ -84,9 +84,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         broadcast!(*, X, X, sqrtw)
     end
     if has_absorb
-        for j in 1:size(X, 2)
-            (X[:,j], iterations, converged) = demean_vector!(X[:,j], factors)
-        end
+         (X, iterations, converged) = demean!(X, factors; maxiter = maxiter, tol = tol)
     end
     
 
@@ -102,7 +100,7 @@ function reg(f::Formula, df::AbstractDataFrame, m::InteractiveFixedEffectModel; 
         broadcast!(*, y, y, sqrtw)
     end
     if has_absorb
-        (y, iterations, converged) = demean_vector!(y, factors)
+        (y, iterations, converged) = demean!(y, factors)
     end
 
 
@@ -177,10 +175,14 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
             iterations = iter
             break
         end
-        factors = scale(factors, length(time.pool))
-        loadings = scale!(res_matrix * factors, 1/length(id.pool))
     end
-    InteractiveFixedEffectResult(id, time, b, loadings, factors, iterations, converged)
+    newfactors = Array(Float64, (length(time.pool), d))
+    for j in 1:d
+        newfactors[:, j] = factors[:, d + 1 - j]
+    end
+    scale!(newfactors, sqrt(length(time.pool)))
+    loadings = scale!(res_matrix * newfactors, 1/length(time.pool))
+    InteractiveFixedEffectResult(id, time, b, loadings, newfactors, iterations, converged)
 end
 
 
