@@ -149,7 +149,6 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
     variance = Array(Float64, (length(time.pool), length(time.pool)))
     converged = false
     iterations = maxiter
-    tolerance = tol * length(b)
     iter = 0
     while iter < maxiter
         iter += 1
@@ -169,8 +168,8 @@ function estimate_factor_model(X::Matrix{Float64}, M::Matrix{Float64}, y::Vector
         # new_res_matrix -> res_vector
         fill_vector!(res_vector, y, new_res_matrix, id.refs, time.refs)
         new_b = M * res_vector
-        error = euclidean(new_b, b)
-        if error < tolerance 
+        error = chebyshev(new_b, b)
+        if error < tol 
             converged = true
             iterations = iter
             break

@@ -6,7 +6,7 @@ module FixedEffectModels
 ##
 ##############################################################################
 import Distributions: TDist, ccdf, FDist, Chisq
-import Distances: sqeuclidean, euclidean
+import Distances: chebyshev
 import DataArrays: RefArray, PooledDataArray, DataArray, DataVector, compact, NAtype
 import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable

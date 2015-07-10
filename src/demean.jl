@@ -141,7 +141,6 @@ function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::
 		iterations = 1
 		maxiter = 1
 	end
-	tolerance = tol * length(x)
 	delta = 1.0
 	olx = similar(x)
 	for iter in 1:maxiter
@@ -153,8 +152,8 @@ function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::
 			fill!(mean, zero(Float64))
 			demean_factor!(x, fe, mean)
 		end
-		delta = euclidean(x, olx)
-		if delta < tolerance
+		delta = chebyshev(x, olx)
+		if delta < tol
 			converged = true
 			iterations = iter
 			break
