@@ -8,14 +8,14 @@
 
 abstract AbstractFixedEffect
 
-immutable type FixedEffectIntercept{R} <: AbstractFixedEffect
+type FixedEffectIntercept{R} <: AbstractFixedEffect
 	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataArray
 	w::Vector{Float64}     # scale
 	scale::Vector{Float64} # 1/(sum of scale) within each group
 	name::Symbol           # Name of variable in the original dataframe
 end
 
-immutable type FixedEffectSlope{R} <: AbstractFixedEffect
+type FixedEffectSlope{R} <: AbstractFixedEffect
 	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataArray
 	w::Vector{Float64}     # weights
 	scale::Vector{Float64} # 1/(sum of weights * x) for each group

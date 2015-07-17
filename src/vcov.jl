@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-immutable type VcovData{N} 
+type VcovData{N} 
 	invcrossmatrix::Matrix{Float64}   # (X'X)^{-1} in the simplest case 
 	regressors::Matrix{Float64}       # X
 	residuals::Array{Float64, N}      # vector or matrix of residuals (matrix in the case of IV, residuals of Xendo on (Z, Xexo))
@@ -46,8 +46,8 @@ abstract AbstractVcovMethodData
 # simple standard errors
 #
 
-immutable type VcovSimple <: AbstractVcovMethod end
-immutable type VcovSimpleData <: AbstractVcovMethodData end
+type VcovSimple <: AbstractVcovMethod end
+type VcovSimpleData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovSimple, df::AbstractDataFrame) = VcovSimpleData()
 function vcov!(v::VcovSimpleData, x::VcovData)
  	scale!(x.invcrossmatrix, abs2(norm(x.residuals, 2)) /  x.df_residual)
@@ -61,8 +61,8 @@ end
 # White standard errors
 #
 
-immutable type VcovWhite <: AbstractVcovMethod end
-immutable type VcovWhiteData <: AbstractVcovMethodData end
+type VcovWhite <: AbstractVcovMethod end
+type VcovWhiteData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovWhite, df::AbstractDataFrame) = VcovWhiteData()
 function vcov!(v::VcovWhiteData, x::VcovData) 
 	S = shat!(v, x)
@@ -110,13 +110,13 @@ end
 # Clustered standard errors
 #
 
-immutable type VcovCluster  <: AbstractVcovMethod
+type VcovCluster  <: AbstractVcovMethod
 	clusters::Vector{Symbol}
 end
 VcovCluster(x::Symbol) = VcovCluster([x])
 allvars(x::VcovCluster) = x.clusters
 
-immutable type VcovClusterData <: AbstractVcovMethodData
+type VcovClusterData <: AbstractVcovMethodData
 	clusters::DataFrame
 	size::Dict{Symbol, Int64}
 end
