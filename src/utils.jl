@@ -1,7 +1,7 @@
 
 ##############################################################################
 ##
-## group transform multiple PooledDataArray into one
+## group transform multiple PooledDataVector into one
 ## Output is a PooledArray where pool is type Int64, equal to ranking of group
 ## NA in some row mean result has NA on this row
 ## 
@@ -24,10 +24,10 @@ function factorize!(refs::Array)
 	@inbounds @simd for i in 1:length(refs)
 		 refs[i] = dict[refs[i]]
 	end
-	PooledDataArray(RefArray(refs), [1:(length(uu)-has_na);])
+	PooledDataArray(RefArray(refs), collect(1:(length(uu)-has_na)))
 end
 
-function pool_combine!{T}(x::Array{Uint64, T}, dv::PooledDataArray, ngroups::Integer)
+function pool_combine!{T}(x::Array{Uint64, T}, dv::PooledDataVector, ngroups::Integer)
 	@inbounds for i in 1:length(x)
 	    # if previous one is NA or this one is NA, set to NA
 	    x[i] = (dv.refs[i] == 0 || x[i] == zero(Uint64)) ? zero(Uint64) : x[i] + (dv.refs[i] - 1) * ngroups
@@ -39,18 +39,18 @@ end
 
 function group(x::AbstractVector) 
 	v = PooledDataArray(x)
-	PooledDataArray(RefArray(v.refs), [1:length(v.pool);])
+	PooledDataArray(RefArray(v.refs), collect(1:length(v.pool)))
 end
 # faster specialization
-function group(x::PooledDataArray)
-	PooledDataArray(RefArray(copy(x.refs)), [1:length(x.pool);])
+function group(x::PooledDataVector)
+	PooledDataArray(RefArray(copy(x.refs)), collect(1:length(x.pool)))
 end
 function group(df::AbstractDataFrame) 
 	ncols = size(df, 2)
 	v = df[1]
 	ncols = size(df, 2)
 	ncols == 1 && return(group(v))
-	if typeof(v) <: PooledDataArray
+	if typeof(v) <: PooledDataVector
 		x = convert(Array{Uint64}, v.refs)
 	else
 		v = PooledDataArray(v, v.na, Uint64)
@@ -209,7 +209,7 @@ allvars(v::Any) = Array(Symbol, 0)
 
 # used when removing certain rows in a dataset
 # NA always removed
-function dropUnusedLevels!(f::PooledDataArray)
+function dropUnusedLevels!(f::PooledDataVector)
 	uu = unique(f.refs)
 	length(uu) == length(f.pool) && return f
 	sort!(uu)
@@ -222,6 +222,6 @@ function dropUnusedLevels!(f::PooledDataArray)
 	f
 end
 
-dropUnusedLevels!(f::DataArray) = f
+dropUnusedLevels!(f::DataVector) = f
 
 

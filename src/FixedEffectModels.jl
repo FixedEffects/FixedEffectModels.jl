@@ -7,7 +7,7 @@ module FixedEffectModels
 ##############################################################################
 import Distributions: TDist, ccdf, FDist, Chisq
 import Distances: chebyshev
-import DataArrays: RefArray, PooledDataArray, DataArray, DataVector, compact, NAtype
+import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable
 import GLM: df_residual, LinearModel
@@ -21,18 +21,22 @@ import GLM: df_residual, LinearModel
 export group, 
 reg,
 partial_out,
+demean!,
+allvars,
+FixedEffect,
+
 RegressionResult,
 
-allvars,
+AbstractFixedEffect,
+FixedEffectIntercept, 
+FixedEffectSlope,
+
 AbstractVcov, 
 VcovSimple, 
 VcovWhite, 
 VcovHac, 
 VcovCluster,
-VcovData,
-
-InteractiveFixedEffectModel,
-InteractiveFixedEffectResult
+VcovData
 ##############################################################################
 ##
 ## Load files
@@ -44,6 +48,5 @@ include("vcov.jl")
 include("RegressionResult.jl")
 include("reg.jl")
 include("partial_out.jl")
-include("regife.jl")
 
 end  # module FixedEffectModels

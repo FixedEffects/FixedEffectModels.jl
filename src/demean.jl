@@ -9,14 +9,14 @@
 abstract AbstractFixedEffect
 
 type FixedEffectIntercept{R} <: AbstractFixedEffect
-	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataArray
+	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataVector
 	w::Vector{Float64}     # scale
 	scale::Vector{Float64} # 1/(sum of scale) within each group
 	name::Symbol           # Name of variable in the original dataframe
 end
 
 type FixedEffectSlope{R} <: AbstractFixedEffect
-	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataArray
+	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataVector
 	w::Vector{Float64}     # weights
 	scale::Vector{Float64} # 1/(sum of weights * x) for each group
 	x::Vector{Float64}     # the continuous interaction 
@@ -25,7 +25,7 @@ type FixedEffectSlope{R} <: AbstractFixedEffect
 end
 
 
-function FixedEffectIntercept(f::PooledDataArray, w::Vector{Float64}, name::Symbol)
+function FixedEffectIntercept(f::PooledDataVector, w::Vector{Float64}, name::Symbol)
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
 	@inbounds @simd  for i in 1:length(refs)
@@ -37,7 +37,7 @@ function FixedEffectIntercept(f::PooledDataArray, w::Vector{Float64}, name::Symb
 	FixedEffectIntercept(refs, w, scale, name)
 end
 
-function FixedEffectSlope(f::PooledDataArray, w::Vector{Float64}, x::Vector{Float64}, name::Symbol, xname::Symbol)
+function FixedEffectSlope(f::PooledDataVector, w::Vector{Float64}, x::Vector{Float64}, name::Symbol, xname::Symbol)
 	scale = fill(zero(Float64), length(f.pool))
 	refs = f.refs
 	@inbounds @simd  for i in 1:length(refs)
@@ -50,16 +50,16 @@ function FixedEffectSlope(f::PooledDataArray, w::Vector{Float64}, x::Vector{Floa
 end
 
 
-function construct_fe(df::AbstractDataFrame, a::Expr, w::Vector{Float64})
+function FixedEffect(df::AbstractDataFrame, a::Expr, w::Vector{Float64})
 	if a.args[1] == :&
-		if (typeof(df[a.args[2]]) <: PooledDataArray) & !(typeof(df[a.args[3]]) <: PooledDataArray)
+		if (typeof(df[a.args[2]]) <: PooledDataVector) & !(typeof(df[a.args[3]]) <: PooledDataVector)
 			f = df[a.args[2]]
 			x = convert(Vector{Float64}, df[a.args[3]])
-			return(FixedEffectSlope(f, w, x, a.args[2], a.args[3]))
-		elseif (typeof(df[a.args[3]]) <: PooledDataArray) & !(typeof(df[a.args[2]]) <: PooledDataArray)
+			return FixedEffectSlope(f, w, x, a.args[2], a.args[3])
+		elseif (typeof(df[a.args[3]]) <: PooledDataVector) & !(typeof(df[a.args[2]]) <: PooledDataVector)
 			f = df[a.args[3]]
 			x = convert(Vector{Float64}, df[a.args[2]])
-			return(FixedEffectSlope(f, w, x, a.args[3], a.args[2]))
+			return FixedEffectSlope(f, w, x, a.args[3], a.args[2])
 		else
 			error("& is not of the form factor & nonfactor")
 		end
@@ -68,18 +68,18 @@ function construct_fe(df::AbstractDataFrame, a::Expr, w::Vector{Float64})
 	end
 end
 
-function construct_fe(df::AbstractDataFrame, a::Symbol, w::Vector{Float64})
-	if typeof(df[a]) <: PooledDataArray
-		return(FixedEffectIntercept(df[a], w, a))
+function FixedEffect(df::AbstractDataFrame, a::Symbol, w::Vector{Float64})
+	if typeof(df[a]) <: PooledDataVector
+		return FixedEffectIntercept(df[a], w, a)
 	else
 		error("$(a) is not a pooled data array")
 	end
 end
 
-function construct_fe(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
+function FixedEffect(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
 	factors = AbstractFixedEffect[]
 	for a in v
-		push!(factors, construct_fe(df, a, w))
+		push!(factors, FixedEffect(df, a, w))
 	end
 	# in case where only interacted fixed effect, add constant
 	if all(map(z -> typeof(z) <: FixedEffectSlope, factors))
@@ -128,7 +128,7 @@ function demean_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean::Vector
 	end
 end
 
-function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
+function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
 	# allocate array of means for each factor
 	dict = Dict{AbstractFixedEffect, Vector{Float64}}()
 	for fe in fes
@@ -162,20 +162,19 @@ function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::
 	return(x, converged, iterations)
 end
 
-function demean!(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
-	demean(convert(Vector{Float64}, x), fes, maxiter = maxiter, tol = tol)
-end
 
-
-
-function demean!(X::Matrix{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Integer = 1000, tol::FloatingPoint = 1e-8)
+function demean!(X::Matrix{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
 	convergedv = Bool[]
 	iterationsv = Bool[]
 	for j in 1:size(X, 2)
-		(X[:,j], iterations, converged) = demean!(X[:,j], fes; maxiter = maxiter, tol = tol)
+		(X[:,j], iterations, converged) = demean!(X[:,j], fes, maxiter = maxiter, tol = tol)
 		push!(iterationsv, iterations)
 		push!(convergedv, converged)
 	end
 	return(X, convergedv, iterationsv)
 end
 
+
+function demean(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
+	demean!(convert(Vector{Float64}, x), fes, maxiter = maxiter, tol = tol)
+end

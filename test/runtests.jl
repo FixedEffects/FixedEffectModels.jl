@@ -3,8 +3,8 @@ using FixedEffectModels
 tests = ["reg", 
 		 "RegressionResult", 
 		 "partial_out", 
-		 "utils", 
-		 "regife"]
+		 "utils"
+		 ]
 
 println("Running tests:")
 

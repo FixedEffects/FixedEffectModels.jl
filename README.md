@@ -143,13 +143,6 @@ reg(Sales ~ NDI, df, VcovCluster([:State]))
 reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
-#### Interactive Fixed Effect Models
-Estimate models with interactive fixed effects (Bai 2009) by constructing an object of type `InteractiveFixedEffect`
-
-```julia
-reg(Sales ~ Price, df, InteractiveFixedEffectModel(:pState, :pYear, 2))
-reg(Sales ~ Price |> pState + pYear, df, InteractiveFixedEffectModel(:pState, :pYear, 2))
-```
 
 
 

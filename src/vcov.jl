@@ -127,7 +127,7 @@ function VcovMethodData(v::VcovCluster, df::AbstractDataFrame)
 	vsize = Dict{Symbol, Int64}()
 	for c in v.clusters
 		p = df[c]
-		typeof(p) <: PooledDataArray || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataArray.")
+		typeof(p) <: PooledDataVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataVector.")
 		vclusters[c] = p
 		# may be subset / NA
 		vsize[c] = length(unique(p.refs))
@@ -169,7 +169,7 @@ end
 
 
 
-function helper_cluster(Xu::Matrix{Float64}, f::PooledDataArray, fsize::Int64)
+function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int64)
 	refs = f.refs
 	if fsize == size(Xu, 1)
 		# if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
@@ -220,7 +220,7 @@ function shat!(v::VcovClusterData, x::VcovData{2})
 	return(S)
 end
 
-function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataArray, fsize::Int64)
+function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int64)
 	refs = f.refs
 	dim = size(X, 2) * size(res, 2)
 	if fsize == size(X, 1)

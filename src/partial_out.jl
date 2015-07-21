@@ -36,7 +36,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 	end
 	# Build factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = construct_fe(subdf, absorb_terms.terms, sqrtw)
+		factors = FixedEffect(subdf, absorb_terms.terms, sqrtw)
 	end
 
 

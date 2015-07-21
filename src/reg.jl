@@ -1,4 +1,4 @@
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Integer = 10000, tol::FloatingPoint = 1e-8)
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int = 10000, tol::Float64 = 1e-8)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
@@ -74,7 +74,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = construct_fe(subdf, absorb_terms.terms, sqrtw)
+		factors = FixedEffect(subdf, absorb_terms.terms, sqrtw)
 	end
 
 	# Compute data for std errors
@@ -104,7 +104,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		broadcast!(*, y, sqrtw, y)
 	end
 	if has_absorb
-		(y, iterations, converged) = demean!(y, factors; maxiter = maxiter::Integer, tol = tol::FloatingPoint)
+		(y, iterations, converged) = demean!(y, factors; maxiter = maxiter, tol = tol)
 		push!(iterationsv, iterations)
 		push!(convergedv, converged)
 	end
