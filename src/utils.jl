@@ -88,7 +88,7 @@ function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept
 	end
 	(ess, tss)
 end
-function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, w::Vector{Float64}, sqrtw::Vector{Float64})
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
 	ess = abs2(norm(residuals))
 	if hasintercept
 		m = (mean(y) / sum(sqrtw) * length(residuals))::Float64

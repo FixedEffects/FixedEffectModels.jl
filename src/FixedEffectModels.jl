@@ -30,11 +30,11 @@ RegressionResult,
 AbstractFixedEffect,
 FixedEffectIntercept, 
 FixedEffectSlope,
-
-AbstractVcov, 
+VcovData,
+AbstractVcovMethod,
+AbstractVcovMethodData, 
 VcovSimple, 
 VcovWhite, 
-VcovHac, 
 VcovCluster,
 VcovData
 ##############################################################################

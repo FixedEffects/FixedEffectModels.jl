@@ -130,12 +130,12 @@ function show(io::IO, ct::CoefTable2)
     str = [sprint(showcompact,mat[i,j]) for i in 1:nr, j in 1:nc]
     if pvc != 0                         # format the p-values column
         for i in 1:nr
-            str[i,pvc] = format_scientific(mat[i,pvc])
+            str[i, pvc] = format_scientific(mat[i, pvc])
         end
     end
     for j in 1:nc
         for i in 1:nr
-            lij = length(str[i,j])
+            lij = length(str[i, j])
             if lij > widths[j]
                 widths[j] = lij
             end

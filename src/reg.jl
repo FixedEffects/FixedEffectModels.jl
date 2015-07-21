@@ -172,7 +172,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute degrees of freedom
 	df_intercept = 0
-	if has_absorb | rt.intercept
+	if has_absorb || rt.intercept
 		df_intercept = 1
 	end
 	df_absorb = 0
@@ -189,7 +189,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	if weight == nothing
 		(ess, tss) = compute_ss(residuals, y, rt.intercept)
 	else
-		(ess, tss) = compute_ss(residuals, y, rt.intercept, w, sqrtw)
+		(ess, tss) = compute_ss(residuals, y, rt.intercept, sqrtw)
 	end
 	r2 = 1 - ess / tss 
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 

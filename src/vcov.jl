@@ -286,9 +286,9 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 	Gmatrix = inv(crossx[:L])
 	theta = A_mul_Bt(At_mul_B(Fmatrix, Pi),  Gmatrix)
 
-	svd = svdfact(theta, thin = false) 
-	u = svd.U
-	vt = svd.Vt
+	svddecomposition = svdfact(theta, thin = false) 
+	u = svddecomposition.U
+	vt = svddecomposition.Vt
 
 	# compute lambda
 	if K == 1

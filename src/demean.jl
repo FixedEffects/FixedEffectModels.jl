@@ -52,11 +52,11 @@ end
 
 function FixedEffect(df::AbstractDataFrame, a::Expr, w::Vector{Float64})
 	if a.args[1] == :&
-		if (typeof(df[a.args[2]]) <: PooledDataVector) & !(typeof(df[a.args[3]]) <: PooledDataVector)
+		if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
 			f = df[a.args[2]]
 			x = convert(Vector{Float64}, df[a.args[3]])
 			return FixedEffectSlope(f, w, x, a.args[2], a.args[3])
-		elseif (typeof(df[a.args[3]]) <: PooledDataVector) & !(typeof(df[a.args[2]]) <: PooledDataVector)
+		elseif (typeof(df[a.args[3]]) <: PooledDataVector) && !(typeof(df[a.args[2]]) <: PooledDataVector)
 			f = df[a.args[3]]
 			x = convert(Vector{Float64}, df[a.args[2]])
 			return FixedEffectSlope(f, w, x, a.args[3], a.args[2])
@@ -97,34 +97,34 @@ end
 
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
-function demean_factor!(ans::Vector{Float64}, fe::FixedEffectIntercept, mean::Vector{Float64})
+function demean_factor!(ans::Vector{Float64}, fe::FixedEffectIntercept, means::Vector{Float64})
 	scale = fe.scale
 	refs = fe.refs
 	w = fe.w
 	@inbounds @simd  for i in 1:length(ans)
-		 mean[refs[i]] += ans[i] * w[i]
+		 means[refs[i]] += ans[i] * w[i]
 	end
 	@inbounds @simd  for i in 1:length(scale)
-		 mean[i] *= scale[i] 
+		 means[i] *= scale[i] 
 	end
 	@inbounds @simd  for i in 1:length(ans)
-		 ans[i] -= mean[refs[i]] * w[i]
+		 ans[i] -= means[refs[i]] * w[i]
 	end
 end
 
-function demean_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, mean::Vector{Float64})
+function demean_factor!(ans::Vector{Float64}, fe::FixedEffectSlope, means::Vector{Float64})
 	scale = fe.scale
 	refs = fe.refs
 	x = fe.x
 	w = fe.w
 	@inbounds @simd  for i in 1:length(ans)
-		 mean[refs[i]] += ans[i] * x[i] * w[i]
+		 means[refs[i]] += ans[i] * x[i] * w[i]
 	end
 	@inbounds @simd  for i in 1:length(scale)
-		 mean[i] *= scale[i] 
+		 means[i] *= scale[i] 
 	end
 	@inbounds @simd  for i in 1:length(ans)
-		 ans[i] -= mean[refs[i]] * x[i] * w[i]
+		 ans[i] -= means[refs[i]] * x[i] * w[i]
 	end
 end
 
@@ -148,9 +148,9 @@ function demean!(x::Vector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::
 			olx[i] = x[i]
 		end
 		for fe in fes
-			mean = dict[fe]
-			fill!(mean, zero(Float64))
-			demean_factor!(x, fe, mean)
+			means = dict[fe]
+			fill!(means, zero(Float64))
+			demean_factor!(x, fe, means)
 		end
 		delta = chebyshev(x, olx)
 		if delta < tol
