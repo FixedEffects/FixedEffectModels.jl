@@ -32,10 +32,6 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	# instrument_terms is Terms(nothing ~ instruments)
 	# absorb_terms is Terms(nothing ~ absorbvars)
 
-	# remove intercept if high dimensional categorical variables
-	if has_absorb
-		rt.intercept = false
-	end
 
 	# create a dataframe without missing values & negative weights
 	vars = allvars(rf)
@@ -74,8 +70,13 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = FixedEffect(subdf, absorb_terms.terms, sqrtw)
+		factors = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+		# in case some FixedEffect is aFixedEffectIntercept, remove the intercept
+		if any([typeof(f) <: FixedEffectIntercept for f in factors]) 
+			rt.intercept = false
+		end
 	end
+
 
 	# Compute data for std errors
 	vcov_method_data = VcovMethodData(vcov_method, subdf)

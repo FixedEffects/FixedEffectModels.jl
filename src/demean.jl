@@ -76,17 +76,7 @@ function FixedEffect(df::AbstractDataFrame, a::Symbol, w::Vector{Float64})
 	end
 end
 
-function FixedEffect(df::AbstractDataFrame, v::Vector, w::Vector{Float64})
-	factors = AbstractFixedEffect[]
-	for a in v
-		push!(factors, FixedEffect(df, a, w))
-	end
-	# in case where only interacted fixed effect, add constant
-	if all(map(z -> typeof(z) <: FixedEffectSlope, factors))
-		push!(factors, FixedEffectIntercept(PooledDataArray(fill(1, size(df, 1))), w, :cons))
-	end
-	return(factors)
-end
+
 
 
 ##############################################################################

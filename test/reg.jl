@@ -19,8 +19,8 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq_eps coef(reg(Sales ~ Price |> pState, df))  [-0.20984] 1e-4
 @test_approx_eq_eps coef(reg(Sales ~ Price |> pState + pYear, df))   [-1.08471] 1e-4
 @test_approx_eq_eps coef(reg(Sales ~ Price |> pState + pState&Year , df))    [-0.53470] 1e-4
-@test_approx_eq_eps  coef(reg(Sales ~ Price |> pState&Year, df))  [-0.58043] 1e-4
-@test_approx_eq_eps  coef(reg(Sales ~ Price |> Year&pState , df))  [-0.58043] 1e-4
+@test_approx_eq_eps  coef(reg(Sales ~ Price |> pState&Year, df))  [13.993028174622104,-0.5804357763515606] 1e-4
+@test_approx_eq_eps  coef(reg(Sales ~ Price |> Year&pState , df))  [13.993028174622104,-0.5804357763515606] 1e-4
 
 # absorb + weights
 @test_approx_eq_eps coef(reg(Sales ~ Price |> pState, df, weight = :Pop)) [-0.21741] 1e-4

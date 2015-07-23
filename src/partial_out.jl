@@ -11,6 +11,11 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 	else
 		absorb_vars = Symbol[]
 	end
+	
+	xf = Formula(nothing, rf.rhs)
+	xt = Terms(xf)
+
+
 	# create a dataframe without missing values & negative weights
 	vars = allvars(rf)
 	all_vars = vcat(vars, absorb_vars)
@@ -34,9 +39,15 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 		w = convert(Vector{Float64}, subdf[weight])
 		sqrtw = sqrt(w)
 	end
+
+
 	# Build factors, an array of AbtractFixedEffects
 	if has_absorb
-		factors = FixedEffect(subdf, absorb_terms.terms, sqrtw)
+		factors = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+		# in case there is any intercept fe, remove the intercept
+		if any([typeof(f) <: FixedEffectIntercept for f in factors]) 
+			xt.intercept = false
+		end
 	end
 
 
@@ -58,11 +69,6 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 
 
 	# Compute demeaned X
-	xf = Formula(nothing, rf.rhs)
-	xt = Terms(xf)
-	if has_absorb
-		xt.intercept = false
-	end
 	xvars = allvars(xf)
 	if length(xvars) > 0 || xt.intercept
 		if length(xvars) > 0 
