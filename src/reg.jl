@@ -150,7 +150,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	if has_instrument
 		newZ = hcat(Xexo, Z)
 		crossz = cholfact!(At_mul_B(newZ, newZ))
-		Pi = crossz \ (At_mul_B(newZ, Xendo))
+		Pi = crossz \ At_mul_B(newZ, Xendo)
 		Xhat = hcat(Xexo, newZ * Pi)
 
 		# prepare residuals used for first stage F statistic
