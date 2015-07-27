@@ -30,7 +30,14 @@ FixedEffect, # a function
 FixedEffectIntercept, 
 FixedEffectSlope,
 
+AbstractRegressionResult,
+title,
+top,
 RegressionResult,
+RegressionResultIV,
+RegressionResultFE,
+RegressionResultFEIV,
+
 
 AbstractVcovMethod,
 AbstractVcovMethodData, 

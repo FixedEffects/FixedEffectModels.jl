@@ -53,8 +53,14 @@ end
 
 
 # Display Results
-title(x::AbstractRegressionResult) = error("function title has no general method for AbstractRegressionResult")
-top(x::AbstractRegressionResult) = top("function top has no general method for AbstractRegressionResult")
+function title(x::AbstractRegressionResult) 
+    error("function title has no general method for AbstractRegressionResult")
+end
+
+function top(x::AbstractRegressionResult)
+    error("function top has no general method for AbstractRegressionResult")
+end
+
 function coeftable(x::AbstractRegressionResult)
     ctitle = title(x)
     ctop = top(x)
