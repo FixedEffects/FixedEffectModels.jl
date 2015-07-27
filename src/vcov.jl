@@ -279,12 +279,12 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 	K = size(X, 2) 
 	L = size(Z, 2) 
 
-	crossz = cholfact!(At_mul_B(Z, Z), :L)
+	crossz = cholfact!(At_mul_B(Z, Z), :U)
 	crossx = cholfact!(At_mul_B(X, X), :U)
 
-	Fmatrix = crossz[:L] 
+	Fmatrix = crossz[:U]
 	Gmatrix = inv(crossx[:U])
-	theta = At_mul_B(Fmatrix, Pi) *  Gmatrix
+	theta = Fmatrix * Pi * Gmatrix
 
 	svddecomposition = svdfact(theta, thin = false) 
 	u = svddecomposition.U
