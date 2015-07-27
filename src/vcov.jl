@@ -280,11 +280,11 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 	L = size(Z, 2) 
 
 	crossz = cholfact!(At_mul_B(Z, Z), :L)
-	crossx = cholfact!(At_mul_B(X, X), :L)
+	crossx = cholfact!(At_mul_B(X, X), :U)
 
 	Fmatrix = crossz[:L] 
-	Gmatrix = inv(crossx[:L])
-	theta = A_mul_Bt(At_mul_B(Fmatrix, Pi),  Gmatrix)
+	Gmatrix = inv(crossx[:U])
+	theta = At_mul_B(Fmatrix, Pi) *  Gmatrix
 
 	svddecomposition = svdfact(theta, thin = false) 
 	u = svddecomposition.U
@@ -309,7 +309,7 @@ function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64},
 	if typeof(vcov_method_data) == VcovSimpleData
 		vhat= eye(L*K) / size(X, 1)
 	else
-		temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix')
+		temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
 		temp2 = inv(crossz[:L])'
 		temp2 = convert(Matrix{eltype(temp2)}, temp2)
 		k = kron(temp1, temp2)'

@@ -119,7 +119,7 @@ end
 
 function allvars(ex::Expr)
     if ex.head != :call error("Non-call expression encountered") end
-    [[allvars(a) for a in ex.args[2:end]]...]
+    vcat([allvars(a) for a in ex.args[2:end]]...)
 end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
