@@ -23,7 +23,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		all_vars = unique(vcat(all_vars, weight))
 	end
 	if subset != nothing
-		length(subset) == size(df, 1) || error("the number of rows in df is $(size(df, 1)) but the length of subset is $(size(df, 2))")
+		length(subset) == size(df, 1) || error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
 		esample &= convert(BitArray, subset)
 	end
 	subdf = df[esample, all_vars]
