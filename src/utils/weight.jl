@@ -6,7 +6,7 @@
 ##############################################################################
 
 # http://stackoverflow.com/a/30968709/3662288
-immutable type Ones <: AbstractVector{Float64}
+immutable Ones <: AbstractVector{Float64}
 	length::Int
 end
 Base.size(O::Ones) = O.length

@@ -4,9 +4,7 @@
 ## Fe and FixedEffectSlope
 ##
 ##############################################################################
-
-
-abstract AbstractFixedEffect
+abstract AbstractFixedEffect 
 
 type FixedEffectIntercept{R, W <: AbstractVector{Float64}} <: AbstractFixedEffect
 	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataVector
@@ -50,9 +48,6 @@ function FixedEffectSlope{R}(f::PooledDataVector{R}, w::AbstractVector{Float64},
 	end
 	FixedEffectSlope(refs, w, scale, interaction, name, interactionname, id)
 end
-
-
-
 
 function FixedEffect(df::AbstractDataFrame, a::Expr, w::AbstractVector{Float64})
 	if a.args[1] == :&
