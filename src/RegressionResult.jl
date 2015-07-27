@@ -22,15 +22,8 @@ end
 
 # predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = x.formula
-    (rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
-    if has_instrument
-        if typeof(rf.rhs) == Symbol
-            rf.rhs = endo_formula.rhs
-        else        
-            push!(rf.rhs.args, endo_formula.rhs)
-        end
-    end
+    rf = deepcopy(x.formula)
+    secondstage!(rf)
 
     newTerms = remove_response(Terms(rf))
     mf = ModelFrame(newTerms, df)
@@ -39,25 +32,21 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     out = DataArray(Float64, size(df, 1))
     out[mf.msng] = newX * x.coef
 end
+
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = x.formula
-    (rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
-    if has_instrument
-        if typeof(rf.rhs) == Symbol
-            rf.rhs = endo_formula.rhs
-        else        
-            push!(rf.rhs.args, endo_formula.rhs)
-        end
-    end
+    rf = deepcopy(x.formula)
+    secondstage!(rf)
 
     mf = ModelFrame(Terms(rf), df)
     newX = ModelMatrix(mf).m 
     out = DataArray(Float64, size(df, 1))
     out[mf.msng] = model_response(mf) -  newX * x.coef
 end
+
 function model_response(x::AbstractRegressionResult, df::AbstractDataFrame)
-    f = x.formula
-    mf = ModelFrame(Terms(f), df)
+    rf = deepcopy(x.formula)
+    secondstage!(rf)
+    mf = ModelFrame(Terms(rf), df)
     model_response(mf)
 end
 
@@ -191,6 +180,7 @@ type RegressionResult <: AbstractRegressionResult
     vcov::Matrix{Float64}   # Covariance matrix
 
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
+    augmentdf::DataFrame
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
@@ -220,6 +210,7 @@ type RegressionResultIV <: AbstractRegressionResult
     vcov::Matrix{Float64}   # Covariance matrix
 
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
+    augmentdf::DataFrame
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
@@ -255,6 +246,7 @@ type RegressionResultFE <: AbstractRegressionResult
     vcov::Matrix{Float64}   # Covariance matrix
 
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
+    augmentdf::DataFrame
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
@@ -271,7 +263,7 @@ type RegressionResultFE <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-predict(x::RegressionResultFE, df::AbstractDataFrame) = error("predict is not defined for fixed effect models (yet)")
+predict(x::RegressionResultFE, df::AbstractDataFrame) = error("predict is not defined for fixed effect models.  Run reg with the the option savefe = true")
 residuals(x::RegressionResultFE, df::AbstractDataFrame) = error("residuals is not defined for fixed effect models. Use the function partial_out")
 title(x::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
@@ -290,6 +282,7 @@ type RegressionResultFEIV <: AbstractRegressionResult
     vcov::Matrix{Float64}   # Covariance matrix
 
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
+    augmentdf::DataFrame
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
@@ -309,7 +302,7 @@ type RegressionResultFEIV <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-predict(x::RegressionResultFEIV, df::AbstractDataFrame) = error("predict is not defined for fixed effect models (yet)")
+predict(x::RegressionResultFEIV, df::AbstractDataFrame) = error("predict is not defined for fixed effect models. Run reg with the the option savefe = true")
 residuals(x::RegressionResultFEIV, df::AbstractDataFrame) = error("residuals is not defined for fixed effect models. Use the function partial_out")
 title(x::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [

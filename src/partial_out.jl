@@ -1,23 +1,20 @@
 
 function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight::Union(Symbol, Nothing) = nothing,  maxiter::Integer = 10000, tol::FloatingPoint = 1e-8)
 
-	rf = deepcopy(f)
 
-	# decompose formula into normal  vs absorbpart
-	(rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
-	if has_absorb
-		absorb_vars = allvars(absorb_formula)
-		absorb_terms = Terms(absorb_formula)
-	else
-		absorb_vars = Symbol[]
+	rf = deepcopy(f)
+	(has_absorb, absorb_formula, absorb_terms, has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
+	if has_iv
+		error("partial_out does not support instrumental variables")
 	end
-	
+	rt = Terms(rf)
+	has_weight = weight != nothing
 	xf = Formula(nothing, rf.rhs)
 	xt = Terms(xf)
 
-
 	# create a dataframe without missing values & negative weights
 	vars = allvars(rf)
+	absorb_vars = allvars(absorb_formula)
 	all_vars = vcat(vars, absorb_vars)
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	esample = complete_cases(df[all_vars])
@@ -32,24 +29,22 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 	end
 
 	# Compute weight vector
-	if weight == nothing
-		w = fill(one(Float64), size(subdf, 1))
-		sqrtw = w
-	else
-		w = convert(Vector{Float64}, subdf[weight])
-		sqrtw = sqrt(w)
-	end
+	sqrtw = get_weight(subdf, weight)
 
+	# initialize iterations & converged
+	iterations = Int[]
+	converged = Bool[]
 
-	# Build factors, an array of AbtractFixedEffects
+	# Build fes, an array of AbtractFixedEffects
 	if has_absorb
-		factors = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+		fes = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
 		# in case there is any intercept fe, remove the intercept
-		if any([typeof(f) <: FixedEffectIntercept for f in factors]) 
+		if any([typeof(f) <: FixedEffectIntercept for f in fes]) 
 			xt.intercept = false
 		end
+	else
+		fes = nothing
 	end
-
 
 	# Compute demeaned Y
 	yf = Formula(nothing, rf.lhs)
@@ -57,16 +52,11 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 	yt.intercept = false
 	mfY = simpleModelFrame(subdf, yt, esample)
 	Y = ModelMatrix(mfY).m
-	if weight != nothing
-		scale!(sqrtw, Y)
-	end
+	broadcast!(*, Y, Y, sqrtw)
 	if add_mean
 		m = mean(Y, 1)
 	end
-	if has_absorb
-		(Y, iterations, converged)= demean!(Y, factors; maxiter = maxiter, tol = tol)
-	end
-
+	demean!(Y, iterations, converged, fes, maxiter = maxiter, tol = tol)
 
 	# Compute demeaned X
 	xvars = allvars(xf)
@@ -77,12 +67,8 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 		else
 			X = fill(one(Float64), (size(subdf, 1), 1))
 		end 	
-		if weight != nothing
-			scale!(sqrtw, X)
-		end
-		if has_absorb
-			(X, iterations, converged)= demean!(X, factors; maxiter = maxiter, tol = tol)
-		end
+		broadcast!(*, X, X, sqrtw)
+		demean!(X, iterations, converged, fes, maxiter = maxiter, tol = tol)
 	end
 	
 	# Compute residuals
@@ -95,9 +81,8 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 		residuals = Y
 	end
 
-	if weight != nothing
-		broadcast!(/, residuals,  residuals, sqrtw)
-	end
+	# rescale residuals
+	broadcast!(/, residuals,  residuals, sqrtw)
 	if add_mean
 		broadcast!(+, residuals, m, residuals)
 	end

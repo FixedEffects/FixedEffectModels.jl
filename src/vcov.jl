@@ -8,8 +8,8 @@ type VcovData{N}
 	invcrossmatrix::Matrix{Float64}   # (X'X)^{-1} in the simplest case 
 	regressors::Matrix{Float64}       # X
 	residuals::Array{Float64, N}      # vector or matrix of residuals (matrix in the case of IV, residuals of Xendo on (Z, Xexo))
-	df_residual::Int64
-	function VcovData(invcrossmatrix::Matrix{Float64}, regressors::Matrix{Float64}, residuals::Array{Float64, N}, 	df_residual::Int64)
+	df_residual::Int
+	function VcovData(invcrossmatrix::Matrix{Float64}, regressors::Matrix{Float64}, residuals::Array{Float64, N}, 	df_residual::Int)
 		size(regressors, 1) == size(residuals, 1) || error("regressors and residuals should have same  number of rows")
 		size(invcrossmatrix, 1) == size(invcrossmatrix, 2) || error("invcrossmatrix is a square matrix")
 		size(invcrossmatrix, 1) == (size(regressors, 2) * size(residuals, 2))  || error("invcrossmatrix should be square matrix of dimension size(regressors, 2) x size(residuals, 2)")
@@ -118,13 +118,13 @@ allvars(x::VcovCluster) = x.clusters
 
 type VcovClusterData <: AbstractVcovMethodData
 	clusters::DataFrame
-	size::Dict{Symbol, Int64}
+	size::Dict{Symbol, Int}
 end
 
 function VcovMethodData(v::VcovCluster, df::AbstractDataFrame) 
 	vclusters = DataFrame(Vector, size(df, 1), length(v.clusters))
 	names!(vclusters, v.clusters)
-	vsize = Dict{Symbol, Int64}()
+	vsize = Dict{Symbol, Int}()
 	for c in v.clusters
 		p = df[c]
 		typeof(p) <: PooledDataVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataVector.")
@@ -169,7 +169,7 @@ end
 
 
 
-function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int64)
+function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
 	refs = f.refs
 	if fsize == size(Xu, 1)
 		# if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
@@ -220,7 +220,7 @@ function shat!(v::VcovClusterData, x::VcovData{2})
 	return(S)
 end
 
-function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int64)
+function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int)
 	refs = f.refs
 	dim = size(X, 2) * size(res, 2)
 	if fsize == size(X, 1)

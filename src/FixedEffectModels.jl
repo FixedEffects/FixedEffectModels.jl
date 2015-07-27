@@ -5,13 +5,12 @@ module FixedEffectModels
 ## Dependencies
 ##
 ##############################################################################
-import Distributions: TDist, ccdf, FDist, Chisq
+import Distributions: TDist, ccdf, FDist, Chisq, AliasTable
 import Distances: chebyshev
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable
 import GLM: df_residual, LinearModel
-
 ##############################################################################
 ##
 ## Exported methods and types 
@@ -22,14 +21,17 @@ export group,
 reg,
 partial_out,
 demean!,
+getfe,
+decompose!,
 allvars,
-FixedEffect,
+
+AbstractFixedEffect,
+FixedEffect, # a function 
+FixedEffectIntercept, 
+FixedEffectSlope,
 
 RegressionResult,
 
-AbstractFixedEffect,
-FixedEffectIntercept, 
-FixedEffectSlope,
 VcovData,
 AbstractVcovMethod,
 AbstractVcovMethodData, 
@@ -42,10 +44,13 @@ VcovData
 ## Load files
 ##
 ##############################################################################
-include("utils.jl")
+include("utils/weight.jl")
+include("utils/group.jl")
+include("utils/formula.jl")
 include("demean.jl")
 include("vcov.jl")
 include("RegressionResult.jl")
+include("getfe.jl")
 include("reg.jl")
 include("partial_out.jl")
 

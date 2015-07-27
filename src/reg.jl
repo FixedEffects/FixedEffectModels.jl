@@ -1,45 +1,24 @@
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int = 10000, tol::Float64 = 1e-8)
+
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int = 10000, tol::Float64 = 1e-8, save = false)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
-	(rf, has_absorb, absorb_formula) = decompose_absorb!(rf)
-	if has_absorb
-		absorb_vars = allvars(absorb_formula)
-		absorb_terms = Terms(absorb_formula)
-		# initialize convergence
-		convergedv = Bool[]
-		iterationsv = Bool[]
-	else
-		absorb_vars = Symbol[]
-	end
-
-	(rf, has_instrument, instrument_formula, endo_formula) = decompose_iv!(rf)
-	if has_instrument
-		instrument_vars = allvars(instrument_formula)
-		instrument_terms = Terms(instrument_formula)
-		instrument_terms.intercept = false
-		endo_vars = allvars(endo_formula)
-		endo_terms = Terms(endo_formula)
-		endo_terms.intercept = false
-	else
-		instrument_vars = Symbol[]
-		endo_vars = Symbol[]
-	end
-
+	(has_absorb, absorb_formula, absorb_terms, has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
 	rt = Terms(rf)
-	# rt is Terms(y ~ exogeneousvars + endoegeneousvars)
-	# endo_terms is Terms(nothing ~ endovars)
-	# instrument_terms is Terms(nothing ~ instruments)
-	# absorb_terms is Terms(nothing ~ absorbvars)
-
+	has_weight = weight != nothing
 
 	# create a dataframe without missing values & negative weights
 	vars = allvars(rf)
+	absorb_vars = allvars(absorb_formula)
+	iv_vars = allvars(iv_formula)
+	endo_vars = allvars(endo_formula)
 	vcov_vars = allvars(vcov_method)
-	all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, instrument_vars)
+
+	# create a dataframe without missing values & negative weights
+	all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
 	all_vars = unique(convert(Vector{Symbol}, all_vars))
 	esample = complete_cases(df[all_vars])
-	if weight != nothing
+	if has_weight
 		esample &= isnaorneg(df[weight])
 		all_vars = unique(vcat(all_vars, weight))
 	end
@@ -47,11 +26,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		length(subset) == size(df, 1) || error("the number of rows in df is $(size(df, 1)) but the length of subset is $(size(df, 2))")
 		esample &= convert(BitArray, subset)
 	end
-	# new dataframe (not subdataframe because issue with sub pooled data array)
 	subdf = df[esample, all_vars]
 	(size(subdf, 1) > 0) || error("sample is empty")
-	#subdf = df[esample, all_vars]
-	main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, instrument_vars)))
+	# remove unusued levels
+	main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
 	for v in main_vars
 		# in case subdataframe, don't construct subdf[v] if you dont need to do it
 		if typeof(df[v]) <: PooledDataArray
@@ -59,40 +37,33 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 	end
 
-	# Compute weight vector
-	if weight == nothing
-		w = fill(one(Float64), size(subdf, 1))
-		sqrtw = w
-	else
-		w = convert(Vector{Float64}, subdf[weight])
-		sqrtw = sqrt(w)
-	end
+	# Compute weight
+	sqrtw = get_weight(subdf, weight)
 
-	# Compute factors, an array of AbtractFixedEffects
+	# Compute fes, an array of AbtractFixedEffects
 	if has_absorb
-		factors = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+		fes = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
 		# in case some FixedEffect is aFixedEffectIntercept, remove the intercept
-		if any([typeof(f) <: FixedEffectIntercept for f in factors]) 
+		if any([typeof(f) <: FixedEffectIntercept for f in fes]) 
 			rt.intercept = false
 		end
+	else
+		fes = nothing
 	end
-
 
 	# Compute data for std errors
 	vcov_method_data = VcovMethodData(vcov_method, subdf)
+
+	# initialize iterations and converged
+	iterations = Int[]
+	converged = Bool[]
 
 	# Compute X
 	mf = simpleModelFrame(subdf, rt, esample)
 	coef_names = coefnames(mf)
 	Xexo = ModelMatrix(mf).m
-	if weight != nothing
-		scale!(sqrtw, Xexo)
-	end
-	if has_absorb
-		(Xexo, iterations, converged) = demean!(Xexo, factors; maxiter = maxiter, tol = tol)
-		iterationsv = vcat(iterationsv, iterations)
-		iterationsv = vcat(convergedv, converged)
-	end
+	broadcast!(*, Xexo, Xexo, sqrtw)
+	demean!(Xexo, iterations, converged, fes; maxiter = maxiter, tol = tol)
 
 	# Compute y
 	py = model_response(mf)[:]
@@ -101,54 +72,33 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	else
 		y = py
 	end
-	if weight != nothing
-		broadcast!(*, y, sqrtw, y)
-	end
-	if has_absorb
-		(y, iterations, converged) = demean!(y, factors; maxiter = maxiter, tol = tol)
-		push!(iterationsv, iterations)
-		push!(convergedv, converged)
-	end
+	broadcast!(*, y, y, sqrtw)
+	demean!(y, iterations, converged, fes; maxiter = maxiter, tol = tol)
 
 	# Compute Xendo and Z
-	if has_instrument
+	if has_iv
 		mf = simpleModelFrame(subdf, endo_terms, esample)
 		coef_names = vcat(coef_names, coefnames(mf))
 		Xendo = ModelMatrix(mf).m
-		if weight != nothing
-			scale!(sqrtw, Xendo)
-		end
-		if has_absorb
-			for j in 1:size(Xendo, 2)
-				(Xendo, iterations, converged)= demean!(Xendo, factors; maxiter = maxiter, tol = tol)
-				iterationsv = vcat(iterationsv, iterations)
-				iterationsv = vcat(convergedv, converged)
-			end
-		end
+		broadcast!(*, Xendo, Xendo, sqrtw)
+		demean!(Xendo, iterations, converged, fes; maxiter = maxiter, tol = tol)
 
-		mf = simpleModelFrame(subdf, instrument_terms, esample)
+
+		mf = simpleModelFrame(subdf, iv_terms, esample)
 		Z = ModelMatrix(mf).m
-		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many instruments as endogeneneous variables")
-		if weight != nothing
-			scale!(sqrtw, Z)
-		end
-		if has_absorb
-			for j in 1:size(Z, 2)
-				(Z, iterations, converged) = demean!(Z, factors; maxiter = maxiter, tol = tol)
-				iterationsv = vcat(iterationsv, iterations)
-				iterationsv = vcat(convergedv, converged)
-			end
-		end
+		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many ivs as endogeneneous variables")
+		broadcast!(*, Z, Z, sqrtw)
+		demean!(Z, iterations, converged, fes; maxiter = maxiter, tol = tol)
 	end
 
-	if has_instrument
+	if has_iv
 		X = hcat(Xexo, Xendo)
 	else
 		X = Xexo
 	end
 
 	# Compute Xhat
-	if has_instrument
+	if has_iv
 		newZ = hcat(Xexo, Z)
 		crossz = cholfact!(At_mul_B(newZ, newZ))
 		Pi = crossz \ At_mul_B(newZ, Xendo)
@@ -179,7 +129,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	df_absorb = 0
 	if has_absorb 
 		## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
-		for fe in factors
+		for fe in fes
 			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .!= zero(Float64))
 		end
 	end
@@ -187,11 +137,8 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	df_residual = size(X, 1) - size(X, 2) - df_absorb 
 
 	# Compute ess, tss, r2, r2 adjusted
-	if weight == nothing
-		(ess, tss) = compute_ss(residuals, y, rt.intercept)
-	else
-		(ess, tss) = compute_ss(residuals, y, rt.intercept, sqrtw)
-	end
+	(ess, tss) = compute_ss(residuals, y, rt.intercept, sqrtw)
+
 	r2 = 1 - ess / tss 
 	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
 
@@ -200,7 +147,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
 	# Compute Fstat
-	coefF = coef
+	coefF = deepcopy(coef)
 	matrix_vcovF = matrix_vcov
 	if rt.intercept
 		coefF = coefF[2:end]
@@ -215,28 +162,79 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
 	end
 
+	# Compute augmentdf
+	augmentdf = DataFrame()
+	if save
+		broadcast!(/, residuals, residuals, sqrtw)
+		if all(esample)
+			augmentdf[:residuals] = residuals
+		else
+			augmentdf[:residuals] =  DataArray(Float64, length(esample))
+			augmentdf[esample, :residuals] = residuals
+		end
+		if has_absorb
+			mf = simpleModelFrame(subdf, rt, esample)
+			oldX = ModelMatrix(mf).m
+			py = model_response(mf)[:]
+			if eltype(py) != Float64
+				y = convert(py, Float64)
+			else
+				y = py
+			end
+			oldresiduals = y - oldX * coef
+			b = oldresiduals - residuals
+			fe = getfe(fes, b)
+			augmentdf = hcat(augmentdf, DataFrame(fes, fe, esample))
+		end
+	end
+
 
 	# iter and convergence
 	if has_absorb
-		iterations = sum(iterationsv)
-		converged = all(convergedv)
+		iterations = sum(iterations)
+		converged = all(converged)
 	end
 
 	# Compute Fstat first stage based on Kleibergen-Paap
-	if has_instrument
+	if has_iv
 		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
 	end
 
 
-
 	# return
-	!has_instrument && !has_absorb && return(RegressionResult(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
-	!has_instrument && has_absorb && return(RegressionResultFE(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p, iterations, converged))
-	has_instrument && !has_absorb && return(RegressionResultIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
-	has_instrument && has_absorb && return(RegressionResultFEIV(coef, matrix_vcov, esample,  coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp, iterations, converged))
+	!has_iv && !has_absorb && return(RegressionResult(coef, matrix_vcov, esample, augmentdf, coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
+	has_iv && !has_absorb && return(RegressionResultIV(coef, matrix_vcov, esample, augmentdf, coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
+	!has_iv && has_absorb && return(RegressionResultFE(coef, matrix_vcov, esample, augmentdf,coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p, iterations, converged))
+	has_iv && has_absorb && return(RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp, iterations, converged))
 end
 
 
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, sqrtw::Ones)
+	ess = abs2(norm(residuals))
+	if hasintercept
+		tss = zero(Float64)
+		m = mean(y)::Float64
+		@inbounds @simd  for i in 1:length(y)
+			tss += abs2((y[i] - m))
+		end
+	else
+		tss = abs2(norm(y))
+	end
+	return (ess, tss)
+end
+function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
+	ess = abs2(norm(residuals))
+	if hasintercept
+		m = (mean(y) / sum(sqrtw) * length(residuals))::Float64
+		tss = zero(Float64)
+		@inbounds @simd  for i in 1:length(y)
+		 tss += abs2(y[i] - sqrtw[i] * m)
+		end
+	else
+		tss = abs2(norm(y))
+	end
+	return (ess, tss)
+end
 
 
 
