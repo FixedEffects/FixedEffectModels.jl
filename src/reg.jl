@@ -183,8 +183,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 			end
 			oldresiduals = y - oldX * coef
 			b = oldresiduals - residuals
-			fe = getfe(fes, b)
-			augmentdf = hcat(augmentdf, DataFrame(fes, fe, esample))
+			augmentdf = hcat(augmentdf, getfe(fes, b, esample))
 		end
 	end
 

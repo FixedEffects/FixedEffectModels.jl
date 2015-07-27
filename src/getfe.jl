@@ -15,7 +15,6 @@ function getfe(fes::Vector{AbstractFixedEffect}, b::Vector{Float64}; maxiter = 1
 	kaczmarz!(fe, b, refs, A, maxiter)
 
 	# rescale fixed effects 
-	# rule: mean within each component is 0 (except for the first one)
 	if length(interceptindex) >= 2
 		components = connectedcomponent(refs, where, interceptindex)
 		rescale!(fe, components, interceptindex)
@@ -24,11 +23,37 @@ function getfe(fes::Vector{AbstractFixedEffect}, b::Vector{Float64}; maxiter = 1
 	return fe
 end
 
+# DataFrame version
+function getfe(x::Union(RegressionResultFE, RegressionResultFEIV))
+	error("Add the original dataframe as a second argument")
+end
+
+function getfe(fes::Vector{AbstractFixedEffect}, b::Vector{Float64}, esample::BitVector ; maxiter = 100_000)
+	fe = getfe(fes, b, maxiter = maxiter)
+
+	# insert fixed effect into dataframe
+	newdf = DataFrame()
+	len = length(esample)
+	for j in 1:length(fes)
+		name = fes[j].id
+		T = eltype(fes[j].refs)
+		refs = fill(zero(T), len)
+		refs[esample] = fes[j].refs
+		newdf[fes[j].id] = PooledDataArray(RefArray(refs), fe[j])
+	end
+	return newdf
+end
+
+
+
 
 ##############################################################################
 ##
-## Initialize
-## 
+## Initialize structures
+## Denote refs(j) the reference vector of the jth factor
+## where[j][i] is a set that stores indices k with refs(j)[k] = i
+## fe[j][i] is a Float64 that stores the fixed effect estimate with refs = i
+## refs[j, i] is a refs(j)[i]
 ##############################################################################
 
 function initialize(fes::Vector{AbstractFixedEffect})
@@ -101,13 +126,8 @@ end
 
 
 function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer)
-	len = length(fe)
-	len_b = length(b)
-	iter = 0
-	x = fill(zero(Int), len_b)
-
-	# precompute norm for probability distribution
-	# precompute invonrm because of 1/norm
+	# precompute norm[i] = sum_j A[j, i]^2 for probability distribution
+	# precompute invnorm = 1/norm[i] because division costly
 	norm = fill(zero(Float64), size(A, 2))
 	invnorm = fill(zero(Float64), size(A, 2))
 	@inbounds for i in 1:size(A, 2)
@@ -118,35 +138,47 @@ function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix
 		norm[i] = out
 		invnorm[i] = 1 / out
 	end
-	dist = AliasTable(norm/sum(norm))
+
+	# sampling distribution 
+	if all([typeof(fe) <: FixedEffectIntercept for f in fe])
+		dist = 1:len_b
+	else
+		# sample with probability ||norm[i]||
+		# does it really accelerate the convergence?
+		dist = AliasTable(norm/sum(norm))
+	end
+
+	permutation = fill(zero(Int), length(b))
+	kaczmarz!(fe, b, refs, A, maxiter, dist, invnorm, permutation)
+	return(fe)
+end
+
+function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64},  maxiter::Integer, dist, invnorm::Vector{Float64}, permutation::Vector{Int})
+	len_fe = length(fe)
+	len_b = length(b)
+	iter = 0
 	while iter < maxiter
 		iter += 1
-		permutation = rand!(dist, x)
-		error = update!(fe, b, refs, A, permutation, invnorm, len)
+		rand!(dist, permutation)
+		error = zero(Float64)
+		@inbounds for i in permutation
+			numerator = b[i]
+			denominator = zero(Float64)
+			for j in 1:len_fe
+				aij = A[j, i]
+				numerator -= fe[j][refs[j, i]] * aij
+			end
+			update = numerator * invnorm[i]
+			for j in 1:len_fe	
+				change = update * A[j, i]
+				fe[j][refs[j, i]] += change
+				error += abs2(change)
+			end
+		end
 		if error < 1e-15 * len_b
 			break
 		end
 	end
-	return(fe)
-end
-
-function update!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64}, permutation::Vector{Int64}, invnorm::Vector{Float64}, len::Int)
-	error = zero(Float64)
-	@inbounds for i in permutation
-		numerator = b[i]
-		denominator = zero(Float64)
-		for j in 1:len
-			aij = A[j, i]
-			numerator -= fe[j][refs[j, i]] * aij
-		end
-		update = numerator * invnorm[i]
-		for j in 1:len		
-			change = update * A[j, i]
-			fe[j][refs[j, i]] += change
-			error += abs2(change)
-		end
-	end
-	return error
 end
 
 
@@ -204,7 +236,8 @@ end
 ##############################################################################
 ##
 ## rescale fixed effect to make solution unique
-##
+## normalization: for each factor except the first one, mean within each component is 0 
+## Unique solution with two components, not really with more
 ###############################################################################
 
 function rescale!(fe::Vector{Vector{Float64}}, components::Vector{Vector{Set{Int}}}, interceptindex)
@@ -231,37 +264,6 @@ function rescale!(fe::Vector{Vector{Float64}}, components::Vector{Vector{Set{Int
 			end
 		end
 	end
-end
-
-
-##############################################################################
-##
-## DataFrame version
-##
-###############################################################################
-
-function getfe(x::Union(RegressionResultFE, RegressionResultFEIV))
-	error("Add the original dataframe as a second argument")
-end
-
-
-
-function getfe(fes::Vector{AbstractFixedEffect}, b::Vector{Float64}, esample::BitVector ; maxiter = 100_000)
-	DataFrame(fes, getfe(fes, b, maxiter = maxiter), esample)
-end
-
-
-function DataFrame(fes::Vector{AbstractFixedEffect}, fe::Vector{Vector{Float64}}, esample::BitVector)
-	newdf = DataFrame()
-	len = length(esample)
-	for j in 1:length(fes)
-		name = fes[j].id
-		T = eltype(fes[j].refs)
-		refs = fill(zero(T), len)
-		refs[esample] = fes[j].refs
-		newdf[fes[j].id] = PooledDataArray(RefArray(refs), fe[j])
-	end
-	return newdf
 end
 
 

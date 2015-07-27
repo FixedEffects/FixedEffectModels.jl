@@ -145,7 +145,7 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
 #### Save
-With the option `save` = true, `reg` also returns a dataframe with the residuals and the eventual fixed effects. The returned dataframe is *aligned with the initial dataframes* (ie with NA for rows non used in the estimation).
+The option `save = true` returns a new dataframe including residuals and the eventual fixed effects. The new dataframe is *aligned with the initial dataframe* (ie with NA for rows non used in the estimation).
 
 Fixed effects are obtained by the Kaczmarz algorithm, according to the following normalization: for each factor except the first one, the sum of fixed effects within each connected component is normalized to zero.
 
