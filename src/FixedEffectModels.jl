@@ -32,13 +32,14 @@ FixedEffectSlope,
 
 RegressionResult,
 
-VcovData,
 AbstractVcovMethod,
 AbstractVcovMethodData, 
+VcovMethodData,
+VcovData,
 VcovSimple, 
 VcovWhite, 
 VcovCluster,
-VcovData
+vcov!
 ##############################################################################
 ##
 ## Load files
@@ -47,6 +48,7 @@ VcovData
 include("utils/weight.jl")
 include("utils/group.jl")
 include("utils/formula.jl")
+include("utils/compute_ss.jl")
 include("demean.jl")
 include("vcov.jl")
 include("RegressionResult.jl")

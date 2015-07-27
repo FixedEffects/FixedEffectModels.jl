@@ -257,6 +257,7 @@ type RegressionResultFE <: AbstractRegressionResult
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
+    r2_within::Float64
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
 
@@ -270,7 +271,7 @@ top(x::RegressionResultFE) = [
             "Number of obs" sprint(showcompact, nobs(x));
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.r2_a);
+            "R2 within" format_scientific(x.r2_within);
             "F-Statistic" sprint(showcompact, x.F);
             "p-value" format_scientific(x.p);
             "Iterations" sprint(showcompact, x.iterations);
@@ -293,6 +294,7 @@ type RegressionResultFEIV <: AbstractRegressionResult
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
+    r2_within::Float64
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
     
@@ -309,7 +311,7 @@ top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.r2_a);
+            "R2 within" format_scientific(x.r2_within);
             "F Statistic" sprint(showcompact, x.F);
             "p-value" format_scientific(x.p);
             "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);

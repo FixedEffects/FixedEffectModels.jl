@@ -1,5 +1,5 @@
 
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int = 10000, tol::Float64 = 1e-8, save = false)
+function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int = 10000, tol::Float64 = 1e-8, df_add::Int = 0, save = false)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
@@ -41,11 +41,13 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	sqrtw = get_weight(subdf, weight)
 
 	# Compute fes, an array of AbtractFixedEffects
+	has_intercept = rt.intercept
 	if has_absorb
 		fes = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
 		# in case some FixedEffect is aFixedEffectIntercept, remove the intercept
 		if any([typeof(f) <: FixedEffectIntercept for f in fes]) 
 			rt.intercept = false
+			has_intercept = true
 		end
 	else
 		fes = nothing
@@ -72,7 +74,12 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	else
 		y = py
 	end
+	yname = rt.eterms[1]
 	broadcast!(*, y, y, sqrtw)
+	# old y will be used if fixed effects
+	if has_absorb
+		oldy = deepcopy(y)
+	end
 	demean!(y, iterations, converged, fes; maxiter = maxiter, tol = tol)
 
 	# Compute Xendo and Z
@@ -115,7 +122,6 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		Xhat = Xexo
 	end
 
-
 	# Compute coef and residuals
 	crossx = cholfact!(At_mul_B(Xhat, Xhat))
 	coef = crossx \ At_mul_B(Xhat, y)
@@ -134,13 +140,20 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		end
 	end
 	nobs = size(X, 1)
-	df_residual = size(X, 1) - size(X, 2) - df_absorb 
+	df_residual = size(X, 1) - size(X, 2) - df_absorb - df_add
 
 	# Compute ess, tss, r2, r2 adjusted
-	(ess, tss) = compute_ss(residuals, y, rt.intercept, sqrtw)
-
-	r2 = 1 - ess / tss 
-	r2_a = 1 - ess / tss * (nobs - rt.intercept) / df_residual 
+	if has_absorb
+		(ess, tss) = compute_ss(residuals, y, rt.intercept, sqrtw)
+		r2_within = 1 - ess / tss 
+		(ess, tss) = compute_ss(residuals, oldy, has_intercept, sqrtw)
+		r2 = 1 - ess / tss 
+		r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
+	else	
+		(ess, tss) = compute_ss(residuals, y, has_intercept, sqrtw)
+		r2 = 1 - ess / tss 
+		r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
+	end
 
 	# Compute standard error
 	vcov_data = VcovData{1}(inv(crossx), Xhat, residuals, df_residual)
@@ -175,13 +188,8 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		if has_absorb
 			mf = simpleModelFrame(subdf, rt, esample)
 			oldX = ModelMatrix(mf).m
-			py = model_response(mf)[:]
-			if eltype(py) != Float64
-				y = convert(py, Float64)
-			else
-				y = py
-			end
-			oldresiduals = y - oldX * coef
+			broadcast!(*, oldX, oldX, sqrtw)
+			oldresiduals = oldy - oldX * coef
 			b = oldresiduals - residuals
 			augmentdf = hcat(augmentdf, getfe(fes, b, esample))
 		end
@@ -201,38 +209,10 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 
 	# return
-	!has_iv && !has_absorb && return(RegressionResult(coef, matrix_vcov, esample, augmentdf, coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p))
-	has_iv && !has_absorb && return(RegressionResultIV(coef, matrix_vcov, esample, augmentdf, coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
-	!has_iv && has_absorb && return(RegressionResultFE(coef, matrix_vcov, esample, augmentdf,coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F, p, iterations, converged))
-	has_iv && has_absorb && return(RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, coef_names, rt.eterms[1], f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp, iterations, converged))
-end
-
-
-function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, sqrtw::Ones)
-	ess = abs2(norm(residuals))
-	if hasintercept
-		tss = zero(Float64)
-		m = mean(y)::Float64
-		@inbounds @simd  for i in 1:length(y)
-			tss += abs2((y[i] - m))
-		end
-	else
-		tss = abs2(norm(y))
-	end
-	return (ess, tss)
-end
-function compute_ss(residuals::Vector{Float64}, y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
-	ess = abs2(norm(residuals))
-	if hasintercept
-		m = (mean(y) / sum(sqrtw) * length(residuals))::Float64
-		tss = zero(Float64)
-		@inbounds @simd  for i in 1:length(y)
-		 tss += abs2(y[i] - sqrtw[i] * m)
-		end
-	else
-		tss = abs2(norm(y))
-	end
-	return (ess, tss)
+	!has_iv && !has_absorb && return(RegressionResult(coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, F, p))
+	has_iv && !has_absorb && return(RegressionResultIV(coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
+	!has_iv && has_absorb && return(RegressionResultFE(coef, matrix_vcov, esample, augmentdf,coef_names, yname, f, nobs, df_residual, r2, r2_a, r2_within, F, p, iterations, converged))
+	has_iv && has_absorb && return(RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, r2_within, F,p, F_kp, p_kp, iterations, converged))
 end
 
 
