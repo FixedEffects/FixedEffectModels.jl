@@ -1,37 +1,36 @@
 
 ##############################################################################
 ##
-## Fe and FixedEffectSlope
-##
+## getfe computes fixed effect estimates
+## b is (y - x'b) - (\overline{y} - \overline{x}'b)
 ###############################################################################
 
 
-# Starts with X, fixed effect and residuals R
+# Return vector of vector of estimates
 function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}; maxiter = 10_000_000)
 	## initialize data structures
-	(fe, where, refs, A, interceptindex) = initialize(fixedeffects)
+	(fevalues, where, refs, A, interceptindex) = initialize(fixedeffects)
 	
 	# solve Ax = b by kaczmarz algorithm
-	kaczmarz!(fe, b, refs, A, maxiter)
+	kaczmarz!(fevalues, b, refs, A, maxiter, interceptindex)
 
 	# rescale fixed effects 
 	if length(interceptindex) >= 2
 		components = connectedcomponent(refs, where, interceptindex)
-		rescale!(fe, components, interceptindex)
+		rescale!(fevalues, components, interceptindex)
 	end
 
-	return fe
+	return fevalues
 end
 
-# DataFrame version
-function getfe(x::Union(RegressionResultFE, RegressionResultFEIV))
-	error("Add the original dataframe as a second argument")
-end
 
+# Return dataframe of estimates
 function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}, esample::BitVector ; maxiter = 100_000)
-	fe = getfe(fixedeffects, b, maxiter = maxiter)
+	
+	# return vector of vector of estimates
+	fevalues = getfe(fixedeffects, b, maxiter = maxiter)
 
-	# insert fixed effect into dataframe
+	# insert matrix into dataframe
 	newdf = DataFrame()
 	len = length(esample)
 	for j in 1:length(fixedeffects)
@@ -39,7 +38,7 @@ function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}, es
 		T = eltype(fixedeffects[j].refs)
 		refs = fill(zero(T), len)
 		refs[esample] = fixedeffects[j].refs
-		newdf[fixedeffects[j].id] = PooledDataArray(RefArray(refs), fe[j])
+		newdf[fixedeffects[j].id] = PooledDataArray(RefArray(refs), fevalues[j])
 	end
 	return newdf
 end
@@ -52,13 +51,13 @@ end
 ## Initialize structures
 ## Denote refs(j) the reference vector of the jth factor
 ## where[j][i] is a set that stores indices k with refs(j)[k] = i
-## fe[j][i] is a Float64 that stores the fixed effect estimate with refs = i
+## fevalues[j][i] is a Float64 that stores the fixed effect estimate with refs = i
 ## refs[j, i] is a refs(j)[i]
 ##############################################################################
 
 function initialize(fixedeffects::Vector{AbstractFixedEffect})
 	nobs = length(fixedeffects[1].refs)
-	fe = Array(Vector{Float64}, length(fixedeffects)) 
+	fevalues = Array(Vector{Float64}, length(fixedeffects)) 
 	where = Array(Vector{Set{Int}}, length(fixedeffects))
 	refs = fill(zero(Int), length(fixedeffects), nobs)
 	A = fill(one(Float64), length(fixedeffects),  nobs)
@@ -66,23 +65,23 @@ function initialize(fixedeffects::Vector{AbstractFixedEffect})
 	j = 0
 	for f in fixedeffects
 		j += 1
-		initialize!(j, f, fe, where, refs, A)
+		initialize!(j, f, fevalues, where, refs, A)
 		if typeof(f) <: FixedEffectIntercept
 			push!(interceptindex, j)
 		end
 	end
-	return (fe, where, refs, A, interceptindex)
+	return (fevalues, where, refs, A, interceptindex)
 end
 
 function initialize!(
 	j::Int, 
 	f::FixedEffectIntercept,
-	fe::Vector{Vector{Float64}}, 
+	fevalues::Vector{Vector{Float64}}, 
 	where::Vector{Vector{Set{Int}}},
 	refs::Matrix{Int},
 	A::Matrix{Float64}
  	)
-	fe[j] = fill(zero(Float64), length(f.scale))
+	fevalues[j] = fill(zero(Float64), length(f.scale))
 	where[j] = Array(Set{Int}, length(f.scale))
 	# fill would create a reference to the same object
 	for i in 1:length(f.scale)
@@ -98,12 +97,12 @@ end
 function initialize!(
 	j::Int, 
 	f::FixedEffectSlope,
-	fe::Vector{Vector{Float64}}, 
+	fevalues::Vector{Vector{Float64}}, 
 	where::Vector{Vector{Set{Int}}},
 	refs::Matrix{Int},
 	A::Matrix{Float64}
  	)
-	fe[j] = fill(zero(Float64), length(f.scale))
+	fevalues[j] = fill(zero(Float64), length(f.scale))
 	where[j] = Array(Set{Int}, length(f.scale))
 	# fill would create a reference to the same object
 	for i in 1:length(f.scale)
@@ -125,7 +124,7 @@ end
 ##############################################################################
 
 
-function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer)
+function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer, interceptindex::Vector{Int})
 	# precompute norm[i] = sum_j A[j, i]^2 for probability distribution
 	# precompute invnorm = 1/norm[i] because division costly
 	norm = fill(zero(Float64), size(A, 2))
@@ -140,21 +139,22 @@ function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix
 	end
 
 	# sampling distribution 
-	if all([typeof(fe) <: FixedEffectIntercept for f in fe])
-		dist = 1:len_b
+	if length(interceptindex) == length(fevalues)
+		# if all categorical variables are intercept, uniform sampling
+		dist = 1:length(b)
 	else
-		# sample with probability ||norm[i]||
+		# otherwise, sample with probability ||a[i]^2||
 		# does it really accelerate the convergence?
 		dist = AliasTable(norm/sum(norm))
 	end
 
 	permutation = fill(zero(Int), length(b))
-	kaczmarz!(fe, b, refs, A, maxiter, dist, invnorm, permutation)
-	return(fe)
+	kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm, permutation)
+	return fevalues
 end
 
-function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64},  maxiter::Integer, dist, invnorm::Vector{Float64}, permutation::Vector{Int})
-	len_fe = length(fe)
+function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64},  maxiter::Integer, dist, invnorm::Vector{Float64}, permutation::Vector{Int})
+	len_fe = length(fevalues)
 	len_b = length(b)
 	iter = 0
 	while iter < maxiter
@@ -162,16 +162,18 @@ function kaczmarz!(fe::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix
 		rand!(dist, permutation)
 		error = zero(Float64)
 		@inbounds for i in permutation
+			# get the scale
 			numerator = b[i]
-			denominator = zero(Float64)
 			for j in 1:len_fe
 				aij = A[j, i]
-				numerator -= fe[j][refs[j, i]] * aij
+				numerator -= fevalues[j][refs[j, i]] * aij
 			end
 			update = numerator * invnorm[i]
+
+			# update
 			for j in 1:len_fe	
 				change = update * A[j, i]
-				fe[j][refs[j, i]] += change
+				fevalues[j][refs[j, i]] += change
 				error += abs2(change)
 			end
 		end
@@ -186,8 +188,8 @@ end
 ##############################################################################
 ##
 ## Connected component : Breadth-first search
-## components is an array of component (length is number of components)
-## A component is an array of set (length is number of fe)
+## components is an array of component
+## A component is an array of set (length is number of values taken)
 ##
 ##############################################################################
 
@@ -238,9 +240,10 @@ end
 ## rescale fixed effect to make solution unique
 ## normalization: for each factor except the first one, mean within each component is 0 
 ## Unique solution with two components, not really with more
+##
 ###############################################################################
 
-function rescale!(fe::Vector{Vector{Float64}}, components::Vector{Vector{Set{Int}}}, interceptindex)
+function rescale!(fevalues::Vector{Vector{Float64}}, components::Vector{Vector{Set{Int}}}, interceptindex)
 	i1 = interceptindex[1]
 	adj1 = zero(Float64)
 	for component in components
@@ -249,17 +252,17 @@ function rescale!(fe::Vector{Vector{Float64}}, components::Vector{Vector{Set{Int
 			if i != i1
 				adji = zero(Float64)
 				for j in component[i]
-					adji += fe[i][j]
+					adji += fevalues[i][j]
 				end
 				adji /= length(component[i])
 				for j in component[i]
-					fe[i][j] -= adji
+					fevalues[i][j] -= adji
 				end
 				adj1 += adji
 			else
 				# rescale the first fixed effects
 				for j in component[i1]
-					fe[i1][j] += adj1
+					fevalues[i1][j] += adj1
 				end
 			end
 		end
