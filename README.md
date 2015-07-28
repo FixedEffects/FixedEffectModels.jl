@@ -45,6 +45,7 @@ reg(f::Formula,
     vcov_method::AbstractVcovMethod = VcovSimple(); 
     weight::Union(Symbol, Nothing) = nothing, 
     subset::Union(AbstractVector{Bool}, Nothing) = nothing, 
+    save::Bool = true, 
     maxiter::Int64 = 10000, tol::Float64 = 1e-8
     )
 ```
