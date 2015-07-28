@@ -7,9 +7,9 @@
 
 
 # Starts with X, fixed effect and residuals R
-function getfe(fes::Vector{AbstractFixedEffect}, b::Vector{Float64}; maxiter = 10_000_000)
+function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}; maxiter = 10_000_000)
 	## initialize data structures
-	(fe, where, refs, A, interceptindex) = initialize(fes)
+	(fe, where, refs, A, interceptindex) = initialize(fixedeffects)
 	
 	# solve Ax = b by kaczmarz algorithm
 	kaczmarz!(fe, b, refs, A, maxiter)
@@ -28,18 +28,18 @@ function getfe(x::Union(RegressionResultFE, RegressionResultFEIV))
 	error("Add the original dataframe as a second argument")
 end
 
-function getfe(fes::Vector{AbstractFixedEffect}, b::Vector{Float64}, esample::BitVector ; maxiter = 100_000)
-	fe = getfe(fes, b, maxiter = maxiter)
+function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}, esample::BitVector ; maxiter = 100_000)
+	fe = getfe(fixedeffects, b, maxiter = maxiter)
 
 	# insert fixed effect into dataframe
 	newdf = DataFrame()
 	len = length(esample)
-	for j in 1:length(fes)
-		name = fes[j].id
-		T = eltype(fes[j].refs)
+	for j in 1:length(fixedeffects)
+		name = fixedeffects[j].id
+		T = eltype(fixedeffects[j].refs)
 		refs = fill(zero(T), len)
-		refs[esample] = fes[j].refs
-		newdf[fes[j].id] = PooledDataArray(RefArray(refs), fe[j])
+		refs[esample] = fixedeffects[j].refs
+		newdf[fixedeffects[j].id] = PooledDataArray(RefArray(refs), fe[j])
 	end
 	return newdf
 end
@@ -56,15 +56,15 @@ end
 ## refs[j, i] is a refs(j)[i]
 ##############################################################################
 
-function initialize(fes::Vector{AbstractFixedEffect})
-	nobs = length(fes[1].refs)
-	fe = Array(Vector{Float64}, length(fes)) 
-	where = Array(Vector{Set{Int}}, length(fes))
-	refs = fill(zero(Int), length(fes), nobs)
-	A = fill(one(Float64), length(fes),  nobs)
+function initialize(fixedeffects::Vector{AbstractFixedEffect})
+	nobs = length(fixedeffects[1].refs)
+	fe = Array(Vector{Float64}, length(fixedeffects)) 
+	where = Array(Vector{Set{Int}}, length(fixedeffects))
+	refs = fill(zero(Int), length(fixedeffects), nobs)
+	A = fill(one(Float64), length(fixedeffects),  nobs)
 	interceptindex = Int[]
 	j = 0
-	for f in fes
+	for f in fixedeffects
 		j += 1
 		initialize!(j, f, fe, where, refs, A)
 		if typeof(f) <: FixedEffectIntercept

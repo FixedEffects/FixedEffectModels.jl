@@ -35,15 +35,15 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 	iterations = Int[]
 	converged = Bool[]
 
-	# Build fes, an array of AbtractFixedEffects
+	# Build fixedeffects, an array of AbtractFixedEffects
 	if has_absorb
-		fes = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+		fixedeffects = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
 		# in case there is any intercept fe, remove the intercept
-		if any([typeof(f) <: FixedEffectIntercept for f in fes]) 
+		if any([typeof(f) <: FixedEffectIntercept for f in fixedeffects]) 
 			xt.intercept = false
 		end
 	else
-		fes = nothing
+		fixedeffects = nothing
 	end
 
 	# Compute demeaned Y
@@ -56,7 +56,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 	if add_mean
 		m = mean(Y, 1)
 	end
-	demean!(Y, iterations, converged, fes, maxiter = maxiter, tol = tol)
+	demean!(Y, iterations, converged, fixedeffects, maxiter = maxiter, tol = tol)
 
 	# Compute demeaned X
 	xvars = allvars(xf)
@@ -68,7 +68,7 @@ function partial_out(f::Formula, df::AbstractDataFrame; add_mean = false, weight
 			X = fill(one(Float64), (size(subdf, 1), 1))
 		end 	
 		broadcast!(*, X, X, sqrtw)
-		demean!(X, iterations, converged, fes, maxiter = maxiter, tol = tol)
+		demean!(X, iterations, converged, fixedeffects, maxiter = maxiter, tol = tol)
 	end
 	
 	# Compute residuals

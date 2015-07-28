@@ -40,17 +40,17 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	# Compute weight
 	sqrtw = get_weight(subdf, weight)
 
-	# Compute fes, an array of AbtractFixedEffects
+	# Compute fixedeffects, an array of AbtractFixedEffects
 	has_intercept = rt.intercept
 	if has_absorb
-		fes = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+		fixedeffects = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
 		# in case some FixedEffect is aFixedEffectIntercept, remove the intercept
-		if any([typeof(f) <: FixedEffectIntercept for f in fes]) 
+		if any([typeof(f) <: FixedEffectIntercept for f in fixedeffects]) 
 			rt.intercept = false
 			has_intercept = true
 		end
 	else
-		fes = nothing
+		fixedeffects = nothing
 	end
 
 	# Compute data for std errors
@@ -65,7 +65,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	coef_names = coefnames(mf)
 	Xexo = ModelMatrix(mf).m
 	broadcast!(*, Xexo, Xexo, sqrtw)
-	demean!(Xexo, iterations, converged, fes; maxiter = maxiter, tol = tol)
+	demean!(Xexo, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
 
 	# Compute y
 	py = model_response(mf)[:]
@@ -80,7 +80,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	if has_absorb
 		oldy = deepcopy(y)
 	end
-	demean!(y, iterations, converged, fes; maxiter = maxiter, tol = tol)
+	demean!(y, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
 
 	# Compute Xendo and Z
 	if has_iv
@@ -88,14 +88,14 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		coef_names = vcat(coef_names, coefnames(mf))
 		Xendo = ModelMatrix(mf).m
 		broadcast!(*, Xendo, Xendo, sqrtw)
-		demean!(Xendo, iterations, converged, fes; maxiter = maxiter, tol = tol)
+		demean!(Xendo, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
 
 
 		mf = simpleModelFrame(subdf, iv_terms, esample)
 		Z = ModelMatrix(mf).m
 		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many ivs as endogeneneous variables")
 		broadcast!(*, Z, Z, sqrtw)
-		demean!(Z, iterations, converged, fes; maxiter = maxiter, tol = tol)
+		demean!(Z, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
 	end
 
 	if has_iv
@@ -135,7 +135,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	df_absorb = 0
 	if has_absorb 
 		## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
-		for fe in fes
+		for fe in fixedeffects
 			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .!= zero(Float64))
 		end
 	end
@@ -191,7 +191,7 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 			broadcast!(*, oldX, oldX, sqrtw)
 			oldresiduals = oldy - oldX * coef
 			b = oldresiduals - residuals
-			augmentdf = hcat(augmentdf, getfe(fes, b, esample))
+			augmentdf = hcat(augmentdf, getfe(fixedeffects, b, esample))
 		end
 	end
 
