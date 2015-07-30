@@ -25,9 +25,8 @@ type FixedEffectSlope{R, W <: AbstractVector{Float64}} <: AbstractFixedEffect
 end
 
 
-function FixedEffectIntercept{R}(f::PooledDataVector{R}, sqrtw::AbstractVector{Float64}, name::Symbol, id::Symbol)
-	scale = fill(zero(Float64), length(f.pool))
-	refs = f.refs
+function FixedEffectIntercept{R}(refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, name::Symbol, id::Symbol)
+	scale = fill(zero(Float64), l)
 	@inbounds @simd  for i in 1:length(refs)
 		scale[refs[i]] += abs2(sqrtw[i])
 	end
@@ -37,9 +36,8 @@ function FixedEffectIntercept{R}(f::PooledDataVector{R}, sqrtw::AbstractVector{F
 	FixedEffectIntercept(refs, sqrtw, scale, name, id)
 end
 
-function FixedEffectSlope{R}(f::PooledDataVector{R}, sqrtw::AbstractVector{Float64}, interaction::Vector{Float64}, name::Symbol, interactionname::Symbol, id::Symbol)
-	scale = fill(zero(Float64), length(f.pool))
-	refs = f.refs
+function FixedEffectSlope{R}(refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, interaction::Vector{Float64}, name::Symbol, interactionname::Symbol, id::Symbol)
+	scale = fill(zero(Float64), l)
 	@inbounds @simd for i in 1:length(refs)
 		 scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
 	end
@@ -55,11 +53,11 @@ function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float
 		if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
 			f = df[a.args[2]]
 			x = convert(Vector{Float64}, df[a.args[3]])
-			return FixedEffectSlope(f, sqrtw, x, a.args[2], a.args[3], id)
+			return FixedEffectSlope(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
 		elseif (typeof(df[a.args[3]]) <: PooledDataVector) && !(typeof(df[a.args[2]]) <: PooledDataVector)
 			f = df[a.args[3]]
 			x = convert(Vector{Float64}, df[a.args[2]])
-			return FixedEffectSlope(f, sqrtw, x, a.args[3], a.args[2], id)
+			return FixedEffectSlope(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
 		else
 			error("& is not of the form factor & nonfactor")
 		end
@@ -70,7 +68,7 @@ end
 
 function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
 	if typeof(df[a]) <: PooledDataVector
-		return FixedEffectIntercept(df[a], sqrtw, a, a)
+		return FixedEffectIntercept(df[a].refs, length(df[a].pool), sqrtw, a, a)
 	else
 		error("$(a) is not a pooled data array")
 	end

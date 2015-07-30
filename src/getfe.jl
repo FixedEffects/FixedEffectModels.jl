@@ -118,9 +118,8 @@ end
 
 ##############################################################################
 ##
-## Find Fixed Effect : Kaczmarz algorithm
+## Find Fixed Effect : Randomized Kaczmarz algorithm = stochastic gradient descent.
 ## https://en.wikipedia.org/wiki/Kaczmarz_method
-##
 ##############################################################################
 
 
@@ -144,24 +143,24 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::
 		dist = 1:length(b)
 	else
 		# otherwise, sample with probability ||a[i]^2||
+		# Strohmer and Vershynin (2009): A randomized Kaczmarz algorithm with exponential convergence
 		# does it really accelerate the convergence?
 		dist = AliasTable(norm/sum(norm))
 	end
 
-	permutation = fill(zero(Int), length(b))
-	kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm, permutation)
+	kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
 	return fevalues
 end
 
-function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64},  maxiter::Integer, dist, invnorm::Vector{Float64}, permutation::Vector{Int})
+function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64},  maxiter::Integer, dist, invnorm::Vector{Float64})
 	len_fe = length(fevalues)
 	len_b = length(b)
 	iter = 0
 	while iter < maxiter
 		iter += 1
-		rand!(dist, permutation)
 		error = zero(Float64)
-		@inbounds for i in permutation
+		@inbounds for k in 1:len_b
+			i = rand(dist)
 			# get the scale
 			numerator = b[i]
 			for j in 1:len_fe
@@ -169,7 +168,6 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::
 				numerator -= fevalues[j][refs[j, i]] * aij
 			end
 			update = numerator * invnorm[i]
-
 			# update
 			for j in 1:len_fe	
 				change = update * A[j, i]
