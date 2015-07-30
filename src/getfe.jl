@@ -217,8 +217,12 @@ function connectedcomponent!(component::Vector{Set{Int}}, visited::Vector{Bool},
 	for j in interceptindex
 		ref = refs[j, i]
 		if !(ref in component[j])
+			# add node in component
 			push!(component[j], ref)
-			update!(tovisit, where[j][ref])
+			# add children in list to visit
+			for i in where[j][ref]
+				push!(tovisit, i)
+			end
 		end
 	end
 	for j in tovisit
@@ -226,14 +230,6 @@ function connectedcomponent!(component::Vector{Set{Int}}, visited::Vector{Bool},
 	end
 end
 
-
-function update!(tovisit::Set{Int}, neighbors::Set{Int})
-	for i in neighbors
-		if !in(i, tovisit)
-			push!(tovisit, i)
-		end
-	end
-end
 
 ##############################################################################
 ##
