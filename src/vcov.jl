@@ -9,10 +9,17 @@ type VcovData{N}
 	regressors::Matrix{Float64}       # X
 	residuals::Array{Float64, N}      # vector or matrix of residuals (matrix in the case of IV, residuals of Xendo on (Z, Xexo))
 	df_residual::Int
-	function VcovData(invcrossmatrix::Matrix{Float64}, regressors::Matrix{Float64}, residuals::Array{Float64, N}, 	df_residual::Int)
-		size(regressors, 1) == size(residuals, 1) || error("regressors and residuals should have same  number of rows")
-		size(invcrossmatrix, 1) == size(invcrossmatrix, 2) || error("invcrossmatrix is a square matrix")
-		size(invcrossmatrix, 1) == (size(regressors, 2) * size(residuals, 2))  || error("invcrossmatrix should be square matrix of dimension size(regressors, 2) x size(residuals, 2)")
+	function VcovData(invcrossmatrix::Matrix{Float64}, 
+					  regressors::Matrix{Float64}, 
+					  residuals::Array{Float64, N},
+					  df_residual::Int)
+		if size(regressors, 1) != size(residuals, 1)
+			error("regressors and residuals should have same  number of rows")
+		elseif size(invcrossmatrix, 1) != size(invcrossmatrix, 2)
+			error("invcrossmatrix is a square matrix")
+		elseif size(invcrossmatrix, 1) != (size(regressors, 2) * size(residuals, 2))
+			error("invcrossmatrix should be square matrix of dimension size(regressors, 2) x size(residuals, 2)")
+		end
 		new(invcrossmatrix, regressors, residuals, df_residual)
 	end
 end
@@ -50,10 +57,10 @@ type VcovSimple <: AbstractVcovMethod end
 type VcovSimpleData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovSimple, df::AbstractDataFrame) = VcovSimpleData()
 function vcov!(v::VcovSimpleData, x::VcovData)
- 	scale!(x.invcrossmatrix, abs2(norm(x.residuals, 2)) /  x.df_residual)
+ 	scale!(x.invcrossmatrix, sumabs2(x.residuals) /  x.df_residual)
 end
 function shat!(v::VcovSimpleData, x::VcovData)
- 	scale(inv(x.invcrossmatrix), abs2(norm(x.residuals, 2)))
+ 	scale(inv(x.invcrossmatrix), sumabs2(x.residuals))
 end
 
 
@@ -274,7 +281,12 @@ end
 ## More precisely, it corresponds to the Stata command:  ranktest  (X) (Z), wald full
 ##############################################################################
 
-function rank_test!(X::Matrix{Float64}, Z::Matrix{Float64}, Pi::Matrix{Float64}, vcov_method_data::AbstractVcovMethodData, df_small::Int, df_absorb::Int)
+function rank_test!(X::Matrix{Float64}, 
+				    Z::Matrix{Float64}, 
+				    Pi::Matrix{Float64}, 
+				    vcov_method_data::AbstractVcovMethodData, 
+				    df_small::Int, 
+				    df_absorb::Int)
 
 	K = size(X, 2) 
 	L = size(Z, 2) 

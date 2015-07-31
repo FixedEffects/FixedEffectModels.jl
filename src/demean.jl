@@ -25,7 +25,11 @@ type FixedEffectSlope{R, W <: AbstractVector{Float64}} <: AbstractFixedEffect
 end
 
 
-function FixedEffectIntercept{R}(refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, name::Symbol, id::Symbol)
+function FixedEffectIntercept{R}(refs::Vector{R}, 
+								 l::Int, 
+								 sqrtw::AbstractVector{Float64}, 
+								 name::Symbol, 
+								 id::Symbol)
 	scale = fill(zero(Float64), l)
 	@inbounds @simd  for i in 1:length(refs)
 		scale[refs[i]] += abs2(sqrtw[i])
@@ -36,7 +40,13 @@ function FixedEffectIntercept{R}(refs::Vector{R}, l::Int, sqrtw::AbstractVector{
 	FixedEffectIntercept(refs, sqrtw, scale, name, id)
 end
 
-function FixedEffectSlope{R}(refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, interaction::Vector{Float64}, name::Symbol, interactionname::Symbol, id::Symbol)
+function FixedEffectSlope{R}(refs::Vector{R}, 
+							 l::Int, 
+							 sqrtw::AbstractVector{Float64}, 
+							 interaction::Vector{Float64}, 
+							 name::Symbol, 
+							 interactionname::Symbol, 
+							 id::Symbol)
 	scale = fill(zero(Float64), l)
 	@inbounds @simd for i in 1:length(refs)
 		 scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
@@ -85,7 +95,9 @@ end
 
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
-function demean_factor!{R, W}(x::Vector{Float64}, fe::FixedEffectIntercept{R, W}, means::Vector{Float64})
+function demean_factor!{R, W}(x::Vector{Float64},
+						      fe::FixedEffectIntercept{R, W}, 
+						      means::Vector{Float64})
 	scale = fe.scale ; refs = fe.refs ; sqrtw = fe.sqrtw
 	@inbounds @simd for i in 1:length(x)
 		 means[refs[i]] += x[i] * sqrtw[i]
@@ -98,7 +110,9 @@ function demean_factor!{R, W}(x::Vector{Float64}, fe::FixedEffectIntercept{R, W}
 	end
 end
 
-function demean_factor!{R, W}(x::Vector{Float64}, fe::FixedEffectSlope{R, W}, means::Vector{Float64})
+function demean_factor!{R, W}(x::Vector{Float64}, 
+							  fe::FixedEffectSlope{R, W}, 
+							  means::Vector{Float64})
 	scale = fe.scale ; refs = fe.refs ; interaction = fe.interaction ; sqrtw = fe.sqrtw
 	@inbounds @simd for i in 1:length(x)
 		 means[refs[i]] += x[i] * interaction[i] * sqrtw[i]
@@ -111,7 +125,12 @@ function demean_factor!{R, W}(x::Vector{Float64}, fe::FixedEffectSlope{R, W}, me
 	end
 end
 
-function demean!(x::Vector{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool},  fes::Vector{AbstractFixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
+function demean!(x::Vector{Float64}, 
+				 iterationsv::Vector{Int}, 
+				 convergedv::Vector{Bool},
+				 fes::Vector{AbstractFixedEffect};
+				 maxiter::Int = 1000,
+				 tol::Float64 = 1e-8)
 	# allocate array of means for each factor
 	dict = Dict{AbstractFixedEffect, Vector{Float64}}()
 	for fe in fes
@@ -147,16 +166,31 @@ function demean!(x::Vector{Float64}, iterationsv::Vector{Int}, convergedv::Vecto
 	return x
 end
 
-function demean!(X::Matrix{Float64}, iterations::Vector{Int}, converged::Vector{Bool}, fes::Vector{AbstractFixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
+function demean!(X::Matrix{Float64}, 
+				 iterations::Vector{Int}, 
+				 converged::Vector{Bool}, 
+				 fes::Vector{AbstractFixedEffect}; 
+				 maxiter::Int = 1000, 
+				 tol::Float64 = 1e-8)
 	for j in 1:size(X, 2)
 		X[:, j] = demean!(X[:, j], iterations, converged, fes, maxiter = maxiter, tol = tol)
 	end
 end
 
-demean!(X::Array, iterations::Vector{Int}, converged::Vector{Bool}, fes::Nothing; maxiter::Int = 1000, tol::Float64 = 1e-8) = nothing
+function demean!(X::Array,
+				 iterations::Vector{Int}, 
+				 converged::Vector{Bool}, 
+				 fes::Nothing; 
+				 maxiter::Int = 1000, 
+				 tol::Float64 = 1e-8)
+	nothing
+end
 
 
-function demean(x::DataVector{Float64}, fes::Vector{AbstractFixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
+function demean(x::DataVector{Float64}, 
+				fes::Vector{AbstractFixedEffect}; 
+				maxiter::Int = 1000, 
+				tol::Float64 = 1e-8)
 	X = convert(Vector{Float64}, x)
 	iterations = Int[]
 	converged = Bool[]

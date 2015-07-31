@@ -1,9 +1,17 @@
 
-function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod = VcovSimple(); weight::Union(Symbol, Nothing) = nothing, subset::Union(AbstractVector{Bool}, Nothing) = nothing, maxiter::Int = 10000, tol::Float64 = 1e-8, df_add::Int = 0, save = false)
+function reg(f::Formula,
+			 df::AbstractDataFrame, 
+			 vcov_method::AbstractVcovMethod = VcovSimple(); 
+			 weight::Union(Symbol, Nothing) = nothing, 
+			 subset::Union(AbstractVector{Bool}, Nothing) = nothing, 
+			 maxiter::Int = 10000, 
+			 tol::Float64 = 1e-8, 
+			 df_add::Int = 0, 
+			 save = false)
 
 	# decompose formula into endogeneous form model, reduced form model, absorb model
 	rf = deepcopy(f)
-	(has_absorb, absorb_formula, absorb_terms, has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
+	(has_absorb,absorb_formula,absorb_terms,has_iv,iv_formula,iv_terms,endo_formula,endo_terms) = decompose!(rf)
 	rt = Terms(rf)
 	has_weight = weight != nothing
 
@@ -23,7 +31,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 		all_vars = unique(vcat(all_vars, weight))
 	end
 	if subset != nothing
-		length(subset) == size(df, 1) || error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
+		if length(subset) != size(df, 1)
+			error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
+		end
 		esample &= convert(BitArray, subset)
 	end
 	subdf = df[esample, all_vars]
@@ -93,7 +103,9 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 		mf = simpleModelFrame(subdf, iv_terms, esample)
 		Z = ModelMatrix(mf).m
-		size(Z, 2) >= size(Xendo, 2) || error("Model not identified. There must be at least as many ivs as endogeneneous variables")
+		if size(Z, 2) < size(Xendo, 2)
+			error("Model not identified. There must be at least as many ivs as endogeneneous variables")
+		end
 		broadcast!(*, Z, Z, sqrtw)
 		demean!(Z, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
 	end
@@ -136,21 +148,26 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 	if has_absorb 
 		## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
 		for fe in fixedeffects
-			df_absorb += (typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)) ? 0 : sum(fe.scale .!= zero(Float64))
+			if typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)
+				df_absorb += 0
+				else
+				df_absorb += sum(fe.scale .!= zero(Float64))
+			end
 		end
 	end
 	nobs = size(X, 1)
 	df_residual = size(X, 1) - size(X, 2) - df_absorb - df_add
 
 	# Compute ess, tss, r2, r2 adjusted
+	ess = sumabs2(residuals)
 	if has_absorb
-		(ess, tss) = compute_ss(residuals, y, rt.intercept, sqrtw)
+		tss = compute_ss(residuals, y, rt.intercept, sqrtw)
 		r2_within = 1 - ess / tss 
-		(ess, tss) = compute_ss(residuals, oldy, has_intercept, sqrtw)
+		tss = compute_ss(residuals, oldy, has_intercept, sqrtw)
 		r2 = 1 - ess / tss 
 		r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
 	else	
-		(ess, tss) = compute_ss(residuals, y, has_intercept, sqrtw)
+		tss = compute_ss(residuals, y, has_intercept, sqrtw)
 		r2 = 1 - ess / tss 
 		r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
 	end
@@ -204,16 +221,82 @@ function reg(f::Formula, df::AbstractDataFrame, vcov_method::AbstractVcovMethod 
 
 	# Compute Fstat first stage based on Kleibergen-Paap
 	if has_iv
-		(F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
+		(F_kp, p_kp) = rank_test!(Xendo_res, 
+								  Z_res, 
+								  Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], 
+								  vcov_method_data, 
+								  size(X, 2),
+								  df_absorb)
 	end
 
 
 	# return
-	!has_iv && !has_absorb && return(RegressionResult(coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, F, p))
-	has_iv && !has_absorb && return(RegressionResultIV(coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, F,p, F_kp, p_kp))
-	!has_iv && has_absorb && return(RegressionResultFE(coef, matrix_vcov, esample, augmentdf,coef_names, yname, f, nobs, df_residual, r2, r2_a, r2_within, F, p, iterations, converged))
-	has_iv && has_absorb && return(RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, r2_within, F,p, F_kp, p_kp, iterations, converged))
+	if !has_iv && !has_absorb 
+		return RegressionResult(coef,
+							    matrix_vcov,
+							    esample,
+							    augmentdf,
+							    coef_names,
+							    yname,
+							    f,
+							    nobs,
+							    df_residual,
+							    r2,
+							    r2_a,
+							    F,
+							    p)
+	elseif has_iv && !has_absorb
+		return RegressionResultIV(coef, 
+								  matrix_vcov, 
+								  esample, 
+								  augmentdf, 
+								  coef_names, 
+								  yname, 
+								  f, 
+								  nobs, 
+								  df_residual, 
+								  r2, 
+								  r2_a, 
+								  F,
+								  p,
+								  F_kp,
+								  p_kp)
+	elseif !has_iv && has_absorb
+		return RegressionResultFE(coef,
+								  matrix_vcov,
+							  	  esample,
+							  	  augmentdf,coef_names,
+							  	  yname,
+							  	  f,
+							  	  nobs,
+							  	  df_residual,
+							  	  r2,
+							  	  r2_a,
+							  	  r2_within,
+							  	  F,
+							  	  p,
+							  	  iterations,
+							  	  converged)
+	elseif has_iv && has_absorb 
+		return RegressionResultFEIV(coef, 
+								    matrix_vcov,
+								    esample,
+								    augmentdf,
+								    coef_names,
+								    yname,
+								    f,
+								    nobs,
+								    df_residual,
+								    r2,
+								    r2_a,
+								    r2_within,
+								    F,
+								    p,
+								    F_kp,
+								    p_kp,
+								    iterations,
+								    converged)
+	end
 end
-
 
 

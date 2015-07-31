@@ -7,7 +7,9 @@
 
 
 # Return vector of vector of estimates
-function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}; maxiter = 10_000_000)
+function getfe(fixedeffects::Vector{AbstractFixedEffect}, 
+			   b::Vector{Float64}; 
+			   maxiter = 10_000_000)
 	## initialize data structures
 	(fevalues, where, refs, A, interceptindex) = initialize(fixedeffects)
 	
@@ -25,7 +27,10 @@ end
 
 
 # Return dataframe of estimates
-function getfe(fixedeffects::Vector{AbstractFixedEffect}, b::Vector{Float64}, esample::BitVector ; maxiter = 100_000)
+function getfe(fixedeffects::Vector{AbstractFixedEffect},
+			   b::Vector{Float64}, 
+			   esample::BitVector ; 
+			   maxiter = 100_000)
 	
 	# return vector of vector of estimates
 	fevalues = getfe(fixedeffects, b, maxiter = maxiter)
@@ -123,7 +128,12 @@ end
 ##############################################################################
 
 
-function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer, interceptindex::Vector{Int})
+function kaczmarz!(fevalues::Vector{Vector{Float64}},
+				   b::Vector{Float64},
+				   refs::Matrix{Int},
+				   A::Matrix{Float64},
+				   maxiter::Integer,
+				   interceptindex::Vector{Int})
 	# precompute norm[i] = sum_j A[j, i]^2 for probability distribution
 	# precompute invnorm = 1/norm[i] because division costly
 	norm = fill(zero(Float64), size(A, 2))
@@ -152,7 +162,13 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::
 	return fevalues
 end
 
-function kaczmarz!(fevalues::Vector{Vector{Float64}}, b::Vector{Float64}, refs::Matrix{Int}, A::Matrix{Float64},  maxiter::Integer, dist, invnorm::Vector{Float64})
+function kaczmarz!(fevalues::Vector{Vector{Float64}},
+				   b::Vector{Float64},
+			       refs::Matrix{Int},
+			       A::Matrix{Float64},
+			       maxiter::Integer,
+ 			       dist,
+			       invnorm::Vector{Float64})
 	len_fe = length(fevalues)
 	len_b = length(b)
 	iter = 0
@@ -191,7 +207,9 @@ end
 ##
 ##############################################################################
 
-function connectedcomponent(refs::Matrix{Int}, where::Vector{Vector{Set{Int}}}, interceptindex::Vector{Int})
+function connectedcomponent(refs::Matrix{Int},
+							where::Vector{Vector{Set{Int}}},
+						    interceptindex::Vector{Int})
 	nobs = size(refs, 2)
 	visited = fill(false, nobs)
 	components = Vector{Set{Int}}[]
@@ -209,7 +227,12 @@ function connectedcomponent(refs::Matrix{Int}, where::Vector{Vector{Set{Int}}}, 
 end
 
 # Breadth-first search
-function connectedcomponent!(component::Vector{Set{Int}}, visited::Vector{Bool}, i::Integer, refs::Matrix{Int}, where::Vector{Vector{Set{Int}}}, interceptindex::Vector{Int}) 
+function connectedcomponent!(component::Vector{Set{Int}},
+							 visited::Vector{Bool},
+						     i::Integer,
+						     refs::Matrix{Int},
+						     where::Vector{Vector{Set{Int}}},
+						     interceptindex::Vector{Int}) 
 	visited[i] = true
 	tovisit = Set{Int}()
 	for j in interceptindex
@@ -237,7 +260,9 @@ end
 ##
 ###############################################################################
 
-function rescale!(fevalues::Vector{Vector{Float64}}, components::Vector{Vector{Set{Int}}}, interceptindex)
+function rescale!(fevalues::Vector{Vector{Float64}}, 
+			      components::Vector{Vector{Set{Int}}}, 
+			      interceptindex)
 	i1 = interceptindex[1]
 	adj1 = zero(Float64)
 	for component in components

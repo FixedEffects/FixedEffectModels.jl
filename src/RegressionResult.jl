@@ -270,8 +270,12 @@ type RegressionResultFE <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-predict(x::RegressionResultFE, df::AbstractDataFrame) = error("predict is not defined for fixed effect models.  Run reg with the the option savefe = true")
-residuals(x::RegressionResultFE, df::AbstractDataFrame) = error("residuals is not defined for fixed effect models. Use the function partial_out")
+function predict(x::RegressionResultFE, df::AbstractDataFrame)
+    error("predict is not defined for fixed effect models.  Run reg with the the option savefe = true")
+end
+function residuals(x::RegressionResultFE, df::AbstractDataFrame)
+    error("residuals is not defined for fixed effect models. Use the function partial_out")
+end
 title(x::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
             "Number of obs" sprint(showcompact, nobs(x));
@@ -310,8 +314,12 @@ type RegressionResultFEIV <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-predict(x::RegressionResultFEIV, df::AbstractDataFrame) = error("predict is not defined for fixed effect models. Run reg with the the option savefe = true")
-residuals(x::RegressionResultFEIV, df::AbstractDataFrame) = error("residuals is not defined for fixed effect models. Use the function partial_out")
+function predict(x::RegressionResultFEIV, df::AbstractDataFrame)
+    error("predict is not defined for fixed effect models. Run reg with the the option savefe = true")
+end
+function residuals(x::RegressionResultFEIV, df::AbstractDataFrame)
+    error("residuals is not defined for fixed effect models. Use the function partial_out")
+end
 title(x::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(showcompact, nobs(x));

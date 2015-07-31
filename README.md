@@ -6,7 +6,7 @@
 
 
 The function `reg` estimates linear models with 
-  - high dimensional categorical variable. It avoids the construction of a design matrix composed of many dummy variables.
+  - high dimensional categorical variable. It avoids the construction of a design matrix too large to fit into RAM.
   - instrumental variables (via 2SLS)
   - robust standard errors (White or clustered) 
 
