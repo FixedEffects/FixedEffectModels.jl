@@ -8,7 +8,7 @@ abstract AbstractFixedEffect
 
 type FixedEffectIntercept{R, W <: AbstractVector{Float64}} <: AbstractFixedEffect
 	refs::Vector{R}        # Refs corresponding to the refs field of the original PooledDataVector
-	sqrtw::W 				   # weights
+	sqrtw::W 			   # weights
 	scale::Vector{Float64} # 1/(sum of scale) within each group
 	name::Symbol           # Name of variable in the original dataframe
 	id::Symbol
@@ -16,7 +16,7 @@ end
 
 type FixedEffectSlope{R, W <: AbstractVector{Float64}} <: AbstractFixedEffect
 	refs::Vector{R}              # Refs corresponding to the refs field of the original PooledDataVector
-	sqrtw::W           				 # weights
+	sqrtw::W           		     # weights
 	scale::Vector{Float64}       # 1/(sum of weights * x) for each group
 	interaction::Vector{Float64} # the continuous interaction 
 	name::Symbol                 # Name of factor variable in the original dataframe
