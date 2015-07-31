@@ -96,8 +96,8 @@ end
 # Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
 function demean_factor!{R, W}(x::Vector{Float64},
-						      fe::FixedEffectIntercept{R, W}, 
-						      means::Vector{Float64})
+							  fe::FixedEffectIntercept{R, W}, 
+							  means::Vector{Float64})
 	scale = fe.scale ; refs = fe.refs ; sqrtw = fe.sqrtw
 	@inbounds @simd for i in 1:length(x)
 		 means[refs[i]] += x[i] * sqrtw[i]
