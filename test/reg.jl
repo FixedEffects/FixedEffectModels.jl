@@ -117,9 +117,6 @@ result = reg(Sales ~ Price + pState, df, subset = df[:State] .<= 30)
 ##############################################################################
 ##
 ## F_kp r_kp statistics for IV. Difference degree of freedom.
-## They are not matched to ivreg2 (algthough they are very close). Don't really know where the difference comes from
-## 1. check that ranktest, wald full gives same result before any df adjustement
-## 2. check  same adjustment than ivreg2
 ## 
 ##############################################################################
 
@@ -128,7 +125,7 @@ result = reg(Sales ~ Price + pState, df, subset = df[:State] .<= 30)
 @test_approx_eq_eps reg(Sales ~ (Price = Pimin + CPI), df).F_kp   27011.44080 1e-4
 @test_approx_eq_eps reg(Sales ~ (Price = Pimin) |> pState, df).F_kp 100927.75710 1e-4
 
-
+# exactly same with ivreg2
 @test_approx_eq_eps reg(Sales ~ (Price = Pimin), df, VcovWhite()).F_kp    23160.06350 1e-4
 @test_approx_eq_eps reg(Sales ~ (Price = Pimin) |> pState, df, VcovWhite()).F_kp  37662.82808 1e-4
 @test_approx_eq_eps reg(Sales ~ CPI + (Price = Pimin), df, VcovWhite()).F_kp    2093.46609 1e-4
@@ -136,7 +133,7 @@ result = reg(Sales ~ Price + pState, df, subset = df[:State] .<= 30)
 
 
 
-
+# like in ivreg2 but += 5 difference. there is a degree of freedom difference. not sure where.
 @test_approx_eq_eps reg(Sales ~ (Price = Pimin), df, VcovCluster(:pState)).F_kp     7249.88606 1e-4
 @test_approx_eq_eps reg(Sales ~ CPI + (Price = Pimin), df, VcovCluster(:pState)).F_kp   538.40393 1e-4
 @test_approx_eq_eps reg(Sales ~ CPI + (Price = Pimin), df, VcovCluster([:pState, :pYear])).F_kp   423.00342 1e-4

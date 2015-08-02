@@ -23,7 +23,6 @@ type VcovData{N}
         new(invcrossmatrix, regressors, residuals, df_residual)
     end
 end
-nobs(x::VcovData) = size(x.regressors, 1)
 
 
 typealias VcovDataVector VcovData{1} 
@@ -81,29 +80,27 @@ function shat!(v::VcovWhiteData, x::VcovData{1})
     res = x.residuals
     Xu = scale!(res, X)
     S = At_mul_B(Xu, Xu)
-    scale!(S, nobs(x)/x.df_residual)
+    scale!(S, size(X, 1)/x.df_residual)
 end
 
+# S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
 function shat!(t::VcovWhiteData, x::VcovData{2}) 
     X = x.regressors
     res = x.residuals
+    nobs = size(X, 1)
     dim = size(X, 2) * size(res, 2)
     S = fill(zero(Float64), (dim, dim))
-    temp = similar(S)
-    kronv = fill(zero(Float64), dim)
-    @inbounds for i in 1:nobs(x)
-        j = 0
-        for l in 1:size(res, 2)
-            for k in 1:size(X, 2)
-                j += 1
-                kronv[j] = X[i, k] * res[i, l]
-            end
+    temp = fill(zero(Float64), nobs, dim)
+    index = zero(Int)
+    @inbounds for k in 1:size(X, 2), l in 1:size(res, 2)
+        index += 1
+        @simd for i in 1:nobs
+            temp[i, index] = X[i, k]* res[i, l]
         end
-        temp = A_mul_Bt!(temp, kronv, kronv)
-        S += temp
     end
-    scale!(S, nobs(x)/x.df_residual)
-    return(S)
+    S = At_mul_B(temp, temp)
+    scale!(S, size(X, 1) / x.df_residual)
+    return S
 end
 
 
@@ -170,8 +167,8 @@ function shat!(v::VcovClusterData, x::VcovData{1})
             end
         end
     end
-    scale!(S, (nobs(x)-1) / x.df_residual)
-    return(S)
+    scale!(S, (size(X,1)-1) / x.df_residual)
+    return S
 end
 
 
@@ -180,7 +177,7 @@ function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
     refs = f.refs
     if fsize == size(Xu, 1)
         # if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
-        return(At_mul_B(Xu, Xu))
+        return At_mul_B(Xu, Xu)
     else
         # otherwise
         X2 = fill(zero(Float64), (fsize, size(Xu, 2)))
@@ -191,7 +188,7 @@ function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
         end
         out = At_mul_B(X2, X2)
         scale!(out, fsize / (fsize- 1))
-        return(out)
+        return out
     end
 end
 
@@ -223,44 +220,38 @@ function shat!(v::VcovClusterData, x::VcovData{2})
             end
         end
     end
-    scale!(S, (nobs(x)-1) / x.df_residual)
-    return(S)
+    scale!(S, (size(X,1)-1) / x.df_residual)
+    return S
 end
 
+# S_{(k-1) * L + l, (k'-1)*L + l'} = \sum_g (\sum_{i in g} X[i, k] res[i, l]) (\sum_{i in g} X[i, k'] res[i, l'])
 function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int)
     refs = f.refs
     dim = size(X, 2) * size(res, 2)
-    if fsize == size(X, 1)
-        S = fill(zero(Float64), (dim, dim))
-        temp = similar(S)
-        kronv = fill(zero(Float64), dim)
-        @inbounds for i in 1:size(X, 1)
-            j = 0
-             for l in 1:size(res, 2)
-                for k in 1:size(X, 2)
-                    j += 1
-                    kronv[j] = X[i, k] * res[i, l]
-                end
+    nobs = size(X, 1)
+    S = fill(zero(Float64), (dim, dim))
+    temp = fill(zero(Float64), fsize, dim)
+    if fsize == nobs
+        index = zero(Int)
+        @inbounds for l in 1:size(res, 2), k in 1:size(X, 2)
+            index += 1
+            @simd for i in 1:nobs
+                temp[i, index] = X[i, k] * res[i, l]
             end
-            temp = A_mul_Bt!(temp, kronv, kronv)
-            S += temp
         end
+        S = At_mul_B(temp, temp)
     else
-        # otherwise
-        kronv = fill(zero(Float64), fsize, dim)
-        @inbounds for i in 1:size(X, 1)
-            j = 0
-             for l in 1:size(res, 2)
-                for k in 1:size(X, 2)
-                    j += 1
-                    kronv[refs[i], j] += X[i, k] * res[i, l]
-                end
+        index = zero(Int)
+        @inbounds for l in 1:size(res, 2), k in 1:size(X, 2)
+            index += 1
+            @simd for i in 1:nobs
+                temp[refs[i], index] += X[i, k] * res[i, l]
             end
         end
-        S = At_mul_B(kronv, kronv)
+        S = At_mul_B(temp, temp)
         scale!(S, fsize / (fsize- 1))
     end
-    return(S)
+    return S
 end
 
 
@@ -322,7 +313,7 @@ function rank_test!(X::Matrix{Float64},
         vhat= eye(L*K) / size(X, 1)
     else
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
-        temp2 = inv(crossz[:L])'
+        temp2 = inv(crossz[:U])
         temp2 = convert(Matrix{eltype(temp2)}, temp2)
         k = kron(temp1, temp2)'
         vcovmodel = VcovData{2}(k, Z, X, size(Z, 1) - df_small - df_absorb) 

@@ -53,11 +53,11 @@ end
 
 
 # Display Results
-function title(x::AbstractRegressionResult) 
+function title(::AbstractRegressionResult) 
     error("function title has no general method for AbstractRegressionResult")
 end
 
-function top(x::AbstractRegressionResult)
+function top(::AbstractRegressionResult)
     error("function top has no general method for AbstractRegressionResult")
 end
 
@@ -200,7 +200,7 @@ type RegressionResult <: AbstractRegressionResult
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
 end
-title(x::RegressionResult) =  "Linear Model"
+title(::RegressionResult) =  "Linear Model"
 top(x::RegressionResult) = [
             "Number of obs" sprint(showcompact, nobs(x));
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
@@ -234,7 +234,7 @@ type RegressionResultIV <: AbstractRegressionResult
     p_kp::Float64           # First Stage p value KP
 end
 
-title(x::RegressionResultIV) = "IV Model"
+title(::RegressionResultIV) = "IV Model"
 top(x::RegressionResultIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
@@ -270,13 +270,13 @@ type RegressionResultFE <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-function predict(x::RegressionResultFE, df::AbstractDataFrame)
+function predict(::RegressionResultFE, ::AbstractDataFrame)
     error("predict is not defined for fixed effect models.  Run reg with the the option savefe = true")
 end
-function residuals(x::RegressionResultFE, df::AbstractDataFrame)
+function residuals(::RegressionResultFE, ::AbstractDataFrame)
     error("residuals is not defined for fixed effect models. Use the function partial_out")
 end
-title(x::RegressionResultFE) = "Fixed Effect Model"
+title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
             "Number of obs" sprint(showcompact, nobs(x));
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
@@ -314,13 +314,13 @@ type RegressionResultFEIV <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-function predict(x::RegressionResultFEIV, df::AbstractDataFrame)
+function predict(::RegressionResultFEIV, df::AbstractDataFrame)
     error("predict is not defined for fixed effect models. Run reg with the the option savefe = true")
 end
-function residuals(x::RegressionResultFEIV, df::AbstractDataFrame)
+function residuals(::RegressionResultFEIV, df::AbstractDataFrame)
     error("residuals is not defined for fixed effect models. Use the function partial_out")
 end
-title(x::RegressionResultFEIV) = "Fixed effect IV Model"
+title(::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
             "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
