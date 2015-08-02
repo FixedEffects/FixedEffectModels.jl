@@ -4,42 +4,26 @@
 ##
 ##############################################################################
 
-type VcovData{N} 
-    invcrossmatrix::Matrix{Float64}   # (X'X)^{-1} in the simplest case 
+type VcovData{T, N} 
     regressors::Matrix{Float64}       # X
+    crossmatrix::T                    # X'X in the simplest case. Can be Matrix but preferably Factorization
     residuals::Array{Float64, N}      # vector or matrix of residuals (matrix in the case of IV, residuals of Xendo on (Z, Xexo))
     df_residual::Int
-    function VcovData(invcrossmatrix::Matrix{Float64}, 
-                      regressors::Matrix{Float64}, 
-                      residuals::Array{Float64, N},
-                      df_residual::Int)
-        if size(regressors, 1) != size(residuals, 1)
-            error("regressors and residuals should have same  number of rows")
-        elseif size(invcrossmatrix, 1) != size(invcrossmatrix, 2)
-            error("invcrossmatrix is a square matrix")
-        elseif size(invcrossmatrix, 1) != (size(regressors, 2) * size(residuals, 2))
-            error("invcrossmatrix should be square matrix of dimension size(regressors, 2) x size(residuals, 2)")
-        end
-        new(invcrossmatrix, regressors, residuals, df_residual)
-    end
 end
 
 
-typealias VcovDataVector VcovData{1} 
-typealias VcovDataMatrix VcovData{2} 
 
-# convert a linear model into VcovData
-function VcovData(x::LinearModel) 
-    VcovData(inv(cholfact(x)), x.pp.X, x.residuals, size(x.pp.X, 1))
-end
+typealias VcovDataVector{T} VcovData{T, 1} 
+typealias VcovDataMatrix{T} VcovData{T, 2} 
+
 
 
 ##############################################################################
 ##
 ## AbstractVcovMethod (and its children) has two methods: 
 ## allvars that returns variables needed in the dataframe
-## shat! returns a S hat matrix. It may change regressors in place
-## vcov! returns a covariance matrix
+## shat! returns a S hat matrix. It may change matrix of regressors in place
+## vcov! returns a covariance matrix. It may change matrix of regressors in matrix
 ##
 ##############################################################################
 
@@ -56,10 +40,10 @@ type VcovSimple <: AbstractVcovMethod end
 type VcovSimpleData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovSimple, df::AbstractDataFrame) = VcovSimpleData()
 function vcov!(v::VcovSimpleData, x::VcovData)
-    scale!(x.invcrossmatrix, sumabs2(x.residuals) /  x.df_residual)
+    scale!(inv(x.crossmatrix), sumabs2(x.residuals) /  x.df_residual)
 end
 function shat!(v::VcovSimpleData, x::VcovData)
-    scale(inv(x.invcrossmatrix), sumabs2(x.residuals))
+    scale(x.crossmatrix, sumabs2(x.residuals))
 end
 
 
@@ -72,19 +56,19 @@ type VcovWhiteData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovWhite, df::AbstractDataFrame) = VcovWhiteData()
 function vcov!(v::VcovWhiteData, x::VcovData) 
     S = shat!(v, x)
-    sandwich(x.invcrossmatrix, S) 
+    sandwich(x.crossmatrix, S) 
 end
 
-function shat!(v::VcovWhiteData, x::VcovData{1}) 
+function shat!{T}(v::VcovWhiteData, x::VcovData{T, 1}) 
     X = x.regressors
     res = x.residuals
     Xu = scale!(res, X)
     S = At_mul_B(Xu, Xu)
-    scale!(S, size(X, 1)/x.df_residual)
+    scale!(S, size(X, 1) / x.df_residual)
 end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
-function shat!(t::VcovWhiteData, x::VcovData{2}) 
+function shat!{T}(t::VcovWhiteData, x::VcovData{T, 2}) 
     X = x.regressors
     res = x.residuals
     nobs = size(X, 1)
@@ -99,13 +83,13 @@ function shat!(t::VcovWhiteData, x::VcovData{2})
         end
     end
     S = At_mul_B(temp, temp)
-    scale!(S, size(X, 1) / x.df_residual)
+    scale!(S, nobs / x.df_residual)
     return S
 end
 
-
-function sandwich(H::Matrix{Float64}, S::Matrix{Float64})
-    H * S * H
+# TODO: H' transform into matrix so factorization is lost. Wait for S / H to exist
+function sandwich(H, S::Matrix{Float64})
+    H \ (H' \ S')'
 end
 
 
@@ -141,9 +125,9 @@ end
 
 function vcov!(v::VcovClusterData, x::VcovData)
     S = shat!(v, x)
-    sandwich(x.invcrossmatrix, S)
+    sandwich(x.crossmatrix, S)
 end
-function shat!(v::VcovClusterData, x::VcovData{1}) 
+function shat!{T}(v::VcovClusterData, x::VcovData{T, 1}) 
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors
@@ -167,7 +151,7 @@ function shat!(v::VcovClusterData, x::VcovData{1})
             end
         end
     end
-    scale!(S, (size(X,1)-1) / x.df_residual)
+    scale!(S, (size(X, 1) - 1) / x.df_residual)
     return S
 end
 
@@ -195,7 +179,7 @@ end
 
 
 
-function shat!(v::VcovClusterData, x::VcovData{2}) 
+function shat!{T}(v::VcovClusterData, x::VcovData{T, 2}) 
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors
@@ -220,7 +204,7 @@ function shat!(v::VcovClusterData, x::VcovData{2})
             end
         end
     end
-    scale!(S, (size(X,1)-1) / x.df_residual)
+    scale!(S, (size(X, 1) - 1) / x.df_residual)
     return S
 end
 
@@ -249,7 +233,7 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataV
             end
         end
         S = At_mul_B(temp, temp)
-        scale!(S, fsize / (fsize- 1))
+        scale!(S, fsize / (fsize - 1))
     end
     return S
 end
@@ -286,8 +270,8 @@ function rank_test!(X::Matrix{Float64},
     crossx = cholfact!(At_mul_B(X, X), :U)
 
     Fmatrix = crossz[:U]
-    Gmatrix = inv(crossx[:U])
-    theta = Fmatrix * Pi * Gmatrix
+    Gmatrix = crossx[:U]
+    theta = Fmatrix * (Gmatrix' \ Pi')'
 
     svddecomposition = svdfact(theta, thin = false) 
     u = svddecomposition.U
@@ -310,15 +294,16 @@ function rank_test!(X::Matrix{Float64},
 
     # compute vhat
     if typeof(vcov_method_data) == VcovSimpleData
-        vhat= eye(L*K) / size(X, 1)
+        vhat= eye(L * K) / size(X, 1)
     else
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
-        temp2 = inv(crossz[:U])
-        temp2 = convert(Matrix{eltype(temp2)}, temp2)
+        temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
         k = kron(temp1, temp2)'
-        vcovmodel = VcovData{2}(k, Z, X, size(Z, 1) - df_small - df_absorb) 
+        vcovmodel = VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
         matrix_vcov2 = shat!(vcov_method_data, vcovmodel)
-        vhat = A_mul_Bt(k * matrix_vcov2, k) 
+        # inv(k) * matrix_vcov2 * inv(k)'
+        #vhat =   A_mul_Bt(inv(k) * matrix_vcov2, inv(k)) 
+        vhat = k \ (k \ matrix_vcov2')'
     end
 
     # return statistics

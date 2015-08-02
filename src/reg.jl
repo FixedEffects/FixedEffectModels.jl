@@ -173,7 +173,7 @@ function reg(f::Formula,
     end
 
     # Compute standard error
-    vcov_data = VcovData{1}(inv(crossx), Xhat, residuals, df_residual)
+    vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
     matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
     # Compute Fstat
@@ -183,7 +183,7 @@ function reg(f::Formula,
         coefF = coefF[2:end]
         matrix_vcovF = matrix_vcovF[2:end, 2:end]
     end
-    F = diagm(coefF)' * inv(matrix_vcovF) * diagm(coefF)
+    F = diagm(coefF)' * (matrix_vcovF \ diagm(coefF))
     F = F[1] 
     if typeof(vcov_method) == VcovCluster 
         nclust = minimum(values(vcov_method_data.size))
