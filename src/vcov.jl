@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-## VcovData (and its children) has four important methods: 
+## VcovData stores data you need to compute errors
 ##
 ##############################################################################
 
@@ -12,25 +12,43 @@ type VcovData{T, N}
 end
 
 
-
 typealias VcovDataVector{T} VcovData{T, 1} 
 typealias VcovDataMatrix{T} VcovData{T, 2} 
 
+##############################################################################
+##
+## Each method to compute standard errors should define two types
+##
+## 1. A type that inherits from AbstractVcovMethod (used for the construction)
+## It must implement two methods:
+## - allvars that specify variables needed
+## - VcovMethodData(x, df::AbstractDataFrame) that construct a VcocMethodData object
+##   Typicially, it uses a list of symbols and a dataframe to obtain vectors
+##
+## 2. A type that inherits from AbstractVcovMethodData (used for the computation)
+## It must implement two methods: 
+## - shat! returns a S hat matrix. It may change regressors in place
+## - vcov! returns a covariance matrix. It may change regressors in matrix
+##
+##############################################################################
 
 
 ##############################################################################
 ##
-## AbstractVcovMethod (and its children) has two methods: 
-## allvars that returns variables needed in the dataframe
-## shat! returns a S hat matrix. It may change matrix of regressors in place
-## vcov! returns a covariance matrix. It may change matrix of regressors in matrix
+## VcovMethod stores data you need to compute errors
 ##
 ##############################################################################
 
 abstract AbstractVcovMethod
 allvars(x::AbstractVcovMethod) = Symbol[]
-abstract AbstractVcovMethodData
 
+##############################################################################
+##
+## VcovDataMethod stores data you need to compute errors
+##
+##############################################################################
+
+abstract AbstractVcovMethodData
 
 #
 # simple standard errors
@@ -40,11 +58,11 @@ type VcovSimple <: AbstractVcovMethod end
 type VcovSimpleData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovSimple, df::AbstractDataFrame) = VcovSimpleData()
 function vcov!(v::VcovSimpleData, x::VcovData)
-    scale!(inv(x.crossmatrix), sumabs2(x.residuals) /  x.df_residual)
+    invcrossmatrix = inv(x.crossmatrix)
+    scale!(invcrossmatrix, sumabs2(x.residuals) /  x.df_residual)
+    return invcrossmatrix
 end
-function shat!(v::VcovSimpleData, x::VcovData)
-    scale(x.crossmatrix, sumabs2(x.residuals))
-end
+shat!(v::VcovSimpleData, x::VcovData) = scale(x.crossmatrix, sumabs2(x.residuals))
 
 
 #
@@ -56,7 +74,7 @@ type VcovWhiteData <: AbstractVcovMethodData end
 VcovMethodData(v::VcovWhite, df::AbstractDataFrame) = VcovWhiteData()
 function vcov!(v::VcovWhiteData, x::VcovData) 
     S = shat!(v, x)
-    sandwich(x.crossmatrix, S) 
+    return sandwich(x.crossmatrix, S) 
 end
 
 function shat!{T}(v::VcovWhiteData, x::VcovData{T, 1}) 
@@ -65,6 +83,7 @@ function shat!{T}(v::VcovWhiteData, x::VcovData{T, 1})
     Xu = scale!(res, X)
     S = At_mul_B(Xu, Xu)
     scale!(S, size(X, 1) / x.df_residual)
+    return S
 end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
@@ -88,9 +107,7 @@ function shat!{T}(t::VcovWhiteData, x::VcovData{T, 2})
 end
 
 # TODO: H' transform into matrix so factorization is lost. Wait for S / H to exist
-function sandwich(H, S::Matrix{Float64})
-    H \ (H' \ S')'
-end
+sandwich(H, S::Matrix{Float64}) = H \ (H' \ S')'
 
 
 
@@ -120,12 +137,12 @@ function VcovMethodData(v::VcovCluster, df::AbstractDataFrame)
         # may be subset / NA
         vsize[c] = length(unique(p.refs))
     end
-    VcovClusterData(vclusters, vsize)
+    return VcovClusterData(vclusters, vsize)
 end
 
 function vcov!(v::VcovClusterData, x::VcovData)
     S = shat!(v, x)
-    sandwich(x.crossmatrix, S)
+    return sandwich(x.crossmatrix, S)
 end
 function shat!{T}(v::VcovClusterData, x::VcovData{T, 1}) 
     # Cameron, Gelbach, & Miller (2011).
@@ -154,7 +171,6 @@ function shat!{T}(v::VcovClusterData, x::VcovData{T, 1})
     scale!(S, (size(X, 1) - 1) / x.df_residual)
     return S
 end
-
 
 
 function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
@@ -301,9 +317,7 @@ function rank_test!(X::Matrix{Float64},
         k = kron(temp1, temp2)'
         vcovmodel = VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
         matrix_vcov2 = shat!(vcov_method_data, vcovmodel)
-        # inv(k) * matrix_vcov2 * inv(k)'
-        #vhat =   A_mul_Bt(inv(k) * matrix_vcov2, inv(k)) 
-        vhat = k \ (k \ matrix_vcov2')'
+        vhat = k \ (k \ matrix_vcov2)'
     end
 
     # return statistics
