@@ -314,10 +314,10 @@ type RegressionResultFEIV <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-function predict(::RegressionResultFEIV, df::AbstractDataFrame)
+function predict(::RegressionResultFEIV, ::AbstractDataFrame)
     error("predict is not defined for fixed effect models. Run reg with the the option savefe = true")
 end
-function residuals(::RegressionResultFEIV, df::AbstractDataFrame)
+function residuals(::RegressionResultFEIV, ::AbstractDataFrame)
     error("residuals is not defined for fixed effect models. Use the function partial_out")
 end
 title(::RegressionResultFEIV) = "Fixed effect IV Model"
