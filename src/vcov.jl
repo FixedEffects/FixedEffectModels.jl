@@ -224,7 +224,7 @@ function shat!(v::VcovClusterData, x::VcovData{2})
     return S
 end
 
-# S_{(k-1) * L + l, (k'-1)*L + l'} = \sum_g (\sum_{i in g} X[i, k] res[i, l]) (\sum_{i in g} X[i, k'] res[i, l'])
+# S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_g (\sum_{i in g} X[i, k] res[i, l]) (\sum_{i in g} X[i, k'] res[i, l'])
 function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int)
     refs = f.refs
     dim = size(X, 2) * size(res, 2)
