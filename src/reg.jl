@@ -192,7 +192,7 @@ function reg(f::Formula,
         p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
     end
 
-    # Compute augmentdf
+    # Eventually save residuals in a new dataframe
     augmentdf = DataFrame()
     if save
         broadcast!(/, residuals, residuals, sqrtw)
