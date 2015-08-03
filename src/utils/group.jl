@@ -20,7 +20,7 @@ function factorize!(refs::Array)
 	sort!(uu)
 	has_na = uu[1] == 0
 	T = reftype(length(uu)-has_na)
-	dict = Dict(uu, (1-has_na):convert(T, length(uu)-has_na))
+	dict = Dict{eltype(refs), T}(zip(uu, (1-has_na):convert(T, length(uu)-has_na)))
 	@inbounds @simd for i in 1:length(refs)
 		 refs[i] = dict[refs[i]]
 	end

@@ -107,7 +107,7 @@ function shat!{T}(t::VcovWhiteData, x::VcovData{T, 2})
 end
 
 # TODO: H' transform into matrix so factorization is lost. Wait for S / H to exist
-sandwich(H, S::Matrix{Float64}) = H \ (H' \ S')'
+sandwich(H, S::Matrix{Float64}) = H \ S * inv(H)
 
 
 

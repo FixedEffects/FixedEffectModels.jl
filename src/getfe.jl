@@ -164,31 +164,32 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
     len_fe = length(fevalues)
     len_b = length(b)
     iter = 0
-    @inbounds while iter < maxiter
+    error = Array(Float64, len_b)
+    fill!(error, Inf)
+    @inbounds while iter < maxiter * len_b
         iter += 1
-        error = zero(Float64)
+        currenterror = zero(Float64)
         inner_iter = zero(Int)
-        while inner_iter < len_b
-            inner_iter += 1
             
-            # draw a row
-            i = rand(dist)
-            
-            # compute update = (b_i - <x_k, a_i>)/||a_i||^2
-            numerator = b[i]
-            for j in 1:len_fe
-                numerator -= fevalues[j][refs[j, i]] * A[j, i]
-            end
-            update = numerator * invnorm[i]
-
-            # update x_k
-            for j in 1:len_fe   
-                change = update * A[j, i]
-                fevalues[j][refs[j, i]] += change
-                error += abs2(change)
-            end
+        # draw a row
+        i = rand(dist)
+        
+        # compute update = (b_i - <x_k, a_i>)/||a_i||^2
+        numerator = b[i]
+        for j in 1:len_fe
+            numerator -= fevalues[j][refs[j, i]] * A[j, i]
         end
-        if error < 1e-15 * len_b
+        update = numerator * invnorm[i]
+
+        # update x_k
+        for j in 1:len_fe   
+            change = update * A[j, i]
+            fevalues[j][refs[j, i]] += change
+            currenterror += abs2(change)
+        end
+        error[i] = currenterror
+
+        if mod(iter, 5 * len_b) == 0 && sumabs2(error) < 1e-15 * len_b
             break
         end
     end
