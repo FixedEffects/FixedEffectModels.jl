@@ -155,7 +155,6 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
     else
         # otherwise, sample with probability ||a[i]^2||
         # Strohmer and Vershynin (2009): A randomized Kaczmarz algorithm with exponential convergence
-        # does it really accelerate the convergence?
         dist = AliasTable(norm/sum(norm))
     end
     kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
@@ -178,14 +177,17 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
         inner_iter = zero(Int)
         while inner_iter < len_b
             inner_iter += 1
+            
             # draw a row
             i = rand(dist)
-            # compute numerator = b_i - <x_k, a_i>
+            
+            # compute update = (b_i - <x_k, a_i>)/||a_i||^2
             numerator = b[i]
             for j in 1:len_fe
                 numerator -= fevalues[j][refs[j, i]] * A[j, i]
             end
             update = numerator * invnorm[i]
+
             # update x_k
             for j in 1:len_fe   
                 change = update * A[j, i]
