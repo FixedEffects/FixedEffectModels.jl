@@ -135,7 +135,6 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
                    A::Matrix{Float64},
                    maxiter::Integer,
                    interceptindex::Vector{Int})
-    # precompute norm[i] = sum_j A[j, i]^2 for probability distribution
     # precompute invnorm = 1/norm[i] since division costly
     norm = fill(zero(Float64), size(A, 2))
     invnorm = fill(zero(Float64), size(A, 2))
@@ -149,14 +148,8 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
     end
 
     # sampling distribution for rows
-    if length(interceptindex) == length(fevalues)
-        # if all categorical variables are intercept, uniform sampling
-        dist = 1:length(b)
-    else
-        # otherwise, sample with probability ||a[i]^2||
-        # Strohmer and Vershynin (2009): A randomized Kaczmarz algorithm with exponential convergence
-        dist = AliasTable(norm/sum(norm))
-    end
+    # Needell, Srebro, Ward (2015)
+    dist = 1:length(b)
     kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
     return fevalues
 end
