@@ -123,8 +123,9 @@ end
 
 ##############################################################################
 ##
-## Find Fixed Effect : Randomized Kaczmarz algorithm = stochastic gradient descent.
+## Randomized Kaczmarz algorithm 
 ## https://en.wikipedia.org/wiki/Kaczmarz_method
+##
 ##############################################################################
 
 
@@ -135,7 +136,7 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
                    maxiter::Integer,
                    interceptindex::Vector{Int})
     # precompute norm[i] = sum_j A[j, i]^2 for probability distribution
-    # precompute invnorm = 1/norm[i] because division costly
+    # precompute invnorm = 1/norm[i] since division costly
     norm = fill(zero(Float64), size(A, 2))
     invnorm = fill(zero(Float64), size(A, 2))
     @inbounds for i in 1:size(A, 2)
@@ -147,7 +148,7 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
         invnorm[i] = 1 / out
     end
 
-    # sampling distribution 
+    # sampling distribution for rows
     if length(interceptindex) == length(fevalues)
         # if all categorical variables are intercept, uniform sampling
         dist = 1:length(b)
@@ -157,7 +158,6 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
         # does it really accelerate the convergence?
         dist = AliasTable(norm/sum(norm))
     end
-
     kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
     return fevalues
 end
@@ -172,19 +172,21 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
     len_fe = length(fevalues)
     len_b = length(b)
     iter = 0
-    while iter < maxiter
+    @inbounds while iter < maxiter
         iter += 1
         error = zero(Float64)
-        @inbounds for k in 1:len_b
+        inner_iter = zero(Int)
+        while inner_iter < len_b
+            inner_iter += 1
+            # draw a row
             i = rand(dist)
-            # get the scale
+            # compute numerator = b_i - <x_k, a_i>
             numerator = b[i]
             for j in 1:len_fe
-                aij = A[j, i]
-                numerator -= fevalues[j][refs[j, i]] * aij
+                numerator -= fevalues[j][refs[j, i]] * A[j, i]
             end
             update = numerator * invnorm[i]
-            # update
+            # update x_k
             for j in 1:len_fe   
                 change = update * A[j, i]
                 fevalues[j][refs[j, i]] += change
