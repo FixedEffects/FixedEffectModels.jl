@@ -161,13 +161,13 @@ function reg(f::Formula,
     # Compute ess, tss, r2, r2 adjusted
     ess = sumabs2(residuals)
     if has_absorb
-        tss = compute_ss(residuals, y, rt.intercept, sqrtw)
+        tss = compute_tss(y, rt.intercept, sqrtw)
         r2_within = 1 - ess / tss 
-        tss = compute_ss(residuals, oldy, has_intercept, sqrtw)
+        tss = compute_tss(oldy, has_intercept, sqrtw)
         r2 = 1 - ess / tss 
         r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
     else    
-        tss = compute_ss(residuals, y, has_intercept, sqrtw)
+        tss = compute_tss(y, has_intercept, sqrtw)
         r2 = 1 - ess / tss 
         r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
     end

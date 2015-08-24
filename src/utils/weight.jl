@@ -10,18 +10,18 @@ immutable Ones <: AbstractVector{Float64}
 	length::Int
 end
 Base.size(O::Ones) = O.length
-Base.getindex(O::Ones, I::Int...) = one(Float64)
-# Add in version 0.4 Base.unsafe_getindex(O::Ones, I::Int...) = 1
-Base.broadcast!(op::Function, X::Matrix{Float64}, Y::Matrix{Float64}, O::Ones) = nothing
-Base.broadcast!(op::Function, X::Vector{Float64}, Y::Vector{Float64}, O::Ones) = nothing
-Base.scale!(X::Vector{Float64}, O::Ones) = nothing
+Base.getindex(::Ones, ::Int...) = one(Float64)
+# Add in version 0.4 Base.unsafe_getindex(::Ones, ::Int...) = 1
+Base.broadcast!(::Function, ::Matrix{Float64}, ::Matrix{Float64}, ::Ones) = nothing
+Base.broadcast!(::Function, ::Vector{Float64}, ::Vector{Float64}, ::Ones) = nothing
+Base.scale!(::Vector{Float64}, ::Ones) = nothing
 
 
 function get_weight(df::AbstractDataFrame, weight::Symbol)
 	w = convert(Vector{Float64}, df[weight])
 	sqrtw = sqrt(w)
 end
-get_weight(df::AbstractDataFrame, weight::Nothing) = Ones(size(df, 1))
+get_weight(df::AbstractDataFrame, ::Nothing) = Ones(size(df, 1))
 
 
 

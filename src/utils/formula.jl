@@ -123,7 +123,7 @@ function allvars(ex::Expr)
 end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
-allvars(v::Any) = Array(Symbol, 0)
+allvars(::Any) = Array(Symbol, 0)
 
 
 # used when removing certain rows in a dataset

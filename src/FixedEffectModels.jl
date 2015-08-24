@@ -7,6 +7,7 @@ module FixedEffectModels
 ## Dependencies
 ##
 ##############################################################################
+using Compat
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable
 import Distances: chebyshev
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
@@ -56,7 +57,7 @@ vcov!
 include("utils/weight.jl")
 include("utils/group.jl")
 include("utils/formula.jl")
-include("utils/compute_ss.jl")
+include("utils/compute_tss.jl")
 include("demean.jl")
 include("vcov.jl")
 include("RegressionResult.jl")

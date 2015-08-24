@@ -40,7 +40,7 @@ typealias VcovDataMatrix{T} VcovData{T, 2}
 ##############################################################################
 
 abstract AbstractVcovMethod
-allvars(x::AbstractVcovMethod) = Symbol[]
+allvars(::AbstractVcovMethod) = Symbol[]
 
 ##############################################################################
 ##
@@ -56,13 +56,13 @@ abstract AbstractVcovMethodData
 
 type VcovSimple <: AbstractVcovMethod end
 type VcovSimpleData <: AbstractVcovMethodData end
-VcovMethodData(v::VcovSimple, df::AbstractDataFrame) = VcovSimpleData()
-function vcov!(v::VcovSimpleData, x::VcovData)
+VcovMethodData(::VcovSimple, ::AbstractDataFrame) = VcovSimpleData()
+function vcov!(::VcovSimpleData, x::VcovData)
     invcrossmatrix = inv(x.crossmatrix)
     scale!(invcrossmatrix, sumabs2(x.residuals) /  x.df_residual)
     return invcrossmatrix
 end
-shat!(v::VcovSimpleData, x::VcovData) = scale(x.crossmatrix, sumabs2(x.residuals))
+shat!(::VcovSimpleData, x::VcovData) = scale(x.crossmatrix, sumabs2(x.residuals))
 
 
 #
@@ -71,13 +71,13 @@ shat!(v::VcovSimpleData, x::VcovData) = scale(x.crossmatrix, sumabs2(x.residuals
 
 type VcovWhite <: AbstractVcovMethod end
 type VcovWhiteData <: AbstractVcovMethodData end
-VcovMethodData(v::VcovWhite, df::AbstractDataFrame) = VcovWhiteData()
+VcovMethodData(::VcovWhite, ::AbstractDataFrame) = VcovWhiteData()
 function vcov!(v::VcovWhiteData, x::VcovData) 
     S = shat!(v, x)
     return sandwich(x.crossmatrix, S) 
 end
 
-function shat!{T}(v::VcovWhiteData, x::VcovData{T, 1}) 
+function shat!{T}(::VcovWhiteData, x::VcovData{T, 1}) 
     X = x.regressors
     res = x.residuals
     Xu = scale!(res, X)
@@ -87,7 +87,7 @@ function shat!{T}(v::VcovWhiteData, x::VcovData{T, 1})
 end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
-function shat!{T}(t::VcovWhiteData, x::VcovData{T, 2}) 
+function shat!{T}(::VcovWhiteData, x::VcovData{T, 2}) 
     X = x.regressors
     res = x.residuals
     nobs = size(X, 1)

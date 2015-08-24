@@ -69,7 +69,7 @@ function coeftable(x::AbstractRegressionResult)
     coefnms = coefnames(x)
     conf_int = confint(x)
     # put (intercept) last
-    if (coefnms[1] == symbol("(Intercept)")) || (coefnms[1] == "(Intercept)")
+    if (coefnms[1] == @compat Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)")
         newindex = vcat(2:length(cc), 1)
         cc = cc[newindex]
         se = se[newindex]
@@ -143,7 +143,7 @@ function show(io::IO, ct::CoefTable2)
         println(io, " " ^ halfwidth * string(title) * " " ^ halfwidth)
     end
     if length(top) > 0
-        for i in size(top, 1)
+        for i in 1:size(top, 1)
             top[i, 1] = top[i, 1] * ":"
         end
         println(io, "=" ^totalwidth)
@@ -164,7 +164,7 @@ function show(io::IO, ct::CoefTable2)
     println(io," " ^ rnwidth *
             join([lpad(string(colnms[i]), widths[i]) for i = 1:nc], ""))
     println("-" ^totalwidth)
-    for i = 1:nr
+    for i in 1:nr
         print(io, rownms[i])
         for j in 1:nc
             print(io, lpad(str[i,j],widths[j]))

@@ -14,7 +14,7 @@ function getfe(fixedeffects::Vector{AbstractFixedEffect},
     (fevalues, where, refs, A, interceptindex) = initialize(fixedeffects)
     
     # solve Ax = b by kaczmarz algorithm
-    kaczmarz!(fevalues, b, refs, A, maxiter, interceptindex)
+    kaczmarz!(fevalues, b, refs, A, maxiter)
 
     # rescale fixed effects 
     if length(interceptindex) >= 2
@@ -84,7 +84,7 @@ function initialize!(
     fevalues::Vector{Vector{Float64}}, 
     where::Vector{Vector{Set{Int}}},
     refs::Matrix{Int},
-    A::Matrix{Float64}
+    ::Matrix{Float64}
     )
     fevalues[j] = fill(zero(Float64), length(f.scale))
     where[j] = Array(Set{Int}, length(f.scale))
@@ -133,8 +133,7 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
                    b::Vector{Float64},
                    refs::Matrix{Int},
                    A::Matrix{Float64},
-                   maxiter::Integer,
-                   interceptindex::Vector{Int})
+                   maxiter::Integer)
     # precompute invnorm = 1/norm[i] since division costly
     norm = fill(zero(Float64), size(A, 2))
     invnorm = fill(zero(Float64), size(A, 2))
@@ -164,8 +163,8 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
     len_fe = length(fevalues)
     len_b = length(b)
     iter = 0
-    error = Array(Float64, len_b)
-    fill!(error, Inf)
+    errors = Array(Float64, len_b)
+    fill!(errors, Inf)
     @inbounds while iter < maxiter * len_b
         iter += 1
         currenterror = zero(Float64)
@@ -187,9 +186,9 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
             fevalues[j][refs[j, i]] += change
             currenterror += abs2(change)
         end
-        error[i] = currenterror
+        errors[i] = currenterror
 
-        if mod(iter, 5 * len_b) == 0 && sumabs2(error) < 1e-15 * len_b
+        if mod(iter, 5 * len_b) == 0 && sumabs2(errors) < 1e-15 * len_b
             break
         end
     end
@@ -271,7 +270,7 @@ function rescale!(fevalues::Vector{Vector{Float64}},
                 for j in component[i]
                     adji += fevalues[i][j]
                 end
-                adji /= length(component[i])
+                adji = adji / length(component[i])
                 for j in component[i]
                     fevalues[i][j] -= adji
                 end

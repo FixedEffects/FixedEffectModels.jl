@@ -177,10 +177,10 @@ function demean!(X::Matrix{Float64},
     end
 end
 
-function demean!(X::Array,
-                 iterations::Vector{Int}, 
-                 converged::Vector{Bool}, 
-                 fes::Nothing; 
+function demean!(::Array,
+                 ::Vector{Int}, 
+                 ::Vector{Bool}, 
+                 ::Nothing; 
                  maxiter::Int = 1000, 
                  tol::Float64 = 1e-8)
     nothing
