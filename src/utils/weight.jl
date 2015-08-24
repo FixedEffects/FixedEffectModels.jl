@@ -10,7 +10,7 @@ type Ones <: AbstractVector{Float64}
 end
 Base.size(O::Ones) = O.length
 Base.getindex(::Ones, ::Int...) = one(Float64)
-# Add in version 0.4 Base.unsafe_getindex(::Ones, ::Int...) = 1
+# Add in version 0.4 unsafe_getindex
 Base.broadcast!{T}(o::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
 Base.scale!(::Vector{Float64}, ::Ones) = nothing
 
