@@ -69,7 +69,7 @@ function coeftable(x::AbstractRegressionResult)
     coefnms = coefnames(x)
     conf_int = confint(x)
     # put (intercept) last
-    if (coefnms[1] == @compat Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)")
+    if (coefnms[1] == symbol("(Intercept)")) || (coefnms[1] == "(Intercept)")
         newindex = vcat(2:length(cc), 1)
         cc = cc[newindex]
         se = se[newindex]
