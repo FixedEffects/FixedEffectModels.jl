@@ -15,7 +15,7 @@ Base.broadcast!{T}(o::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones
 Base.scale!(::Vector{Float64}, ::Ones) = nothing
 
 
-get_weight(df::AbstractDataFrame, weight::Symbol) = sqrt(df[weight])
+get_weight(df::AbstractDataFrame, weight::Symbol) = convert(Vector{Float64}, sqrt(df[weight]))
 get_weight(df::AbstractDataFrame, ::Nothing) = Ones(size(df, 1))
 
 
