@@ -12,8 +12,7 @@ end
 Base.size(O::Ones) = O.length
 Base.getindex(::Ones, ::Int...) = one(Float64)
 # Add in version 0.4 Base.unsafe_getindex(::Ones, ::Int...) = 1
-Base.broadcast!(::Function, ::Matrix{Float64}, ::Matrix{Float64}, ::Ones) = nothing
-Base.broadcast!(::Function, ::Vector{Float64}, ::Vector{Float64}, ::Ones) = nothing
+Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
 Base.scale!(::Vector{Float64}, ::Ones) = nothing
 
 
