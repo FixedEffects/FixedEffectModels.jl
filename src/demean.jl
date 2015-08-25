@@ -93,7 +93,8 @@ end
 ##
 ##############################################################################
 
-# Algorithm from lfe: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
+# Demean by alternative projections: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
+
 
 function demean_factor!{R, W}(x::Vector{Float64},
                               fe::FixedEffectIntercept{R, W}, 
