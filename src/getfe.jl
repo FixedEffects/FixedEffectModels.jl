@@ -87,10 +87,10 @@ function initialize!(
     ::Matrix{Float64}
     )
     fevalues[j] = fill(zero(Float64), length(f.scale))
-    where[j] = Array(Set{Int}, length(f.scale))
+    where[j] = Set{Int}[]
     # fill would create a reference to the same object
     for i in 1:length(f.scale)
-        where[j][i] = Set{Int}()
+        push!(where[j], Set{Int}())
     end
     for i in 1:length(f.refs)
         refi = f.refs[i]
@@ -212,9 +212,9 @@ function connectedcomponent(refs::Matrix{Int},
     components = Vector{Set{Int}}[]
     for i in 1:nobs
         if !visited[i]
-            component = Array(Set{Int}, length(interceptindex))
-            for i in 1:length(interceptindex)
-                component[i] = Set{Int}()
+            component = Set{Int}[]
+            for _ in 1:length(interceptindex)
+                push!(component, Set{Int}())
             end
             connectedcomponent!(component, visited, i, refs, where, interceptindex)
             push!(components, component)
@@ -232,19 +232,23 @@ function connectedcomponent!(component::Vector{Set{Int}},
                              interceptindex::Vector{Int}) 
     visited[i] = true
     tovisit = Set{Int}()
+    # for each fixed effect
     for j in interceptindex
         ref = refs[j, i]
+        # if category has not been encountered
         if !(ref in component[j])
-            # add node in component
+            # mark category as encountered
             push!(component[j], ref)
-            # add children in list to visit
-            for i in where[j][ref]
-                push!(tovisit, i)
+            # add other observations with same component in list to visit
+            for k in where[j][ref]
+                push!(tovisit, k)
             end
         end
     end
-    for j in tovisit
-        connectedcomponent!(component, visited, j, refs, where, interceptindex)
+    for k in tovisit
+        if k != i
+            connectedcomponent!(component, visited, k, refs, where, interceptindex)
+        end
     end
 end
 
