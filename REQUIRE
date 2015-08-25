@@ -1,5 +1,5 @@
-Compat
 julia 0.3
+Compat
 Distributions 0.4.6
 Distances 0.1.1
 StatsBase 0.7.1

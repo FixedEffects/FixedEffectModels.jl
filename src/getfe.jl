@@ -29,7 +29,7 @@ end
 # Return dataframe of estimates
 function getfe(fixedeffects::Vector{AbstractFixedEffect},
                b::Vector{Float64}, 
-               esample::BitVector ; 
+               esample::BitVector; 
                maxiter = 100_000)
     
     # return vector of vector of estimates
@@ -79,12 +79,8 @@ function initialize(fixedeffects::Vector{AbstractFixedEffect})
 end
 
 function initialize!(
-    j::Int, 
-    f::FixedEffectIntercept,
-    fevalues::Vector{Vector{Float64}}, 
-    where::Vector{Vector{Set{Int}}},
-    refs::Matrix{Int},
-    ::Matrix{Float64}
+    j::Int, f::FixedEffectIntercept,fevalues::Vector{Vector{Float64}}, 
+    where::Vector{Vector{Set{Int}}},refs::Matrix{Int},::Matrix{Float64}
     )
     fevalues[j] = fill(zero(Float64), length(f.scale))
     where[j] = Set{Int}[]
@@ -100,12 +96,8 @@ function initialize!(
 end
 
 function initialize!(
-    j::Int, 
-    f::FixedEffectSlope,
-    fevalues::Vector{Vector{Float64}}, 
-    where::Vector{Vector{Set{Int}}},
-    refs::Matrix{Int},
-    A::Matrix{Float64}
+    j::Int, f::FixedEffectSlope,fevalues::Vector{Vector{Float64}}, 
+    where::Vector{Vector{Set{Int}}}, refs::Matrix{Int}, A::Matrix{Float64}
     )
     fevalues[j] = fill(zero(Float64), length(f.scale))
     where[j] = Array(Set{Int}, length(f.scale))
@@ -129,11 +121,10 @@ end
 ##############################################################################
 
 
-function kaczmarz!(fevalues::Vector{Vector{Float64}},
-                   b::Vector{Float64},
-                   refs::Matrix{Int},
-                   A::Matrix{Float64},
-                   maxiter::Integer)
+function kaczmarz!(
+    fevalues::Vector{Vector{Float64}}, b::Vector{Float64},
+    refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer
+    )
     # precompute invnorm = 1/norm[i] since division costly
     norm = fill(zero(Float64), size(A, 2))
     invnorm = fill(zero(Float64), size(A, 2))
@@ -153,13 +144,10 @@ function kaczmarz!(fevalues::Vector{Vector{Float64}},
     return fevalues
 end
 
-function kaczmarz!(fevalues::Vector{Vector{Float64}},
-                   b::Vector{Float64},
-                   refs::Matrix{Int},
-                   A::Matrix{Float64},
-                   maxiter::Integer,
-                   dist,
-                   invnorm::Vector{Float64})
+function kaczmarz!(
+    fevalues::Vector{Vector{Float64}},b::Vector{Float64},
+    refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer,
+    dist, invnorm::Vector{Float64})
     len_fe = length(fevalues)
     len_b = length(b)
     iter = 0
@@ -224,12 +212,11 @@ function connectedcomponent(refs::Matrix{Int},
 end
 
 # Breadth-first search
-function connectedcomponent!(component::Vector{Set{Int}},
-                             visited::Vector{Bool},
-                             i::Integer,
-                             refs::Matrix{Int},
-                             where::Vector{Vector{Set{Int}}},
-                             interceptindex::Vector{Int}) 
+function connectedcomponent!(
+    component::Vector{Set{Int}}, visited::Vector{Bool},
+    i::Integer, refs::Matrix{Int}, where::Vector{Vector{Set{Int}}},
+    interceptindex::Vector{Int}
+    ) 
     visited[i] = true
     tovisit = Set{Int}()
     # for each fixed effect
