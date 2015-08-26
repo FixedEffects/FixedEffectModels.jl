@@ -30,7 +30,7 @@ end
 function getfe(fixedeffects::Vector{AbstractFixedEffect},
                b::Vector{Float64}, 
                esample::BitVector; 
-               maxiter = 100_000)
+               maxiter = 10_000_000)
     
     # return vector of vector of estimates
     fevalues = getfe(fixedeffects, b, maxiter = maxiter)
@@ -152,35 +152,51 @@ function kaczmarz!(
     len_b = length(b)
     iter = 0
     errors = Array(Float64, len_b)
-    fill!(errors, Inf)
-    @inbounds while iter < maxiter * len_b
+    @inbounds while iter < maxiter 
         iter += 1
-        currenterror = zero(Float64)
-        inner_iter = zero(Int)
+        for _ in 1:len_b
+            currenterror = zero(Float64)
+            inner_iter = zero(Int)
+                
+            # draw a row
+            i = rand(dist)
             
-        # draw a row
-        i = rand(dist)
-        
-        # compute update = (b_i - <x_k, a_i>)/||a_i||^2
-        numerator = b[i]
-        for j in 1:len_fe
-            numerator -= fevalues[j][refs[j, i]] * A[j, i]
-        end
-        update = numerator * invnorm[i]
+            # compute update = (b_i - <x_k, a_i>)/||a_i||^2
+            numerator = b[i]
+            for j in 1:len_fe
+                numerator -= fevalues[j][refs[j, i]] * A[j, i]
+            end
+            update = numerator * invnorm[i]
 
-        # update x_k
-        for j in 1:len_fe   
-            change = update * A[j, i]
-            fevalues[j][refs[j, i]] += change
-            currenterror += abs2(change)
+            # update x_k
+            for j in 1:len_fe   
+                fevalues[j][refs[j, i]] +=  update * A[j, i]
+            end
         end
-        errors[i] = currenterror
-
-        if mod(iter, 5 * len_b) == 0 && sumabs2(errors) < 1e-15 * len_b
+        # check maxabs(Ax-b) 
+        if maxabs(fevalues, b, refs, A, 1e-4)
             break
         end
     end
 end
+
+
+function maxabs(
+    fevalues::Vector{Vector{Float64}}, b::Vector{Float64},
+    refs::Matrix{Int}, A::Matrix{Float64}, tol::Float64)
+    len_fe = length(fevalues)
+    @inbounds for i in 1:length(b)
+        current = b[i]
+        for j in 1:len_fe
+            current -= fevalues[j][refs[j, i]] * A[j, i]
+        end
+        if abs(current) > tol
+            return false
+        end
+    end
+    return true
+end
+    
 
 
 
