@@ -22,7 +22,7 @@ function getfe(fixedeffects::Vector{AbstractFixedEffect},
         rescale!(fevalues, components, interceptindex)
     end
 
-    if !converged
+    if !(converged)
         warn("Estimation of fixed effects did not converged")
     end
 
