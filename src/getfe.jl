@@ -14,12 +14,16 @@ function getfe(fixedeffects::Vector{AbstractFixedEffect},
     (fevalues, where, refs, A, interceptindex) = initialize(fixedeffects)
     
     # solve Ax = b by kaczmarz algorithm
-    kaczmarz!(fevalues, b, refs, A, maxiter)
+    converged = kaczmarz!(fevalues, b, refs, A, maxiter)
 
     # rescale fixed effects 
     if length(interceptindex) >= 2
         components = connectedcomponent(refs, where, interceptindex)
         rescale!(fevalues, components, interceptindex)
+    end
+
+    if !converged
+        warn("Estimation of fixed effects did not converged")
     end
 
     return fevalues
@@ -151,7 +155,6 @@ function kaczmarz!(
     len_fe = length(fevalues)
     len_b = length(b)
     iter = 0
-    errors = Array(Float64, len_b)
     @inbounds while iter < maxiter 
         iter += 1
         for _ in 1:len_b
@@ -175,9 +178,10 @@ function kaczmarz!(
         end
         # check maxabs(Ax-b) 
         if maxabs(fevalues, b, refs, A, 1e-4)
-            break
+            return true
         end
     end
+    return false
 end
 
 
