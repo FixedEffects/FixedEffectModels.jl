@@ -325,7 +325,7 @@ function rank_test!(X::Matrix{Float64},
     r_kp = lambda' * (vlab \ lambda)
     p_kp = ccdf(Chisq((L-K+1 )), r_kp[1])
     F_kp = r_kp[1] / size(Z, 2)
-    return(F_kp, p_kp)
+    return F_kp, p_kp
 end
 
 
