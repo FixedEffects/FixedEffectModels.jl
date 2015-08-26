@@ -155,8 +155,7 @@ function demean!(x::Vector{Float64},
             fill!(means, zero(Float64))
             demean_factor!(x, fe, means)
         end
-        delta = chebyshev(x, olx)
-        if delta < tol
+        if _chebyshev(x, olx, tol)
             converged = true
             iterations = iter
             break
