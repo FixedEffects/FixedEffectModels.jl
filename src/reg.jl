@@ -9,11 +9,22 @@ function reg(f::Formula,
              df_add::Int = 0, 
              save = false)
 
+    ##############################################################################
+    ##
+    ## Parse formula
+    ##
+    ##############################################################################
     # decompose formula into endogeneous form model, reduced form model, absorb model
     rf = deepcopy(f)
     (has_absorb,absorb_formula,absorb_terms,has_iv,iv_formula,iv_terms,endo_formula,endo_terms) = decompose!(rf)
     rt = Terms(rf)
     has_weight = weight != nothing
+
+    ##############################################################################
+    ##
+    ## Construct new dataframe
+    ##
+    ##############################################################################
 
     # create a dataframe without missing values & negative weights
     vars = allvars(rf)
@@ -69,6 +80,13 @@ function reg(f::Formula,
     # initialize iterations and converged
     iterations = Int[]
     converged = Bool[]
+
+    ##############################################################################
+    ##
+    ## Dataframe --> Matrix
+    ##
+    ##############################################################################
+
 
     # Compute X
     mf = simpleModelFrame(subdf, rt, esample)
@@ -134,9 +152,27 @@ function reg(f::Formula,
         Xhat = Xexo
     end
 
+    # iter and convergence
+    if has_absorb
+        iterations = sum(iterations)
+        converged = all(converged)
+    end
+    ##############################################################################
+    ##
+    ## Regression
+    ##
+    ##############################################################################
+
     # Compute coef and residuals
     crossx = cholfact!(At_mul_B(Xhat, Xhat))
     coef = crossx \ At_mul_B(Xhat, y)
+
+    ##############################################################################
+    ##
+    ## Statistics
+    ##
+    ##############################################################################
+
     residuals = y - X * coef
 
     # Compute degrees of freedom
@@ -192,7 +228,7 @@ function reg(f::Formula,
         p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
     end
 
-    # Eventually save residuals in a new dataframe
+    # save residuals in a new dataframe
     augmentdf = DataFrame()
     if save
         broadcast!(/, residuals, residuals, sqrtw)
@@ -212,90 +248,26 @@ function reg(f::Formula,
         end
     end
 
-
-    # iter and convergence
-    if has_absorb
-        iterations = sum(iterations)
-        converged = all(converged)
-    end
-
     # Compute Fstat first stage based on Kleibergen-Paap
     if has_iv
-        (F_kp, p_kp) = rank_test!(Xendo_res, 
-                                  Z_res, 
-                                  Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], 
-                                  vcov_method_data, 
-                                  size(X, 2),
-                                  df_absorb)
+        (F_kp, p_kp) = rank_test!(
+            Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
     end
 
 
     # return
     if !has_iv && !has_absorb 
-        return RegressionResult(coef,
-                                matrix_vcov,
-                                esample,
-                                augmentdf,
-                                coef_names,
-                                yname,
-                                f,
-                                nobs,
-                                df_residual,
-                                r2,
-                                r2_a,
-                                F,
-                                p)
+        return RegressionResult(
+            coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, F, p)
     elseif has_iv && !has_absorb
-        return RegressionResultIV(coef, 
-                                  matrix_vcov, 
-                                  esample, 
-                                  augmentdf, 
-                                  coef_names, 
-                                  yname, 
-                                  f, 
-                                  nobs, 
-                                  df_residual, 
-                                  r2, 
-                                  r2_a, 
-                                  F,
-                                  p,
-                                  F_kp,
-                                  p_kp)
+        return RegressionResultIV(
+            coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
-        return RegressionResultFE(coef,
-                                  matrix_vcov,
-                                  esample,
-                                  augmentdf,coef_names,
-                                  yname,
-                                  f,
-                                  nobs,
-                                  df_residual,
-                                  r2,
-                                  r2_a,
-                                  r2_within,
-                                  F,
-                                  p,
-                                  iterations,
-                                  converged)
+        return RegressionResultFE(
+            coef, matrix_vcov, esample, augmentdf,coef_names, yname, f, nobs, df_residual, r2, r2_a, r2_within, F, p, iterations, converged)
     elseif has_iv && has_absorb 
-        return RegressionResultFEIV(coef, 
-                                    matrix_vcov,
-                                    esample,
-                                    augmentdf,
-                                    coef_names,
-                                    yname,
-                                    f,
-                                    nobs,
-                                    df_residual,
-                                    r2,
-                                    r2_a,
-                                    r2_within,
-                                    F,
-                                    p,
-                                    F_kp,
-                                    p_kp,
-                                    iterations,
-                                    converged)
+        return RegressionResultFEIV(
+            coef, matrix_vcov, esample, augmentdf, coef_names, yname, f, nobs, df_residual, r2, r2_a, r2_within, F, p, F_kp, p_kp, iterations, converged)
     end
 end
 
