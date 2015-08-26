@@ -22,7 +22,7 @@ function getfe(fixedeffects::Vector{AbstractFixedEffect},
         rescale!(fevalues, components, interceptindex)
     end
 
-    if !(converged)
+    if !converged
         warn("Estimation of fixed effects did not converged")
     end
 
@@ -144,8 +144,7 @@ function kaczmarz!(
     # sampling distribution for rows
     # Needell, Srebro, Ward (2015)
     dist = 1:length(b)
-    kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
-    return fevalues
+    return kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
 end
 
 function kaczmarz!(
