@@ -16,13 +16,13 @@ Code to reproduce this graph:
     x2 =  randn(N)
   )
   @time reg(y ~ x1 + x2, df)
-  # elapsed time: 1.01800317 seconds (1377560072 bytes allocated, 17.29% gc time)
+  # 1.009597 seconds (709 allocations: 1004.980 MB, 34.60% gc time)
   @time reg(y ~ x1 + x2, df, VcovCluster(:id2))
-  # elapsed time: 1.245507803 seconds (1472559836 bytes allocated)
+  # 1.374950 seconds (827 allocations: 1.070 GB, 29.78% gc time)
   @time reg(y ~ x1 + x2 |> id1, df)
-  # elapsed time: 1.740991636 seconds (1665336144 bytes allocated, 19.96% gc time)
+  #  1.219291 seconds (883 allocations: 1.175 GB, 31.26% gc time)
   @time reg(y ~ x1 + x2 |> id1, df, VcovCluster(:id1))
-  # elapsed time: 1.860763461 seconds (1750972664 bytes allocated, 21.38% gc time)
+  #  1.519165 seconds (1.03 k allocations: 1.255 GB, 25.10% gc time)
   ````
 
   R (lfe package)

@@ -96,7 +96,7 @@ end
 # Demean by alternative projections: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
 
-function demean!{R, W <: Ones}(x::Vector{Float64},
+function demean!{R, W <: Ones}(x::AbstractVector{Float64},
                               fe::FixedEffectIntercept{R, W}, 
                               means::Vector{Float64})
     fill!(means, zero(Float64))
@@ -111,7 +111,7 @@ function demean!{R, W <: Ones}(x::Vector{Float64},
     end
 end
 
-function demean!{R, W}(x::Vector{Float64},
+function demean!{R, W}(x::AbstractVector{Float64},
                               fe::FixedEffectIntercept{R, W}, 
                               means::Vector{Float64})
     fill!(means, zero(Float64))
@@ -126,7 +126,7 @@ function demean!{R, W}(x::Vector{Float64},
     end
 end
 
-function demean!{R, W <: Ones}(x::Vector{Float64}, 
+function demean!{R, W <: Ones}(x::AbstractVector{Float64}, 
                               fe::FixedEffectSlope{R, W}, 
                               means::Vector{Float64})
     fill!(means, zero(Float64))
@@ -142,7 +142,7 @@ function demean!{R, W <: Ones}(x::Vector{Float64},
 end
 
 
-function demean!{R, W}(x::Vector{Float64}, 
+function demean!{R, W}(x::AbstractVector{Float64}, 
                               fe::FixedEffectSlope{R, W}, 
                               means::Vector{Float64})
     fill!(means, zero(Float64))
@@ -159,7 +159,7 @@ end
 
 
 
-function demean!(x::Vector{Float64}, 
+function demean!(x::AbstractVector{Float64}, 
                  iterationsv::Vector{Int}, 
                  convergedv::Vector{Bool},
                  fes::Vector{AbstractFixedEffect};
@@ -204,7 +204,7 @@ function demean!(X::Matrix{Float64},
                  maxiter::Int = 1000, 
                  tol::Float64 = 1e-8)
     for j in 1:size(X, 2)
-        X[:, j] = demean!(X[:, j], iterations, converged, fes, maxiter = maxiter, tol = tol)
+        demean!(slice(X, :, j), iterations, converged, fes, maxiter = maxiter, tol = tol)
     end
 end
 
