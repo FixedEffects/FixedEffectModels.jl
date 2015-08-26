@@ -199,8 +199,6 @@ function maxabs(
     end
     return true
 end
-    
-
 
 
 ##############################################################################
@@ -261,7 +259,7 @@ end
 
 ##############################################################################
 ##
-## rescale fixed effect to make solution unique
+## rescale fixed effect to make solution unique (at least in case of 2 fixed effects)
 ## normalization: for each factor except the first one, mean within each component is 0 
 ## Unique solution with two components, not really with more
 ##

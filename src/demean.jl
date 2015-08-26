@@ -96,35 +96,68 @@ end
 # Demean by alternative projections: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 
 
-function demean_factor!{R, W}(x::Vector{Float64},
+function demean!{R, W <: Ones}(x::Vector{Float64},
                               fe::FixedEffectIntercept{R, W}, 
                               means::Vector{Float64})
-    scale = fe.scale ; refs = fe.refs ; sqrtw = fe.sqrtw
+    fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
-         means[refs[i]] += x[i] * sqrtw[i]
+         means[fe.refs[i]] += x[i] 
     end
-    @inbounds @simd for i in 1:length(scale)
-         means[i] *= scale[i] 
+    @inbounds @simd for i in 1:length(fe.scale)
+         means[i] *= fe.scale[i] 
     end
     @inbounds @simd for i in 1:length(x)
-         x[i] -= means[refs[i]] * sqrtw[i]
+         x[i] -= means[fe.refs[i]] 
     end
 end
 
-function demean_factor!{R, W}(x::Vector{Float64}, 
-                              fe::FixedEffectSlope{R, W}, 
+function demean!{R, W}(x::Vector{Float64},
+                              fe::FixedEffectIntercept{R, W}, 
                               means::Vector{Float64})
-    scale = fe.scale ; refs = fe.refs ; interaction = fe.interaction ; sqrtw = fe.sqrtw
+    fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
-         means[refs[i]] += x[i] * interaction[i] * sqrtw[i]
+         means[fe.refs[i]] += x[i] * fe.sqrtw[i]
     end
-    @inbounds @simd for i in 1:length(scale)
-         means[i] *= scale[i] 
+    @inbounds @simd for i in 1:length(fe.scale)
+         means[i] *= fe.scale[i] 
     end
     @inbounds @simd for i in 1:length(x)
-         x[i] -= means[refs[i]] * interaction[i] * sqrtw[i]
+         x[i] -= means[fe.refs[i]] * fe.sqrtw[i]
     end
 end
+
+function demean!{R, W <: Ones}(x::Vector{Float64}, 
+                              fe::FixedEffectSlope{R, W}, 
+                              means::Vector{Float64})
+    fill!(means, zero(Float64))
+    @inbounds @simd for i in 1:length(x)
+         means[fe.refs[i]] += x[i] * fe.interaction[i] 
+    end
+    @inbounds @simd for i in 1:length(fe.scale)
+         means[i] *= fe.scale[i] 
+    end
+    @inbounds @simd for i in 1:length(x)
+         x[i] -= means[fe.refs[i]] * fe.interaction[i] 
+    end
+end
+
+
+function demean!{R, W}(x::Vector{Float64}, 
+                              fe::FixedEffectSlope{R, W}, 
+                              means::Vector{Float64})
+    fill!(means, zero(Float64))
+    @inbounds @simd for i in 1:length(x)
+         means[fe.refs[i]] += x[i] * fe.interaction[i] * fe.sqrtw[i]
+    end
+    @inbounds @simd for i in 1:length(fe.scale)
+         means[i] *= fe.scale[i] 
+    end
+    @inbounds @simd for i in 1:length(x)
+         x[i] -= means[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+    end
+end
+
+
 
 function demean!(x::Vector{Float64}, 
                  iterationsv::Vector{Int}, 
@@ -151,9 +184,7 @@ function demean!(x::Vector{Float64},
             olx[i] = x[i]
         end
         for fe in fes
-            means = dict[fe]
-            fill!(means, zero(Float64))
-            demean_factor!(x, fe, means)
+            demean!(x, fe, dict[fe])
         end
         if _chebyshev(x, olx, tol)
             converged = true
