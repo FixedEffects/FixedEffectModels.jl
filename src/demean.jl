@@ -222,9 +222,9 @@ function demean(x::DataVector{Float64},
                 fes::Vector{AbstractFixedEffect}; 
                 maxiter::Int = 1000, 
                 tol::Float64 = 1e-8)
-    X = convert(Vector{Float64}, x)
+    x = convert(Vector{Float64}, x)
     iterations = Int[]
     converged = Bool[]
-    demean!(X, iterations, converged, fes, maxiter = maxiter, tol = tol)
-    return X, iterations, converged
+    demean!(x, iterations, converged, fes, maxiter = maxiter, tol = tol)
+    return x, iterations, converged
 end
