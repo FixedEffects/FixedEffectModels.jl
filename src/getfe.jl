@@ -1,8 +1,8 @@
 
 ##############################################################################
 ##
-## getfe computes fixed effect estimates
 ## b is (y - x'b) - (\overline{y} - \overline{x}'b)
+##
 ###############################################################################
 
 
@@ -62,6 +62,7 @@ end
 ## where[j][i] is a set that stores indices k with refs(j)[k] = i
 ## fevalues[j][i] is a Float64 that stores the fixed effect estimate with refs = i
 ## refs[j, i] is a refs(j)[i]
+##
 ##############################################################################
 
 function initialize(fixedeffects::Vector{AbstractFixedEffect})
@@ -121,6 +122,7 @@ end
 ##
 ## Randomized Kaczmarz algorithm 
 ## https://en.wikipedia.org/wiki/Kaczmarz_method
+## TO DO: use sparse matrix inversion from Base?
 ##
 ##############################################################################
 
