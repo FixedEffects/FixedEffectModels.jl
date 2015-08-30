@@ -117,8 +117,7 @@ function reg(f::Formula,
         Xendo = ModelMatrix(mf).m
         broadcast!(*, Xendo, Xendo, sqrtw)
         demean!(Xendo, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
-
-
+        
         mf = simpleModelFrame(subdf, iv_terms, esample)
         Z = ModelMatrix(mf).m
         if size(Z, 2) < size(Xendo, 2)
