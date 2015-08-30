@@ -14,7 +14,7 @@ function reg(f::Formula,
     ## Parse formula
     ##
     ##############################################################################
-    # decompose formula into endogeneous form model, reduced form model, absorb model
+
     rf = deepcopy(f)
     (has_absorb,absorb_formula,absorb_terms,has_iv,iv_formula,iv_terms,endo_formula,endo_terms) = decompose!(rf)
     rt = Terms(rf)
@@ -49,6 +49,7 @@ function reg(f::Formula,
     end
     subdf = df[esample, all_vars]
     (size(subdf, 1) > 0) || error("sample is empty")
+
     # remove unusued levels
     main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
     for v in main_vars
@@ -86,7 +87,6 @@ function reg(f::Formula,
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-
 
     # Compute X
     mf = simpleModelFrame(subdf, rt, esample)
@@ -157,6 +157,7 @@ function reg(f::Formula,
         iterations = sum(iterations)
         converged = all(converged)
     end
+
     ##############################################################################
     ##
     ## Regression
@@ -253,7 +254,6 @@ function reg(f::Formula,
         (F_kp, p_kp) = rank_test!(
             Xendo_res, Z_res, Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :], vcov_method_data, size(X, 2),df_absorb)
     end
-
 
     # return
     if !has_iv && !has_absorb 
