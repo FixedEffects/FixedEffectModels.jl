@@ -26,19 +26,16 @@ getfe,
 decompose!,
 allvars,
 
-AbstractFixedEffect,
-FixedEffect, # a function 
-FixedEffectIntercept, 
-FixedEffectSlope,
+Ones,
+FixedEffect,
 
 AbstractRegressionResult,
-title,
-top,
 RegressionResult,
 RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
-
+title,
+top,
 
 AbstractVcovMethod,
 AbstractVcovMethodData, 
@@ -47,7 +44,9 @@ VcovData,
 VcovSimple, 
 VcovWhite, 
 VcovCluster,
-vcov!
+vcov!,
+shat!
+
 ##############################################################################
 ##
 ## Load files

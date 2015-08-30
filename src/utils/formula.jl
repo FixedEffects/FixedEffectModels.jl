@@ -102,7 +102,6 @@ function isnaorneg{T <: Real}(a::DataVector{T})
 	bitpack(out)
 end
 
-
 # Directly from DataFrames.jl
 function remove_response(t::Terms)
     # shallow copy original terms
@@ -116,7 +115,6 @@ function remove_response(t::Terms)
     return t
 end
 
-
 function allvars(ex::Expr)
     if ex.head != :call error("Non-call expression encountered") end
     vcat([allvars(a) for a in ex.args[2:end]]...)
@@ -124,7 +122,6 @@ end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
 allvars(::Any) = Array(Symbol, 0)
-
 
 # used when removing certain rows in a dataset
 # NA always removed

@@ -7,11 +7,11 @@
 
 
 # Return vector of vector of estimates
-function getfe(fixedeffects::Vector{AbstractFixedEffect}, 
+function getfe(fixedeffects::Vector{FixedEffect}, 
                b::Vector{Float64}; 
                maxiter = 10_000_000)
     ## initialize data structures
-    (fevalues, where, refs, A, interceptindex) = initialize(fixedeffects)
+    fevalues, where, refs, A, interceptindex = initialize(fixedeffects)
     
     # solve Ax = b by kaczmarz algorithm
     converged = kaczmarz!(fevalues, b, refs, A, maxiter)
@@ -31,7 +31,7 @@ end
 
 
 # Return dataframe of estimates
-function getfe(fixedeffects::Vector{AbstractFixedEffect},
+function getfe(fixedeffects::Vector{FixedEffect},
                b::Vector{Float64}, 
                esample::BitVector; 
                maxiter = 10_000_000)
@@ -51,10 +51,6 @@ function getfe(fixedeffects::Vector{AbstractFixedEffect},
     end
     return newdf
 end
-
-
-
-
 ##############################################################################
 ##
 ## Initialize structures
@@ -65,7 +61,7 @@ end
 ##
 ##############################################################################
 
-function initialize(fixedeffects::Vector{AbstractFixedEffect})
+function initialize(fixedeffects::Vector{FixedEffect})
     nobs = length(fixedeffects[1].refs)
     fevalues = Array(Vector{Float64}, length(fixedeffects)) 
     where = Array(Vector{Set{Int}}, length(fixedeffects))
@@ -76,39 +72,22 @@ function initialize(fixedeffects::Vector{AbstractFixedEffect})
     for f in fixedeffects
         j += 1
         initialize!(j, f, fevalues, where, refs, A)
-        if typeof(f) <: FixedEffectIntercept
+        if typeof(f.interaction) <: Ones
             push!(interceptindex, j)
         end
     end
-    return (fevalues, where, refs, A, interceptindex)
+    return fevalues, where, refs, A, interceptindex
 end
 
-function initialize!(
-    j::Int, f::FixedEffectIntercept,fevalues::Vector{Vector{Float64}}, 
-    where::Vector{Vector{Set{Int}}},refs::Matrix{Int},::Matrix{Float64}
+function initialize!{R, W, I}(
+    j::Int, f::FixedEffect{R, W, I}, fevalues::Vector{Vector{Float64}}, 
+    where::Vector{Vector{Set{Int}}}, refs::Matrix{Int}, A::Matrix{Float64}
     )
     fevalues[j] = fill(zero(Float64), length(f.scale))
     where[j] = Set{Int}[]
     # fill would create a reference to the same object
     for i in 1:length(f.scale)
         push!(where[j], Set{Int}())
-    end
-    for i in 1:length(f.refs)
-        refi = f.refs[i]
-        refs[j, i] = refi
-        push!(where[j][refi], i)
-    end
-end
-
-function initialize!(
-    j::Int, f::FixedEffectSlope,fevalues::Vector{Vector{Float64}}, 
-    where::Vector{Vector{Set{Int}}}, refs::Matrix{Int}, A::Matrix{Float64}
-    )
-    fevalues[j] = fill(zero(Float64), length(f.scale))
-    where[j] = Array(Set{Int}, length(f.scale))
-    # fill would create a reference to the same object
-    for i in 1:length(f.scale)
-        where[j][i] = Set{Int}()
     end
     @inbounds for i in 1:length(f.refs)
         refi = f.refs[i]

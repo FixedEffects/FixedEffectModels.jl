@@ -65,9 +65,9 @@ function reg(f::Formula,
     # Compute fixedeffects, an array of AbtractFixedEffects
     has_intercept = rt.intercept
     if has_absorb
-        fixedeffects = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
-        # in case some FixedEffect is aFixedEffectIntercept, remove the intercept
-        if any([typeof(f) <: FixedEffectIntercept for f in fixedeffects]) 
+        fixedeffects = FixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+        # in case some FixedEffect does not have interaction, remove the intercept
+        if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             rt.intercept = false
             has_intercept = true
         end
@@ -184,7 +184,7 @@ function reg(f::Formula,
     if has_absorb 
         ## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
         for fe in fixedeffects
-            if typeof(vcov_method) == VcovCluster && in(fe.name, vcov_vars)
+            if typeof(vcov_method) == VcovCluster && in(fe.factorname, vcov_vars)
                 df_absorb += 0
                 else
                 df_absorb += sum(fe.scale .!= zero(Float64))

@@ -42,9 +42,9 @@ function partial_out(f::Formula,
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
-        fixedeffects = AbstractFixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+        fixedeffects = FixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
         # in case there is any intercept fe, remove the intercept
-        if any([typeof(f) <: FixedEffectIntercept for f in fixedeffects]) 
+        if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             xt.intercept = false
         end
     else
