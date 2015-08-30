@@ -24,7 +24,7 @@ type FixedEffectSlope{R, W <: AbstractVector{Float64}} <: AbstractFixedEffect
     id::Symbol
 end
 
-
+# Constructors from vectors
 function FixedEffectIntercept{R}(refs::Vector{R}, 
                                  l::Int, 
                                  sqrtw::AbstractVector{Float64}, 
@@ -57,6 +57,7 @@ function FixedEffectSlope{R}(refs::Vector{R},
     FixedEffectSlope(refs, sqrtw, scale, interaction, name, interactionname, id)
 end
 
+# Constructors from dataframe + expression
 function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
@@ -85,16 +86,12 @@ function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Flo
 end
 
 
-
-
 ##############################################################################
 ##
 ## Demean algorithm
+## http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
 ##
 ##############################################################################
-
-# Demean by alternative projections: http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
-
 
 function demean!{R, W <: Ones}(x::AbstractVector{Float64},
                               fe::FixedEffectIntercept{R, W}, 
@@ -112,8 +109,8 @@ function demean!{R, W <: Ones}(x::AbstractVector{Float64},
 end
 
 function demean!{R, W}(x::AbstractVector{Float64},
-                              fe::FixedEffectIntercept{R, W}, 
-                              means::Vector{Float64})
+                       fe::FixedEffectIntercept{R, W}, 
+                       means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
          means[fe.refs[i]] += x[i] * fe.sqrtw[i]
@@ -141,10 +138,9 @@ function demean!{R, W <: Ones}(x::AbstractVector{Float64},
     end
 end
 
-
 function demean!{R, W}(x::AbstractVector{Float64}, 
-                              fe::FixedEffectSlope{R, W}, 
-                              means::Vector{Float64})
+                       fe::FixedEffectSlope{R, W}, 
+                       means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
          means[fe.refs[i]] += x[i] * fe.interaction[i] * fe.sqrtw[i]
@@ -156,8 +152,6 @@ function demean!{R, W}(x::AbstractVector{Float64},
          x[i] -= means[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-
-
 
 function demean!(x::AbstractVector{Float64}, 
                  iterationsv::Vector{Int}, 
@@ -208,16 +202,6 @@ function demean!(X::Matrix{Float64},
     end
 end
 
-function demean!(::Array,
-                 ::Vector{Int}, 
-                 ::Vector{Bool}, 
-                 ::Nothing; 
-                 maxiter::Int = 1000, 
-                 tol::Float64 = 1e-8)
-    nothing
-end
-
-
 function demean(x::DataVector{Float64}, 
                 fes::Vector{AbstractFixedEffect}; 
                 maxiter::Int = 1000, 
@@ -227,4 +211,13 @@ function demean(x::DataVector{Float64},
     converged = Bool[]
     demean!(x, iterations, converged, fes, maxiter = maxiter, tol = tol)
     return x, iterations, converged
+end
+
+function demean!(::Array,
+                 ::Vector{Int}, 
+                 ::Vector{Bool}, 
+                 ::Nothing; 
+                 maxiter::Int = 1000, 
+                 tol::Float64 = 1e-8)
+    nothing
 end
