@@ -9,84 +9,84 @@
      stroke-width="0.3"
      font-size="3.88"
 >
-<g class="plotroot yscalable" id="fig-70dca147af464d659196739f7c9d25f6-element-1">
-  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-70dca147af464d659196739f7c9d25f6-element-2">
+<g class="plotroot yscalable" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-1">
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-2">
     <text x="100.82" y="115.39" text-anchor="middle" dy="0.6em">Model</text>
   </g>
-  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-70dca147af464d659196739f7c9d25f6-element-3">
+  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-3">
     <text x="35.87" y="108.72" text-anchor="middle" dy="0.6em">simple</text>
     <text x="68.34" y="108.72" text-anchor="middle" dy="0.6em">cluster</text>
     <text x="100.82" y="108.72" text-anchor="middle" dy="0.6em">1 hd fe</text>
     <text x="133.29" y="108.72" text-anchor="middle" dy="0.6em">1 hd fe + cluster</text>
     <text x="165.77" y="108.72" text-anchor="middle" dy="0.6em">2 hd fe</text>
   </g>
-  <g class="guide colorkey" id="fig-70dca147af464d659196739f7c9d25f6-element-4">
-    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="fig-70dca147af464d659196739f7c9d25f6-element-5">
-      <text x="185.82" y="54.54" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-6" class="color_Julia">Julia</text>
-      <text x="185.82" y="58.17" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-7" class="color_R">R</text>
-      <text x="185.82" y="61.8" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-8" class="color_Stata">Stata</text>
+  <g class="guide colorkey" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-4">
+    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-5">
+      <text x="185.82" y="54.54" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-6" class="color_Julia">Julia</text>
+      <text x="185.82" y="58.17" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-7" class="color_R">R</text>
+      <text x="185.82" y="61.8" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-8" class="color_Stata">Stata</text>
     </g>
-    <g stroke="#000000" stroke-opacity="0.000" id="fig-70dca147af464d659196739f7c9d25f6-element-9">
-      <rect x="183" y="53.64" width="1.81" height="1.81" id="fig-70dca147af464d659196739f7c9d25f6-element-10" class="color_Julia" fill="#00BFFF"/>
-      <rect x="183" y="57.26" width="1.81" height="1.81" id="fig-70dca147af464d659196739f7c9d25f6-element-11" class="color_R" fill="#D4CA3A"/>
-      <rect x="183" y="60.89" width="1.81" height="1.81" id="fig-70dca147af464d659196739f7c9d25f6-element-12" class="color_Stata" fill="#FF5EA0"/>
+    <g stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-9">
+      <rect x="183" y="53.64" width="1.81" height="1.81" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-10" class="color_Julia" fill="#00BFFF"/>
+      <rect x="183" y="57.26" width="1.81" height="1.81" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-11" class="color_R" fill="#D4CA3A"/>
+      <rect x="183" y="60.89" width="1.81" height="1.81" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-12" class="color_Stata" fill="#FF5EA0"/>
     </g>
-    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="fig-70dca147af464d659196739f7c9d25f6-element-13">
-      <text x="183" y="50.72" id="fig-70dca147af464d659196739f7c9d25f6-element-14">Language</text>
+    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-13">
+      <text x="183" y="50.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-14">Language</text>
     </g>
   </g>
-  <g clip-path="url(#fig-70dca147af464d659196739f7c9d25f6-element-16)" id="fig-70dca147af464d659196739f7c9d25f6-element-15">
-    <g pointer-events="visible" opacity="1" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="fig-70dca147af464d659196739f7c9d25f6-element-17">
-      <rect x="19.63" y="5" width="162.37" height="102.72" id="fig-70dca147af464d659196739f7c9d25f6-element-18"/>
+  <g clip-path="url(#fig-fa136079e66a4bf8941ce0769ac0c493-element-16)" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-15">
+    <g pointer-events="visible" opacity="1" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-17">
+      <rect x="19.63" y="5" width="162.37" height="102.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-18"/>
     </g>
-    <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-70dca147af464d659196739f7c9d25f6-element-19">
-      <path fill="none" d="M19.63,105.71 L 182 105.71" id="fig-70dca147af464d659196739f7c9d25f6-element-20"/>
-      <path fill="none" d="M19.63,81.04 L 182 81.04" id="fig-70dca147af464d659196739f7c9d25f6-element-21"/>
-      <path fill="none" d="M19.63,56.36 L 182 56.36" id="fig-70dca147af464d659196739f7c9d25f6-element-22"/>
-      <path fill="none" d="M19.63,31.68 L 182 31.68" id="fig-70dca147af464d659196739f7c9d25f6-element-23"/>
-      <path fill="none" d="M19.63,7 L 182 7" id="fig-70dca147af464d659196739f7c9d25f6-element-24"/>
+    <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-19">
+      <path fill="none" d="M19.63,105.71 L 182 105.71" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-20"/>
+      <path fill="none" d="M19.63,81.04 L 182 81.04" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-21"/>
+      <path fill="none" d="M19.63,56.36 L 182 56.36" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-22"/>
+      <path fill="none" d="M19.63,31.68 L 182 31.68" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-23"/>
+      <path fill="none" d="M19.63,7 L 182 7" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-24"/>
     </g>
-    <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-70dca147af464d659196739f7c9d25f6-element-25">
-      <path fill="none" d="M52.11,5 L 52.11 107.72" id="fig-70dca147af464d659196739f7c9d25f6-element-26"/>
-      <path fill="none" d="M84.58,5 L 84.58 107.72" id="fig-70dca147af464d659196739f7c9d25f6-element-27"/>
-      <path fill="none" d="M117.05,5 L 117.05 107.72" id="fig-70dca147af464d659196739f7c9d25f6-element-28"/>
-      <path fill="none" d="M149.53,5 L 149.53 107.72" id="fig-70dca147af464d659196739f7c9d25f6-element-29"/>
+    <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-25">
+      <path fill="none" d="M52.11,5 L 52.11 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-26"/>
+      <path fill="none" d="M84.58,5 L 84.58 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-27"/>
+      <path fill="none" d="M117.05,5 L 117.05 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-28"/>
+      <path fill="none" d="M149.53,5 L 149.53 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-29"/>
     </g>
-    <g class="plotpanel" id="fig-70dca147af464d659196739f7c9d25f6-element-30">
-      <g class="geometry" id="fig-70dca147af464d659196739f7c9d25f6-element-31">
-        <g stroke-width="0.3" id="fig-70dca147af464d659196739f7c9d25f6-element-32">
-          <circle cx="35.87" cy="104.46" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-33" stroke="#FFFFFF" class="color_Julia" fill="#00BFFF"/>
-          <circle cx="68.34" cy="104.42" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-34" stroke="#FFFFFF" class="color_Julia" fill="#00BFFF"/>
-          <circle cx="100.82" cy="103.5" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-35" stroke="#FFFFFF" class="color_Julia" fill="#00BFFF"/>
-          <circle cx="133.29" cy="102.88" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-36" stroke="#FFFFFF" class="color_Julia" fill="#00BFFF"/>
-          <circle cx="165.77" cy="103" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-37" stroke="#FFFFFF" class="color_Julia" fill="#00BFFF"/>
-          <circle cx="35.87" cy="92.11" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-38" stroke="#FFFFFF" class="color_R" fill="#D4CA3A"/>
-          <circle cx="68.34" cy="92.14" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-39" stroke="#FFFFFF" class="color_R" fill="#D4CA3A"/>
-          <circle cx="100.82" cy="84.15" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-40" stroke="#FFFFFF" class="color_R" fill="#D4CA3A"/>
-          <circle cx="133.29" cy="71.52" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-41" stroke="#FFFFFF" class="color_R" fill="#D4CA3A"/>
-          <circle cx="165.77" cy="79.44" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-42" stroke="#FFFFFF" class="color_R" fill="#D4CA3A"/>
-          <circle cx="35.87" cy="104.53" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-43" stroke="#FFFFFF" class="color_Stata" fill="#FF5EA0"/>
-          <circle cx="68.34" cy="94.71" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-44" stroke="#FFFFFF" class="color_Stata" fill="#FF5EA0"/>
-          <circle cx="100.82" cy="90.4" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-45" stroke="#FFFFFF" class="color_Stata" fill="#FF5EA0"/>
-          <circle cx="133.29" cy="53.38" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-46" stroke="#FFFFFF" class="color_Stata" fill="#FF5EA0"/>
-          <circle cx="165.77" cy="23.54" r="1" id="fig-70dca147af464d659196739f7c9d25f6-element-47" stroke="#FFFFFF" class="color_Stata" fill="#FF5EA0"/>
+    <g class="plotpanel" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-30">
+      <g class="geometry" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-31">
+        <g stroke-width="0.3" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-32">
+          <circle cx="35.87" cy="104.72" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-33" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="68.34" cy="104.36" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-34" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="100.82" cy="104.51" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-35" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="133.29" cy="104.22" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-36" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="165.77" cy="103" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-37" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="35.87" cy="92.11" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-38" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
+          <circle cx="68.34" cy="92.14" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-39" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
+          <circle cx="100.82" cy="84.15" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-40" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
+          <circle cx="133.29" cy="71.52" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-41" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
+          <circle cx="165.77" cy="79.44" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-42" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
+          <circle cx="35.87" cy="104.53" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-43" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
+          <circle cx="68.34" cy="94.71" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-44" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
+          <circle cx="100.82" cy="90.4" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-45" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
+          <circle cx="133.29" cy="53.38" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-46" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
+          <circle cx="165.77" cy="23.54" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-47" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
         </g>
       </g>
     </g>
   </g>
-  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-70dca147af464d659196739f7c9d25f6-element-48">
-    <text x="18.63" y="105.71" text-anchor="end" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-49">0</text>
-    <text x="18.63" y="81.04" text-anchor="end" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-50">25</text>
-    <text x="18.63" y="56.36" text-anchor="end" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-51">50</text>
-    <text x="18.63" y="31.68" text-anchor="end" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-52">75</text>
-    <text x="18.63" y="7" text-anchor="end" dy="0.35em" id="fig-70dca147af464d659196739f7c9d25f6-element-53">100</text>
+  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-48">
+    <text x="18.63" y="105.71" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-49">0</text>
+    <text x="18.63" y="81.04" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-50">25</text>
+    <text x="18.63" y="56.36" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-51">50</text>
+    <text x="18.63" y="31.68" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-52">75</text>
+    <text x="18.63" y="7" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-53">100</text>
   </g>
-  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-70dca147af464d659196739f7c9d25f6-element-54">
-    <text x="8.81" y="54.36" text-anchor="middle" dy="0.35em" transform="rotate(-90, 8.81, 56.36)" id="fig-70dca147af464d659196739f7c9d25f6-element-55">Time (seconds)</text>
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-54">
+    <text x="8.81" y="54.36" text-anchor="middle" dy="0.35em" transform="rotate(-90, 8.81, 56.36)" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-55">Time (seconds)</text>
   </g>
 </g>
 <defs>
-<clipPath id="fig-70dca147af464d659196739f7c9d25f6-element-16">
+<clipPath id="fig-fa136079e66a4bf8941ce0769ac0c493-element-16">
   <path d="M19.63,5 L 182 5 182 107.72 19.63 107.72" />
 </clipPath
 ></defs>
