@@ -11,7 +11,8 @@ function getfe(fixedeffects::Vector{FixedEffect},
                b::Vector{Float64}; 
                maxiter = 10_000_000)
     ## initialize data structures
-    fevalues, where, refs, A, interceptindex = initialize(fixedeffects)
+    interceptindex = find(fe->typeof(fe.interaction) <: Ones, fixedeffects)
+    fevalues, where, refs, A = initialize(fixedeffects)
     
     # solve Ax = b by kaczmarz algorithm
     converged = kaczmarz!(fevalues, b, refs, A, maxiter)
@@ -67,16 +68,12 @@ function initialize(fixedeffects::Vector{FixedEffect})
     where = Array(Vector{Set{Int}}, length(fixedeffects))
     refs = fill(zero(Int), length(fixedeffects), nobs)
     A = fill(one(Float64), length(fixedeffects),  nobs)
-    interceptindex = Int[]
     j = 0
     for f in fixedeffects
         j += 1
         initialize!(j, f, fevalues, where, refs, A)
-        if typeof(f.interaction) <: Ones
-            push!(interceptindex, j)
-        end
     end
-    return fevalues, where, refs, A, interceptindex
+    return fevalues, where, refs, A
 end
 
 function initialize!{R, W, I}(
