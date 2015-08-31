@@ -27,7 +27,7 @@ function FixedEffect{R}(refs::Vector{R},
     @inbounds @simd for i in 1:length(refs)
          scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
     end
-    @inbounds @simd for i in 1:length(scale)
+    @inbounds @simd for i in 1:l
         scale[i] = scale[i] > 0 ? (1.0 / scale[i]) : zero(Float64)
     end
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
@@ -46,10 +46,10 @@ function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float
             x = convert(Vector{Float64}, df[a.args[2]])
             return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
         else
-            error("& is not of the form factor & nonfactor")
+            error("Exp $(a) should be of the form factor&nonfactor")
         end
     else
-        error("Formula should be composed of & and symbols")
+        error("Exp $(a) should be of the form factor&nonfactor")
     end
 end
 

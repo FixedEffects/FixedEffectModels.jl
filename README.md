@@ -17,7 +17,7 @@ The function `reg` estimates linear models with
 
 
 ## result
-`reg` returns a very light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
+`reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
  
   - the vector of coefficients & the covariance matrix
   - a boolean vector reporting rows used in the estimation
