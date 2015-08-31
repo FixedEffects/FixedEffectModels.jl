@@ -69,9 +69,8 @@ end
 ##
 ##############################################################################
 
-function demean!{R, W, I}(x::AbstractVector{Float64}, 
-                       fe::FixedEffect{R, W, I}, 
-                       means::Vector{Float64})
+function demean!{R, W, I}(x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, 
+                          means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
          means[fe.refs[i]] += x[i] * fe.interaction[i] * fe.sqrtw[i]
@@ -84,12 +83,9 @@ function demean!{R, W, I}(x::AbstractVector{Float64},
     end
 end
 
-function demean!(x::AbstractVector{Float64}, 
-                 iterationsv::Vector{Int}, 
-                 convergedv::Vector{Bool},
-                 fes::Vector{FixedEffect};
-                 maxiter::Int = 1000,
-                 tol::Float64 = 1e-8)
+function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, 
+                 convergedv::Vector{Bool}, fes::Vector{FixedEffect};
+                 maxiter::Int = 1000, tol::Float64 = 1e-8)
     # allocate array of means for each factor
     dict = Dict{FixedEffect, Vector{Float64}}()
     for fe in fes
@@ -122,21 +118,15 @@ function demean!(x::AbstractVector{Float64},
     push!(convergedv, converged)
 end
 
-function demean!(X::Matrix{Float64}, 
-                 iterations::Vector{Int}, 
-                 converged::Vector{Bool}, 
-                 fes::Vector{FixedEffect}; 
-                 maxiter::Int = 1000, 
-                 tol::Float64 = 1e-8)
+function demean!(X::Matrix{Float64}, iterations::Vector{Int}, converged::Vector{Bool}, 
+                 fes::Vector{FixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
     for j in 1:size(X, 2)
         demean!(slice(X, :, j), iterations, converged, fes, maxiter = maxiter, tol = tol)
     end
 end
 
-function demean(x::DataVector{Float64}, 
-                fes::Vector{FixedEffect}; 
-                maxiter::Int = 1000, 
-                tol::Float64 = 1e-8)
+function demean(x::DataVector{Float64},fes::Vector{FixedEffect}; 
+                maxiter::Int = 1000, tol::Float64 = 1e-8)
     x = convert(Vector{Float64}, x)
     iterations = Int[]
     converged = Bool[]
@@ -144,11 +134,7 @@ function demean(x::DataVector{Float64},
     return x, iterations, converged
 end
 
-function demean!(::Array,
-                 ::Vector{Int}, 
-                 ::Vector{Bool}, 
-                 ::Nothing; 
-                 maxiter::Int = 1000, 
-                 tol::Float64 = 1e-8)
+function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Nothing; 
+                 maxiter::Int = 1000, tol::Float64 = 1e-8)
     nothing
 end
