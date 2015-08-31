@@ -1,8 +1,10 @@
 
 ##############################################################################
 ##
+## Fixed effects solve Ax = b
 ## b is (y - x'b) - (\overline{y} - \overline{x}'b)
-##
+## TODO 1 : use sparse matrix inversion from Base? 
+## TODO 2 : Use only unique rows?
 ###############################################################################
 
 
@@ -98,7 +100,6 @@ end
 ##
 ## Randomized Kaczmarz algorithm 
 ## https://en.wikipedia.org/wiki/Kaczmarz_method
-## TO DO: use sparse matrix inversion from Base?
 ##
 ##############################################################################
 
