@@ -5,46 +5,25 @@
 ##
 ###############################################################################
 
+
 # Return vector of vector of estimates
 function getfe(fixedeffects::Vector{FixedEffect}, 
                b::Vector{Float64}; 
                maxiter = 10_000_000)
-
-    # construct sparse matrix A
-    nobs = length(fixedeffects) * length(b)
-    I = Array(Int, nobs)
-    J = similar(I)
-    V = Array(Float64, nobs)
-    start = 0
-    idx = 0
-    for fe in fixedeffects
-        for i in 1:length(fe.refs)
-            idx += 1
-            I[idx] = i
-            J[idx] = start + fe.refs[i]
-            V[idx] = fe.interaction[i]
-        end
-        start += sum(fe.scale .!= 0)
-    end
-    A = sparse(I, J, V)
-   
-    # solve Ax = b 
-    fevalues0 = A \ b
-
-    # unflatten fevalues0
-    fevalues = Vector{Float64}[]
-    nstart = 1
-    for fe in fixedeffects
-        nend = nstart - 1 + sum(fe.scale .!= 0) 
-        push!(fevalues, fevalues0[nstart:nend])
-        nstart = nend + 1
-    end
+    ## initialize data structures
+    fevalues, where, refs, A, interceptindex = initialize(fixedeffects)
+    
+    # solve Ax = b by kaczmarz algorithm
+    converged = kaczmarz!(fevalues, b, refs, A, maxiter)
 
     # rescale fixed effects 
-    interceptindex = find(x -> typeof(x.interaction) <: Ones, fixedeffects)
     if length(interceptindex) >= 2
-        components = connectedcomponent(fixedeffects, interceptindex)
+        components = connectedcomponent(refs, where, interceptindex)
         rescale!(fevalues, components, interceptindex)
+    end
+
+    if !converged
+        warn("Estimation of fixed effects did not converged")
     end
 
     return fevalues
@@ -72,6 +51,135 @@ function getfe(fixedeffects::Vector{FixedEffect},
     end
     return newdf
 end
+##############################################################################
+##
+## Initialize structures
+## Denote refs(j) the reference vector of the jth factor
+## where[j][i] is a set that stores indices k with refs(j)[k] = i
+## fevalues[j][i] is a Float64 that stores the fixed effect estimate with refs = i
+## refs[j, i] is a refs(j)[i]
+##
+##############################################################################
+
+function initialize(fixedeffects::Vector{FixedEffect})
+    nobs = length(fixedeffects[1].refs)
+    fevalues = Array(Vector{Float64}, length(fixedeffects)) 
+    where = Array(Vector{Set{Int}}, length(fixedeffects))
+    refs = fill(zero(Int), length(fixedeffects), nobs)
+    A = fill(one(Float64), length(fixedeffects),  nobs)
+    interceptindex = Int[]
+    j = 0
+    for f in fixedeffects
+        j += 1
+        initialize!(j, f, fevalues, where, refs, A)
+        if typeof(f.interaction) <: Ones
+            push!(interceptindex, j)
+        end
+    end
+    return fevalues, where, refs, A, interceptindex
+end
+
+function initialize!{R, W, I}(
+    j::Int, f::FixedEffect{R, W, I}, fevalues::Vector{Vector{Float64}}, 
+    where::Vector{Vector{Set{Int}}}, refs::Matrix{Int}, A::Matrix{Float64}
+    )
+    fevalues[j] = fill(zero(Float64), length(f.scale))
+    where[j] = Set{Int}[]
+    # fill would create a reference to the same object
+    for i in 1:length(f.scale)
+        push!(where[j], Set{Int}())
+    end
+    @inbounds for i in 1:length(f.refs)
+        refi = f.refs[i]
+        refs[j, i] = refi
+        A[j, i] = f.interaction[i]
+        push!(where[j][refi], i)
+    end
+end
+
+##############################################################################
+##
+## Randomized Kaczmarz algorithm 
+## https://en.wikipedia.org/wiki/Kaczmarz_method
+## TO DO: use sparse matrix inversion from Base?
+##
+##############################################################################
+
+
+function kaczmarz!(
+    fevalues::Vector{Vector{Float64}}, b::Vector{Float64},
+    refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer
+    )
+    # precompute invnorm = 1/norm[i] since division costly
+    norm = fill(zero(Float64), size(A, 2))
+    invnorm = fill(zero(Float64), size(A, 2))
+    @inbounds for i in 1:size(A, 2)
+        out = zero(Float64)
+        for j in 1:size(A, 1)
+            out += abs2(A[j, i])
+        end
+        norm[i] = out
+        invnorm[i] = 1 / out
+    end
+
+    # sampling distribution for rows
+    # Needell, Srebro, Ward (2015)
+    dist = 1:length(b)
+    return kaczmarz!(fevalues, b, refs, A, maxiter, dist, invnorm)
+end
+
+function kaczmarz!(
+    fevalues::Vector{Vector{Float64}},b::Vector{Float64},
+    refs::Matrix{Int}, A::Matrix{Float64}, maxiter::Integer,
+    dist, invnorm::Vector{Float64})
+    len_fe = length(fevalues)
+    len_b = length(b)
+    iter = 0
+    @inbounds while iter < maxiter 
+        iter += 1
+        for _ in 1:len_b
+            currenterror = zero(Float64)
+            inner_iter = zero(Int)
+                
+            # draw a row
+            i = rand(dist)
+            
+            # compute update = (b_i - <x_k, a_i>)/||a_i||^2
+            numerator = b[i]
+            for j in 1:len_fe
+                numerator -= fevalues[j][refs[j, i]] * A[j, i]
+            end
+            update = numerator * invnorm[i]
+
+            # update x_k
+            for j in 1:len_fe   
+                fevalues[j][refs[j, i]] +=  update * A[j, i]
+            end
+        end
+        # check maxabs(Ax-b) 
+        if maxabs(fevalues, b, refs, A, 1e-4)
+            return true
+        end
+    end
+    return false
+end
+
+
+function maxabs(
+    fevalues::Vector{Vector{Float64}}, b::Vector{Float64},
+    refs::Matrix{Int}, A::Matrix{Float64}, tol::Float64)
+    len_fe = length(fevalues)
+    @inbounds for i in 1:length(b)
+        current = b[i]
+        for j in 1:len_fe
+            current -= fevalues[j][refs[j, i]] * A[j, i]
+        end
+        if abs(current) > tol
+            return false
+        end
+    end
+    return true
+end
 
 
 ##############################################################################
@@ -82,16 +190,12 @@ end
 ##
 ##############################################################################
 
-function connectedcomponent(fixedeffects::Vector{FixedEffect},
+function connectedcomponent(refs::Matrix{Int},
+                            where::Vector{Vector{Set{Int}}},
                             interceptindex::Vector{Int})
-    # initialize where
-    where = initialize_where(fixedeffects)
-    refs = initialize_refs(fixedeffects)
     nobs = size(refs, 2)
     visited = fill(false, nobs)
     components = Vector{Set{Int}}[]
-
-    # start
     for i in 1:nobs
         if !visited[i]
             component = Set{Int}[]
@@ -104,39 +208,6 @@ function connectedcomponent(fixedeffects::Vector{FixedEffect},
     end
     return components
 end
-
-
-function initialize_where(fixedeffects::Vector{FixedEffect})
-    where = Vector{Set{Int}}[]
-    for j in 1:length(fixedeffects)
-        push!(where, Set{Int}[])
-        fe = fixedeffects[j]
-        for _ in 1:length(fe.scale)
-            push!(where[j], Set{Int}())
-        end
-        @inbounds for i in 1:length(fe.refs)
-            push!(where[j][fe.refs[i]], i)
-        end
-    end
-    return where
-end
-
-
-function initialize_refs(fixedeffects::Vector{FixedEffect})
-    nobs = length(fixedeffects[1].refs)
-    refs = fill(zero(Int), length(fixedeffects), nobs)
-    for j in 1:length(fixedeffects)
-        ref = fixedeffects[j].refs
-        for i in 1:length(ref)
-            refs[j, i] = ref[i]
-        end
-    end
-    return refs
-end
-
-
-
-
 
 # Breadth-first search
 function connectedcomponent!(
@@ -165,9 +236,6 @@ function connectedcomponent!(
         end
     end
 end
-
-
-
 
 
 ##############################################################################
