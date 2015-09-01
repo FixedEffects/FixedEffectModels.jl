@@ -4,8 +4,9 @@
 ## FixedEffect
 ##
 ##############################################################################
+typealias VectorOrOne Union{Vector{Float64}, Ones}
 
-type FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}
+type FixedEffect{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ w * interaction^2) within each group
@@ -16,7 +17,7 @@ type FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vec
 end
 
 # Constructors the scale vector
-function FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}(
+function FixedEffect{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}(
     refs::Vector{R}, l::Int, sqrtw::W, interaction::I, 
     factorname::Symbol, interactionname::Symbol, id::Symbol)
     scale = fill(zero(Float64), l)
@@ -30,7 +31,7 @@ function FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union
 end
 
 # Constructors from dataframe + expression
-function FixedEffect{W <: Union{Vector{Float64}, Ones}}(df::AbstractDataFrame, a::Expr, sqrtw::W)
+function FixedEffect{W <: VectorOrOne}(df::AbstractDataFrame, a::Expr, sqrtw::W)
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
         if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
@@ -49,7 +50,7 @@ function FixedEffect{W <: Union{Vector{Float64}, Ones}}(df::AbstractDataFrame, a
     end
 end
 
-function FixedEffect{W <: Union{Vector{Float64}, Ones}}(df::AbstractDataFrame, a::Symbol, sqrtw::W)
+function FixedEffect{W <: VectorOrOne}(df::AbstractDataFrame, a::Symbol, sqrtw::W)
     v = df[a]
     if typeof(v) <: PooledDataVector
         return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
@@ -65,7 +66,7 @@ end
 ##
 ##############################################################################
 
-function demean!{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}(
+function demean!{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}(
     x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
