@@ -17,8 +17,8 @@ type FixedEffect{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}
 end
 
 # Constructors the scale vector
-function FixedEffect{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}(
-    refs::Vector{R}, l::Int, sqrtw::W, interaction::I, 
+function FixedEffect{R <: Integer}(
+    refs::Vector{R}, l::Int, sqrtw::VectorOrOne, interaction::VectorOrOne, 
     factorname::Symbol, interactionname::Symbol, id::Symbol)
     scale = fill(zero(Float64), l)
     @inbounds @simd for i in 1:length(refs)
@@ -31,7 +31,7 @@ function FixedEffect{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}(
 end
 
 # Constructors from dataframe + expression
-function FixedEffect{W <: VectorOrOne}(df::AbstractDataFrame, a::Expr, sqrtw::W)
+function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::VectorOrOne)
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
         if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
@@ -50,7 +50,7 @@ function FixedEffect{W <: VectorOrOne}(df::AbstractDataFrame, a::Expr, sqrtw::W)
     end
 end
 
-function FixedEffect{W <: VectorOrOne}(df::AbstractDataFrame, a::Symbol, sqrtw::W)
+function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::VectorOrOne)
     v = df[a]
     if typeof(v) <: PooledDataVector
         return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
