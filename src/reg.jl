@@ -213,17 +213,23 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute Fstat
     coefF = deepcopy(coef)
     matrix_vcovF = matrix_vcov
-    if rt.intercept
-        coefF = coefF[2:end]
-        matrix_vcovF = matrix_vcovF[2:end, 2:end]
-    end
-    F = diagm(coefF)' * (matrix_vcovF \ diagm(coefF))
-    F = F[1] 
-    if typeof(vcov_method) == VcovCluster 
-        nclust = minimum(values(vcov_method_data.size))
-        p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
+    if rt.intercept && length(coef)==1 
+        if rt.intercept && length(coef) > 1
+            coefF = coefF[2:end]
+            matrix_vcovF = matrix_vcovF[2:end, 2:end]
+        end
+        F = diagm(coefF)' * (matrix_vcovF \ diagm(coefF))
+        F = F[1] 
+        if typeof(vcov_method) == VcovCluster 
+            nclust = minimum(values(vcov_method_data.size))
+            p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
+        else
+            p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
+        end
     else
-        p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
+        # TODO: check I can't do better
+        F = NaN
+        p = NaN
     end
 
     # save residuals in a new dataframe

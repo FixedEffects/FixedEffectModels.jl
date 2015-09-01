@@ -10,7 +10,7 @@ module FixedEffectModels
 using Compat
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
-import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
+import DataFrames: @~, pool, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
 ##############################################################################
 ##
@@ -63,5 +63,13 @@ include("RegressionResult.jl")
 include("getfe.jl")
 include("reg.jl")
 include("partial_out.jl")
+
+let
+	# precompile various methods of demean
+	df = DataFrame(x = rand(10), y = rand(10), w = abs(rand(10)), id = pool(repeat(collect(1:2), inner = [5])));
+	reg(y~x |> id, df)
+	reg(y~1|> id&x, df)
+	nothing
+end
 
 end  # module FixedEffectModels

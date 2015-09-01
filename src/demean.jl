@@ -5,7 +5,7 @@
 ##
 ##############################################################################
 
-type FixedEffect{R, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
+type FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: AbstractVector{Float64}}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ w * interaction^2) within each group
@@ -16,9 +16,9 @@ type FixedEffect{R, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
 end
 
 # Constructors the scale vector
-function FixedEffect{R}(refs::Vector{R}, 
+function FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}}(refs::Vector{R}, 
                              l::Int, 
-                             sqrtw::AbstractVector{Float64}, 
+                             sqrtw::W, 
                              interaction::AbstractVector{Float64}, 
                              factorname::Symbol, 
                              interactionname::Symbol, 
@@ -69,7 +69,7 @@ end
 ##
 ##############################################################################
 
-function demean!{R, W, I}(x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, 
+function demean!{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}(x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, 
                           means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
