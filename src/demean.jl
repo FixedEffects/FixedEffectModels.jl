@@ -16,13 +16,9 @@ type FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vec
 end
 
 # Constructors the scale vector
-function FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}}(refs::Vector{R}, 
-                             l::Int, 
-                             sqrtw::W, 
-                             interaction::AbstractVector{Float64}, 
-                             factorname::Symbol, 
-                             interactionname::Symbol, 
-                             id::Symbol)
+function FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}(
+    refs::Vector{R}, l::Int, sqrtw::W, interaction::I, 
+    factorname::Symbol, interactionname::Symbol, id::Symbol)
     scale = fill(zero(Float64), l)
     @inbounds @simd for i in 1:length(refs)
          scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
@@ -69,8 +65,8 @@ end
 ##
 ##############################################################################
 
-function demean!{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}(x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, 
-                          means::Vector{Float64})
+function demean!{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}(
+    x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
          means[fe.refs[i]] += x[i] * fe.interaction[i] * fe.sqrtw[i]
