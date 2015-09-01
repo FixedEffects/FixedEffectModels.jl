@@ -214,6 +214,10 @@ function reg(f::Formula, df::AbstractDataFrame,
     coefF = deepcopy(coef)
     matrix_vcovF = matrix_vcov
     if rt.intercept && length(coef)==1 
+        # TODO: check I can't do better
+        F = NaN
+        p = NaN
+    else
         if rt.intercept && length(coef) > 1
             coefF = coefF[2:end]
             matrix_vcovF = matrix_vcovF[2:end, 2:end]
@@ -225,11 +229,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
         else
             p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
-        end
-    else
-        # TODO: check I can't do better
-        F = NaN
-        p = NaN
+        end    
     end
 
     # save residuals in a new dataframe
