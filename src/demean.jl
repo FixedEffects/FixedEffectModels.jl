@@ -4,9 +4,8 @@
 ## FixedEffect
 ##
 ##############################################################################
-typealias VectorOrOne Union{Vector{Float64}, Ones}
 
-type FixedEffect{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}
+type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ w * interaction^2) within each group
@@ -18,7 +17,7 @@ end
 
 # Constructors the scale vector
 function FixedEffect{R <: Integer}(
-    refs::Vector{R}, l::Int, sqrtw::VectorOrOne, interaction::VectorOrOne, 
+    refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, interaction::AbstractVector{Float64}, 
     factorname::Symbol, interactionname::Symbol, id::Symbol)
     scale = fill(zero(Float64), l)
     @inbounds @simd for i in 1:length(refs)
@@ -31,7 +30,7 @@ function FixedEffect{R <: Integer}(
 end
 
 # Constructors from dataframe + expression
-function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::VectorOrOne)
+function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
         if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
@@ -50,7 +49,7 @@ function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::VectorOrOne)
     end
 end
 
-function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::VectorOrOne)
+function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
     v = df[a]
     if typeof(v) <: PooledDataVector
         return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
@@ -66,7 +65,7 @@ end
 ##
 ##############################################################################
 
-function demean!{R <: Integer, W <: VectorOrOne, I <: VectorOrOne}(
+function demean!{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}(
     x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, means::Vector{Float64})
     fill!(means, zero(Float64))
     @inbounds @simd for i in 1:length(x)
