@@ -5,7 +5,7 @@
 ##
 ##############################################################################
 
-type FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: AbstractVector{Float64}}
+type FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}, I <: Union{Vector{Float64}, Ones}}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ w * interaction^2) within each group
@@ -34,7 +34,7 @@ function FixedEffect{R <: Integer, W <: Union{Vector{Float64}, Ones}}(refs::Vect
 end
 
 # Constructors from dataframe + expression
-function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
+function FixedEffect{W <: Union{Vector{Float64}, Ones}}(df::AbstractDataFrame, a::Expr, sqrtw::W)
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
         if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
@@ -53,7 +53,7 @@ function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float
     end
 end
 
-function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
+function FixedEffect{W <: Union{Vector{Float64}, Ones}}(df::AbstractDataFrame, a::Symbol, sqrtw::W)
     v = df[a]
     if typeof(v) <: PooledDataVector
         return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)

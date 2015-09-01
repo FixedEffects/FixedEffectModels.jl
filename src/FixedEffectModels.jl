@@ -10,7 +10,7 @@ module FixedEffectModels
 using Compat
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
-import DataFrames: @~, pool, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
+import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
 ##############################################################################
 ##
@@ -70,7 +70,7 @@ let
 		id = PooledDataArray(
 			RefArray(vcat(fill(one(Int), 5), fill(2 * one(Int), 5))), [1, 2]))
 	reg(y~x |> id, df)
-	reg(y~1|> id&x, df)
+	reg(y~1 |> id&x, df)
 	nothing
 end
 
