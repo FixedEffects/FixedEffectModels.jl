@@ -38,8 +38,10 @@ Contrary to the usual OLS formula, this method does not require the construction
 
 References
 - Guimaraes, Portugal 2010 *A simple feasible procedure to fit models with high-dimensional fixed effects* https://ideas.repec.org/a/tsj/stataj/v10y2010i4p628-649.html
- - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
+- Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
 
+
+Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
 
 ## result
 `reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
