@@ -36,6 +36,11 @@ The overall method has two steps:
 Contrary to the usual OLS formula, this method dos not require to construct the matrix `X'X`
 
 
+References
+- Guimaraes, Portugal 2010 *A simple feasible procedure to fit models with high-dimensional fixed effects* https://ideas.repec.org/a/tsj/stataj/v10y2010i4p628-649.html
+ - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
+
+
 ## result
 `reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
  
@@ -236,20 +241,6 @@ plot(
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/9a12681d81f9d713cec3b88b1abf362cdddb9a14/benchmark/third.svg)
 
 The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
-
-
-
-
-
-# References
-Models with high dimensional fixed effects:
- - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
- -  Sergio Correia, 2015. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*  https://ideas.repec.org/c/boc/bocode/s457874.html
-
-
-First Stage F-Stat for IV models:
-- Frank Kleibergen, Mark E Schaffer. 2014 *ranktest: Stata module to test the rank of a matrix using the Kleibergen-Paap rk statistic* https://ideas.repec.org/c/boc/bocode/s456865.html
-- Christopher F Baum, Mark E Schaffer, Steven Stillman, 2015. *ivreg2: Stata module for extended instrumental variables/2SLS and GMM estimation* https://ideas.repec.org/c/boc/bocode/s457874.html
 
 
 
