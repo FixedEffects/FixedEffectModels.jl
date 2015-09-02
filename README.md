@@ -14,6 +14,24 @@ The function `reg` estimates linear models with
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 
+To install the package, 
+
+```julia
+Pkg.add("FixedEffectModels")
+```
+
+### How does this work
+The projection of `y` on a set of vector `x` can be obtained by solving `(X'X)b=X'y`.
+When the number of regressors is large, the matrix `X'X` is too big to fit into memory. `reg` solves this problem using the Kaczmarz method. 
+
+The Kaczmarz method says the following: to project a vector `y` on the set defined by `<x1,z>=0, <x2,z>=0, ..., <xn,z>=0`, one just needs to iteratively project x on each vector until convergence. It's an important result because projecting `y` on just one vector is obtained by the formula `y - <y, x> x`.
+
+The overall method has two step
+- Compute `e`, the projection of `y` on the set defined by `<x1,x>=0, <x2,x>=0, ..., <xn,x>=0` (using Kaczmarz method)
+-  Find the set of coefficients `b` such that
+`Xb = y - e`.
+
+Contrary to the usual OLS formula, this method dos not require to construct the matrix `X'X`
 
 
 ## result
@@ -28,28 +46,9 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 With the option `save = true`, `reg` returns residuals and, if the model contains high dimensional fixed effects, fixed effects estimates. These objects are returned in a dataframe *aligned* with the initial dataframe.
 
 
-### How does this work
-The projection of `y` on a set of vector `x` can be obtained by solving `(X'X)b=X'y`.
-When the number of regressors is large, the matrix `X'X` is too big to fit into memory. `reg` solves this problem using the Kaczmarz method. 
-
-The Kaczmarz method says the following: to project a vector `y` on the set defined by `<x1,z>=0, <x2,z>=0, ..., <xn,z>=0`, one just needs to iteratively project x on each vector until convergence. It's an important result because projecting `y` on just one vector is easy:  one can just use the formula `y - <y, x> x`.
-
-The overall method has two step
-- Compute `e`, the projection of `y` on the set defined by `<x1,x>=0, <x2,x>=0, ..., <xn,x>=0` (using Kaczmarz method)
--  Find the set of coefficients `b` such that
-`Xb = y - e`.
-
-Contrary to the usual OLS formula, this method dos not require to construct the matrix `(X'X)^{-1}`
-
-
 
 ## installation
 
-To install the package, 
-
-```julia
-Pkg.add("FixedEffectModels")
-```
 
 
 ## reg
