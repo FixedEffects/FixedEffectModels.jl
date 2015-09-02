@@ -29,12 +29,13 @@ With the option `save = true`, `reg` returns residuals and, if the model contain
 
 
 ### How does this work
-The projection of `y` on a set of vector `x` is usually obtained by solving `(X'X)b=X'y`.
+The projection of `y` on a set of vector `x` can be obtained by solving `(X'X)b=X'y`.
+When the number of regressors is large, the matrix `X'X` is too big to fit into memory. `reg` solves this problem using the Kaczmarz method. 
 
-When the number of regressors becomes large, the matrix `X'X` can be too big to fit into the memory. `reg` solves this problem using the Kaczmarz method. The Kaczmarz method says the following: to project a vector `y` on the set defined by `<x1,z>=0, <x2,z>=0, ..., <xn,z>=0`, one just needs to iteratively project x on each vector until convergence. It's an important result because projecting `y` on just one vector is easy:  one can just use the formula `y - <y, x> x`.
+The Kaczmarz method says the following: to project a vector `y` on the set defined by `<x1,z>=0, <x2,z>=0, ..., <xn,z>=0`, one just needs to iteratively project x on each vector until convergence. It's an important result because projecting `y` on just one vector is easy:  one can just use the formula `y - <y, x> x`.
 
 The overall method has two step
-- Compute `e`, the projection of `y` on the set defined by `<x1,x>=0, <x2,x>=0, ..., <xn,x>=0`.
+- Compute `e`, the projection of `y` on the set defined by `<x1,x>=0, <x2,x>=0, ..., <xn,x>=0` (using Kaczmarz method)
 -  Find the set of coefficients `b` such that
 `Xb = y - e`.
 
