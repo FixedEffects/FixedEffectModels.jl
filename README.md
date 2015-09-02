@@ -21,8 +21,8 @@ Pkg.add("FixedEffectModels")
 ```
 
 ### How does this work
-The projection of `y` on a set of vector `x` can be obtained by solving `(X'X)b=X'y`.
-When the number of regressors is large, the matrix `X'X` is too big to fit into memory. `reg` solves this problem using the Kaczmarz method. 
+The coefficients obtained by regressing `y` on `x` can be computed by solving `(X'X)b=X'y`.
+When the number of regressors is large, the matrix `X'X` is too big to fit into memory. This package solves this problem using the Kaczmarz method. 
 
 The Kaczmarz method says the following: to project a vector `y` on the set defined by `<x1,z>=0, <x2,z>=0, ..., <xn,z>=0`, one just needs to iteratively project x on each vector until convergence. It's an important result because projecting `y` on just one vector is obtained by the formula `y - <y, x> x`.
 
