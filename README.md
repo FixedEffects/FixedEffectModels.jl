@@ -24,13 +24,13 @@ Pkg.add("FixedEffectModels")
 The coefficients of the regression of `y` on `x` are traditionally computed through the system `(X'X)b=X'y`.
 When the number of regressors is large (for instance due to high dimensional categorical variables), the matrix `X'X` can be too big to fit into memory. This package solves this problem using the Kaczmarz method. 
 
-The Kaczmarz method says the following: to project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, one can iteratively project y on each vector until convergence. It's a useful result because projecting `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
+The Kaczmarz method says the following: to project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, one can iteratively project y on each vector until convergence. It's a useful result because the projection of `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
 
 The overall method has two steps:
 
 1. Compute `e`, the projection of `y` on the `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}` using Kaczmarz method.
 
-2.  Obtain the coefficients `b` through the (usually sparse) system
+2.  Obtain the coefficients `b` by solving the (usually sparse) system
 `Xb = y - e`.
 
 Contrary to the usual OLS formula, this method dos not require to construct the matrix `X'X`
