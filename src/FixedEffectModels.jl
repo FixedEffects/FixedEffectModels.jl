@@ -64,14 +64,8 @@ include("getfe.jl")
 include("reg.jl")
 include("partial_out.jl")
 
-let
-	# precompile various methods of demean
-	df = DataFrame(x = rand(10), y = rand(10), w = abs(rand(10)), 
-		id = PooledDataArray(
-			RefArray(vcat(fill(one(Int), 5), fill(2 * one(Int), 5))), [1, 2]))
-	reg(y~x |> id, df)
-	reg(y~1 |> id&x, df)
-	nothing
+if VERSION >= v"0.4.0-dev+6521"
+	include("precompile.jl")
 end
 
 end  # module FixedEffectModels
