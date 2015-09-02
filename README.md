@@ -21,7 +21,7 @@ Pkg.add("FixedEffectModels")
 ```
 
 ### Regressions with high dimensional categorical variables
-When regressors `x` include high dimensional categorical variables, the matrix `X'X` is too big to fit into memory: one can no longer obtain the coefficients through the system `(X'X)b=X'y`. This package solves this problem using the Kaczmarz method. 
+When regressing `y` on a set of high dimensional categorical variables, the matrix `X'X` is too big to fit into memory and one can no longer obtain the coefficients through the system `(X'X)b=X'y`. This package solves this problem using the Kaczmarz method. 
 
 
 The overall method has two steps:
