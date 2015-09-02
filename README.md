@@ -26,13 +26,13 @@ When regressing `y` on a set of high dimensional categorical variables, the matr
 
 The overall method has two steps:
 
-1. Compute `e`, the projection of `y` on the `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}` using Kaczmarz method. The Kaczmarz method computes this projection by iteratively projecting `y` on each vector until convergence. It's a useful algorithm because the projection of `y` on `{z | <x, z> = 0}` is simply obtained by `y - <y, x> x`.
+1. Compute `e`, the projection of `y` on the `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}` using Kaczmarz method. The Kaczmarz method computes this projection by iteratively projecting `y` on each vector until convergence. The projection of `y` on `{z | <x, z> = 0}` is just given by `y - <y, x> x`.
 
 
 2.  Obtain the coefficients `b` by solving the (usually sparse) system
 `Xb = y - e`.
 
-Contrary to the usual OLS formula, this method does not require to construct a the matrix `X'X`
+Note that, in contrast to the usual OLS formula, this method does not require to construct the matrix `X'X`
 
 Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
 
