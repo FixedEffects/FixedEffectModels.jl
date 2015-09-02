@@ -27,7 +27,9 @@ When the number of regressors is large (for instance due to high dimensional cat
 The Kaczmarz method says the following: to project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, one can iteratively project y on each vector until convergence. It's a useful result because projecting `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
 
 The overall method has two steps:
+
 1. Compute `e`, the projection of `y` on the `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}` using Kaczmarz method.
+
 2.  Find the set of coefficients `b` by solving the (usually sparse) system
 `Xb = y - e`.
 
