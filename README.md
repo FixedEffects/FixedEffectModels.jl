@@ -24,7 +24,7 @@ Pkg.add("FixedEffectModels")
 The coefficients obtained by regressing `y` on `x` are traditionally computed through the system `(X'X)b=X'y`.
 When the number of regressors is large, the matrix `X'X` is too big to fit into memory. This package solves this problem using the Kaczmarz method. 
 
-The Kaczmarz method says the following: to project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, one can iteratively project y on each vector until convergence. It's an important result because projecting `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
+The Kaczmarz method says the following: to project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, one can iteratively project y on each vector until convergence. It's a useful result because projecting `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
 
 The overall method has two step
 - Compute `e`, the projection of `y` on the set defined by `{z|<x1,x>=0, <x2,x>=0, ..., <xn,x>=0}` (using Kaczmarz method)
