@@ -20,11 +20,11 @@ To install the package,
 Pkg.add("FixedEffectModels")
 ```
 
-### How does this work
+### Regressions with high dimensional categorical variables
 The coefficients of the regression of `y` on `x` are usual computed through the system `(X'X)b=X'y`.
-When the number of regressors gets large (for instance due to high dimensional categorical variables), the matrix `X'X` is too big to fit into memory. This package solves this problem using the Kaczmarz method. 
+When regressing on high dimensional categorical variables, the matrix `X'X` is too big to fit into memory. This package solves this problem using the Kaczmarz method. 
 
-The Kaczmarz method says the following: to project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, one can iteratively project y on each vector until convergence. It's a useful result because the projection of `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
+To project a vector `y` on the set  `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}`, the Kaczmarz method iteratively projects y on each vector until convergence. It's a useful algorithm because the projection of `y` on `{z | <x, z> = 0}` is just `y - <y, x> x`.
 
 The overall method has two steps:
 
@@ -35,13 +35,12 @@ The overall method has two steps:
 
 Contrary to the usual OLS formula, this method does not require the construction of the matrix `X'X`
 
-
+Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
 References
 - Guimaraes, Portugal 2010 *A simple feasible procedure to fit models with high-dimensional fixed effects* https://ideas.repec.org/a/tsj/stataj/v10y2010i4p628-649.html
 - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
 
 
-Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
 
 ## result
 `reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
