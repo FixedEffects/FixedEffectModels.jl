@@ -130,19 +130,17 @@ function reg(f::Formula, df::AbstractDataFrame,
         # get linearly independent columns
         X = hcat(Xexo, Xendo)
         basecolX = basecol(X)
+        basecolXexo = basecolX[1:size(Xexo, 2)]
+        basecolXendo = basecolX[(size(Xexo, 2)+1):end]
         if !all(basecolX) 
             X = X[:, basecolX]
         end
-        originalXexosize = size(Xexo, 2)
-        basecolXexo = basecolX[1:size(Xexo, 2)]
-        basecolXendo = basecolX[(size(Xexo, 2)+1):end]
         if !all(basecolXexo)
             Xexo = Xexo[:, basecolXexo]
         end
         if !all(basecolXendo)
             Xendo = Xendo[:, basecolXendo]
         end
-
         newZ = hcat(Xexo, Z)
         basecolnewZ = basecol(newZ)
         if !all(basecolnewZ)
