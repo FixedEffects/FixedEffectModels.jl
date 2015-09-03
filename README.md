@@ -28,7 +28,7 @@ The overall method has two steps:
 
 1. Compute `e`, the projection of `y` on the `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}` using Kaczmarz method. The Kaczmarz method computes this projection by iteratively projecting `y` on each vector until convergence. The projection of `y` on `{z | <x, z> = 0}` is just given by `y - <y, x> x`.
 
-
+[!kaczmarz](https:/github.com/matthieugomez/FixedEffectModels.jl/blob/master/img/kaczmarz.png)
 2.  Obtain the coefficients `b` by solving the (usually sparse) system
 `Xb = y - e`.
 
