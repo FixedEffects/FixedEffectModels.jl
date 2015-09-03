@@ -39,19 +39,26 @@ function decompose_iv!(rf::Formula)
 			iv_formula = Formula(nothing,  rf.rhs.args[2])
 			endo_formula = Formula(nothing, rf.rhs.args[1])
 			rf.rhs = :1
-		else
+		elseif rf.rhs.head == :call
 			i = 1
 			while !has_iv && i <= length(rf.rhs.args)
-				if typeof(rf.rhs.args[i]) == Expr && rf.rhs.args[i].head == :(=)
+				if isa(rf.rhs.args[i], Expr) && rf.rhs.args[i].head == :(=)
 					has_iv = true
 					iv_vars = rf.rhs.args[2]
-					iv_formula = Formula(nothing,  rf.rhs.args[i].args[2])
+					if isa(rf.rhs.args[i].args[2], Expr) && rf.rhs.args[i].args[2].head == :block
+						# happens when several endogeneous variable
+						iv_formula = Formula(nothing,  rf.rhs.args[i].args[2].args[2])
+					else
+						iv_formula = Formula(nothing,  rf.rhs.args[i].args[2])
+					end
 					endo_formula = Formula(nothing, rf.rhs.args[i].args[1])
 					splice!(rf.rhs.args, i)
 				else
 					i += 1
 				end
 			end
+		else
+			error("formula not correct")
 		end
 	end
 

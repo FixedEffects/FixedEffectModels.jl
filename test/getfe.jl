@@ -23,3 +23,4 @@ result = reg(Sales ~ Price |> pState, df, save = true, subset = (df[:State] .<= 
 @test isna(result.augmentdf[1380,:pState])
 
 
+# add test with IV

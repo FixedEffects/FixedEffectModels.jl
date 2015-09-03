@@ -125,28 +125,50 @@ function reg(f::Formula, df::AbstractDataFrame,
         demean!(Z, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
     end
 
-    if has_iv
-        X = hcat(Xexo, Xendo)
-    else
-        X = Xexo
-    end
-
     # Compute Xhat
     if has_iv
+        # get column space
+        X = hcat(Xexo, Xendo)
+        basecolX = basecol(X)
+        if !all(basecolX) 
+            X = X[:, basecolX]
+        end
+        originalXexosize = size(Xexo, 2)
+        basecolXexo = basecolX[1:size(Xexo, 2)]
+        basecolXendo = basecolX[(size(Xexo, 2)+1):end]
+        if !all(basecolXexo)
+            Xexo = Xexo[:, basecolXexo]
+        end
+        if !all(basecolXendo)
+            Xendo = Xendo[:, basecolXendo]
+        end
+
         newZ = hcat(Xexo, Z)
+        basecolnewZ = basecol(newZ)
+        if !all(basecolnewZ) > 0
+            newZ = newZ[:, basecolnewZ]
+        end
         crossz = cholfact!(At_mul_B(newZ, newZ))
         Pi = crossz \ At_mul_B(newZ, Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
+        X = hcat(Xexo, Xendo)
+        basecoef = basecolX
 
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
-
         ## partial out Z in place wrt Xexo
         Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
+        # get column space
+        basecolXexo = basecol(Xexo)
+        if !all(basecolXexo)
+            Xexo = Xexo[:, basecolXexo]
+        end
         Xhat = Xexo
+        X = Xexo
+        basecoef = basecolXexo
     end
 
     # iter and convergence
@@ -162,7 +184,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     ##############################################################################
 
     # Compute coef and residuals
-    crossx = cholfact!(At_mul_B(Xhat, Xhat))
+    crossx =  cholfact!(At_mul_B(Xhat, Xhat))
     coef = crossx \ At_mul_B(Xhat, y)
 
     ##############################################################################
@@ -245,10 +267,13 @@ function reg(f::Formula, df::AbstractDataFrame,
         if has_absorb
             mf = simpleModelFrame(subdf, rt, esample)
             oldX = ModelMatrix(mf).m
+            if !all(basecoef)
+                oldX = oldX[:, basecoef]
+            end
             broadcast!(*, oldX, oldX, sqrtw)
             oldresiduals = oldy - oldX * coef
-            b = oldresiduals - residuals
-            augmentdf = hcat(augmentdf, getfe(fixedeffects, b, esample))
+            diffres = oldresiduals - residuals
+            augmentdf = hcat(augmentdf, getfe(fixedeffects, diffres, esample))
         end
     end
 
@@ -257,6 +282,21 @@ function reg(f::Formula, df::AbstractDataFrame,
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         (F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pip, 
                                   vcov_method_data, size(X, 2), df_absorb)
+    end
+
+    # add omitted variables
+    if !all(basecoef) 
+        newcoef = fill(zero(Float64), length(basecoef))
+        newmatrix_vcov = fill(NaN, (length(basecoef), length(basecoef)))
+        newindex = [searchsortedfirst(cumsum(basecoef), i) for i in 1:length(coef)]
+        for i in 1:length(coef)
+            newcoef[newindex[i]] = coef[i]
+            for j in 1:length(coef)
+                newmatrix_vcov[newindex[i], newindex[j]] = matrix_vcov[i, j]
+            end
+        end
+        coef = newcoef
+        matrix_vcov = newmatrix_vcov
     end
 
     # return
@@ -281,3 +321,11 @@ function reg(f::Formula, df::AbstractDataFrame,
 end
 
 
+function basecol(X::Matrix{Float64})
+    R =  qrfact(X)[:R]
+    basecol = fill(true, size(R, 2))
+    for i in 2:size(R, 1)
+        basecol[i] = abs(R[i, i]) >= (abs(R[1, 1]) * 1e-10)
+    end
+    return basecol
+end
