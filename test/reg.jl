@@ -36,6 +36,7 @@ df[:pYear] = pool(df[:Year])
 @test_approx_eq_eps coef(reg(Sales ~ (Price = Pimin), df))  [138.19479,-0.20733] 1e-4
 @test_approx_eq_eps coef(reg(Sales ~ NDI + (Price = Pimin), df))   [137.45096,0.00516,-0.76276] 1e-4
 @test_approx_eq_eps coef(reg(Sales ~ NDI + (Price = Pimin + Pop), df))  [137.57335,0.00534,-0.78365] 1e-4
+## multiple endogeneous variables
 result =  [125.26251,0.00426,-0.40085,-0.36012,-0.34378,-0.34446,-0.41338,-0.45733,-0.52369,-0.44583,-0.35888,-0.36710,-0.31850,-0.30442,-0.25224,-0.29850,-0.32437,-0.39829,-0.41551,-0.44669,-0.46166,-0.48471,-0.52652,-0.53770,-0.55054,-0.56913,-0.58820,-0.60052,-0.60470,-0.59949,-0.56440] 
 @test_approx_eq_eps coef(reg(Sales ~ NDI + (Price&pYear = Pimin&pYear), df)) result 1e-4
 
@@ -59,19 +60,23 @@ result =  [125.26251,0.00426,-0.40085,-0.36012,-0.34378,-0.34446,-0.41338,-0.457
 
 ##############################################################################
 ##
-## colinearity
-##
+## collinearity
+## add more tests
+## 
 ##############################################################################
-
+# ols
 df[:Price2] = df[:Price]
 model = reg(Sales ~ Price + Price2, df)
 @test_approx_eq_eps coef(model) [139.7344639806166,-0.22974688593485126,0.0] 1e-4
 
+# iv
 df[:NDI2] = df[:NDI]
 model = reg(Sales ~  NDI2 + NDI + (Price = Pimin), df)
 @test_approx_eq_eps coef(model) [137.45096580480387,0.005169677634275297,0.0,-0.7627670265757879] 1e-4
 
+# catch when IV underidentified 
 @test_throws ErrorException reg(Sales ~ Price + (NDI + Pop = CPI), df)
+
 
 ##############################################################################
 ##
