@@ -127,7 +127,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     # Compute Xhat
     if has_iv
-        # get column space
+        # get linearly independent columns
         X = hcat(Xexo, Xendo)
         basecolX = basecol(X)
         if !all(basecolX) 
@@ -161,7 +161,7 @@ function reg(f::Formula, df::AbstractDataFrame,
         Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
-        # get column space
+        # get linearly independent columns
         basecolXexo = basecol(Xexo)
         if !all(basecolXexo)
             Xexo = Xexo[:, basecolXexo]
@@ -323,9 +323,9 @@ end
 
 function basecol(X::Matrix{Float64})
     R =  qrfact(X)[:R]
-    basecol = fill(true, size(R, 2))
+    out = fill(true, size(R, 2))
     for i in 2:size(R, 1)
-        basecol[i] = abs(R[i, i]) >= (abs(R[1, 1]) * 1e-10)
+        out[i] = abs(R[i, i]) >= (abs(R[1, 1]) * 1e-10)
     end
-    return basecol
+    return out
 end
