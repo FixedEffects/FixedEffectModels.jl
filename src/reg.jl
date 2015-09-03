@@ -145,7 +145,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
         newZ = hcat(Xexo, Z)
         basecolnewZ = basecol(newZ)
-        if !all(basecolnewZ) > 0
+        if !all(basecolnewZ)
             newZ = newZ[:, basecolnewZ]
         end
         crossz = cholfact!(At_mul_B(newZ, newZ))
