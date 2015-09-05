@@ -8,7 +8,7 @@ module FixedEffectModels
 ##
 ##############################################################################
 using Compat
-import Distributions: TDist, ccdf, FDist, Chisq, AliasTable
+import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
@@ -57,6 +57,9 @@ include("utils/group.jl")
 include("utils/formula.jl")
 include("utils/compute_tss.jl")
 include("utils/chebyshev.jl")
+include("utils/rkaczmarz.jl")
+include("utils/lsqr.jl")
+
 include("demean.jl")
 include("vcov.jl")
 include("RegressionResult.jl")

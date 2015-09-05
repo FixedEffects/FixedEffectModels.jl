@@ -1,77 +1,72 @@
 
 ##############################################################################
 ##
+## Fixed effects solve Ax = b
 ## b is (y - x'b) - (\overline{y} - \overline{x}'b)
-##
+## TODO 1 : use sparse matrix inversion from Base? 
+## TODO 2 : Use only unique rows?
 ###############################################################################
 
+
 # Return vector of vector of estimates
-function getfe(fixedeffects::Vector{FixedEffect}, 
-               b::Vector{Float64}; 
-               maxiter = 10_000_000)
+function getfe(fes::Vector{FixedEffect}, b::Vector{Float64}; 
+               maxiter = 100_000)
+    
 
-    # construct sparse matrix A
-    nobs = length(fixedeffects) * length(b)
-    I = Array(Int, nobs)
-    J = similar(I)
-    V = Array(Float64, nobs)
-    start = 0
-    idx = 0
-    for fe in fixedeffects
-        for i in 1:length(fe.refs)
-            idx += 1
-            I[idx] = i
-            J[idx] = start + fe.refs[i]
-            V[idx] = fe.interaction[i]
-        end
-        start += sum(fe.scale .!= 0)
+    # solve Ax = b
+    pfe = ProblemFixedEffect(fes)
+    pfe.b = b
+    x = zeros(size(pfe.m, 2))
+    iterations, converged = cgls!(x, pfe, tol = 1e-10, maxiter = maxiter)
+    if !converged 
+       warn("did not converge")
     end
 
-    A = sparse(I, J, V)
-   
-    # solve Ax = b 
-    fevalues0 = A \ b
 
-    # unflatten fevalues0
+    # unflatten x -> fevalues
     fevalues = Vector{Float64}[]
-    nstart = 1
-    for fe in fixedeffects
-        nend = nstart - 1 + sum(fe.scale .!= 0) 
-        push!(fevalues, fevalues0[nstart:nend])
-        nstart = nend + 1
-    end
+    idx = 0
+    for i in 1:length(fes)
+        push!(fevalues, Array(Float64, length(fes[i].scale)))
+        for j in 1:length(fes[i].scale)
+            idx += 1
+            fevalues[i][j] = x[idx]
+        end
+    end        
 
-    # rescale fixed effects 
-    interceptindex = find(x -> typeof(x.interaction) <: Ones, fixedeffects)
-    if length(interceptindex) >= 2
-        components = connectedcomponent(fixedeffects, interceptindex)
-        rescale!(fevalues, components, interceptindex)
+    # find connected components and scale accordingly
+    findintercept = find(x -> typeof(x.interaction) <: Ones, fes)
+    if length(findintercept) >= 2
+        if VERSION >= v"0.4.0-dev+6521" 
+            components = connectedcomponent(sub(fes, findintercept))
+        else
+            components = connectedcomponent(fes[findintercept])
+        end
+        rescale!(fevalues, findintercept, components)
     end
 
     return fevalues
 end
 
 
-# Return dataframe of estimates
-function getfe(fixedeffects::Vector{FixedEffect},
-               b::Vector{Float64}, 
-               esample::BitVector; 
-               maxiter = 10_000_000)
-    
-    # return vector of vector of estimates
-    fevalues = getfe(fixedeffects, b, maxiter = maxiter)
-
-    # insert matrix into dataframe
+# Convert estimates to dataframes 
+function DataFrame(fes::Vector{FixedEffect}, fevalues, esample::BitVector; maxiter = 100_000)
     newdf = DataFrame()
     len = length(esample)
-    for j in 1:length(fixedeffects)
-        name = fixedeffects[j].id
-        T = eltype(fixedeffects[j].refs)
+    for j in 1:length(fes)
+        name = fes[j].id
+        T = eltype(fes[j].refs)
         refs = fill(zero(T), len)
-        refs[esample] = fixedeffects[j].refs
-        newdf[fixedeffects[j].id] = PooledDataArray(RefArray(refs), fevalues[j])
+        refs[esample] = fes[j].refs
+        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fevalues[j])
     end
     return newdf
+end
+
+function getfe(fes::Vector{FixedEffect}, b::Vector{Float64}, 
+               esample::BitVector; maxiter = 100_000)
+    fevalues = getfe(fes, b, maxiter = maxiter)
+    DataFrame(fes, fevalues, esample)
 end
 
 
@@ -83,9 +78,9 @@ end
 ##
 ##############################################################################
 
-function connectedcomponent(fixedeffects::Vector{FixedEffect},
-                            interceptindex::Vector{Int})
-    # initialize where
+function connectedcomponent(fixedeffects::AbstractVector{FixedEffect})
+
+    # initialize
     where = initialize_where(fixedeffects)
     refs = initialize_refs(fixedeffects)
     nobs = size(refs, 2)
@@ -96,18 +91,17 @@ function connectedcomponent(fixedeffects::Vector{FixedEffect},
     for i in 1:nobs
         if !visited[i]
             component = Set{Int}[]
-            for _ in 1:length(interceptindex)
+            for _ in 1:length(fixedeffects)
                 push!(component, Set{Int}())
             end
-            connectedcomponent!(component, visited, i, refs, where, interceptindex)
+            connectedcomponent!(component, visited, i, refs, where)
             push!(components, component)
         end
     end
     return components
 end
 
-
-function initialize_where(fixedeffects::Vector{FixedEffect})
+function initialize_where(fixedeffects::AbstractVector{FixedEffect})
     where = Vector{Set{Int}}[]
     for j in 1:length(fixedeffects)
         push!(where, Set{Int}[])
@@ -122,8 +116,7 @@ function initialize_where(fixedeffects::Vector{FixedEffect})
     return where
 end
 
-
-function initialize_refs(fixedeffects::Vector{FixedEffect})
+function initialize_refs(fixedeffects::AbstractVector{FixedEffect})
     nobs = length(fixedeffects[1].refs)
     refs = fill(zero(Int), length(fixedeffects), nobs)
     for j in 1:length(fixedeffects)
@@ -135,20 +128,14 @@ function initialize_refs(fixedeffects::Vector{FixedEffect})
     return refs
 end
 
-
-
-
-
 # Breadth-first search
-function connectedcomponent!(
-    component::Vector{Set{Int}}, visited::Vector{Bool},
-    i::Integer, refs::Matrix{Int}, where::Vector{Vector{Set{Int}}},
-    interceptindex::Vector{Int}
-    ) 
+function connectedcomponent!(component::Vector{Set{Int}}, 
+    visited::Vector{Bool}, i::Integer, refs::Matrix{Int}, 
+    where::Vector{Vector{Set{Int}}}) 
     visited[i] = true
     tovisit = Set{Int}()
     # for each fixed effect
-    for j in interceptindex
+    for j in 1:size(refs, 1)
         ref = refs[j, i]
         # if category has not been encountered
         if !(ref in component[j])
@@ -162,13 +149,10 @@ function connectedcomponent!(
     end
     for k in tovisit
         if k != i
-            connectedcomponent!(component, visited, k, refs, where, interceptindex)
+            connectedcomponent!(component, visited, k, refs, where)
         end
     end
 end
-
-
-
 
 
 ##############################################################################
@@ -179,15 +163,15 @@ end
 ##
 ###############################################################################
 
-function rescale!(fevalues::Vector{Vector{Float64}}, 
-                  components::Vector{Vector{Set{Int}}}, 
-                  interceptindex)
-    i1 = interceptindex[1]
+function rescale!(fevalues::AbstractVector{Vector{Float64}}, 
+                    findintercept,
+                  components::Vector{Vector{Set{Int}}})
     adj1 = zero(Float64)
+    i1 = findintercept[1]
     for component in components
-        for i in reverse(interceptindex)
+        for i in reverse(findintercept)
             # demean all fixed effects except the first
-            if i != i1
+            if i != 1
                 adji = zero(Float64)
                 for j in component[i]
                     adji += fevalues[i][j]

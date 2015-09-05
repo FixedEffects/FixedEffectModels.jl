@@ -14,8 +14,10 @@ result = reg(Sales ~ Price |> pYear + pState, df, save = true)
 result = reg(Sales ~ Price |> Year&pState, df, save = true)
 @test_approx_eq_eps result.augmentdf[1, :YearxpState]  1.742779  1e-3
 
-result = reg(Sales ~ Price |> pState + Year&pState, df, save = true, subset = (df[:State] .<= 10))
-@test_approx_eq_eps  result.augmentdf[1, :pState] -20.28 1e-1
+if VERSION >= v"0.4.0-dev+6521" 
+	result = reg(Sales ~ Price |> pState + Year&pState, df, save = true)
+	@test_approx_eq_eps  result.augmentdf[1, :pState]  -91.690635 1e-1
+end
 
 
 result = reg(Sales ~ Price |> pState, df, save = true, subset = (df[:State] .<= 30))

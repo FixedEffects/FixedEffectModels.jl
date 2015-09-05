@@ -4,11 +4,11 @@
 ## FixedEffect
 ##
 ##############################################################################
-
 type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ w * interaction^2) within each group
+    mean::Vector{Float64}
     interaction::I          # the continuous interaction 
     factorname::Symbol      # Name of factor variable 
     interactionname::Symbol # Name of continuous variable in the original dataframe
@@ -27,7 +27,7 @@ function FixedEffect{R <: Integer}(
     @inbounds @simd for i in 1:l
         scale[i] = scale[i] > 0 ? (1.0 / scale[i]) : zero(Float64)
     end
-    FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
+    FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
 end
 
 # Constructors from dataframe + expression
@@ -61,65 +61,145 @@ end
 
 ##############################################################################
 ##
-## Demean algorithm
-## http://cran.r-project.org/web/packages/lfe/vignettes/lfehow.pdf
+## FixedEffectMatrix
 ##
 ##############################################################################
+type MatrixFixedEffect <: AbstractMatrix{Float64}
+    _::Vector{FixedEffect}
+end
 
-function demean!{R, W, I}(
-    x::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, means::Vector{Float64})
-    fill!(means, zero(Float64))
-    @inbounds @simd for i in 1:length(x)
-         means[fe.refs[i]] += x[i] * fe.interaction[i] * fe.sqrtw[i]
-    end
-    @inbounds @simd for i in 1:length(fe.scale)
-         means[i] *= fe.scale[i] 
-    end
-    @inbounds @simd for i in 1:length(x)
-         x[i] -= means[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+
+function demean!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
+    @inbounds @simd for i in 1:length(y)
+        y[i] += fe.mean[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
 
-function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, 
-                 convergedv::Vector{Bool}, fes::Vector{FixedEffect};
-                 maxiter::Int = 1000, tol::Float64 = 1e-8)
-    # allocate array of means for each factor
-    dict = Dict{FixedEffect, Vector{Float64}}()
+function Base.A_mul_B!(y::AbstractVector{Float64}, mfe::MatrixFixedEffect, x::AbstractVector{Float64})
+    fill!(y, zero(Float64))
+    fes = mfe._
+    idx = 0
     for fe in fes
-        dict[fe] = zeros(Float64, length(fe.scale))
-    end
-    iterations = maxiter
-    converged = false
-    # save on one iteration for very common case
-    if length(fes) == 1 && typeof(fes[1].interaction) <: Ones
-        converged = true
-        iterations = 1
-        maxiter = 1
-    end
-    delta = 1.0
-    olx = similar(x)
-    for iter in 1:maxiter
-        @inbounds @simd for i in 1:length(x)
-            olx[i] = x[i]
+        @inbounds @simd for i in 1:length(fe.scale)
+            idx += 1
+            fe.mean[i] = x[idx] 
         end
+    end
+    for fe in fes
+        demean!(y, fe)
+    end
+    return y
+end
+
+function demean!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+    fill!(fe.mean, zero(Float64))
+    @inbounds @simd for i in 1:length(y)
+        fe.mean[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
+    end
+end
+
+function Base.Ac_mul_B!(x::AbstractVector{Float64}, mfe::MatrixFixedEffect, y::AbstractVector{Float64})
+    fes = mfe._
+    for fe in fes
+        demean!(fe, y)
+    end
+    idx = 0
+    for fe in fes
+        @inbounds @simd for i in 1:length(fe.scale)
+            idx += 1
+            x[idx] = fe.mean[i] 
+        end
+    end
+    return x
+end
+
+Base.eltype(mfe::MatrixFixedEffect) = Float64
+
+function Base.size(mfe::MatrixFixedEffect, i::Integer) 
+    fes = mfe._
+    if i == 1
+        return length(fes[1].refs)
+    elseif i == 2
+        out = zero(Int)
         for fe in fes
-            demean!(x, fe, dict[fe])
+            out += length(fe.scale)
         end
-        if _chebyshev(x, olx, tol)
-            converged = true
-            iterations = iter
-            break
-        end
+        return out
     end
+end
+
+##############################################################################
+##
+## FixedEffectProblem
+##
+##############################################################################
+
+type ProblemFixedEffect <: AbstractMatrix{Float64}
+    m::MatrixFixedEffect
+    r::Vector{Float64}
+    b::Vector{Float64}
+    q::Vector{Float64}
+    s::Vector{Float64}
+    p::Vector{Float64}
+end
+
+function ProblemFixedEffect(m::MatrixFixedEffect)
+    r = Array(Float64, size(m, 1))
+    b = similar(r)
+    q = similar(r)
+    s = Array(Float64, size(m, 2))
+    p = similar(s)
+    ProblemFixedEffect(m, r, b, q, s, p)
+end
+
+function ProblemFixedEffect(fes::Vector{FixedEffect})
+    ProblemFixedEffect(MatrixFixedEffect(fes))
+end
+
+function cgls!(x::Union{AbstractVector{Float64}, Nothing}, pfe::ProblemFixedEffect; tol::Real=1e-10, maxiter::Integer=1000)
+    cgls!(x, pfe.r, pfe.m, pfe.b, pfe.s, pfe.p, pfe.q; tol = tol, maxiter = maxiter)
+end
+
+
+##############################################################################
+##
+## Dispatching accroding to typeof(x)
+##
+##############################################################################
+
+function demean!(X::Matrix{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, 
+                 fes::Vector{FixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
+    pfe = ProblemFixedEffect(fes)
+    for j in 1:size(X, 2)
+        copy!(pfe.b, slice(X, :, j))
+        iterations, converged = cgls!(nothing,  pfe; tol = tol, maxiter = maxiter)
+        push!(iterationsv, iterations)
+        push!(convergedv, converged)
+        copy!(slice(X, :, j), pfe.r)
+    end
+end
+
+function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool},fes::Vector{FixedEffect} ; maxiter::Int = 1000, tol::Float64 = 1e-8)
+    pfe = ProblemFixedEffect(fes)
+    copy!(pfe.b, x)
+    iterations, converged = cgls!(nothing, pfe; tol = tol, maxiter = maxiter)
+    copy!(x, pfe.r)
     push!(iterationsv, iterations)
     push!(convergedv, converged)
 end
 
-function demean!(X::Matrix{Float64}, iterations::Vector{Int}, converged::Vector{Bool}, 
-                 fes::Vector{FixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    for j in 1:size(X, 2)
-        demean!(slice(X, :, j), iterations, converged, fes, maxiter = maxiter, tol = tol)
-    end
+function demean(x::DataVector{Float64}, fes::Vector{FixedEffect}; 
+                maxiter::Int = 1000, tol::Float64 = 1e-8)
+    x = convert(Vector{Float64}, x)
+    pfe = ProblemFixedEffect(fes)
+    copy!(pfe.b, x)
+    iterations, converged = clgs!(nothing, pfe; tol = tol, maxiter = maxiter)
+    return pfe.r, iterations, converged
+end
+
+function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Nothing; 
+                 maxiter::Int = 1000, tol::Float64 = 1e-8)
+    nothing
 end
 
 function demean(x::DataVector{Float64},fes::Vector{FixedEffect}; 
@@ -135,3 +215,6 @@ function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Nothing;
                  maxiter::Int = 1000, tol::Float64 = 1e-8)
     nothing
 end
+
+
+

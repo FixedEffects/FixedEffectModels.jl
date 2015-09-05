@@ -21,25 +21,28 @@ Pkg.add("FixedEffectModels")
 ```
 
 ### Regressions with high dimensional categorical variables
-When regressing `y` on a set of high dimensional categorical variables, the matrix `X'X` is too big to fit into memory — one can no longer obtain the coefficients through the system `(X'X)b=X'y`. This package solves this problem using the Kaczmarz method. 
+
+Suppose you want to estimate `β` in the model `y = X β + D θ + e` where D corresponds to a huge number of variables (which happens if the model includes categorical variables).
+
+The design matrix is then generally too large to fit into memory. This package solves this problem using the Kaczmarz method. 
 
 
 The overall method has two steps:
 
-1. Compute `e`, the projection of `y` on the `{z | <x1,z>=0, <x2,z>=0, ..., <xn,z>=0}` using Kaczmarz method. The Kaczmarz method computes this projection by iteratively projecting `y` on each vector until convergence. The projection of `y` on `{z | <x, z> = 0}` is just given by `y - <y, x> x`.
+1. Project `y` and each vector in `X`  on the space orthogonal to `D`. The projection of a vector `x` on the space orthogonal to `D` can be obtained by partialing out `x` with respect to each column of `D` until convergence. 
 
   ![kaczmarz](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/img/kaczmarz.png)
 
-2.  Obtain the coefficients `b` by solving the (usually sparse) system
-`Xb = y - e`.
+2.  (Frisch–Waugh–Lovell Theorem) The coefficients `b` (and their standard errors) are obtained by regressing the projected `y` on the projected `X`
 
-Note that, in contrast to the usual OLS formula, this method does not require to construct the matrix `X'X`
+3. (optional). The coefficients `θ` (without their standard errors) may be obtained by solving the sparse system
+  `Dθ =  (ey - eXβ) - (y - Xβ)`
+
 
 Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
 
 - Guimaraes, Portugal 2010 *A simple feasible procedure to fit models with high-dimensional fixed effects* https://ideas.repec.org/a/tsj/stataj/v10y2010i4p628-649.html
 - Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
-
 
 
 ## result
