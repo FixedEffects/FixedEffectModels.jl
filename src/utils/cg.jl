@@ -8,7 +8,7 @@ function cgls!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Flo
     converged = false
     iterations = maxiter 
 
-    if typeof(x) <: Nothing || all(z -> z == 0.0, x)
+    if typeof(x) <: Nothing 
         copy!(r, b)
     else
         # r = b - Ax
@@ -16,38 +16,34 @@ function cgls!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Flo
         scale!(r, -1)
         axpy!(1, b, r)
     end
-    # s = p = A'r
+    # p = A'r
     Ac_mul_B!(p, A, r)
     copy!(s, p)
 
-    normS0 = norm(s)  
-    normSc = normS0
-    Arn    = zeros(maxiter)
-    eta    = zeros(maxiter) # norm of residuals
-    rho    = zeros(maxiter) # norm or current iterate
+    normSc = sumabs2(s)  
     
     # Iterate.
     iter = 0
     while iter < maxiter
         iter += 1
         A_mul_B!(q, A, p) 
-        α = normSc / norm(q)
+        α = normSc / sumabs2(q)
         if !(typeof(x) <: Nothing)
             # x = x + αp
             axpy!(α, p, x) 
         end
         # r = r - αq
         axpy!(-α, q, r) 
-        # s = Ar
-        Ac_mul_B!(s, A, r) 
-        normSt = norm(s)
-        if (iter>1) && (normSt <= tol * length(y))
+        if (iter>1) && (α * maxabs(q) <= tol)
             iterations = iter
             converged = true
             break
         end
-        beta = normSt/normSc
-        # p = s - beta p
+        # s = A'r
+        Ac_mul_B!(s, A, r) 
+        normSt = sumabs2(s)
+        beta = normSt / normSc
+        # p = s + beta p
         scale!(p, beta)
         axpy!(1, s, p)        
         # store intermediates and report resuls
@@ -58,7 +54,8 @@ function cgls!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Flo
 end
 
 
-function cg!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Float64}, A, b::AbstractVector{Float64}, s::Vector{Float64}, p::Vector{Float64}, q::Vector{Float64}; tol::Real=1e-10, maxiter::Int=1000)
+
+function cg!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Float64}, A, b::AbstractVector{Float64}, p::Vector{Float64}, s::Vector{Float64}, q::Vector{Float64}; tol::Real=1e-10, maxiter::Int=1000)
 
     # Initialization.
     m = size(A, 1)
@@ -66,7 +63,7 @@ function cg!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Float
     converged = false
     iterations = maxiter 
 
-    if typeof(x) <: Nothing || all(z -> z == 0.0, x)
+    if typeof(x) <: Nothing 
         copy!(r, b)
     else
         # r = b - Ax
@@ -74,36 +71,31 @@ function cg!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Float
         scale!(r, -1)
         axpy!(1, b, r)
     end
-    # s = p = A'r
-    Ac_mul_B!(p, A, r)
+    # p = r
+    copy!(p, r)
 
-    normS0 = norm(s)  
-    normSc = normS0
-    Arn    = zeros(maxiter)
-    eta    = zeros(maxiter) # norm of residuals
-    rho    = zeros(maxiter) # norm or current iterate
-    
+    normSc = sumabs2(s)  
+
     # Iterate.
     iter = 0
     while iter < maxiter
-        @show normSc
         iter += 1
         A_mul_B!(q, A, p) 
-        α = normSc / norm(q)
+        α = normSc / dot(q, p)
         if !(typeof(x) <: Nothing)
             # x = x + αp
             axpy!(α, p, x) 
         end
         # r = r - αq
         axpy!(-α, q, r) 
-        normSt = norm(r)
-        if (iter>1) && (normSt <= tol)
+        normSt = sumabs2(r)
+        if (iter>1) && (normSt <= tol^2 * length(r))
             iterations = iter
             converged = true
             break
         end
         beta = normSt/normSc
-        # p = s + beta p
+        # p = r + beta p
         scale!(p, beta)
         axpy!(1, r, p)        
         # store intermediates and report resuls

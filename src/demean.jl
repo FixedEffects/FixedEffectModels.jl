@@ -69,7 +69,7 @@ type MatrixFixedEffect <: AbstractMatrix{Float64}
 end
 
 
-function demean!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
+function Base.A_mul_B!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
     @inbounds @simd for i in 1:length(y)
         y[i] += fe.mean[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
@@ -86,12 +86,12 @@ function Base.A_mul_B!(y::AbstractVector{Float64}, mfe::MatrixFixedEffect, x::Ab
         end
     end
     for fe in fes
-        demean!(y, fe)
+        A_mul_B!(y, fe)
     end
     return y
 end
 
-function demean!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+function Base.Ac_mul_B!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
     fill!(fe.mean, zero(Float64))
     @inbounds @simd for i in 1:length(y)
         fe.mean[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
@@ -101,7 +101,7 @@ end
 function Base.Ac_mul_B!(x::AbstractVector{Float64}, mfe::MatrixFixedEffect, y::AbstractVector{Float64})
     fes = mfe._
     for fe in fes
-        demean!(fe, y)
+        Ac_mul_B!(fe, y)
     end
     idx = 0
     for fe in fes
@@ -159,6 +159,7 @@ end
 function cgls!(x::Union{AbstractVector{Float64}, Nothing}, pfe::ProblemFixedEffect; tol::Real=1e-10, maxiter::Integer=1000)
     cgls!(x, pfe.r, pfe.m, pfe.b, pfe.s, pfe.p, pfe.q; tol = tol, maxiter = maxiter)
 end
+
 
 
 ##############################################################################

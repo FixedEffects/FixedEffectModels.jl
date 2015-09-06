@@ -8,6 +8,7 @@ module FixedEffectModels
 ##
 ##############################################################################
 using Compat
+import Base: maxabs
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
@@ -58,7 +59,7 @@ include("utils/formula.jl")
 include("utils/compute_tss.jl")
 include("utils/chebyshev.jl")
 include("utils/rkaczmarz.jl")
-include("utils/lsqr.jl")
+include("utils/cg.jl")
 
 include("demean.jl")
 include("vcov.jl")
