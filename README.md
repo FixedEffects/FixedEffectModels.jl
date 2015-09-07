@@ -24,19 +24,20 @@ Pkg.add("FixedEffectModels")
 
 Suppose you want to estimate `β` in the model `y = X β + D θ + e` where D corresponds to a huge number of variables (which happens if the model includes categorical variables).
 
-The design matrix is then generally too large to fit into memory. This package solves this problem using the Kaczmarz method. 
+The design matrix is then generally too large to fit into memory.
 
 
 The overall method has two steps:
 
-1. Project `y` and each vector in `X`  on the space orthogonal to `D`. The projection of a vector `x` on the space orthogonal to `D` can be obtained by partialing out `x` with respect to each column of `D` until convergence. 
+1. Regress `y` and each vector in `X`  on `D` by solving the following linear equation by conjugate gradient :
 
-  ![kaczmarz](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/img/kaczmarz.png)
+`D't1=D'y` and `D'Dt2=D'y`
 
-2.  (Frisch–Waugh–Lovell Theorem) The coefficients `b` (and their standard errors) are obtained by regressing the projected `y` on the projected `X`
+2.  The coefficients `b` (and their standard errors) are obtained by regressing the projected `y` on the projected `X`
 
-3. (optional). The coefficients `θ` (without their standard errors) may be obtained by solving the sparse system
-  `Dθ =  (ey - eXβ) - (y - Xβ)`
+3. (optional). The coefficients `θ` (without their standard errors) may be obtained by solving the following linear equation by conjugate gradient:
+
+  `D'Dθ =  D'((ey - eXβ) - (y - Xβ))`
 
 
 Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.

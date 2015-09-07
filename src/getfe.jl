@@ -14,23 +14,22 @@ function getfe(fes::Vector{FixedEffect}, b::Vector{Float64};
     
 
     # solve Ax = b
-    pfe = ProblemFixedEffect(fes)
-    pfe.b = b
+    pfe = FixedEffectProblem(fes)
     x = zeros(size(pfe.m, 2))
-    iterations, converged = cgls!(x, pfe, tol = 1e-10, maxiter = maxiter)
+    iterations, converged = cgls!(x, b, pfe, tol = 1e-10, maxiter = maxiter)
     if !converged 
        warn("did not converge")
     end
-
 
     # unflatten x -> fevalues
     fevalues = Vector{Float64}[]
     idx = 0
     for i in 1:length(fes)
-        push!(fevalues, Array(Float64, length(fes[i].scale)))
-        for j in 1:length(fes[i].scale)
+        fe = fes[i]
+        push!(fevalues, Array(Float64, length(fe.scale)))
+        for j in 1:length(fe.scale)
             idx += 1
-            fevalues[i][j] = x[idx]
+            fevalues[i][j] = x[idx] * fe.scale[j]
         end
     end        
 
@@ -153,7 +152,6 @@ function connectedcomponent!(component::Vector{Set{Int}},
         end
     end
 end
-
 
 ##############################################################################
 ##

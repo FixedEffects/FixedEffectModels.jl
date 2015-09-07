@@ -8,13 +8,13 @@ Code to reproduce this graph:
   using DataFrames, FixedEffectModels
   N = 10000000
   K = 100
-  df = DataFrame(
-    id1 =  pool(rand(1:(N/K), N)),
-    id2 =  pool(rand(1:K, N)),
-     y =  randn(N),
-    x1 =  randn(N),
-    x2 =  randn(N)
-  )
+  id1 = rand(1:(N/K), N)
+  id2 = rand(1:K, N)
+  x1 =  randn(N)
+  x2 =  randn(N)
+  w = cos(id1)
+  y= 3 .* x1 .+ 5 .* x2 .+ cos(id1) .+ cos(id2).^2 .+ randn(N)
+  df = DataFrame(id1 = pool(id1), id2 = pool(id2), x1 = x1, x2 = x2, w = w, y = y)
   @time reg(y ~ x1 + x2, df)
   # 1.009597 seconds (709 allocations: 1004.980 MB, 34.60% gc time)
   @time reg(y ~ x1 + x2, df, VcovCluster(:id2))
@@ -24,6 +24,10 @@ Code to reproduce this graph:
   @time reg(y ~ x1 + x2 |> id1, df, VcovCluster(:id1))
   # 1.519165 seconds (1.03 k allocations: 1.255 GB, 25.10% gc time)
   @time reg(y ~ x1 + x2 |> id1 + id2, df)
+  # 2.574491 seconds (998 allocations: 1.188 GB, 15.94% gc time)
+  @time reg(y ~ x1 + x2 |> id1, df, weight = :w)
+  # 1.219291 seconds (883 allocations: 1.175 GB, 31.26% gc time)
+  @time reg(y ~ x1 + x2 |> id1 + id2, df, weight = :w)
   # 2.574491 seconds (998 allocations: 1.188 GB, 15.94% gc time)
   ````
 

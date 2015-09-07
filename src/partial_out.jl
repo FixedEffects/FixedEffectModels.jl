@@ -104,7 +104,3 @@ function partial_out(f::Formula,
     return(out)
 end
 
-
-
-
-
