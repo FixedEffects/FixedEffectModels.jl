@@ -7,7 +7,7 @@
 function residualize!(x::AbstractVector{Float64}, pfe::FixedEffectProblem, 
 	                  iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
 	                  maxiter::Int = 1000, tol::Float64 = 1e-8)
-    iterations, converged = cgls!(nothing, x, pfe; tol = tol, maxiter = maxiter)
+    iterations, converged = cgls!(nothing, x, pfe;  maxiter = maxiter, tol = tol)
     push!(iterationsv, iterations)
     push!(convergedv, converged)
 end

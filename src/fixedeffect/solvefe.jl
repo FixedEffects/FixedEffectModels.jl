@@ -16,7 +16,7 @@ function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_00
     copy!(pfe.m, x) 
 
     # The solution is generally not unique. Find connected components and scale accordingly
-    findintercept = find(x -> typeof(x.interaction) <: Ones, fes)
+    findintercept = find(fe -> isa(fe.interaction, Ones), fes)
     if length(findintercept) >= 2
         if VERSION >= v"0.4.0-dev+6521" 
             components = connectedcomponent(sub(fes, findintercept))
@@ -30,7 +30,7 @@ function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_00
 end
 
 # Convert estimates to dataframes 
-function DataFrame(pfe::FixedEffectProblem, esample::BitVector; maxiter = 100_000)
+function DataFrame(pfe::FixedEffectProblem, esample::BitVector)
     fes = pfe.m._
     newdf = DataFrame()
     len = length(esample)
