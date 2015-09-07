@@ -17,30 +17,30 @@ function cgls!(x::Union(AbstractVector{Float64}, Nothing),
     copy!(s, p)
 
     normS0 = sumabs2(s)
-    normSc = normS0  
+    normSold = normS0  
 
     iter = 0
     while iter < maxiter
         iter += 1
         A_mul_B!(q, A, p) 
-        α = normSc / sumabs2(q)
+        α = normSold / sumabs2(q)
         # x = x + αp
         x == nothing || BLAS.axpy!(α, p, x) 
         # r = r - αq
         BLAS.axpy!(-α, q, r) 
-        if (α * maxabs(q) <= tol) && normSc/normS0 <= tol
+        # s = A'r
+        Ac_mul_B!(s, A, r) 
+        normS = sumabs2(s)
+        if ((iter == 1) || α * maxabs(q) <= tol) && normS/normS0 <= tol
             iterations = iter
             converged = true
             break
         end
-        # s = A'r
-        Ac_mul_B!(s, A, r) 
-        normSt = sumabs2(s)
-        beta = normSt / normSc
+        beta = normS / normSold
         # p = s + beta p
         scale!(p, beta)
         BLAS.axpy!(1.0, s, p) 
-        normSc = normSt
+        normSold = normS
     end
     return iterations, converged
 end
