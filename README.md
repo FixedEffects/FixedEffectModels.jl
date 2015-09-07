@@ -10,11 +10,6 @@ The function `reg` estimates linear models with
   - robust standard errors (White or clustered) 
   This functionality of this package is similar to the Stata command `reghdfe` and the R command `felm`.
 
-
-`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
-
-
 To install the package, 
 
 ```julia
@@ -45,8 +40,8 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 With the option `save = true`, `reg` returns a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
 
 
-## installation
-
+`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 
 ## reg

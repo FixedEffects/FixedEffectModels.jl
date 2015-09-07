@@ -1,10 +1,7 @@
 
-function partial_out(f::Formula,
-                     df::AbstractDataFrame; 
-                     add_mean = false,
-                     weight::Union(Symbol, Nothing) = nothing,
-                     maxiter::Integer = 10000,
-                     tol::FloatingPoint = 1e-8)
+function partial_out(f::Formula, df::AbstractDataFrame; 
+                     add_mean = false, weight::Union(Symbol, Nothing) = nothing,
+                     maxiter::Integer = 10000, tol::FloatingPoint = 1e-8)
 
 
     rf = deepcopy(f)

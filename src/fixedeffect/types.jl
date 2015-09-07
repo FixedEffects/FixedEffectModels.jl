@@ -41,11 +41,11 @@ end
 function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
-        if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
+        if isa(df[a.args[2]], PooledDataVector) && !isa(df[a.args[3]], PooledDataVector)
             f = df[a.args[2]]
             x = convert(Vector{Float64}, df[a.args[3]])
             return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
-        elseif (typeof(df[a.args[3]]) <: PooledDataVector) && !(typeof(df[a.args[2]]) <: PooledDataVector)
+        elseif isa(df[a.args[3]], PooledDataVector) && !isa(df[a.args[2]], PooledDataVector)
             f = df[a.args[3]]
             x = convert(Vector{Float64}, df[a.args[2]])
             return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
@@ -109,7 +109,8 @@ function copy!(mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
    end
 end
 
-function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
+function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
+                  x::AbstractVector{Float64})
     fill!(y, zero(Float64))
     fes = mfe._
     copy!(mfe, x)
@@ -138,7 +139,8 @@ function copy!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix)
     return x
 end
 
-function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, y::AbstractVector{Float64})
+function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
+                   y::AbstractVector{Float64})
     fes = mfe._
     for fe in fes
         Ac_mul_B_helper!(fe, y)
@@ -171,7 +173,8 @@ function FixedEffectProblem(fes::Vector{FixedEffect})
     FixedEffectProblem(FixedEffectModelMatrix(fes))
 end
 
-function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Float64}, pfe::FixedEffectProblem; tol::Real=1e-10, maxiter::Integer=1000)
+function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Float64}, 
+               pfe::FixedEffectProblem; tol::Real=1e-10, maxiter::Integer=1000)
     cgls!(x, r, pfe.m, pfe.s, pfe.p, pfe.q; tol = tol, maxiter = maxiter)
 end
 
