@@ -72,7 +72,6 @@ end
 ##############################################################################
 
 function connectedcomponent(fixedeffects::AbstractVector{FixedEffect})
-
     # initialize
     where = initialize_where(fixedeffects)
     refs = initialize_refs(fixedeffects)
