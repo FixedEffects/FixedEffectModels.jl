@@ -81,29 +81,4 @@ if VERSION >= v"0.4.0-dev+6521"
 end
 
 
-# Compatibility
-function demean!(X::Matrix{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, 
-                 fes::Vector{FixedEffect} ; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    pfe = FixedEffectProblem(fes)
-    demean!(X, iterationsv, convergedv, pfe, maxiter = maxiter, tol = tol)
-end
-
-function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, 
-                 fes::Vector{FixedEffect} ; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    pfe = FixedEffectProblem(fes)
-    demean!(x, iterationsv, convergedv, pfe, maxiter = maxiter, tol = tol)
-end
-
-function getfe(fes::Vector{FixedEffect}, b::Vector{Float64};  maxiter = 100_000)
-	pfe = FixedEffectProblem(fes)
-	getfe(pfe, b, maxiter = maxiter)
-end
-
-function getfe(pfe::Vector{FixedEffect}, b::Vector{Float64}, 
-               esample::BitVector; maxiter = 100_000)
-    pfe = FixedEffectProblem(fes)
-    getfe(pfe, b, esample, maxiter = maxiter)
-end
-
-
 end  # module FixedEffectModels
