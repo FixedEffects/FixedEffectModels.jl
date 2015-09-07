@@ -77,7 +77,7 @@ end
 
 function getfe!(pfe::FixedEffectProblem, b::Vector{Float64}, 
                esample::BitVector; maxiter = 100_000)
-    solvefe!(pfe, b, maxiter = maxiter)
+    getfe!(pfe, b, maxiter = maxiter)
     DataFrame(pfe, esample)
 end
 
