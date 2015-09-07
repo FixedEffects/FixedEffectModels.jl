@@ -84,6 +84,40 @@ end
 
 ##############################################################################
 ##
+## FixedEffect
+##
+##############################################################################
+
+type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
+    refs::Vector{R}         # refs of the original PooledDataVector
+    sqrtw::W                # weights
+    scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
+    mean::Vector{Float64}
+    interaction::I          # the continuous interaction 
+    factorname::Symbol      # Name of factor variable 
+    interactionname::Symbol # Name of continuous variable in the original dataframe
+    id::Symbol              # Name of new variable if save = true
+end
+
+# Constructors the scale vector
+function FixedEffect{R <: Integer}(
+    refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, 
+    interaction::AbstractVector{Float64}, factorname::Symbol, 
+    interactionname::Symbol, id::Symbol)
+    scale = fill(zero(Float64), l)
+    @inbounds @simd for i in 1:length(refs)
+         scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
+    end
+    @inbounds @simd for i in 1:l
+        scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : zero(Float64)
+    end
+    FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
+end
+
+
+
+##############################################################################
+##
 ## build model
 ##
 ##############################################################################

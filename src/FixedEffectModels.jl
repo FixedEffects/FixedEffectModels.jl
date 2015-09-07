@@ -57,12 +57,12 @@ shat!
 ##############################################################################
 include("utils/weight.jl")
 include("utils/group.jl")
-include("utils/formula.jl")
 include("utils/compute_tss.jl")
 include("utils/chebyshev.jl")
 include("utils/cg.jl")
-
 include("demean.jl")
+include("utils/formula.jl")
+
 include("vcov.jl")
 include("RegressionResult.jl")
 include("getfe.jl")
