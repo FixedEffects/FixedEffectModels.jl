@@ -33,6 +33,18 @@ With the option `save = true`, `reg` returns a dataframe aligned with the initia
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 
+## how does it work
+
+
+When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package is designed to handle these situations.
+
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. Estimates for `β`, along with their standard errors, are obtained in two steps:
+
+1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
+
+2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
+
+
 ## reg
 
 The general syntax is
@@ -57,16 +69,6 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
 ##### Fixed effects
-
-When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package is designed to handle these situations.
-
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. This package returns the estimates for `β`, along with their standard errors, in two steps:
-
-1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
-
-2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
-
-
 
 
 - Estimate models with an arbitrary number of high dimensional fixed effects.
