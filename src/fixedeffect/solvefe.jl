@@ -1,4 +1,3 @@
-
 ##############################################################################
 ##
 ## Get coefficients for high dimensional fixed effects
@@ -6,7 +5,7 @@
 ###############################################################################
 
 # Return vector of vector of estimates
-function getfe(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
+function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     
     # solve Ax = b
     fes = pfe.m._
@@ -15,18 +14,7 @@ function getfe(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     if !converged 
        warn("did not converge")
     end
-
-    # unflatten x -> fevalues
-    fevalues = Vector{Float64}[]
-    idx = 0
-    for i in 1:length(fes)
-        fe = fes[i]
-        push!(fevalues, Array(Float64, length(fe.scale)))
-        for j in 1:length(fe.scale)
-            idx += 1
-            fevalues[i][j] = x[idx] * fe.scale[j]
-        end
-    end        
+    copy!(pfe.m, x) 
 
     # find connected components and scale accordingly
     findintercept = find(x -> typeof(x.interaction) <: Ones, fes)
@@ -36,14 +24,15 @@ function getfe(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
         else
             components = connectedcomponent(fes[findintercept])
         end
-        rescale!(fevalues, findintercept, components)
+        rescale!(pfe, findintercept, components)
     end
 
-    return fevalues
+    return pfe
 end
 
 # Convert estimates to dataframes 
-function DataFrame(fes::Vector{FixedEffect}, fevalues, esample::BitVector; maxiter = 100_000)
+function DataFrame(pfe::FixedEffectProblem, esample::BitVector; maxiter = 100_000)
+    fes = pfe.m._
     newdf = DataFrame()
     len = length(esample)
     for j in 1:length(fes)
@@ -51,15 +40,15 @@ function DataFrame(fes::Vector{FixedEffect}, fevalues, esample::BitVector; maxit
         T = eltype(fes[j].refs)
         refs = fill(zero(T), len)
         refs[esample] = fes[j].refs
-        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fevalues[j])
+        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fes[j].value)
     end
     return newdf
 end
 
-function getfe(pfe::FixedEffectProblem, b::Vector{Float64}, 
+function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64}, 
                esample::BitVector; maxiter = 100_000)
-    fevalues = getfe(pfe, b, maxiter = maxiter)
-    DataFrame(pfe.m._, fevalues, esample)
+    solvefe!(pfe, b, maxiter = maxiter)
+    DataFrame(pfe, esample)
 end
 
 
@@ -71,10 +60,10 @@ end
 ##
 ##############################################################################
 
-function connectedcomponent(fixedeffects::AbstractVector{FixedEffect})
+function connectedcomponent(fes::AbstractVector{FixedEffect})
     # initialize
-    where = initialize_where(fixedeffects)
-    refs = initialize_refs(fixedeffects)
+    where = initialize_where(fes)
+    refs = initialize_refs(fes)
     nobs = size(refs, 2)
     visited = fill(false, nobs)
     components = Vector{Set{Int}}[]
@@ -83,7 +72,7 @@ function connectedcomponent(fixedeffects::AbstractVector{FixedEffect})
     for i in 1:nobs
         if !visited[i]
             component = Set{Int}[]
-            for _ in 1:length(fixedeffects)
+            for _ in 1:length(fes)
                 push!(component, Set{Int}())
             end
             connectedcomponent!(component, visited, i, refs, where)
@@ -93,11 +82,11 @@ function connectedcomponent(fixedeffects::AbstractVector{FixedEffect})
     return components
 end
 
-function initialize_where(fixedeffects::AbstractVector{FixedEffect})
+function initialize_where(fes::AbstractVector{FixedEffect})
     where = Vector{Set{Int}}[]
-    for j in 1:length(fixedeffects)
+    for j in 1:length(fes)
         push!(where, Set{Int}[])
-        fe = fixedeffects[j]
+        fe = fes[j]
         for _ in 1:length(fe.scale)
             push!(where[j], Set{Int}())
         end
@@ -108,11 +97,11 @@ function initialize_where(fixedeffects::AbstractVector{FixedEffect})
     return where
 end
 
-function initialize_refs(fixedeffects::AbstractVector{FixedEffect})
-    nobs = length(fixedeffects[1].refs)
-    refs = fill(zero(Int), length(fixedeffects), nobs)
-    for j in 1:length(fixedeffects)
-        ref = fixedeffects[j].refs
+function initialize_refs(fes::AbstractVector{FixedEffect})
+    nobs = length(fes[1].refs)
+    refs = fill(zero(Int), length(fes), nobs)
+    for j in 1:length(fes)
+        ref = fes[j].refs
         for i in 1:length(ref)
             refs[j, i] = ref[i]
         end
@@ -154,9 +143,10 @@ end
 ##
 ###############################################################################
 
-function rescale!(fevalues::AbstractVector{Vector{Float64}}, 
+function rescale!(pfe::FixedEffectProblem, 
                     findintercept,
                   components::Vector{Vector{Set{Int}}})
+    fes = pfe.m._
     adj1 = zero(Float64)
     i1 = findintercept[1]
     for component in components
@@ -165,22 +155,19 @@ function rescale!(fevalues::AbstractVector{Vector{Float64}},
             if i != 1
                 adji = zero(Float64)
                 for j in component[i]
-                    adji += fevalues[i][j]
+                    adji += fes[i].value[j]
                 end
                 adji = adji / length(component[i])
                 for j in component[i]
-                    fevalues[i][j] -= adji
+                    fes[i].value[j] -= adji
                 end
                 adj1 += adji
             else
                 # rescale the first fixed effects
                 for j in component[i1]
-                    fevalues[i1][j] += adj1
+                    fes[i1].value[j] += adj1
                 end
             end
         end
     end
 end
-
-
-

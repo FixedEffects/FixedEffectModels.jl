@@ -9,7 +9,7 @@ type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
-    mean::Vector{Float64}
+    value::Vector{Float64}  # fixed effect values
     interaction::I          # the continuous interaction 
     factorname::Symbol      # Name of factor variable 
     interactionname::Symbol # Name of continuous variable in the original dataframe
@@ -26,11 +26,45 @@ function FixedEffect{R <: Integer}(
          scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
     end
     @inbounds @simd for i in 1:l
-        scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : zero(Float64)
+        scale[i] = scale[i] != 0 ? (1.0 / sqrt(scale[i])) : zero(Float64)
     end
     FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
 end
 
+##############################################################################
+##
+## Build from DataFrame
+##
+##############################################################################
+
+# Constructors from dataframe + expression
+function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
+    if a.args[1] == :&
+        id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
+        if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
+            f = df[a.args[2]]
+            x = convert(Vector{Float64}, df[a.args[3]])
+            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
+        elseif (typeof(df[a.args[3]]) <: PooledDataVector) && !(typeof(df[a.args[2]]) <: PooledDataVector)
+            f = df[a.args[3]]
+            x = convert(Vector{Float64}, df[a.args[2]])
+            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
+        else
+            error("Exp $(a) should be of the form factor&nonfactor")
+        end
+    else
+        error("Exp $(a) should be of the form factor&nonfactor")
+    end
+end
+
+function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
+    v = df[a]
+    if typeof(v) <: PooledDataVector
+        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
+    else
+        error("$(a) is not a pooled data array")
+    end
+end
 
 ##############################################################################
 ##
@@ -60,20 +94,25 @@ end
 
 function _add!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
     @inbounds @simd for i in 1:length(y)
-        y[i] += fe.mean[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+        y[i] += fe.value[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
+end
+
+function copy!(mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
+   idx = 0
+   fes = mfe._
+   for fe in fes
+       @inbounds @simd for i in 1:length(fe.scale)
+           idx += 1
+           fe.value[i] = x[idx] * fe.scale[i]
+       end
+   end
 end
 
 function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
     fill!(y, zero(Float64))
     fes = mfe._
-    idx = 0
-    for fe in fes
-        @inbounds @simd for i in 1:length(fe.scale)
-            idx += 1
-            fe.mean[i] = x[idx] * fe.scale[i] # so that A'A is close to identity
-        end
-    end
+    copy!(mfe, x)
     for fe in fes
         _add!(y, fe)
     end
@@ -81,10 +120,22 @@ function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, x::Ab
 end
 
 function _sum!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
-    fill!(fe.mean, zero(Float64))
+    fill!(fe.value, zero(Float64))
     @inbounds @simd for i in 1:length(y)
-        fe.mean[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
+        fe.value[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
     end
+end
+
+function copy!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix)
+    idx = 0
+    fes = mfe._
+    for fe in fes
+        @inbounds @simd for i in 1:length(fe.scale)
+            idx += 1
+            x[idx] = fe.value[i] * fe.scale[i]
+        end
+    end
+    return x
 end
 
 function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, y::AbstractVector{Float64})
@@ -92,13 +143,7 @@ function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, y::A
     for fe in fes
         _sum!(fe, y)
     end
-    idx = 0
-    for fe in fes
-        @inbounds @simd for i in 1:length(fe.scale)
-            idx += 1
-            x[idx] = fe.mean[i] * fe.scale[i] # so that A'A is close to identity
-        end
-    end
+    copy!(x, mfe)
     return x
 end
 
@@ -131,31 +176,4 @@ function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Flo
 end
 
 
-##############################################################################
-##
-## demean! is higher level function used in reg etc
-##
-##############################################################################
-
-function demean!(X::Matrix{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, 
-                 pfe::FixedEffectProblem ; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    for j in 1:size(X, 2)
-        iterations, converged = cgls!(nothing,  slice(X, :, j), pfe; tol = tol, maxiter = maxiter)
-        push!(iterationsv, iterations)
-        push!(convergedv, converged)
-    end
-end
-
-
-function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, pfe::FixedEffectProblem ; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    iterations, converged = cgls!(nothing, x, pfe; tol = tol, maxiter = maxiter)
-    push!(iterationsv, iterations)
-    push!(convergedv, converged)
-end
-
-
-function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Nothing; 
-                 maxiter::Int = 1000, tol::Float64 = 1e-8)
-    nothing
-end
 

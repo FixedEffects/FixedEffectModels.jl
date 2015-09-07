@@ -9,7 +9,7 @@ module FixedEffectModels
 ##############################################################################
 using Compat
 using Base.BLAS
-import Base: A_mul_B!, Ac_mul_B!, size
+import Base: A_mul_B!, Ac_mul_B!, size, copy!
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
@@ -23,8 +23,8 @@ import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, Regressi
 export group, 
 reg,
 partial_out,
-demean!,
-getfe,
+residualize!,
+getfe!,
 decompose!,
 allvars,
 
@@ -55,19 +55,19 @@ shat!
 ## Load files
 ##
 ##############################################################################
-include("utils/weight.jl")
 include("utils/group.jl")
-include("utils/compute_tss.jl")
 include("utils/chebyshev.jl")
-
-include("cgls/demean.jl")
-include("cgls/cgls.jl")
-include("cgls/getfe.jl")
-
 include("utils/formula.jl")
+include("utils/cgls.jl")
+
+include("Ones.jl")
+include("RegressionResult.jl")
+
+include("fixedeffect/FixedEffect.jl")
+include("fixedeffect/solvefe.jl")
+include("fixedeffect/residualize.jl")
 
 include("vcov.jl")
-include("RegressionResult.jl")
 include("reg.jl")
 include("partial_out.jl")
 

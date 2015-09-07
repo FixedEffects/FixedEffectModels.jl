@@ -52,7 +52,7 @@ function partial_out(f::Formula,
         pfe = nothing
     end
 
-    # Compute demeaned Y
+    # Compute residualized Y
     yf = Formula(nothing, rf.lhs)
     yt = Terms(yf)
     yt.intercept = false
@@ -62,9 +62,9 @@ function partial_out(f::Formula,
     if add_mean
         m = mean(Y, 1)
     end
-    demean!(Y, iterations, converged, pfe, maxiter = maxiter, tol = tol)
+    residualize!(Y, iterations, converged, pfe, maxiter = maxiter, tol = tol)
 
-    # Compute demeaned X
+    # Compute residualized X
     xvars = allvars(xf)
     if length(xvars) > 0 || xt.intercept
         if length(xvars) > 0 
@@ -74,7 +74,7 @@ function partial_out(f::Formula,
             X = fill(one(Float64), (size(subdf, 1), 1))
         end     
         broadcast!(*, X, X, sqrtw)
-        demean!(X, iterations, converged, pfe, maxiter = maxiter, tol = tol)
+        residualize!(X, iterations, converged, pfe, maxiter = maxiter, tol = tol)
     end
     
     # Compute residuals
