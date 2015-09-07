@@ -26,7 +26,7 @@ Code to reproduce this graph:
   @time reg(y ~ x1 + x2 |> id1 + id2, df)
   # 2.574491 seconds (998 allocations: 1.188 GB, 15.94% gc time)
   @time reg(y ~ x1 + x2 |> id1, df, weight = :w)
-  # 1.219291 seconds (883 allocations: 1.175 GB, 31.26% gc time)
+  # 2.335075 seconds (883 allocations: 1.175 GB, 31.26% gc time)
   @time reg(y ~ x1 + x2 |> id1 + id2, df, weight = :w)
   #  4.307448 seconds (998 allocations: 1.188 GB, 15.94% gc time)
   ````
