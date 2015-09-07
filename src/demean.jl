@@ -161,7 +161,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect})
     FixedEffectProblem(FixedEffectModelMatrix(fes))
 end
 
-function cgls!(x::Union{AbstractVector{Float64}, Nothing}, r::AbstractVector{Float64}, pfe::FixedEffectProblem; tol::Real=1e-10, maxiter::Integer=1000)
+function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Float64}, pfe::FixedEffectProblem; tol::Real=1e-10, maxiter::Integer=1000)
     cgls!(x, r, pfe.m, pfe.s, pfe.p, pfe.q; tol = tol, maxiter = maxiter)
 end
 

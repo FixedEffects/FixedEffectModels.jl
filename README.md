@@ -20,12 +20,12 @@ To install the package,
 Pkg.add("FixedEffectModels")
 ```
 
-### Regressions with high dimensional categorical variables
+### How does FixedEffectModels works
 
-When a regression model `y = X β` contains a large number of high dimensional categorical variables, the design matrix is then generally too large to fit into memory. A typical method is to use conjugate gradient to solve the linear equation `X'X β = y`
+Usual OLS fails when the regression model contains a large number of high dimensional categorical variables — in these cases, the design matrix is then generally too large to fit into memory. 
 
-However, this method does not allow to obtain standard errors for the coefficients. 
-Suppose you want to estimate `β` and their standard errors in the model `y = X β + D θ + e` where D corresponds to a high dimensional categorical variables. The overall method implemented in this package has two steps:
+
+Suppose we want to estimate `β` and their standard errors in the model `y = X β + D θ + e` where D corresponds to a high dimensional categorical variables. The method implemented in this package has two steps:
 
 1. `y, X`  are regressed on `D` by solving the following linear equation using conjugate gradient :
 
