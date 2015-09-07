@@ -23,7 +23,7 @@
         α = normSc / sumabs2(q)
         if !(typeof(x) <: Nothing)
             # x = x + αp
-            axpy!(α, p, x) 
+            BLAS.axpy!(α, p, x) 
         end
         # r = r - αq
         BLAS.axpy!(-α, q, r) 
