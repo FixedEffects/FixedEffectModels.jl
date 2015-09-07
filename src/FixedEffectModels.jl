@@ -24,7 +24,7 @@ export group,
 reg,
 partial_out,
 residualize!,
-getfe!,
+solvefe!,
 decompose!,
 allvars,
 
@@ -63,11 +63,16 @@ include("utils/cgls.jl")
 include("Ones.jl")
 include("RegressionResult.jl")
 
-include("fixedeffect/FixedEffect.jl")
+include("fixedeffect/types.jl")
 include("fixedeffect/solvefe.jl")
 include("fixedeffect/residualize.jl")
 
-include("vcov.jl")
+include("vcov/types.jl")
+include("vcov/vcovsimple.jl")
+include("vcov/vcovwhite.jl")
+include("vcov/vcovcluster.jl")
+include("vcov/ranktest.jl")
+
 include("reg.jl")
 include("partial_out.jl")
 

@@ -92,7 +92,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     coef_names = coefnames(mf)
     Xexo = ModelMatrix(mf).m
     broadcast!(*, Xexo, Xexo, sqrtw)
-    residualize!(Xexo, iterations, converged, pfe; maxiter = maxiter, tol = tol)
+    residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
     # Compute y
     py = model_response(mf)[:]
@@ -107,7 +107,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     if has_absorb
         oldy = deepcopy(y)
     end
-    residualize!(y, iterations, converged, pfe; maxiter = maxiter, tol = tol)
+    residualize!(y, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
     # Compute Xendo and Z
     if has_iv
@@ -115,7 +115,7 @@ function reg(f::Formula, df::AbstractDataFrame,
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         broadcast!(*, Xendo, Xendo, sqrtw)
-        residualize!(Xendo, iterations, converged, pfe; maxiter = maxiter, tol = tol)
+        residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
         
         mf = simpleModelFrame(subdf, iv_terms, esample)
         Z = ModelMatrix(mf).m
@@ -123,7 +123,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         broadcast!(*, Z, Z, sqrtw)
-        residualize!(Z, iterations, converged, pfe; maxiter = maxiter, tol = tol)
+        residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
     end
 
     # Compute Xhat
@@ -279,7 +279,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute Fstat first stage based on Kleibergen-Paap
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        (F_kp, p_kp) = rank_test!(Xendo_res, Z_res, Pip, 
+        (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip, 
                                   vcov_method_data, size(X, 2), df_absorb)
     end
 

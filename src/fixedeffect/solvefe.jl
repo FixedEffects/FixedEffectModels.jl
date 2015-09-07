@@ -1,10 +1,9 @@
 ##############################################################################
 ##
-## Get coefficients for high dimensional fixed effects
+## Get coefficients s
 ## 
 ###############################################################################
 
-# Return vector of vector of estimates
 function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     
     # solve Ax = b
@@ -16,7 +15,7 @@ function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_00
     end
     copy!(pfe.m, x) 
 
-    # find connected components and scale accordingly
+    # The solution is generally not unique. Find connected components and scale accordingly
     findintercept = find(x -> typeof(x.interaction) <: Ones, fes)
     if length(findintercept) >= 2
         if VERSION >= v"0.4.0-dev+6521" 

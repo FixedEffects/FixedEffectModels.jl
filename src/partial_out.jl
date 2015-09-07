@@ -62,7 +62,7 @@ function partial_out(f::Formula,
     if add_mean
         m = mean(Y, 1)
     end
-    residualize!(Y, iterations, converged, pfe, maxiter = maxiter, tol = tol)
+    residualize!(Y, pfe, iterations, converged, maxiter = maxiter, tol = tol)
 
     # Compute residualized X
     xvars = allvars(xf)
@@ -74,7 +74,7 @@ function partial_out(f::Formula,
             X = fill(one(Float64), (size(subdf, 1), 1))
         end     
         broadcast!(*, X, X, sqrtw)
-        residualize!(X, iterations, converged, pfe, maxiter = maxiter, tol = tol)
+        residualize!(X, pfe, iterations, converged, maxiter = maxiter, tol = tol)
     end
     
     # Compute residuals

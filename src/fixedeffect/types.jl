@@ -92,7 +92,7 @@ function size(mfe::FixedEffectModelMatrix, i::Integer)
     end
 end
 
-function _add!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
+function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
     @inbounds @simd for i in 1:length(y)
         y[i] += fe.value[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
@@ -114,12 +114,12 @@ function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, x::Ab
     fes = mfe._
     copy!(mfe, x)
     for fe in fes
-        _add!(y, fe)
+        A_mul_B_helper!(y, fe)
     end
     return y
 end
 
-function _sum!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+function Ac_mul_B_helper!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
     fill!(fe.value, zero(Float64))
     @inbounds @simd for i in 1:length(y)
         fe.value[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
@@ -141,7 +141,7 @@ end
 function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, y::AbstractVector{Float64})
     fes = mfe._
     for fe in fes
-        _sum!(fe, y)
+        Ac_mul_B_helper!(fe, y)
     end
     copy!(x, mfe)
     return x

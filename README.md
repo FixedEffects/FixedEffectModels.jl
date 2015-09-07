@@ -23,9 +23,9 @@ Pkg.add("FixedEffectModels")
 
 ### How does FixedEffectModels works
 
-When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package allows to still estimate models in this situation.
+When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package is designed to estimate models in these situations.
 
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. The method implemented in this package tests for `β` in two steps:
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. This package returns the estimates for `β`, along with their standard errors, in two steps:
 
 1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
 
