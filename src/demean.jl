@@ -16,7 +16,7 @@ type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector
     id::Symbol              # Name of new variable if save = true
 end
 
-# Constructors the scale vector
+# Constructor
 function FixedEffect{R <: Integer}(
     refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, 
     interaction::AbstractVector{Float64}, factorname::Symbol, 
@@ -31,41 +31,6 @@ function FixedEffect{R <: Integer}(
     FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
 end
 
-
-##############################################################################
-##
-## Parse formula
-##
-##############################################################################
-
-# Constructors from dataframe + expression
-function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
-    if a.args[1] == :&
-        id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
-        if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
-            f = df[a.args[2]]
-            x = convert(Vector{Float64}, df[a.args[3]])
-            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
-        elseif (typeof(df[a.args[3]]) <: PooledDataVector) && !(typeof(df[a.args[2]]) <: PooledDataVector)
-            f = df[a.args[3]]
-            x = convert(Vector{Float64}, df[a.args[2]])
-            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
-        else
-            error("Exp $(a) should be of the form factor&nonfactor")
-        end
-    else
-        error("Exp $(a) should be of the form factor&nonfactor")
-    end
-end
-
-function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
-    v = df[a]
-    if typeof(v) <: PooledDataVector
-        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
-    else
-        error("$(a) is not a pooled data array")
-    end
-end
 
 ##############################################################################
 ##
