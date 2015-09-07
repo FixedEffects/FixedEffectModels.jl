@@ -4,7 +4,7 @@ tests = ["reg.jl",
 		 "RegressionResult.jl", 
 		 "partial_out.jl", 
 		 "utils.jl",
-		 "solvefe.jl"
+		 "getfe.jl"
 		 ]
 
 println("Running tests:")

@@ -75,7 +75,7 @@ function DataFrame(pfe::FixedEffectProblem, esample::BitVector)
     return newdf
 end
 
-function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64}, 
+function getfe!(pfe::FixedEffectProblem, b::Vector{Float64}, 
                esample::BitVector; maxiter = 100_000)
     solvefe!(pfe, b, maxiter = maxiter)
     DataFrame(pfe, esample)
