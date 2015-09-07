@@ -63,8 +63,7 @@ include("utils/cgls.jl")
 include("Ones.jl")
 include("RegressionResult.jl")
 
-include("fixedeffect/types.jl")
-include("fixedeffect/solvefe.jl")
+include("fixedeffect/solve.jl")
 include("fixedeffect/residualize.jl")
 
 include("vcov/types.jl")
