@@ -1,3 +1,4 @@
+
 ##############################################################################
 ##
 ## get residuals
@@ -30,11 +31,11 @@ end
 
 ##############################################################################
 ##
-## get fixed effect estimates
+## get fixed effects
 ## 
 ###############################################################################
 
-function solvefe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
+function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     
     # solve Ax = b
     fes = pfe.m._

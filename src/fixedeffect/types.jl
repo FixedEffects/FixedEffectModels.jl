@@ -149,6 +149,7 @@ function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix,
     return x
 end
 
+
 ##############################################################################
 ##
 ## FixedEffectProblem stores some arrays to solve (A'A)X = A'y multiple times
@@ -177,6 +178,4 @@ function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Flo
                pfe::FixedEffectProblem; tol::Real=1e-10, maxiter::Integer=1000)
     cgls!(x, r, pfe.m, pfe.s, pfe.p, pfe.q; tol = tol, maxiter = maxiter)
 end
-
-
 

@@ -272,7 +272,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             broadcast!(*, oldX, oldX, sqrtw)
             oldresiduals = oldy - oldX * coef
             diffres = oldresiduals - residuals
-            augmentdf = hcat(augmentdf, solvefe!(pfe, diffres, esample))
+            augmentdf = hcat(augmentdf, getfe!(pfe, diffres, esample))
         end
     end
 
