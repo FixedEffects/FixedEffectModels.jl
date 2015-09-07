@@ -22,28 +22,18 @@ Pkg.add("FixedEffectModels")
 
 ### Regressions with high dimensional categorical variables
 
-Suppose you want to estimate `β` in the model `y = X β + D θ + e` where D corresponds to a huge number of variables (which happens if the model includes categorical variables).
+When a regression model `y = X β` contains a large number of high dimensional categorical variables, the design matrix is then generally too large to fit into memory. A typical method is to use conjugate gradient to solve the linear equation `X'Xβ = y`
 
-The design matrix is then generally too large to fit into memory.
+However, this method does not allow to obtain standard errors for the coefficients. 
+Suppose you want to estimate `β` and their standard errors in the model `y = X β + D θ + e` where D corresponds to a high dimensional categorical variables. The overall method implemented in this package has two steps:
 
+1. `y, X`  are regressed on `D` by solving the following linear equation using conjugate gradient :
 
-The overall method has two steps:
+  `D'Dα=D'y` and `D'Dβ=D'X`
 
-1. Regress `y` and each vector in `X`  on `D` by solving the following linear equation by conjugate gradient :
-
-`D't1=D'y` and `D'Dt2=D'y`
-
-2.  The coefficients `b` (and their standard errors) are obtained by regressing the projected `y` on the projected `X`
-
-3. (optional). The coefficients `θ` (without their standard errors) may be obtained by solving the following linear equation by conjugate gradient:
-
-  `D'Dθ =  D'((ey - eXβ) - (y - Xβ))`
-
+2.  The coefficients `b` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
 Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
-
-- Guimaraes, Portugal 2010 *A simple feasible procedure to fit models with high-dimensional fixed effects* https://ideas.repec.org/a/tsj/stataj/v10y2010i4p628-649.html
-- Simen Gaure. 2013. *OLS with multiple high dimensional category variables*. Computational Statistics & Data Analysis http://www.sciencedirect.com/science/article/pii/S0167947313001266
 
 
 ## result

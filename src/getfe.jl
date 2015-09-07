@@ -1,10 +1,8 @@
 
 ##############################################################################
 ##
-## Fixed effects solve Ax = b
-## b is (y - x'b) - (\overline{y} - \overline{x}'b)
-## TODO 1 : use sparse matrix inversion from Base? 
-## TODO 2 : Use only unique rows?
+## Get coefficients for high dimensional fixed effects
+## 
 ###############################################################################
 
 
