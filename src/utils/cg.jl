@@ -4,7 +4,7 @@
 
 
 # TODO. Follow LMQR for (i) better stopping rule (ii) better projection on zero in case x non identified
-@compat function cgls!(x::Union(AbstractVector{Float64}, Void), r::AbstractVector{Float64}, A::AbstractMatrix{Float64}, s::Vector{Float64}, p::Vector{Float64}, q::Vector{Float64}; tol::Real=1e-10, maxiter::Int=1000)
+@compat function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Float64}, A::AbstractMatrix{Float64}, s::Vector{Float64}, p::Vector{Float64}, q::Vector{Float64}; tol::Real=1e-10, maxiter::Int=1000)
 
     # Initialization.
     converged = false

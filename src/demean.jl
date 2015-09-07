@@ -189,7 +189,7 @@ function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, converged
 end
 
 
-function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Void; 
+function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Nothing; 
                  maxiter::Int = 1000, tol::Float64 = 1e-8)
     nothing
 end

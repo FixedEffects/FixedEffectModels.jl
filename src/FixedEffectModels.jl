@@ -72,9 +72,7 @@ include("partial_out.jl")
 if VERSION >= v"0.4.0-dev+6521"
 	include("precompile.jl")
 end
-if VERSION < v"0.4-" 
-	typealias Void Nothing 
-end
+
 
 # Compatibility
 function demean!(X::Matrix{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, 
