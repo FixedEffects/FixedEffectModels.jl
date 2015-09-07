@@ -82,38 +82,35 @@ function secondstage!(rf::Formula)
 	end
 end
 
-##############################################################################
-##
-## FixedEffect
-##
-##############################################################################
 
-type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
-    refs::Vector{R}         # refs of the original PooledDataVector
-    sqrtw::W                # weights
-    scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
-    mean::Vector{Float64}
-    interaction::I          # the continuous interaction 
-    factorname::Symbol      # Name of factor variable 
-    interactionname::Symbol # Name of continuous variable in the original dataframe
-    id::Symbol              # Name of new variable if save = true
+# Constructors from dataframe + expression
+function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
+    if a.args[1] == :&
+        id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
+        if (typeof(df[a.args[2]]) <: PooledDataVector) && !(typeof(df[a.args[3]]) <: PooledDataVector)
+            f = df[a.args[2]]
+            x = convert(Vector{Float64}, df[a.args[3]])
+            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
+        elseif (typeof(df[a.args[3]]) <: PooledDataVector) && !(typeof(df[a.args[2]]) <: PooledDataVector)
+            f = df[a.args[3]]
+            x = convert(Vector{Float64}, df[a.args[2]])
+            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
+        else
+            error("Exp $(a) should be of the form factor&nonfactor")
+        end
+    else
+        error("Exp $(a) should be of the form factor&nonfactor")
+    end
 end
 
-# Constructors the scale vector
-function FixedEffect{R <: Integer}(
-    refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, 
-    interaction::AbstractVector{Float64}, factorname::Symbol, 
-    interactionname::Symbol, id::Symbol)
-    scale = fill(zero(Float64), l)
-    @inbounds @simd for i in 1:length(refs)
-         scale[refs[i]] += abs2((interaction[i] * sqrtw[i]))
+function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
+    v = df[a]
+    if typeof(v) <: PooledDataVector
+        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
+    else
+        error("$(a) is not a pooled data array")
     end
-    @inbounds @simd for i in 1:l
-        scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : zero(Float64)
-    end
-    FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
 end
-
 
 
 ##############################################################################

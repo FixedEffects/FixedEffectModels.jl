@@ -59,13 +59,15 @@ include("utils/weight.jl")
 include("utils/group.jl")
 include("utils/compute_tss.jl")
 include("utils/chebyshev.jl")
-include("utils/cg.jl")
-include("demean.jl")
+
+include("cgls/demean.jl")
+include("cgls/cgls.jl")
+include("cgls/getfe.jl")
+
 include("utils/formula.jl")
 
 include("vcov.jl")
 include("RegressionResult.jl")
-include("getfe.jl")
 include("reg.jl")
 include("partial_out.jl")
 
