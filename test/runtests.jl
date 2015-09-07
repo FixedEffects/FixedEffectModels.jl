@@ -4,7 +4,6 @@ tests = ["reg.jl",
 		 "RegressionResult.jl", 
 		 "partial_out.jl", 
 		 "utils.jl",
-		 "rkaczmarz.jl",
 		 "getfe.jl"
 		 ]
 

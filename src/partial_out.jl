@@ -47,8 +47,9 @@ function partial_out(f::Formula,
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             xt.intercept = false
         end
+        pfe = FixedEffectProblem(fixedeffects)
     else
-        fixedeffects = nothing
+        pfe = nothing
     end
 
     # Compute demeaned Y
@@ -61,7 +62,7 @@ function partial_out(f::Formula,
     if add_mean
         m = mean(Y, 1)
     end
-    demean!(Y, iterations, converged, fixedeffects, maxiter = maxiter, tol = tol)
+    demean!(Y, iterations, converged, pfe, maxiter = maxiter, tol = tol)
 
     # Compute demeaned X
     xvars = allvars(xf)
@@ -73,7 +74,7 @@ function partial_out(f::Formula,
             X = fill(one(Float64), (size(subdf, 1), 1))
         end     
         broadcast!(*, X, X, sqrtw)
-        demean!(X, iterations, converged, fixedeffects, maxiter = maxiter, tol = tol)
+        demean!(X, iterations, converged, pfe, maxiter = maxiter, tol = tol)
     end
     
     # Compute residuals

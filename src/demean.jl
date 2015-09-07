@@ -31,6 +31,13 @@ function FixedEffect{R <: Integer}(
     FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
 end
 
+
+##############################################################################
+##
+## Parse formula
+##
+##############################################################################
+
 # Constructors from dataframe + expression
 function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     if a.args[1] == :&
@@ -62,11 +69,10 @@ end
 
 ##############################################################################
 ##
-## FixedEffectModelMatrix
 ## Denote M model matrix of fixed effects
-## In conjugate gradient, we will solve (A'A)X = A'y
+## Conjugate gradient will solve (A'A)X = A'y
 ## where A = M * diag(1/a_1, 1/a_2... , 1/a_n) 
-## We need to define what it means to multipy by A and At 
+## We need to define what it means to multiply by A and At 
 ##
 ##############################################################################
 
@@ -74,7 +80,7 @@ type FixedEffectModelMatrix <: AbstractMatrix{Float64}
     _::Vector{FixedEffect}
 end
 
-function Base.size(mfe::FixedEffectModelMatrix, i::Integer) 
+function size(mfe::FixedEffectModelMatrix, i::Integer) 
     fes = mfe._
     if i == 1
         return length(fes[1].refs)
@@ -87,13 +93,13 @@ function Base.size(mfe::FixedEffectModelMatrix, i::Integer)
     end
 end
 
-function Base.A_mul_B!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
+function _add!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
     @inbounds @simd for i in 1:length(y)
         y[i] += fe.mean[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
 
-function Base.A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
+function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
     fill!(y, zero(Float64))
     fes = mfe._
     idx = 0
@@ -104,22 +110,22 @@ function Base.A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
         end
     end
     for fe in fes
-        A_mul_B!(y, fe)
+        _add!(y, fe)
     end
     return y
 end
 
-function Base.Ac_mul_B!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+function _sum!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
     fill!(fe.mean, zero(Float64))
     @inbounds @simd for i in 1:length(y)
         fe.mean[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
 
-function Base.Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, y::AbstractVector{Float64})
+function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, y::AbstractVector{Float64})
     fes = mfe._
     for fe in fes
-        Ac_mul_B!(fe, y)
+        _sum!(fe, y)
     end
     idx = 0
     for fe in fes
@@ -167,8 +173,7 @@ end
 ##############################################################################
 
 function demean!(X::Matrix{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, 
-                 fes::Vector{FixedEffect}; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    pfe = FixedEffectProblem(fes)
+                 pfe::FixedEffectProblem ; maxiter::Int = 1000, tol::Float64 = 1e-8)
     for j in 1:size(X, 2)
         iterations, converged = cgls!(nothing,  slice(X, :, j), pfe; tol = tol, maxiter = maxiter)
         push!(iterationsv, iterations)
@@ -176,15 +181,15 @@ function demean!(X::Matrix{Float64}, iterationsv::Vector{Int}, convergedv::Vecto
     end
 end
 
-function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool},fes::Vector{FixedEffect} ; maxiter::Int = 1000, tol::Float64 = 1e-8)
-    pfe = FixedEffectProblem(fes)
+
+function demean!(x::AbstractVector{Float64}, iterationsv::Vector{Int}, convergedv::Vector{Bool}, pfe::FixedEffectProblem ; maxiter::Int = 1000, tol::Float64 = 1e-8)
     iterations, converged = cgls!(nothing, x, pfe; tol = tol, maxiter = maxiter)
     push!(iterationsv, iterations)
     push!(convergedv, converged)
 end
 
 
-function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Nothing; 
+function demean!(::Array, ::Vector{Int}, ::Vector{Bool}, ::Void; 
                  maxiter::Int = 1000, tol::Float64 = 1e-8)
     nothing
 end

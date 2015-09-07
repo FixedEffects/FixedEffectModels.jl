@@ -7,12 +7,10 @@
 
 
 # Return vector of vector of estimates
-function getfe(fes::Vector{FixedEffect}, b::Vector{Float64}; 
-               maxiter = 100_000)
+function getfe(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     
-
     # solve Ax = b
-    pfe = FixedEffectProblem(fes)
+    fes = pfe.m._
     x = zeros(size(pfe.m, 2))
     iterations, converged = cgls!(x, b, pfe, tol = 1e-10, maxiter = maxiter)
     if !converged 
@@ -60,10 +58,10 @@ function DataFrame(fes::Vector{FixedEffect}, fevalues, esample::BitVector; maxit
     return newdf
 end
 
-function getfe(fes::Vector{FixedEffect}, b::Vector{Float64}, 
+function getfe(pfe::FixedEffectProblem, b::Vector{Float64}, 
                esample::BitVector; maxiter = 100_000)
-    fevalues = getfe(fes, b, maxiter = maxiter)
-    DataFrame(fes, fevalues, esample)
+    fevalues = getfe(pfe, b, maxiter = maxiter)
+    DataFrame(pfe.m._, fevalues, esample)
 end
 
 

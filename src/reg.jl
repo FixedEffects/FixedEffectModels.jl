@@ -69,8 +69,9 @@ function reg(f::Formula, df::AbstractDataFrame,
             rt.intercept = false
             has_intercept = true
         end
+        pfe = FixedEffectProblem(fixedeffects)
     else
-        fixedeffects = nothing
+        pfe = nothing
     end
 
     # Compute data for std errors
@@ -91,7 +92,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     coef_names = coefnames(mf)
     Xexo = ModelMatrix(mf).m
     broadcast!(*, Xexo, Xexo, sqrtw)
-    demean!(Xexo, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
+    demean!(Xexo, iterations, converged, pfe; maxiter = maxiter, tol = tol)
 
     # Compute y
     py = model_response(mf)[:]
@@ -106,7 +107,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     if has_absorb
         oldy = deepcopy(y)
     end
-    demean!(y, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
+    demean!(y, iterations, converged, pfe; maxiter = maxiter, tol = tol)
 
     # Compute Xendo and Z
     if has_iv
@@ -114,7 +115,7 @@ function reg(f::Formula, df::AbstractDataFrame,
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         broadcast!(*, Xendo, Xendo, sqrtw)
-        demean!(Xendo, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
+        demean!(Xendo, iterations, converged, pfe; maxiter = maxiter, tol = tol)
         
         mf = simpleModelFrame(subdf, iv_terms, esample)
         Z = ModelMatrix(mf).m
@@ -122,7 +123,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         broadcast!(*, Z, Z, sqrtw)
-        demean!(Z, iterations, converged, fixedeffects; maxiter = maxiter, tol = tol)
+        demean!(Z, iterations, converged, pfe; maxiter = maxiter, tol = tol)
     end
 
     # Compute Xhat
@@ -271,7 +272,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             broadcast!(*, oldX, oldX, sqrtw)
             oldresiduals = oldy - oldX * coef
             diffres = oldresiduals - residuals
-            augmentdf = hcat(augmentdf, getfe(fixedeffects, diffres, esample))
+            augmentdf = hcat(augmentdf, getfe(pfe, diffres, esample))
         end
     end
 
