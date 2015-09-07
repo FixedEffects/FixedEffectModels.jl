@@ -5,7 +5,7 @@
 
 
 The function `reg` estimates linear models with 
-  - high dimensional categorical variable. It avoids the construction of a design matrix too large to fit into RAM.
+  - high dimensional categorical variable. It avoids the construction of a design matrix too large to fit in RAM.
   - instrumental variables (via 2SLS)
   - robust standard errors (White or clustered) 
   This functionality of this package is similar to the Stata command `reghdfe` and the R command `felm`.
@@ -15,17 +15,6 @@ To install the package,
 ```julia
 Pkg.add("FixedEffectModels")
 ```
-
-### How does FixedEffectModels works
-
-When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package is designed to handle these situations.
-
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. This package returns the estimates for `β`, along with their standard errors, in two steps:
-
-1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
-
-2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
-
 
 
 ## result
@@ -68,6 +57,16 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
 ##### Fixed effects
+
+When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package is designed to handle these situations.
+
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. This package returns the estimates for `β`, along with their standard errors, in two steps:
+
+1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
+
+2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
+
+
 
 
 - Estimate models with an arbitrary number of high dimensional fixed effects.
