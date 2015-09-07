@@ -117,13 +117,11 @@ end
 
 
 # Define x -> mfe * x
-
 function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
     @inbounds @simd for i in 1:length(y)
         y[i] += fe.value[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-
 function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
                   x::AbstractVector{Float64})
     fill!(y, zero(Float64))
@@ -136,14 +134,12 @@ function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix,
 end
 
 # Define x -> mfe' * x
-
 function Ac_mul_B_helper!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
     fill!(fe.value, zero(Float64))
     @inbounds @simd for i in 1:length(y)
         fe.value[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-
 function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
                    y::AbstractVector{Float64})
     fes = mfe._

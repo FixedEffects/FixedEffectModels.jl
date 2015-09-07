@@ -1,6 +1,6 @@
 # r = b0 - Ax0 contains all initial condition and is replaced by the residual b - Ax
 # x is used to store the solution of Ax = b
-# s, p, q are used for storage. s, p should have dimension size(A, 2). q should have simension size(A, 1). Their values is not used within the program
+# s, p, q are used for storage. s, p should have dimension size(A, 2). q should have simension size(A, 1). 
 
 
 # TODO. Follow LMQR for (i) better stopping rule (ii) better projection on zero in case x non identified

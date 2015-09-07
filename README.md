@@ -154,11 +154,6 @@ reg(Sales ~ NDI, df, VcovCluster([:State]))
 reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
-#### Save
-The option `save = true` saves a new dataframe storing residuals and the eventual fixed effects. Importantly, the new dataframe is aligned with the initial dataframe: rows not used in the estimation are simply filled with NA.
-
-Fixed effects are obtained by the Kaczmarz algorithm, according to the following normalization: for each factor except the first one, the sum of fixed effects within each connected component is normalized to zero.
-
 ## Partial out
 
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - just with multiple `lhs`. It returns  a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
