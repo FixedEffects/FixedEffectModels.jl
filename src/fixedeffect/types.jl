@@ -115,8 +115,7 @@ function copy!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix)
     return x
 end
 
-
-# Define x -> mfe * x
+# Define x -> A * x
 function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
     @inbounds @simd for i in 1:length(y)
         y[i] += fe.value[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
@@ -124,16 +123,16 @@ function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R,
 end
 function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
                   x::AbstractVector{Float64})
+    copy!(mfe, x)
     fill!(y, zero(Float64))
     fes = mfe._
-    copy!(mfe, x)
     for fe in fes
         A_mul_B_helper!(y, fe)
     end
     return y
 end
 
-# Define x -> mfe' * x
+# Define x -> A' * x
 function Ac_mul_B_helper!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
     fill!(fe.value, zero(Float64))
     @inbounds @simd for i in 1:length(y)
