@@ -8,6 +8,7 @@ The function `reg` estimates linear models with
   - high dimensional categorical variable. It avoids the construction of a design matrix too large to fit into RAM.
   - instrumental variables (via 2SLS)
   - robust standard errors (White or clustered) 
+  This functionality of this package is similar to the Stata command `reghdfe` and the R command `felm`.
 
 
 `reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
@@ -27,13 +28,10 @@ Usual OLS fails when the regression model contains a large number of high dimens
 
 Suppose we want to estimate `β` and their standard errors in the model `y = X β + D θ + e` where D corresponds to a high dimensional categorical variables. The method implemented in this package has two steps:
 
-1. `y, X`  are regressed on `D` by solving the following linear equation using conjugate gradient :
+1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
 
-  `D'D α = D'y` and `D'D γ = D'X`
+2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
-2.  The estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
-
-Similar methods are implemented in the Stata command `reghdfe` and the R command `felm`.
 
 
 ## result
