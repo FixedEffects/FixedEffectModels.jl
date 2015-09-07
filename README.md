@@ -23,10 +23,10 @@ Pkg.add("FixedEffectModels")
 
 ### How does FixedEffectModels works
 
-Usual OLS fails when the regression model contains a large number of high dimensional categorical variables — in these cases, the design matrix is then generally too large to fit into memory. 
+Usual OLS fails when the regression model contains a large number of high dimensional categorical variables : in these cases, the design matrix can be too large to fit into memory. 
 
 
-Suppose we want to estimate `β` and their standard errors in the model `y = X β + D θ + e` where D corresponds to a high dimensional categorical variables. The method implemented in this package has two steps:
+To test for `β` in the model `y = X β + D θ + e` where D corresponds to a high dimensional categorical variables, the method implemented in this package has two steps:
 
 1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
 
@@ -35,7 +35,7 @@ Suppose we want to estimate `β` and their standard errors in the model `y = X �
 
 
 ## result
-`reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about RAM. It is simply composed of 
+`reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about memory space. It is simply composed of 
  
   - the vector of coefficients & the covariance matrix
   - a boolean vector reporting rows used in the estimation
@@ -43,8 +43,7 @@ Suppose we want to estimate `β` and their standard errors in the model `y = X �
 
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
-With the option `save = true`, `reg` returns residuals and, if the model contains high dimensional fixed effects, fixed effects estimates. These objects are returned in a dataframe *aligned* with the initial dataframe.
-
+With the option `save = true`, `reg` returns a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
 
 
 ## installation
