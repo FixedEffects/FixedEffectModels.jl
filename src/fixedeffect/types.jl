@@ -69,9 +69,8 @@ end
 ## 
 ## We know defined an FixedEffectVector and a FixedEffectMatrix
 ## which correspond respectibely to x and A in (A'A)X = A'y
-## We need to define functions used in cgls!
+## We need to define these methods used in cgls!
 ##
-## Note that A is the model matrix multiplied by diag(1/a1^2, ..., 1/aN^2) (preconditoner)
 ##############################################################################
 
 # Vector in the space of solutions (vector x in A'Ax = A'b)
@@ -127,21 +126,9 @@ end
 
 
 # Matrix
+# A is the model matrix multiplied by diag(1/a1^2, ..., 1/aN^2) (preconditoner)
 type FixedEffectMatrix <: AbstractMatrix{Float64}
     _::Vector{FixedEffect}
-end
-
-function size(mfe::FixedEffectMatrix, i::Integer) 
-    fes = mfe._
-    if i == 1
-        return length(fes[1].refs)
-    elseif i == 2
-        out = zero(Int)
-        for fe in fes
-            out += length(fe.scale)
-        end
-        return out
-    end
 end
 
 # Define x -> A * x
@@ -182,30 +169,6 @@ function Ac_mul_B!(vfe::FixedEffectVector, mfe::FixedEffectMatrix,
     return vfe
 end
 
-
-# not used since slower. but maybe factorization will get better
-# function sparse(mfe::FixedEffectMatrix)
-#     # construct sparse matrix A
-#     fes = mfe._
-#     nobs = length(fes) * size(m, 1)
-#     I = Array(Int, nobs)
-#     J = similar(I)
-#     V = Array(Float64, nobs)
-#     start = 0
-#     idx = 0
-#     for fe in fes
-#        for i in 1:length(fe.refs)
-#            idx += 1
-#            I[idx] = i
-#            J[idx] = start + fe.refs[i]
-#            V[idx] = fe.interaction[i]
-#        end
-#        start += sum(fe.scale .!= 0)
-#     end
-#     A = sparse(I, J, V)
-#     qr = qrfact(A)
-# end
-
 ##############################################################################
 ##
 ## FixedEffectProblem stores some arrays to solve (A'A)X = A'y multiple times
@@ -217,10 +180,6 @@ type FixedEffectProblem <: AbstractMatrix{Float64}
     q::Vector{Float64}
     s::FixedEffectVector
     p::FixedEffectVector
-end
-
-function FixedEffectProblem(m::FixedEffectMatrix)
-
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect})
