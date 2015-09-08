@@ -1,12 +1,12 @@
-# r = b0 - Ax0 contains all initial condition and is replaced by the residual b - Ax
-# x is used to store the solution of Ax = b
-# s, p, q are used for storage. s, p should have dimension size(A, 2). q should have simension size(A, 1). 
+# This solves Ax = b
+# r should equal b - Ax0 where x0 is an initial guess for x. It is modified in place and equals b - Ax
+# x, s, p, q are used for storage. s, p should have dimension size(A, 2). q should have simension size(A, 1). 
 
 
 # TODO. Follow LMQR for (i) better stopping rule (ii) better projection on zero in case x non identified
 function cgls!(x::Union(AbstractVector{Float64}, Nothing), 
                r::AbstractVector{Float64}, A::AbstractMatrix{Float64}, 
-               s::Vector{Float64}, p::Vector{Float64}, q::Vector{Float64}; 
+               s::AbstractVector{Float64}, p::AbstractVector{Float64}, q::AbstractVector{Float64}; 
                tol::Real=1e-10, maxiter::Int=1000)
 
     # Initialization.
@@ -27,7 +27,7 @@ function cgls!(x::Union(AbstractVector{Float64}, Nothing),
         # x = x + αp
         x == nothing || BLAS.axpy!(α, p, x) 
         # r = r - αq
-        BLAS.axpy!(-α, q, r) 
+        axpy!(-α, q, r) 
         # s = A'r
         Ac_mul_B!(s, A, r) 
         normS = sumabs2(s)
@@ -36,10 +36,10 @@ function cgls!(x::Union(AbstractVector{Float64}, Nothing),
             converged = true
             break
         end
-        beta = normS / normSold
-        # p = s + beta p
-        scale!(p, beta)
-        BLAS.axpy!(1.0, s, p) 
+        β = normS / normSold
+        # p = s + β p
+        scale!(p, β)
+        axpy!(1.0, s, p) 
         normSold = normS
     end
     return iterations, converged

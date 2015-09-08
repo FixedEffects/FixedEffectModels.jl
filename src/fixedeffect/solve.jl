@@ -27,8 +27,6 @@ function residualize!(::Array, ::Nothing,
     nothing
 end
 
-
-
 ##############################################################################
 ##
 ## get fixed effects
@@ -39,12 +37,12 @@ function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     
     # solve Ax = b
     fes = pfe.m._
-    x = zeros(size(pfe.m, 2))
-    iterations, converged = cgls!(x, b, pfe, tol = 1e-10, maxiter = maxiter)
+    vfe = FixedEffectVector(fes)
+    fill!(vfe, zero(Float64))
+    iterations, converged = cgls!(vfe, b, pfe, tol = 1e-10, maxiter = maxiter)
     if !converged 
        warn("did not converge")
     end
-    copy!(pfe.m, x) 
 
     # The solution is generally not unique. Find connected components and scale accordingly
     findintercept = find(fe -> isa(fe.interaction, Ones), fes)
@@ -54,14 +52,14 @@ function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
         else
             components = connectedcomponent(fes[findintercept])
         end
-        rescale!(pfe, findintercept, components)
+        rescale!(vfe, pfe, findintercept, components)
     end
 
-    return pfe
+    return vfe
 end
 
 # Convert estimates to dataframes 
-function DataFrame(pfe::FixedEffectProblem, esample::BitVector)
+function DataFrame(vfe::FixedEffectVector, pfe::FixedEffectProblem, esample::BitVector)
     fes = pfe.m._
     newdf = DataFrame()
     len = length(esample)
@@ -70,15 +68,15 @@ function DataFrame(pfe::FixedEffectProblem, esample::BitVector)
         T = eltype(fes[j].refs)
         refs = fill(zero(T), len)
         refs[esample] = fes[j].refs
-        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fes[j].value)
+        newdf[fes[j].id] = PooledDataArray(RefArray(refs), vfe[j])
     end
     return newdf
 end
 
 function getfe!(pfe::FixedEffectProblem, b::Vector{Float64}, 
                esample::BitVector; maxiter = 100_000)
-    getfe!(pfe, b, maxiter = maxiter)
-    DataFrame(pfe, esample)
+    vfe = getfe!(pfe, b, maxiter = maxiter)
+    DataFrame(vfe, pfe, esample)
 end
 
 
@@ -173,8 +171,8 @@ end
 ##
 ###############################################################################
 
-function rescale!(pfe::FixedEffectProblem, 
-                    findintercept,
+function rescale!(vfe::FixedEffectVector, pfe::FixedEffectProblem, 
+                  findintercept,
                   components::Vector{Vector{Set{Int}}})
     fes = pfe.m._
     adj1 = zero(Float64)
@@ -185,17 +183,17 @@ function rescale!(pfe::FixedEffectProblem,
             if i != 1
                 adji = zero(Float64)
                 for j in component[i]
-                    adji += fes[i].value[j]
+                    adji += vfe[i][j]
                 end
                 adji = adji / length(component[i])
                 for j in component[i]
-                    fes[i].value[j] -= adji
+                    vfe[i][j] -= adji
                 end
                 adj1 += adji
             else
                 # rescale the first fixed effects
                 for j in component[i1]
-                    fes[i1].value[j] += adj1
+                    vfe[i1][j] += adj1
                 end
             end
         end

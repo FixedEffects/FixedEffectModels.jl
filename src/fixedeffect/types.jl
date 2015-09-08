@@ -9,7 +9,6 @@ type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
-    value::Vector{Float64}  # fixed effect values
     interaction::I          # the continuous interaction 
     factorname::Symbol      # Name of factor variable 
     interactionname::Symbol # Name of continuous variable in the original dataframe
@@ -28,7 +27,7 @@ function FixedEffect{R <: Integer}(
     @inbounds @simd for i in 1:l
         scale[i] = scale[i] != 0 ? (1.0 / sqrt(scale[i])) : zero(Float64)
     end
-    FixedEffect(refs, sqrtw, scale, similar(scale), interaction, factorname, interactionname, id)
+    FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
 
 ##############################################################################
@@ -67,19 +66,72 @@ function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Flo
 end
 
 ##############################################################################
+## 
+## We know defined an FixedEffectVector and a FixedEffectMatrix
+## which correspond respectibely to x and A in (A'A)X = A'y
+## We need to define functions used in cgls!
 ##
-## Denote M model matrix of fixed effects
-## Conjugate gradient will solve (A'A)X = A'y
-## where A = M * diag(1/a_1, 1/a_2... , 1/a_n) 
-## We need to define what it means to multiply by A and At 
-##
+## Note that A is the model matrix multiplied by diag(1/a1^2, ..., 1/aN^2) (preconditoner)
 ##############################################################################
 
-type FixedEffectModelMatrix <: AbstractMatrix{Float64}
+# Vector in the space of solutions (vector x in A'Ax = A'b)
+type FixedEffectVector <: AbstractVector{Float64}
+    _::Vector{Vector{Float64}}
+end
+
+function FixedEffectVector(fes::Vector{FixedEffect})
+    out = Vector{Float64}[]
+    for fe in fes
+        push!(out, similar(fe.scale))
+    end
+    return FixedEffectVector(out)
+end
+
+getindex(vfe::FixedEffectVector, i::Integer) = vfe._[i]
+length(vfe::FixedEffectVector) = length(vfe._)
+
+function copy!(vfe2::FixedEffectVector, vfe1::FixedEffectVector)
+    for i in 1:length(vfe1)
+        copy!(vfe2[i], vfe1[i])
+    end
+    return vfe2
+end
+
+function axpy!(α::Float64, vfe1::FixedEffectVector, vfe2::FixedEffectVector)
+    for i in 1:length(vfe1)
+        axpy!(α, vfe1[i], vfe2[i])
+    end
+    return vfe2
+end
+
+function scale!(vfe::FixedEffectVector, α::Float64)
+    for i in 1:length(vfe)
+        scale!(vfe[i], α)
+    end
+    return vfe
+end
+
+function sumabs2(vfe::FixedEffectVector)
+    out = zero(Float64)
+    for i in 1:length(vfe)
+        out += sumabs2(vfe[i])
+    end
+    return out
+end
+
+function fill!(vfe::FixedEffectVector, x)
+    for i in 1:length(vfe)
+        fill!(vfe[i], x)
+    end
+end
+
+
+# Matrix
+type FixedEffectMatrix <: AbstractMatrix{Float64}
     _::Vector{FixedEffect}
 end
 
-function size(mfe::FixedEffectModelMatrix, i::Integer) 
+function size(mfe::FixedEffectMatrix, i::Integer) 
     fes = mfe._
     if i == 1
         return length(fes[1].refs)
@@ -92,63 +144,67 @@ function size(mfe::FixedEffectModelMatrix, i::Integer)
     end
 end
 
-function copy!(mfe::FixedEffectModelMatrix, x::AbstractVector{Float64})
-   idx = 0
-   fes = mfe._
-   for fe in fes
-       @inbounds @simd for i in 1:length(fe.scale)
-           idx += 1
-           fe.value[i] = x[idx] * fe.scale[i]
-       end
-   end
-end
-
-function copy!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix)
-    idx = 0
-    fes = mfe._
-    for fe in fes
-        @inbounds @simd for i in 1:length(fe.scale)
-            idx += 1
-            x[idx] = fe.value[i] * fe.scale[i]
-        end
-    end
-    return x
-end
-
 # Define x -> A * x
-function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I})
+function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, x::Vector{Float64})
+    @inbounds @simd for i in 1:length(x)
+        x[i] *= fe.scale[i]
+    end
     @inbounds @simd for i in 1:length(y)
-        y[i] += fe.value[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+        y[i] += x[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
-                  x::AbstractVector{Float64})
-    copy!(mfe, x)
+function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectMatrix, 
+                  vfe::FixedEffectVector)
     fill!(y, zero(Float64))
     fes = mfe._
-    for fe in fes
-        A_mul_B_helper!(y, fe)
+    for i in 1:length(fes)
+        A_mul_B_helper!(y, fes[i], vfe[i])
     end
     return y
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!{R, W, I}(fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
-    fill!(fe.value, zero(Float64))
+function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+    fill!(x, zero(Float64))
     @inbounds @simd for i in 1:length(y)
-        fe.value[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
+        x[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
+    end
+    @inbounds @simd for i in 1:length(x)
+        x[i] *= fe.scale[i]
     end
 end
-function Ac_mul_B!(x::AbstractVector{Float64}, mfe::FixedEffectModelMatrix, 
+function Ac_mul_B!(vfe::FixedEffectVector, mfe::FixedEffectMatrix, 
                    y::AbstractVector{Float64})
     fes = mfe._
-    for fe in fes
-        Ac_mul_B_helper!(fe, y)
+    for i in 1:length(fes)
+        Ac_mul_B_helper!(vfe[i], fes[i], y)
     end
-    copy!(x, mfe)
-    return x
+    return vfe
 end
 
+
+# not used since slower. but maybe factorization will get better
+# function sparse(mfe::FixedEffectMatrix)
+#     # construct sparse matrix A
+#     fes = mfe._
+#     nobs = length(fes) * size(m, 1)
+#     I = Array(Int, nobs)
+#     J = similar(I)
+#     V = Array(Float64, nobs)
+#     start = 0
+#     idx = 0
+#     for fe in fes
+#        for i in 1:length(fe.refs)
+#            idx += 1
+#            I[idx] = i
+#            J[idx] = start + fe.refs[i]
+#            V[idx] = fe.interaction[i]
+#        end
+#        start += sum(fe.scale .!= 0)
+#     end
+#     A = sparse(I, J, V)
+#     qr = qrfact(A)
+# end
 
 ##############################################################################
 ##
@@ -157,21 +213,22 @@ end
 ##############################################################################
 
 type FixedEffectProblem <: AbstractMatrix{Float64}
-    m::FixedEffectModelMatrix
+    m::FixedEffectMatrix
     q::Vector{Float64}
-    s::Vector{Float64}
-    p::Vector{Float64}
+    s::FixedEffectVector
+    p::FixedEffectVector
 end
 
-function FixedEffectProblem(m::FixedEffectModelMatrix)
-    q = Array(Float64, size(m, 1))
-    s = Array(Float64, size(m, 2))
-    p = similar(s)
-    FixedEffectProblem(m, q, s, p)
+function FixedEffectProblem(m::FixedEffectMatrix)
+
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect})
-    FixedEffectProblem(FixedEffectModelMatrix(fes))
+    m = FixedEffectMatrix(fes)
+    q = Array(Float64, length(fes[1].refs))
+    s = FixedEffectVector(fes)
+    p = FixedEffectVector(fes)
+    FixedEffectProblem(m, q, s, p)
 end
 
 function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Float64}, 

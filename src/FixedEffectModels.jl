@@ -8,8 +8,8 @@ module FixedEffectModels
 ##
 ##############################################################################
 using Compat
-using Base.BLAS
-import Base: A_mul_B!, Ac_mul_B!, size, copy!
+import Base.BLAS: axpy!
+import Base: A_mul_B!, Ac_mul_B!, size, copy!, sparse, sumabs2, scale!, getindex, length, fill!
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
