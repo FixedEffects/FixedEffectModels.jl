@@ -86,41 +86,41 @@ function FixedEffectVector(fes::Vector{FixedEffect})
     return FixedEffectVector(out)
 end
 
-getindex(vfe::FixedEffectVector, i::Integer) = vfe._[i]
-length(vfe::FixedEffectVector) = length(vfe._)
+getindex(fev::FixedEffectVector, i::Integer) = fev._[i]
+length(fev::FixedEffectVector) = length(fev._)
 
-function copy!(vfe2::FixedEffectVector, vfe1::FixedEffectVector)
-    for i in 1:length(vfe1)
-        copy!(vfe2[i], vfe1[i])
+function copy!(fev2::FixedEffectVector, fev1::FixedEffectVector)
+    for i in 1:length(fev1)
+        copy!(fev2[i], fev1[i])
     end
-    return vfe2
+    return fev2
 end
 
-function axpy!(α::Float64, vfe1::FixedEffectVector, vfe2::FixedEffectVector)
-    for i in 1:length(vfe1)
-        axpy!(α, vfe1[i], vfe2[i])
+function axpy!(α::Float64, fev1::FixedEffectVector, fev2::FixedEffectVector)
+    for i in 1:length(fev1)
+        axpy!(α, fev1[i], fev2[i])
     end
-    return vfe2
+    return fev2
 end
 
-function scale!(vfe::FixedEffectVector, α::Float64)
-    for i in 1:length(vfe)
-        scale!(vfe[i], α)
+function scale!(fev::FixedEffectVector, α::Float64)
+    for i in 1:length(fev)
+        scale!(fev[i], α)
     end
-    return vfe
+    return fev
 end
 
-function sumabs2(vfe::FixedEffectVector)
+function sumabs2(fev::FixedEffectVector)
     out = zero(Float64)
-    for i in 1:length(vfe)
-        out += sumabs2(vfe[i])
+    for i in 1:length(fev)
+        out += sumabs2(fev[i])
     end
     return out
 end
 
-function fill!(vfe::FixedEffectVector, x)
-    for i in 1:length(vfe)
-        fill!(vfe[i], x)
+function fill!(fev::FixedEffectVector, x)
+    for i in 1:length(fev)
+        fill!(fev[i], x)
     end
 end
 
@@ -140,12 +140,12 @@ function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R,
         y[i] += x[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function A_mul_B!(y::AbstractVector{Float64}, mfe::FixedEffectMatrix, 
-                  vfe::FixedEffectVector)
+function A_mul_B!(y::AbstractVector{Float64}, fem::FixedEffectMatrix, 
+                  fev::FixedEffectVector)
     fill!(y, zero(Float64))
-    fes = mfe._
+    fes = fem._
     for i in 1:length(fes)
-        A_mul_B_helper!(y, fes[i], vfe[i])
+        A_mul_B_helper!(y, fes[i], fev[i])
     end
     return y
 end
@@ -160,13 +160,13 @@ function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, fe::FixedEffect{R, W, I},
         x[i] *= fe.scale[i]
     end
 end
-function Ac_mul_B!(vfe::FixedEffectVector, mfe::FixedEffectMatrix, 
+function Ac_mul_B!(fev::FixedEffectVector, fem::FixedEffectMatrix, 
                    y::AbstractVector{Float64})
-    fes = mfe._
+    fes = fem._
     for i in 1:length(fes)
-        Ac_mul_B_helper!(vfe[i], fes[i], y)
+        Ac_mul_B_helper!(fev[i], fes[i], y)
     end
-    return vfe
+    return fev
 end
 
 ##############################################################################
@@ -183,11 +183,11 @@ type FixedEffectProblem <: AbstractMatrix{Float64}
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect})
-    m = FixedEffectMatrix(fes)
+    fem = FixedEffectMatrix(fes)
     q = Array(Float64, length(fes[1].refs))
     s = FixedEffectVector(fes)
     p = FixedEffectVector(fes)
-    FixedEffectProblem(m, q, s, p)
+    FixedEffectProblem(fem, q, s, p)
 end
 
 function cgls!(x::Union(AbstractVector{Float64}, Nothing), r::AbstractVector{Float64}, 

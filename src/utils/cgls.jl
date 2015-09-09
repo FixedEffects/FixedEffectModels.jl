@@ -1,5 +1,6 @@
 # This solves Ax = b
 # r should equal b - Ax0 where x0 is an initial guess for x. It is modified in place and equals b - Ax
+# x is nothing or x0
 # x, s, p, q are used for storage. s, p should have dimension size(A, 2). q should have simension size(A, 1). 
 
 
@@ -25,7 +26,7 @@ function cgls!(x::Union(AbstractVector{Float64}, Nothing),
         A_mul_B!(q, A, p) 
         α = normSold / sumabs2(q)
         # x = x + αp
-        x == nothing || BLAS.axpy!(α, p, x) 
+        x == nothing || axpy!(α, p, x) 
         # r = r - αq
         axpy!(-α, q, r) 
         # s = A'r

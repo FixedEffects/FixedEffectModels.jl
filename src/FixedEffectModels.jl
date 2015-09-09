@@ -9,7 +9,7 @@ module FixedEffectModels
 ##############################################################################
 using Compat
 import Base.BLAS: axpy!
-import Base: A_mul_B!, Ac_mul_B!, size, copy!, sparse, sumabs2, scale!, getindex, length, fill!
+import Base: A_mul_B!, Ac_mul_B!, size, copy!, sumabs2, scale!, getindex, length, fill!
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
@@ -33,22 +33,24 @@ FixedEffect,
 FixedEffectProblem,
 
 AbstractRegressionResult,
+title,
+top,
 RegressionResult,
 RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
-title,
-top,
+
 
 AbstractVcovMethod,
 AbstractVcovMethodData, 
+vcov!,
+shat!,
 VcovMethodData,
 VcovData,
 VcovSimple, 
 VcovWhite, 
-VcovCluster,
-vcov!,
-shat!
+VcovCluster
+
 
 ##############################################################################
 ##
