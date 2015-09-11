@@ -1,8 +1,8 @@
-
+# TODO: minimize memory. For now two factorizations (qr and cholfact)
 function reg(f::Formula, df::AbstractDataFrame, 
              vcov_method::AbstractVcovMethod = VcovSimple(); 
-             weight::Union(Symbol, Nothing) = nothing, 
-             subset::Union(AbstractVector{Bool}, Nothing) = nothing, 
+             weight::Union{Symbol, Void} = nothing, 
+             subset::Union{AbstractVector{Bool}, Void} = nothing, 
              maxiter::Int = 10000, tol::Float64 = 1e-8, df_add::Int = 0, 
              save = false)
 

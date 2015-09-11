@@ -21,7 +21,7 @@ function residualize!(X::Matrix{Float64}, pfe::FixedEffectProblem,
     end
 end
 
-function residualize!(::Array, ::Nothing, 
+function residualize!(::Array, ::Void, 
                       ::Vector{Int}, ::Vector{Bool}; 
                       maxiter::Int = 1000, tol::Float64 = 1e-8)
     nothing
@@ -47,11 +47,7 @@ function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
     # The solution is generally not unique. Find connected components and scale accordingly
     findintercept = find(fe -> isa(fe.interaction, Ones), fes)
     if length(findintercept) >= 2
-        if VERSION >= v"0.4.0-dev+6521" 
-            components = connectedcomponent(sub(fes, findintercept))
-        else
-            components = connectedcomponent(fes[findintercept])
-        end
+        components = connectedcomponent(sub(fes, findintercept))
         rescale!(vfe, pfe, findintercept, components)
     end
 

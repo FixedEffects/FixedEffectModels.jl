@@ -1,4 +1,4 @@
-VERSION >= v"0.4.0-dev+6521" &&  __precompile__(true)
+__precompile__(true)
 
 module FixedEffectModels
 
@@ -78,9 +78,7 @@ include("vcov/ranktest.jl")
 include("reg.jl")
 include("partial_out.jl")
 
-if VERSION >= v"0.4.0-dev+6521"
-	include("precompile.jl")
-end
+include("precompile.jl")
 
 
 end  # module FixedEffectModels

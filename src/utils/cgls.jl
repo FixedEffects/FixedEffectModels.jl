@@ -5,7 +5,7 @@
 
 
 # TODO. Follow LMQR for (i) better stopping rule (ii) better projection on zero in case x non identified
-function cgls!(x::Union(AbstractVector{Float64}, Nothing), 
+function cgls!(x::Union{AbstractVector{Float64}, Void}, 
                r::AbstractVector{Float64}, A::AbstractMatrix{Float64}, 
                s::AbstractVector{Float64}, p::AbstractVector{Float64}, q::AbstractVector{Float64}; 
                tol::Real=1e-10, maxiter::Int=1000)

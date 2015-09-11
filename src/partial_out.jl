@@ -1,6 +1,6 @@
 
 function partial_out(f::Formula, df::AbstractDataFrame; 
-                     add_mean = false, weight::Union(Symbol, Nothing) = nothing,
+                     add_mean = false, weight::Union{Symbol, Void} = nothing,
                      maxiter::Integer = 10000, tol::FloatingPoint = 1e-8)
 
 

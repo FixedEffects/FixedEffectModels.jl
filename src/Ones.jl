@@ -12,9 +12,7 @@ end
 Base.size(O::Ones) = O.length
 
 Base.getindex(::Ones, i::Int...) = 1.0
-if VERSION >= v"0.4.0-dev+6521"
-	Base.unsafe_getindex(::Ones, i::Int...) = 1.0
-end
+Base.unsafe_getindex(::Ones, i::Int...) = 1.0
 
 Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
 
