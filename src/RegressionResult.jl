@@ -77,9 +77,10 @@ function coeftable(x::AbstractRegressionResult)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
-    CoefTable2(hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
-              ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
-              ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
+    CoefTable2(
+        hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
+        ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
+        ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
 
 function Base.show(io::IO, x::AbstractRegressionResult) 
@@ -97,7 +98,8 @@ type CoefTable2
     pvalcol::Integer
     title::String
     top::Matrix{String}
-    function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0, title::String = "", top::Matrix = Any[])
+    function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0, 
+                        title::String = "", top::Matrix = Any[])
         nr,nc = size(mat)
         0 <= pvalcol <= nc || error("pvalcol = $pvalcol should be in 0,...,$nc]")
         length(colnms) in [0,nc] || error("colnms should have length 0 or $nc")
@@ -115,7 +117,8 @@ end
 
 
 function show(io::IO, ct::CoefTable2)
-    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; pvc = ct.pvalcol; title = ct.title;   top = ct.top
+    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; 
+    pvc = ct.pvalcol; title = ct.title;   top = ct.top
     if length(rownms) == 0
         rownms = [lpad("[$i]",floor(Integer, log10(nr))+3)::String for i in 1:nr]
     end

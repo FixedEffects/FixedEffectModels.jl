@@ -5,7 +5,8 @@ function partial_out(f::Formula, df::AbstractDataFrame;
 
 
     rf = deepcopy(f)
-    (has_absorb, absorb_formula, absorb_terms, has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
+    (has_absorb, absorb_formula, absorb_terms, 
+        has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
     if has_iv
         error("partial_out does not support instrumental variables")
     end

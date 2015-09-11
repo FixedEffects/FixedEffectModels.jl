@@ -132,7 +132,8 @@ type FixedEffectMatrix <: AbstractMatrix{Float64}
 end
 
 # Define x -> A * x
-function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, fe::FixedEffect{R, W, I}, x::Vector{Float64})
+function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, 
+                                  fe::FixedEffect{R, W, I}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(x)
         x[i] *= fe.scale[i]
     end
@@ -151,7 +152,8 @@ function A_mul_B!(y::AbstractVector{Float64}, fem::FixedEffectMatrix,
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, 
+                                   fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
     fill!(x, zero(Float64))
     @inbounds @simd for i in 1:length(y)
         x[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
