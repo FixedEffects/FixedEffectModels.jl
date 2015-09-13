@@ -32,7 +32,7 @@ function cgls!(x::Union{AbstractVector{Float64}, Void},
         # s = A'r
         Ac_mul_B!(s, A, r) 
         normS = sumabs2(s)
-        if ((iter == 1) || α * maxabs(q) <= tol) && normS/normS0 <= tol
+        if (iter == 1 && normS/normS0 <= tol) || α * maxabs(q) <= tol 
             iterations = iter
             converged = true
             break
