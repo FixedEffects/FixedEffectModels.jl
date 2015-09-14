@@ -40,7 +40,7 @@ When a regression model contains a large number of high dimensional categorical 
 
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`).
+1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`) with Jacobi preconditioner.
 
 2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
