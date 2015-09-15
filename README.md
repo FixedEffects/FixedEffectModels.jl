@@ -20,13 +20,13 @@ Pkg.add("FixedEffectModels")
 
 
 
-## Regressions with high dimensional categorical variables
+## high dimensional categorical variables
 
 When a regression model contains high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package handles these situations.
 
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` by conjugate gradient least squares with Jacobi preconditioner.
+1. `y, X`  are regressed on `D` by conjugate gradient least squares (with Jacobi preconditioner).
 
 2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
