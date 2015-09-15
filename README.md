@@ -5,9 +5,9 @@
 
 
 The function `reg` estimates linear models with 
-  - high dimensional categorical variable. It avoids the construction of a design matrix too large to fit in RAM.
+  - high dimensional categorical variable
   - instrumental variables (via 2SLS)
-  - robust standard errors (White or clustered) 
+  - robust standard errors (White or multi-way clustered) 
   
 
 This package objective is similar to the Stata command `reghdfe` and the R command `felm`.
@@ -17,6 +17,18 @@ To install the package,
 ```julia
 Pkg.add("FixedEffectModels")
 ```
+
+
+
+## Regressions with high dimensional categorical variables
+
+When a regression model contains high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package handles these situations.
+
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
+
+1. `y, X`  are regressed on `D` by conjugate gradient least squares with Jacobi preconditioner.
+
+2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
 
 ## result
@@ -35,18 +47,9 @@ With the option `save = true`, `reg` returns a dataframe aligned with the initia
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 
-## Regressions with high dimensional categorical variables
-
-When a regression model contains high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package handles these situations.
-
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
-
-1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`) with Jacobi preconditioner.
-
-2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
 
-## reg
+## Syntax
 
 The general syntax is
 ```julia
