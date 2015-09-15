@@ -33,7 +33,7 @@ function cgls!(x, r, A, s, p, q; tol::Real=1e-10, maxiter::Int=1000)
         # s = A'r
         Ac_mul_B!(s, A, r) 
         normS = sumabs2(s)
-        if (iter == 1 && normS/normS0 <= tol) || α * maxabs(q) <= tol 
+        if normS <= tol * normS0
             iterations = iter
             converged = true
             break
