@@ -23,3 +23,40 @@ result = reg(Sales ~ Price |> pState, df, save = true, subset = (df[:State] .<= 
 
 
 # add test with IV
+
+
+
+
+
+srand(1234)
+N = 5000
+T = 500
+l1 = randn(N)
+l2 = randn(N)
+f1 = randn(T)
+f2 = randn(T)
+x1 = Array(Float64, N*T)
+y = Array(Float64, N*T)
+id = Array(Int64, N*T)
+time = Array(Int64, N*T)
+index = 0
+function fillin(id, time, x1, y, N, T)
+	index = 0
+	@inbounds for i in 1:N
+		for j in 1:T
+			index += 1
+			id[index] = i
+			time[index] = j
+			x1[index] = 4 + f1[j] * l1[i] + 3 * f2[j] * l2[i] + l1[i]^2 + randn()
+			y[index] = 5 + 3 * x1[index] + 4 * f1[j] * l1[i] + f2[j] * l2[i] + randn()
+		end
+	end
+end
+
+fillin(id, time, x1, y, N, T)
+df = DataFrame(id = pool(id), time = pool(time), x1 = x1, y = y)
+subset = rand(1:5, N*T) .> 1
+unbalanceddf = df[subset, :]
+subset = rand(1:5, N*T) .== 1
+sparsedf = df[subset, :]
+

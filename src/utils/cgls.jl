@@ -18,31 +18,30 @@ function cgls!(x, r, A, s, p, q; tol::Real=1e-10, maxiter::Int=1000)
     Ac_mul_B!(p, A, r)
     copy!(s, p)
 
-    normS0 = sumabs2(s)
-    normSold = normS0  
-
+    ssr0 = sumabs2(s)
+    ssrold = ssr0  
     iter = 0
     while iter < maxiter
         iter += 1
         A_mul_B!(q, A, p) 
-        α = normSold / sumabs2(q)
+        α = ssrold / sumabs2(q)
         # x = x + αp
         x == nothing || axpy!(α, p, x) 
         # r = r - αq
         axpy!(-α, q, r) 
         # s = A'r
         Ac_mul_B!(s, A, r) 
-        normS = sumabs2(s)
-        if normS <= tol * normS0
+        ssr = sumabs2(s)
+        if ssr <= tol^2 * ssr0
             iterations = iter
             converged = true
             break
         end
-        β = normS / normSold
+        β = ssr / ssrold
         # p = s + β p
         scale!(p, β)
         axpy!(1.0, s, p) 
-        normSold = normS
+        ssrold = ssr
     end
     return iterations, converged
 end
