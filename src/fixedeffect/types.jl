@@ -74,7 +74,7 @@ end
 ##############################################################################
 
 # Vector in the space of solutions (vector x in A'Ax = A'b)
-type FixedEffectVector <: AbstractVector{Float64}
+type FixedEffectVector
     _::Vector{Vector{Float64}}
 end
 
@@ -177,7 +177,7 @@ end
 ##
 ##############################################################################
 
-type FixedEffectProblem <: AbstractMatrix{Float64}
+type FixedEffectProblem
     m::FixedEffectMatrix
     q::Vector{Float64}
     s::FixedEffectVector
