@@ -8,7 +8,9 @@ The function `reg` estimates linear models with
   - high dimensional categorical variable. It avoids the construction of a design matrix too large to fit in RAM.
   - instrumental variables (via 2SLS)
   - robust standard errors (White or clustered) 
-  This functionality of this package is similar to the Stata command `reghdfe` and the R command `felm`.
+  
+
+This package objective is similar to the Stata command `reghdfe` and the R command `felm`.
 
 To install the package, 
 
@@ -33,12 +35,11 @@ With the option `save = true`, `reg` returns a dataframe aligned with the initia
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 
-## how does it work
+## Regressions with high dimensional categorical variables
 
+When a regression model contains high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package handles these situations.
 
-When a regression model contains a large number of high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package is designed to handle these situations.
-
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D has a large number of columns. Estimates for `β`, along with their standard errors, are obtained in two steps:
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
 1. `y, X`  are regressed on `D` by conjugate gradient least squares (conjugate gradient applied to the equations `D'D α = D'y` and `D'D γ = D'X`) with Jacobi preconditioner.
 
