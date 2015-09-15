@@ -1,10 +1,14 @@
-# This solves Ax = b
-# r should equal b - Ax0 where x0 is an initial guess for x. It is modified in place and equals b - Ax
-# x is nothing or x0
-# x, s, p, q are used for storage. s, p should have dimension size(A, 2). q should have simension size(A, 1). 
+##############################################################################
+##
+## Solve A'Ax = A'b by cgls 
+## x is the initial guess for x. It is modified in place
+## r equals b - Ax0 where x0 is the initial guess for x. It is modified in place and equals b - Ax
+## s, p are used for storage. They have dimension size(A, 2). 
+## q is used for storage. It has dimension size(A, 1). 
+##
+##############################################################################
 
-
-# TODO. Follow LMQR for (i) better stopping rule (ii) better projection on zero in case x non identified
+# TODO. Follow LMQR for better stopping rule
 function cgls!(x, r, A, s, p, q; tol::Real=1e-10, maxiter::Int=1000)
 
     # Initialization.
