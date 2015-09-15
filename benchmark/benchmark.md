@@ -91,4 +91,4 @@ Code to reproduce this graph:
 
 
 
-Note: `reg`, `reghdfe` (Stata) and `lfe` (R) roughly use the same procedures. For some "hard" datasets, accelerations implemented in `reghdfe`may make the command faster ( = `reg` is fast because Julia allows to write faster code, not because the underlying algorithm is better).
+Note: `reg` is fast mainly because Julia allows to write faster code.  On these examples,  `reg`, `reghdfe` and `lfe` require the same number of iterations to converge.
