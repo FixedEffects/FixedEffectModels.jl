@@ -17,7 +17,7 @@ end
 
 # Constructor
 function FixedEffect{R <: Integer}(
-    refs::Vector{R}, l::Int, sqrtw::AbstractVector{Float64}, 
+    refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
     interaction::AbstractVector{Float64}, factorname::Symbol, 
     interactionname::Symbol, id::Symbol)
     scale = fill(zero(Float64), l)
@@ -25,8 +25,8 @@ function FixedEffect{R <: Integer}(
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
     @inbounds @simd for i in 1:l
-        scale[i] = scale[i] != 0 ? (1.0 / sqrt(scale[i])) : zero(Float64)
-    end
+           scale[i] = scale[i] > 0 ? (1.0 / scale[i]) : 0.
+       end
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
 
@@ -189,12 +189,6 @@ function Ac_mul_B!(fev::FixedEffectVector, fem::FixedEffectMatrix,
 end
 
 
-function sumabs2!(fev::FixedEffectVector, fem::FixedEffectMatrix) 
-    for i in 1:length(fev)
-        copy!(fev[i], fem._[i].scale)
-    end
-end
-
 
 ##############################################################################
 ##
@@ -205,7 +199,7 @@ end
 type FixedEffectProblem
     m::FixedEffectMatrix
     q::Vector{Float64}
-    normalization::FixedEffectVector
+    invdiag::FixedEffectVector
     s::FixedEffectVector
     p::FixedEffectVector
     z::FixedEffectVector
@@ -216,15 +210,15 @@ end
 function FixedEffectProblem(fes::Vector{FixedEffect})
     fem = FixedEffectMatrix(fes)
     q = Array(Float64, length(fes[1].refs))
-    normalization = FixedEffectVector(fes)
+    invdiag = FixedEffectVector(Vector{Float64}[fe.scale for fe in fes])
     s = FixedEffectVector(fes)
     p = FixedEffectVector(fes)
     z = FixedEffectVector(fes)
     ptmp = FixedEffectVector(fes)
-    FixedEffectProblem(fem, q, normalization, s, p, z, ptmp)
+    FixedEffectProblem(fem, q, invdiag, s, p, z, ptmp)
 end
 
 function cgls!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    cgls!(x, r, pfe.m, pfe.q, pfe.normalization, pfe.s, pfe.p, pfe.z, pfe.ptmp; tol = tol, maxiter = maxiter)
+    cgls!(x, r, pfe.m, pfe.q, pfe.invdiag, pfe.s, pfe.p, pfe.z, pfe.ptmp; tol = tol, maxiter = maxiter)
 end
 

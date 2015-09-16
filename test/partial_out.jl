@@ -43,7 +43,7 @@ answer = (
     )
 
 for i in 1:12
-    @test_approx_eq test[i] answer[i]	
+    @test_approx_eq_eps test[i] answer[i]	1e-5
 end
 
 

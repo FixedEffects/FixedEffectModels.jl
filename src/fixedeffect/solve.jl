@@ -33,15 +33,16 @@ end
 ## 
 ###############################################################################
 
-function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};  maxiter = 100_000)
+function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};  
+                tol::Real = 1e-8, maxiter::Integer = 100_000)
     
     # solve Ax = b
     fes = pfe.m._
     vfe = FixedEffectVector(fes)
     fill!(vfe, zero(Float64))
-    iterations, converged = cgls!(vfe, b, pfe, tol = 1e-10, maxiter = maxiter)
+    iterations, converged = cgls!(vfe, b, pfe; tol = tol, maxiter = maxiter)
     if !converged 
-       warn("did not converge")
+       warn("getfe did not converge")
     end
 
     # The solution is generally not unique. Find connected components and scale accordingly
@@ -69,9 +70,9 @@ function DataFrame(vfe::FixedEffectVector, pfe::FixedEffectProblem, esample::Bit
     return newdf
 end
 
-function getfe!(pfe::FixedEffectProblem, b::Vector{Float64}, 
-               esample::BitVector; maxiter = 100_000)
-    vfe = getfe!(pfe, b, maxiter = maxiter)
+function getfe!(pfe::FixedEffectProblem, b::Vector{Float64},esample::BitVector;
+                tol::Real = 1e-8, maxiter::Integer = 100_000)
+    vfe = getfe!(pfe, b; tol = tol, maxiter = maxiter)
     DataFrame(vfe, pfe, esample)
 end
 
