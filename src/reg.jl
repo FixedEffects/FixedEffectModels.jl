@@ -211,7 +211,7 @@ function reg(f::Formula, df::AbstractDataFrame,
         end
     end
     nobs = size(X, 1)
-    df_residual = size(X, 1) - size(X, 2) - df_absorb - df_add
+    df_residual = max(1, size(X, 1) - size(X, 2) - df_absorb - df_add)
 
     # Compute ess, tss, r2, r2 adjusted
     ess = sumabs2(residuals)
@@ -249,7 +249,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             nclust = minimum(values(vcov_method_data.size))
             p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
         else
-            p = ccdf(FDist(size(X, 1) - df_intercept, df_residual - df_intercept), F)
+            p = ccdf(FDist(size(X, 1) - df_intercept, max(df_residual - df_intercept, 1)), F)
         end    
     end
 
