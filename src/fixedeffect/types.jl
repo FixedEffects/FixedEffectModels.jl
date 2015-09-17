@@ -25,7 +25,7 @@ function FixedEffect{R <: Integer}(
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
     @inbounds @simd for i in 1:l
-           scale[i] = scale[i] > 0 ? (1.0 / scale[i]) : 0.
+           scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
        end
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
@@ -40,16 +40,20 @@ end
 function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     if a.args[1] == :&
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
-        if isa(df[a.args[2]], PooledDataVector) && !isa(df[a.args[3]], PooledDataVector)
-            f = df[a.args[2]]
-            x = convert(Vector{Float64}, df[a.args[3]])
+        v1 = df[a.args[2]]
+        v2 = df[a.args[3]]
+        if isa(v1, PooledDataVector) && !isa(v2, PooledDataVector)
+            f = v1
+            x = convert(Vector{Float64}, v2)
             return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
-        elseif isa(df[a.args[3]], PooledDataVector) && !isa(df[a.args[2]], PooledDataVector)
-            f = df[a.args[3]]
-            x = convert(Vector{Float64}, df[a.args[2]])
+        elseif isa(v2, PooledDataVector) && !isa(v1, PooledDataVector)
+            f = v2
+            x = convert(Vector{Float64}, v1)
             return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
         else
-            error("Exp $(a) should be of the form factor&nonfactor")
+            v1 = pool(v1)
+            x =  convert(Vector{Float64}, v2)
+            return FixedEffect(v1.refs, length(v1.pool), sqrtw, x, a.args[3], a.args[2], id)
         end
     else
         error("Exp $(a) should be of the form factor&nonfactor")
@@ -58,18 +62,17 @@ end
 
 function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
     v = df[a]
-    if typeof(v) <: PooledDataVector
-        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
-    else
-        error("$(a) is not a pooled data array")
+    if !isa(v, PooledDataVector)
+        v = pool(v)
     end
+    return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
 end
 
 ##############################################################################
 ## 
 ## We know defined an FixedEffectVector and a FixedEffectMatrix
 ## which correspond respectibely to x and A in (A'A)X = A'y
-## We need to define these methods used in cgls!
+## We need to define these methods used in lsmr!
 ##
 ##############################################################################
 
@@ -117,6 +120,7 @@ function sumabs2(fev::FixedEffectVector)
     end
     return out
 end
+norm(fev::FixedEffectVector) = sqrt(sumabs2(fev))
 
 function fill!(fev::FixedEffectVector, x)
     for i in 1:length(fev)
@@ -158,7 +162,7 @@ end
 function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, 
                                   fe::FixedEffect{R, W, I}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
-        y[i] += x[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+        y[i] += x[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i] * fe.scale[fe.refs[i]]
     end
 end
 function A_mul_B!(y::AbstractVector{Float64}, fem::FixedEffectMatrix, 
@@ -178,6 +182,9 @@ function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64},
     @inbounds @simd for i in 1:length(y)
         x[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
     end
+    @inbounds @simd for i in 1:length(x)
+        x[i] *= fe.scale[i]
+    end
 end
 function Ac_mul_B!(fev::FixedEffectVector, fem::FixedEffectMatrix, 
                    y::AbstractVector{Float64})
@@ -195,28 +202,36 @@ end
 ## FixedEffectProblem stores some arrays to solve (A'A)X = A'y multiple times
 ##
 ##############################################################################
-
 type FixedEffectProblem
     m::FixedEffectMatrix
-    q::Vector{Float64}
-    invdiag::FixedEffectVector
-    s::FixedEffectVector
-    p::FixedEffectVector
-    ptmp::FixedEffectVector
+    u::Vector{Float64}
+    utmp::Vector{Float64}
+    x::FixedEffectVector
+    v::FixedEffectVector
+    h::FixedEffectVector
+    hbar::FixedEffectVector
+    vtmp::FixedEffectVector
 end
 
 
 function FixedEffectProblem(fes::Vector{FixedEffect})
-    fem = FixedEffectMatrix(fes)
-    q = Array(Float64, length(fes[1].refs))
-    invdiag = FixedEffectVector(Vector{Float64}[fe.scale for fe in fes])
-    s = FixedEffectVector(fes)
-    p = FixedEffectVector(fes)
-    ptmp = FixedEffectVector(fes)
-    FixedEffectProblem(fem, q, invdiag, s, p, ptmp)
+    m = FixedEffectMatrix(fes)
+    u = Array(Float64, length(fes[1].refs))
+    utmp = similar(u)
+    x = FixedEffectVector(fes)
+    v = FixedEffectVector(fes)
+    h = FixedEffectVector(fes)
+    hbar = FixedEffectVector(fes)
+    vtmp = FixedEffectVector(fes)
+    FixedEffectProblem(m, u, utmp, x, v, h, hbar, vtmp)
 end
 
-function cgls!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    cgls!(x, r, pfe.m, pfe.q, pfe.invdiag, pfe.s, pfe.p, pfe.ptmp; tol = tol, maxiter = maxiter)
+function lsmr!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    lsmr!(x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
 end
+function lsmr!(::Void, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    fill!(pfe.x, zero(Float64))
+    lsmr!(pfe.x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
+end
+
 

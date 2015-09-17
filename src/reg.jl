@@ -3,7 +3,7 @@ function reg(f::Formula, df::AbstractDataFrame,
              vcov_method::AbstractVcovMethod = VcovSimple(); 
              weight::Union{Symbol, Void} = nothing, 
              subset::Union{AbstractVector{Bool}, Void} = nothing, 
-             maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
+             maxiter::Integer = 10000, tol::Real= 1e-10, df_add::Integer = 0, 
              save::Bool = false)
 
     ##############################################################################
@@ -60,7 +60,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute weight
     sqrtw = get_weight(subdf, weight)
 
-    # Compute fixedeffects, an array of AbtractFixedEffects
+    # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
         fixedeffects = FixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]

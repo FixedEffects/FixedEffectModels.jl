@@ -40,7 +40,7 @@ df[:w] = df[:Pop]
 # absorb + weights
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, weight = :w)) [-0.21741] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df,  weight = :w))  [-0.88794] 1e-3
-@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w))  [-0.46108] 1e-4
+@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w))  [-0.461085492] 1e-4
 
 # iv
 @test_approx_eq_eps coef(reg(y ~ (x1 = z1), df))  [138.19479,-0.20733] 1e-4
@@ -66,6 +66,15 @@ result =  [125.26251,0.00426,-0.40085,-0.36012,-0.34378,-0.34446,-0.41338,-0.457
 @test_approx_eq_eps coef(reg(y ~ x1 + pid2 |> pid1, df,  weight = :w))[1]   -0.88794 1e-4
 @test_approx_eq_eps coef(reg(y ~ x2 + (x1 = z1) + pid2 |> pid1, df))[1]   -0.00525 1e-4
 
+
+##############################################################################
+##
+## formula with non factors
+##
+##############################################################################
+
+@test_approx_eq_eps coef(reg(y ~ x1 |> id1, df))  coef(reg(y ~ x1 |> id1, df)) 1e-4
+@test_approx_eq_eps coef(reg(y ~ x1 |> id1&id2, df))  coef(reg(y ~ x1 |> pid1&id2, df)) 1e-4
 
 
 ##############################################################################
@@ -211,4 +220,4 @@ df[:w] = df[:Output]
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))     [-0.122354] 1e-4
 # 11 vs 555
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w))  [-0.11752306001586807] 1e-4
-# 17 vs 123
+# 15 vs 123

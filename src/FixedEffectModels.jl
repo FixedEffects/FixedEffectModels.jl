@@ -9,10 +9,10 @@ module FixedEffectModels
 using Compat
 import Base.BLAS: axpy!
 import Base.Broadcast: broadcast!
-import Base: A_mul_B!, Ac_mul_B!, size, sumabs2, copy!, scale!, getindex, length, fill!, dot
+import Base: A_mul_B!, Ac_mul_B!, size, sumabs2, copy!, scale!, getindex, length, fill!, dot, norm
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
-import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!
+import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!, pool
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
 ##############################################################################
 ##
@@ -60,7 +60,7 @@ VcovCluster
 include("utils/group.jl")
 include("utils/chebyshev.jl")
 include("utils/formula.jl")
-include("utils/cgls.jl")
+include("utils/lsmr.jl")
 
 include("Ones.jl")
 include("RegressionResult.jl")

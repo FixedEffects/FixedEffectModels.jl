@@ -8,7 +8,7 @@
 function residualize!(x::AbstractVector{Float64}, pfe::FixedEffectProblem, 
                       iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
                       maxiter::Int = 1000, tol::Float64 = 1e-8)
-    iterations, converged = cgls!(nothing, x, pfe;  maxiter = maxiter, tol = tol)
+    iterations, converged = lsmr!(nothing, x, pfe;  maxiter = maxiter, tol = tol)
     push!(iterationsv, iterations)
     push!(convergedv, converged)
 end
@@ -40,9 +40,12 @@ function getfe!(pfe::FixedEffectProblem, b::Vector{Float64};
     fes = pfe.m._
     vfe = FixedEffectVector(fes)
     fill!(vfe, zero(Float64))
-    iterations, converged = cgls!(vfe, b, pfe; tol = tol, maxiter = maxiter)
+    iterations, converged = lsmr!(vfe, b, pfe; tol = tol, maxiter = maxiter)
     if !converged 
        warn("getfe did not converge")
+    end
+    for i in 1:length(vfe)
+        broadcast!(*, vfe[i], vfe[i], pfe.m._[i].scale)
     end
 
     # The solution is generally not unique. Find connected components and scale accordingly
