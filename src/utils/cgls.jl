@@ -39,7 +39,7 @@ function cgls!(x, r, A, q, invdiag, s, p, ptmp;
         axpy!(-α, ptmp, s)
         broadcast!(*, ptmp, s, invdiag)
         ssr = dot(s, ptmp)
-        if (iter == 1 && ψ[end] <= tol^2 * ν) || ssr <= 1e-32 || ψ[end] <= 1e-32 || (iter >= 2 && sum(sub(ψ, (iter-1):iter)) <= tol^2 * ν)
+        if (iter == 1 && ψ[end] <= tol^2 * ν) || ssr <= 1e-20 || ψ[end] <= 1e-20 || (iter >= 2 && sum(sub(ψ, (iter-1):iter)) <= tol^2 * ν)
             iterations = iter
             converged = true
             break
