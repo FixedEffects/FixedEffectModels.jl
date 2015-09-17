@@ -17,8 +17,7 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     conlim = 1 / tol
     localSize = zero(Float64)
 
-    # form the first vectors u and v.
-    # These satisfy  β*u = b,  α*v = A'u.
+    # form the first vectors u and v (satisfy  β*u = b,  α*v = A'u)
     copy!(u, r)
     β = norm(u)
     β > 0 && scale!(u, 1/β)
@@ -26,7 +25,7 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     α = norm(v)
     α > 0 && scale!(v, 1/α)
 
-    #  Initialize variables for 1st iteration.
+    # Initialize variables for 1st iteration.
     ζbar = α * β
     αbar = α
     ρ = one(Float64)
@@ -37,8 +36,7 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     copy!(h, v)
     fill!(hbar, zero(Float64))
 
-    #  Initialize variables for estimation of ||r||.
-
+    # Initialize variables for estimation of ||r||.
     βdd = β
     βd = zero(Float64)
     ρdold = one(Float64)
@@ -48,7 +46,6 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     d = zero(Float64)
 
     # Initialize variables for estimation of ||A|| and cond(A).
-
     normA2 = α^2
     maxrbar = zero(Float64)
     minrbar = 1e100
@@ -58,7 +55,7 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     istop = 7
     normr = β
 
-#  Exit if b=0 or A'b = zero(Float64).
+    # Exit if b = 0 or A'b = zero(Float64).
     normAr = α * β
     if normAr == zero(Float64) 
         A_mul_B!(utmp, A, x)
@@ -113,7 +110,11 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
         scale!(h, - θnew / ρ)
         axpy!(1.0, v, h)
 
-        # Estimate of ||r||.
+        ##############################################################################
+        ##
+        ## Estimate of ||r||
+        ##
+        ##############################################################################
 
         # Apply rotation Qhat_{k,2k+1}.
         βacute = chat * βdd
@@ -149,7 +150,11 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
         end
         condA = max(maxrbar, ρtemp) / min(minrbar, ρtemp)
 
-        # Test for convergence.
+        ##############################################################################
+        ##
+        ## Test for convergence
+        ##
+        ##############################################################################
 
         # Compute norms for convergence testing.
         normAr  = abs(ζbar)
@@ -157,7 +162,6 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
 
         # Now use these norms to estimate certain other quantities,
         # some of which will be small near a solution.
-
         test1 = normr / normb
         test2 = normAr / (normA * normr)
         test3 = 1 / condA
