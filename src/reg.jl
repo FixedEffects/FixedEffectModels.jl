@@ -130,23 +130,17 @@ function reg(f::Formula, df::AbstractDataFrame,
     if has_iv
         # get linearly independent columns
         X = hcat(Xexo, Xendo)
-        basecolX = basecol(X)
+        Xqr = qrfact!(X)
+        basecolX = basecol(Xqr)
         basecolXexo = basecolX[1:size(Xexo, 2)]
         basecolXendo = basecolX[(size(Xexo, 2)+1):end]
-        if !all(basecolX) 
-            X = X[:, basecolX]
-        end
-        if !all(basecolXexo)
-            Xexo = Xexo[:, basecolXexo]
-        end
-        if !all(basecolXendo)
-            Xendo = Xendo[:, basecolXendo]
-        end
+        X = getcols(Xqr, basecolX)
+        Xexo = getcols(Xexo, basecolXexo)
+        Xendo = getcols(Xendo, basecolXendo)
         newZ = hcat(Xexo, Z)
-        basecolnewZ = basecol(newZ)
-        if !all(basecolnewZ)
-            newZ = newZ[:, basecolnewZ]
-        end
+        newZqr = qrfact!(newZ)
+        basecolnewZ = basecol(newZqr)
+        newZ = getcols(newZqr, basecolnewZ)
         crossz = cholfact!(At_mul_B(newZ, newZ))
         Pi = crossz \ At_mul_B(newZ, Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
@@ -161,10 +155,9 @@ function reg(f::Formula, df::AbstractDataFrame,
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
-        basecolXexo = basecol(Xexo)
-        if !all(basecolXexo)
-            Xexo = Xexo[:, basecolXexo]
-        end
+        Xexoqr = qrfact!(Xexo)
+        basecolXexo = basecol(Xexoqr)
+        Xexo = getcols(Xexoqr, basecolXexo)
         Xhat = Xexo
         X = Xexo
         basecoef = basecolXexo
@@ -320,11 +313,33 @@ function reg(f::Formula, df::AbstractDataFrame,
 end
 
 
-function basecol(X::Matrix{Float64})
-    R =  qrfact(X)[:R]
-    out = fill(true, size(R, 2))
-    for i in 2:size(R, 1)
+function basecol(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}})
+    R = QR[:R]
+    out = Array(Bool, size(QR, 2))
+    out[1] = true
+    for i in 2:size(QR, 2)
         out[i] = abs(R[i, i]) >= (abs(R[1, 1]) * 1e-10)
     end
     return out
 end
+
+function getcols(X::Matrix{Float64},  basecolX::Vector{Bool})
+    if sum(basecolX) == size(X, 2)
+        return X
+    else
+        return X[:, basecolX]
+    end
+end
+
+function getcols(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}}, basecolX::Vector{Bool})
+    Xnew = Array(Float64, size(QR, 1), sum(basecolX))
+    idx = 0
+    for i in 1:size(QR, 2)
+        if basecolX[i]
+            idx += 1
+            Xnew[:, idx] =  QR[:Q] * slice(QR[:R], :, i)
+        end
+    end
+    return Xnew
+end
+    
