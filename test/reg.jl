@@ -196,15 +196,19 @@ df[:w] = df[:Output]
 
 # absorb
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df))  [-0.11981270017206136] 1e-4
-@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))    [-0.04683333721137311] 1e-4
 @test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df))   [-315.0000747500431,-0.07633636891202833] 1e-4
+#
 @test_approx_eq_eps  coef(reg(y ~ x1 |> id2&pid1 , df))   [-315.0000747500431,-0.07633636891202833] 1e-4
 
 @test_approx_eq_eps  coef(reg(y ~ 1 |> id2&pid1 , df))   [-356.40430526316396] 1e-4
+@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, weight = :w))  [-0.11514363590574725] 1e-4
 
 # absorb + weights
-@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, weight = :w))  [-0.11514363590574725] 1e-4
+@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))    [-0.04683333721137311] 1e-4
+# 10 vs 6
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df,  weight = :w))   [-0.043475472188120416] 1e-3
-
+# 12 vs 7 reghdfe wage emp [w=indoutpt], a(id year)
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))     [-0.122354] 1e-4
+# 11 vs 555
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w))  [-0.11752306001586807] 1e-4
+# 17 vs 123

@@ -202,7 +202,6 @@ type FixedEffectProblem
     invdiag::FixedEffectVector
     s::FixedEffectVector
     p::FixedEffectVector
-    z::FixedEffectVector
     ptmp::FixedEffectVector
 end
 
@@ -213,12 +212,11 @@ function FixedEffectProblem(fes::Vector{FixedEffect})
     invdiag = FixedEffectVector(Vector{Float64}[fe.scale for fe in fes])
     s = FixedEffectVector(fes)
     p = FixedEffectVector(fes)
-    z = FixedEffectVector(fes)
     ptmp = FixedEffectVector(fes)
-    FixedEffectProblem(fem, q, invdiag, s, p, z, ptmp)
+    FixedEffectProblem(fem, q, invdiag, s, p, ptmp)
 end
 
 function cgls!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    cgls!(x, r, pfe.m, pfe.q, pfe.invdiag, pfe.s, pfe.p, pfe.z, pfe.ptmp; tol = tol, maxiter = maxiter)
+    cgls!(x, r, pfe.m, pfe.q, pfe.invdiag, pfe.s, pfe.p, pfe.ptmp; tol = tol, maxiter = maxiter)
 end
 

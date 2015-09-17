@@ -12,7 +12,7 @@
 ##############################################################################
 
 # TODO. Follow LMQR for better stopping rule
-function cgls!(x, r, A, q, invdiag, s, p, z, ptmp; 
+function cgls!(x, r, A, q, invdiag, s, p, ptmp; 
                tol::Real=1e-8, maxiter::Int=100)
 
     # Initialization.
@@ -20,9 +20,9 @@ function cgls!(x, r, A, q, invdiag, s, p, z, ptmp;
     iterations = maxiter 
 
     Ac_mul_B!(s, A, r)
-    broadcast!(*, z, s, invdiag)
-    copy!(p, z)
-    ssr0 = dot(s, z)
+    broadcast!(*, ptmp, s, invdiag)
+    copy!(p, ptmp)
+    ssr0 = dot(s, ptmp)
     ssrold = ssr0  
     ν = sumabs2(r)
     ψ = Float64[]
@@ -37,9 +37,11 @@ function cgls!(x, r, A, q, invdiag, s, p, z, ptmp;
         x == nothing || axpy!(α, p, x) 
         axpy!(-α, q, r)
         axpy!(-α, ptmp, s)
-        broadcast!(*, z, s, invdiag)
-        ssr = dot(s, z)
-        if (iter == 1 && ψ[end] <= tol^2 * ν) || ssr <= eps() || ψ[end] <= eps() || (iter >= 3 && sum(sub(ψ, (iter-2):iter)) <= tol^2 * ν)
+        broadcast!(*, ptmp, s, invdiag)
+        ssr = dot(s, ptmp)
+        @show ψ[end]
+        @show ssr
+        if (iter == 1 && ψ[end] <= tol^2 * ν) || ssr <= 1e-32 || ψ[end] <= 1e-32 || (iter >= 2 && sum(sub(ψ, (iter-1):iter)) <= tol^2 * ν)
             iterations = iter
             converged = true
             break
@@ -47,10 +49,11 @@ function cgls!(x, r, A, q, invdiag, s, p, z, ptmp;
         β = ssr / ssrold
         # p = s + β p
         scale!(p, β)
-        axpy!(1.0, z, p) 
+        axpy!(1.0, ptmp, p) 
         ssrold = ssr
     end
     return iterations, converged
 end
+
 
 

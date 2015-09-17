@@ -172,7 +172,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     # iter and convergence
     if has_absorb
-        iterations = sum(iterations)
+        iterations = maximum(iterations)
         converged = all(converged)
     end
 
