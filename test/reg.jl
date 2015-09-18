@@ -217,9 +217,7 @@ df[:w] = df[:Output]
 
 # absorb + weights
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))    [-0.04683333721137311] 1e-4
-# 10 vs 6
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df,  weight = :w))   [-0.043475472188120416] 1e-3
-# 12 vs 7 
 
 ## the last two ones test an ill conditioned model matrix
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))     [-0.122354] 1e-4

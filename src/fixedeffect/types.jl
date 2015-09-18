@@ -142,44 +142,43 @@ end
 type FixedEffectMatrix
     _::Vector{FixedEffect}
 end
-getindex(fem::FixedEffectMatrix, i::Integer) = fem._[i]
 
 # Define x -> A * x
-function A_mul_B_helper!(α::Number, fe::FixedEffect, 
+function A_mul_B_helper!(α::Float64, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64})
     @inbounds @simd for i in 1:length(y)
         y[i] += α * x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
-                β::Number, y::AbstractVector{Float64})
+function A_mul_B!(α::Float64, fem::FixedEffectMatrix, fev::FixedEffectVector, 
+                β::Float64, y::AbstractVector{Float64})
     if β == 0.0
         fill!(y, zero(Float64))
     elseif β != 1.0
         scale!(y, β)
     end
     for i in 1:length(fev)
-        A_mul_B_helper!(α, fem[i], fev[i], y)
+        A_mul_B_helper!(α, fem._[i], fev[i], y)
     end
     return y
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
+function Ac_mul_B_helper!(α::Float64, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
         x[fe.refs[i]] += α * y[i] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
-                y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
+function Ac_mul_B!(α::Float64, fem::FixedEffectMatrix, 
+                y::AbstractVector{Float64}, β::Float64, fev::FixedEffectVector)
     if β == 0.0
         fill!(fev, zero(Float64))
     elseif β != 1.0
         scale!(fev, β)
     end
     for i in 1:length(fev)
-        Ac_mul_B_helper!(α, fem[i], y, fev[i])
+        Ac_mul_B_helper!(α, fem._[i], y, fev[i])
     end
     return fev
 end
