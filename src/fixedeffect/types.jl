@@ -128,30 +128,6 @@ function fill!(fev::FixedEffectVector, x)
     end
 end
 
-
-function broadcast!(f, out::FixedEffectVector, fev1::FixedEffectVector, fev2::FixedEffectVector)
-    for i in 1:length(fev1)
-        broadcast!(f, out[i], fev1[i], fev2[i])
-    end
-end
-
-function scale!(fev2::FixedEffectVector, fev1::FixedEffectVector, α::Float64)
-    for i in 1:length(fev2)
-        scale!(fev2[i], fev1[i], α)
-    end
-    return fev2
-end
-
-function dot(fev1::FixedEffectVector, fev2::FixedEffectVector)
-    out = zero(Float64)
-    for i in 1:length(fev2)
-        out += dot(fev1[i], fev2[i])
-    end
-    return out
-end
-
-
-
 # Matrix
 # A is the model matrix multiplied by diag(1/a1^2, ..., 1/aN^2) (preconditoner)
 type FixedEffectMatrix <: AbstractMatrix{Float64}
