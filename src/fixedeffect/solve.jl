@@ -1,3 +1,41 @@
+##############################################################################
+##
+## FixedEffectProblem is a wrapper around a FixedEffectMatrix 
+## with some storage arrays used when solving (A'A)X = A'y 
+##
+##############################################################################
+
+type FixedEffectProblem
+    m::FixedEffectMatrix
+    u::Vector{Float64}
+    utmp::Vector{Float64}
+    x::FixedEffectVector
+    v::FixedEffectVector
+    h::FixedEffectVector
+    hbar::FixedEffectVector
+    vtmp::FixedEffectVector
+end
+
+function FixedEffectProblem(fes::Vector{FixedEffect})
+    m = FixedEffectMatrix(fes)
+    u = Array(Float64, length(fes[1].refs))
+    utmp = similar(u)
+    x = FixedEffectVector(fes)
+    v = FixedEffectVector(fes)
+    h = FixedEffectVector(fes)
+    hbar = FixedEffectVector(fes)
+    vtmp = FixedEffectVector(fes)
+    FixedEffectProblem(m, u, utmp, x, v, h, hbar, vtmp)
+end
+
+function lsmr!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    lsmr!(x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
+end
+
+function lsmr!(::Void, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    fill!(pfe.x, zero(Float64))
+    lsmr!(pfe.x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
+end
 
 ##############################################################################
 ##

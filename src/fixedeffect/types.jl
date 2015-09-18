@@ -70,9 +70,9 @@ end
 
 ##############################################################################
 ## 
-## We know defined an FixedEffectVector and a FixedEffectMatrix
-## which correspond respectibely to x and A in (A'A)X = A'y
-## We need to define these methods used in lsmr!
+## FixedEffectVector 
+##
+## We need to define these methods used in lsmr! (duck typing)
 ##
 ##############################################################################
 
@@ -128,32 +128,39 @@ function fill!(fev::FixedEffectVector, x)
     end
 end
 
-# Matrix
-# A is the model matrix multiplied by diag(1/a1^2, ..., 1/aN^2) (preconditoner)
-type FixedEffectMatrix <: AbstractMatrix{Float64}
+##############################################################################
+## 
+## FixedEffectMatrix
+##
+## A is the model matrix of categorical variables
+## normalized by diag(1/a1, ..., 1/aN) (Jacobi preconditoner)
+##
+##############################################################################
+
+type FixedEffectMatrix
     _::Vector{FixedEffect}
 end
+getindex(fem::FixedEffectMatrix, i::Integer) = fem._[i]
 
 # Define x -> A * x
 function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, 
                                   fe::FixedEffect{R, W, I}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
-        y[i] += x[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i] * fe.scale[fe.refs[i]]
+        y[i] += x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
 function A_mul_B!(y::AbstractVector{Float64}, fem::FixedEffectMatrix, 
                   fev::FixedEffectVector)
     fill!(y, zero(Float64))
-    fes = fem._
-    for i in 1:length(fes)
-        A_mul_B_helper!(y, fes[i], fev[i])
+    for i in 1:length(fev)
+        A_mul_B_helper!(y, fem[i], fev[i])
     end
     return y
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, 
-                                   fe::FixedEffect{R, W, I}, y::AbstractVector{Float64})
+function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, fe::FixedEffect{R, W, I}, 
+                                    y::AbstractVector{Float64})
     fill!(x, zero(Float64))
     @inbounds @simd for i in 1:length(y)
         x[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
@@ -164,50 +171,8 @@ function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64},
 end
 function Ac_mul_B!(fev::FixedEffectVector, fem::FixedEffectMatrix, 
                    y::AbstractVector{Float64})
-    fes = fem._
-    for i in 1:length(fes)
-        Ac_mul_B_helper!(fev[i], fes[i], y)
+    for i in 1:length(fev)
+        Ac_mul_B_helper!(fev[i], fem[i], y)
     end
     return fev
 end
-
-
-
-##############################################################################
-##
-## FixedEffectProblem stores some arrays to solve (A'A)X = A'y multiple times
-##
-##############################################################################
-type FixedEffectProblem
-    m::FixedEffectMatrix
-    u::Vector{Float64}
-    utmp::Vector{Float64}
-    x::FixedEffectVector
-    v::FixedEffectVector
-    h::FixedEffectVector
-    hbar::FixedEffectVector
-    vtmp::FixedEffectVector
-end
-
-
-function FixedEffectProblem(fes::Vector{FixedEffect})
-    m = FixedEffectMatrix(fes)
-    u = Array(Float64, length(fes[1].refs))
-    utmp = similar(u)
-    x = FixedEffectVector(fes)
-    v = FixedEffectVector(fes)
-    h = FixedEffectVector(fes)
-    hbar = FixedEffectVector(fes)
-    vtmp = FixedEffectVector(fes)
-    FixedEffectProblem(m, u, utmp, x, v, h, hbar, vtmp)
-end
-
-function lsmr!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    lsmr!(x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
-end
-function lsmr!(::Void, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    fill!(pfe.x, zero(Float64))
-    lsmr!(pfe.x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
-end
-
-

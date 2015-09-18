@@ -11,6 +11,7 @@ df[:x1] = df[:Price]
 df[:z1] = df[:Pimin]
 df[:x2] = df[:NDI]
 df[:w] = df[:Pop]
+
 ##############################################################################
 ##
 ## coefficients 
@@ -23,6 +24,8 @@ df[:w] = df[:Pop]
 
 # absorb
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df))  [-0.20984] 1e-4
+@test reg(y ~ x1 |> pid1, df).iterations == 1
+
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))   [-1.08471] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))    [-0.53470] 1e-4
 @test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df))  [13.993028174622104,-0.5804357763515606] 1e-4
@@ -190,9 +193,11 @@ result = reg(y ~ x1 + pid1, df, subset = df[:State] .<= 30)
 ##
 ## Test unbalanced panel
 ## 
+## corresponds to abdata in Stata, for instance reghdfe wage emp [w=indoutpt], a(id year)
+##
 ##############################################################################
+
 df = dataset("plm", "EmplUK")
-# corresponds to abdata in Stata
 df[:id1] = df[:Firm]
 df[:id2] = df[:Year]
 df[:pid1] = pool(df[:id1])
@@ -200,8 +205,6 @@ df[:pid2] = pool(df[:id2])
 df[:y] = df[:Wage]
 df[:x1] = df[:Emp]
 df[:w] = df[:Output]
-
-
 
 # absorb
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df))  [-0.11981270017206136] 1e-4
@@ -216,8 +219,10 @@ df[:w] = df[:Output]
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))    [-0.04683333721137311] 1e-4
 # 10 vs 6
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df,  weight = :w))   [-0.043475472188120416] 1e-3
-# 12 vs 7 reghdfe wage emp [w=indoutpt], a(id year)
+# 12 vs 7 
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))     [-0.122354] 1e-4
 # 11 vs 555
+@test reg(y ~ x1 |> pid1 + pid1&id2 , df).iterations <= 20
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w))  [-0.11752306001586807] 1e-4
 # 15 vs 123
+@test reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w).iterations <= 20
