@@ -233,7 +233,7 @@ Baum, C. and Schaffer, M (2013). *AVAR: Stata module to perform asymptotic covar
 
 Correia, S. (2014). *REGHDFE: Stata module to perform linear or instrumental-variable regression absorbing any number of high-dimensional fixed effects*. Statistical Software Components, Boston College Department of Economics.
 
-Fong, DC and Saunders, M (2011). *LSMR: An Iterative Algorithm for Sparse Least-Squares Problems*.  SIAM Journal on Scientific Computing 33.5 
+Fong, DC and Saunders, M (2011). *LSMR: An Iterative Algorithm for Sparse Least-Squares Problems*.  SIAM Journal on Scientific Computing
 
 Gaure, S. (2013). *OLS with Multiple High Dimensional Category Variables*. Computational Statistics and Data Analysis
 
