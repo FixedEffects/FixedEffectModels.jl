@@ -164,7 +164,7 @@ function lsmr!(x, r, A, u, v, h, hbar;
         test1 = normr / normb
         test2 = normAr / (normA * normr)
         test3 = 1 / condA
-        t1 =  test1 / (1 + normA * normx / normb)
+        t1 = test1 / (1 + normA * normx / normb)
         rtol = btol + atol * normA * normx / normb
 
         # The following tests guard against extremely small values of
@@ -182,6 +182,6 @@ function lsmr!(x, r, A, u, v, h, hbar;
         if test1 <= rtol  istop = 1; break end
     end
     A_mul_B!(-1.0, A, x, 1.0, r)
-    return iter, istop < 7
+    return iter, (istop != 7) && (istop != 3)
 end
     

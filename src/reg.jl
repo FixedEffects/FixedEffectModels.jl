@@ -342,4 +342,3 @@ function getcols(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}}, basecolX
     end
     return Xnew
 end
-    
