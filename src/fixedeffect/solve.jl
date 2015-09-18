@@ -29,12 +29,14 @@ function FixedEffectProblem(fes::Vector{FixedEffect})
 end
 
 function lsmr!(x, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    lsmr!(x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
+    lsmr!(x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; 
+        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
 end
 
 function lsmr!(::Void, r, pfe::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
     fill!(pfe.x, zero(Float64))
-    lsmr!(pfe.x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; tol = tol, maxiter = maxiter)
+    lsmr!(pfe.x, r, pfe.m, pfe.u, pfe.utmp, pfe.v, pfe.h, pfe.hbar, pfe.vtmp; 
+        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
 end
 
 ##############################################################################

@@ -15,13 +15,9 @@
 ##############################################################################
 
 function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp; 
-               tol::Real=1e-8, maxiter::Integer=100, λ::Real = zero(Float64))
+    atol = 1e-8, btol = 1e-8, conlim = 1e8, maxiter::Integer=100, λ::Real = zero(Float64))
 
-    atol = tol
-    btol = tol
-    ctol = tol
-    conlim = 1 / tol
-    localSize = zero(Float64)
+    conlim > 0.0 ? ctol = 1 / conlim : ctol = zero(Float64)
 
     # form the first vectors u and v (satisfy  β*u = b,  α*v = A'u)
     copy!(u, r)
