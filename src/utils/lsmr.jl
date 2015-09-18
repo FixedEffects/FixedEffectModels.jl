@@ -12,9 +12,12 @@
 ## Adapted from the BSD-licensed Matlab implementation at
 ##  http://web.stanford.edu/group/SOL/software/lsmr/
 ##
+## A is anything such that
+## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
+## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
 ##############################################################################
 
-function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp; 
+function lsmr!(x, r, A, u, v, h, hbar; 
     atol = 1e-8, btol = 1e-8, conlim = 1e8, maxiter::Integer=100, λ::Real = zero(Float64))
 
     conlim > 0.0 ? ctol = 1 / conlim : ctol = zero(Float64)
@@ -23,7 +26,7 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     copy!(u, r)
     β = norm(u)
     β > 0 && scale!(u, 1/β)
-    Ac_mul_B!(v, A, u)
+    Ac_mul_B!(1.0, A, u, 0.0, v)
     α = norm(v)
     α > 0 && scale!(v, 1/α)
 
@@ -60,23 +63,18 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
     # Exit if b = 0 or A'b = zero(Float64).
     normAr = α * β
     if normAr == zero(Float64) 
-        A_mul_B!(utmp, A, x)
-        axpy!(-1.0, utmp, r)
+        A_mul_B!(-1.0, A, x, 1.0, r)
         return 1, true
     end
 
     iter = 0
     while iter < maxiter
         iter += 1
-        scale!(u, -α)
-        A_mul_B!(utmp, A, v)
-        axpy!(1.0, utmp, u)
+        A_mul_B!(1.0, A, v, -α, u)
         β = norm(u)
         if β > 0
             scale!(u, 1/β)
-            scale!(v, -β)
-            Ac_mul_B!(vtmp, A, u)
-            axpy!(1.0, vtmp, v)
+            Ac_mul_B!(1.0, A, u, -β, v)
             α = norm(v)
             α > 0 && scale!(v, 1/α)
         end
@@ -183,8 +181,7 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
         if test2 <= atol istop = 2; break end
         if test1 <= rtol  istop = 1; break end
     end
-    A_mul_B!(utmp, A, x)
-    axpy!(-1.0, utmp, r)
+    A_mul_B!(-1.0, A, x, 1.0, r)
     return iter, istop < 7
 end
     

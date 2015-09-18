@@ -135,6 +135,8 @@ end
 ## A is the model matrix of categorical variables
 ## normalized by diag(1/a1, ..., 1/aN) (Jacobi preconditoner)
 ##
+## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
+## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
 ##############################################################################
 
 type FixedEffectMatrix
@@ -143,36 +145,41 @@ end
 getindex(fem::FixedEffectMatrix, i::Integer) = fem._[i]
 
 # Define x -> A * x
-function A_mul_B_helper!{R, W, I}(y::AbstractVector{Float64}, 
-                                  fe::FixedEffect{R, W, I}, x::Vector{Float64})
+function A_mul_B_helper!(α::Number, fe::FixedEffect, 
+                        x::Vector{Float64}, y::AbstractVector{Float64})
     @inbounds @simd for i in 1:length(y)
-        y[i] += x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+        y[i] += α * x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function A_mul_B!(y::AbstractVector{Float64}, fem::FixedEffectMatrix, 
-                  fev::FixedEffectVector)
-    fill!(y, zero(Float64))
+function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
+                β::Number, y::AbstractVector{Float64})
+    if β == 0.0
+        fill!(y, zero(Float64))
+    elseif β != 1.0
+        scale!(y, β)
+    end
     for i in 1:length(fev)
-        A_mul_B_helper!(y, fem[i], fev[i])
+        A_mul_B_helper!(α, fem[i], fev[i], y)
     end
     return y
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!{R, W, I}(x::Vector{Float64}, fe::FixedEffect{R, W, I}, 
-                                    y::AbstractVector{Float64})
-    fill!(x, zero(Float64))
+function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
+                        y::AbstractVector{Float64}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
-        x[fe.refs[i]] += y[i] * fe.interaction[i] * fe.sqrtw[i]
-    end
-    @inbounds @simd for i in 1:length(x)
-        x[i] *= fe.scale[i]
+        x[fe.refs[i]] += α * y[i] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function Ac_mul_B!(fev::FixedEffectVector, fem::FixedEffectMatrix, 
-                   y::AbstractVector{Float64})
+function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
+                y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
+    if β == 0.0
+        fill!(fev, zero(Float64))
+    elseif β != 1.0
+        scale!(fev, β)
+    end
     for i in 1:length(fev)
-        Ac_mul_B_helper!(fev[i], fem[i], y)
+        Ac_mul_B_helper!(α, fem[i], y, fev[i])
     end
     return fev
 end
