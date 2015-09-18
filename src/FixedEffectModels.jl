@@ -58,7 +58,6 @@ VcovCluster
 ##
 ##############################################################################
 include("utils/group.jl")
-include("utils/chebyshev.jl")
 include("utils/formula.jl")
 include("utils/lsmr.jl")
 
