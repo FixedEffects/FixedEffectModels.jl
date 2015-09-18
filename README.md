@@ -24,22 +24,22 @@ Pkg.add("FixedEffectModels")
 
 When a regression model contains high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package handles these situations.
 
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. We're generally interested in the estimates for `β`, along with their standard errors. They are obtained in two steps:
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
 1. `y, X`  are regressed on `D` by conjugate gradient least squares (with Jacobi preconditioner).
 
-2.  Estimates for the coefficients `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
+2.  Estimates for `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
 
 
 ## result
-`reg` returns a light object. This allows to estimate multiple models on the same DataFrame without ever worrying about memory space. It is simply composed of 
+`reg` returns a light object. This allows to estimate multiple models without worrying about memory space. It is simply composed of 
  
   - the vector of coefficients & the covariance matrix
   - a boolean vector reporting rows used in the estimation
   - a set of scalars (number of observations, the degree of freedoms, r2, etc)
   - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
 
-Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The huge size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
+Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 `reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
@@ -158,7 +158,7 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 
 ## Partial out
 
-`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - just with multiple `lhs`. It returns  a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
 The regression model is estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
 
 
@@ -224,7 +224,7 @@ plot(
 ```
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/9a12681d81f9d713cec3b88b1abf362cdddb9a14/benchmark/third.svg)
 
-The combination of `partial_out` and Gadfly `Stat.binmean` is very similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
+The combination of `partial_out` and Gadfly `Stat.binmean` is similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
 
 
 
