@@ -8,10 +8,10 @@
 ##############################################################################
 
 function reftype(sz) 
-	sz <= typemax(Uint8)  ? Uint8 :
-	sz <= typemax(Uint16) ? Uint16 :
-	sz <= typemax(Uint32) ? Uint32 :
-	Uint64
+	sz <= typemax(UInt8)  ? UInt8 :
+	sz <= typemax(UInt16) ? UInt16 :
+	sz <= typemax(UInt32) ? UInt32 :
+	UInt64
 end
 
 #  similar todropunusedlevels! but (i) may be NA (ii) change pool to integer
@@ -27,10 +27,10 @@ function factorize!(refs::Array)
 	PooledDataArray(RefArray(refs), collect(1:(length(uu)-has_na)))
 end
 
-function pool_combine!{T}(x::Array{Uint64, T}, dv::PooledDataVector, ngroups::Integer)
+function pool_combine!{T}(x::Array{UInt64, T}, dv::PooledDataVector, ngroups::Integer)
 	@inbounds for i in 1:length(x)
 	    # if previous one is NA or this one is NA, set to NA
-	    x[i] = (dv.refs[i] == 0 || x[i] == zero(Uint64)) ? zero(Uint64) : x[i] + (dv.refs[i] - 1) * ngroups
+	    x[i] = (dv.refs[i] == 0 || x[i] == zero(UInt64)) ? zero(UInt64) : x[i] + (dv.refs[i] - 1) * ngroups
 	end
 	return(x, ngroups * length(dv.pool))
 end
@@ -50,9 +50,9 @@ function group(df::AbstractDataFrame)
 	ncols = size(df, 2)
 	ncols == 1 && return(group(v))
 	if typeof(v) <: PooledDataVector
-		x = convert(Array{Uint64}, v.refs)
+		x = convert(Array{UInt64}, v.refs)
 	else
-		v = PooledDataArray(v, v.na, Uint64)
+		v = PooledDataArray(v, v.na, UInt64)
 		x = v.refs
 	end
 	ngroups = length(v.pool)

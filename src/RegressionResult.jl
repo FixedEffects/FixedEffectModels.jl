@@ -96,10 +96,10 @@ type CoefTable2
     colnms::Vector
     rownms::Vector
     pvalcol::Integer
-    title::String
-    top::Matrix{String}
+    title::AbstractString
+    top::Matrix{AbstractString}
     function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0, 
-                        title::String = "", top::Matrix = Any[])
+                        title::AbstractString = "", top::Matrix = Any[])
         nr,nc = size(mat)
         0 <= pvalcol <= nc || error("pvalcol = $pvalcol should be in 0,...,$nc]")
         length(colnms) in [0,nc] || error("colnms should have length 0 or $nc")
@@ -120,7 +120,7 @@ function show(io::IO, ct::CoefTable2)
     mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; 
     pvc = ct.pvalcol; title = ct.title;   top = ct.top
     if length(rownms) == 0
-        rownms = [lpad("[$i]",floor(Integer, log10(nr))+3)::String for i in 1:nr]
+        rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
     rnwidth = max(4,maximum([length(nm) for nm in rownms]) + 1)
     rownms = [rpad(nm,rnwidth) for nm in rownms]

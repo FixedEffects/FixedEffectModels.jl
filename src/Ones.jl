@@ -18,7 +18,7 @@ Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones)
 
 
 get_weight(df::AbstractDataFrame, weight::Symbol) = convert(Vector{Float64}, sqrt(df[weight]))
-get_weight(df::AbstractDataFrame, ::Nothing) = Ones(size(df, 1))
+get_weight(df::AbstractDataFrame, ::Void) = Ones(size(df, 1))
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
 	if hasintercept
