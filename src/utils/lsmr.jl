@@ -1,11 +1,17 @@
 ##############################################################################
-## x is initial x0
-## r is initilal b - Ax0
-## u, utmp are size(A, 1)
-## v, h, hbar, vtmp are size(A, 2)
+## LSMR
+##
+## Minimize ||Ax-b||^2 + λ^2 ||x||^2
+##
+## Arguments:
+## x is initial x0. Will equal the solution.
+## r is initial b - Ax0. Will equal the residual b - Ax.
+## u, utmp are storage arrays of length size(A, 1)
+## v, h, hbar, vtmp are storage arrays of length size(A, 2)
 ## 
 ## Adapted from the BSD-licensed Matlab implementation at
 ##  http://web.stanford.edu/group/SOL/software/lsmr/
+##
 ##############################################################################
 
 function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp; 
