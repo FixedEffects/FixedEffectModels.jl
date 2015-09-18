@@ -151,7 +151,6 @@ function lsmr!(x, r, A, u, utmp, v, h, hbar, vtmp;
             minrbar = min(minrbar, ρbarold)
         end
         condA = max(maxrbar, ρtemp) / min(minrbar, ρtemp)
-
         ##############################################################################
         ##
         ## Test for convergence
