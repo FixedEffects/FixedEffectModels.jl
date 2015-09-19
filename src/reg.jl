@@ -128,24 +128,25 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     # Compute Xhat
     if has_iv
-        # get linearly independent columns
-        X = hcat(Xexo, Xendo)
-        Xqr = qrfact!(X)
-        basecolX = basecol(Xqr)
-        basecolXexo = basecolX[1:size(Xexo, 2)]
-        basecolXendo = basecolX[(size(Xexo, 2)+1):end]
-        X = getcols(Xqr, basecolX)
-        Xexo = getcols(Xexo, basecolXexo)
+        # get liearly independent columns
+        allqr = qrfact!(hcat(Xendo, Xexo, Z))
+        baseall= basecol(allqr)
+        allqr = nothing
+        basecolXendo = baseall[1:size(Xendo, 2)]
+        basecolXexo = baseall[size(Xendo, 2)+1:size(Xendo, 2) + size(Xexo, 2)]
+        basecolZ = baseall[size(Xendo, 2) + size(Xexo, 2) + 1:end]
         Xendo = getcols(Xendo, basecolXendo)
+        Xexo = getcols(Xexo, basecolXexo)
+        Z = getcols(Z, basecolZ)
+        basecoef = vcat(basecolXexo, basecolXendo)
+
+        # Build
+        X = hcat(Xexo, Xendo)
         newZ = hcat(Xexo, Z)
-        newZqr = qrfact!(newZ)
-        basecolnewZ = basecol(newZqr)
-        newZ = getcols(newZqr, basecolnewZ)
         crossz = cholfact!(At_mul_B(newZ, newZ))
         Pi = crossz \ At_mul_B(newZ, Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
         X = hcat(Xexo, Xendo)
-        basecoef = basecolX
 
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
@@ -153,6 +154,9 @@ function reg(f::Formula, df::AbstractDataFrame,
         ## partial out Z in place wrt Xexo
         Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
+
+        # free memory (not sure it helps)
+        Xexo = nothing
     else
         # get linearly independent columns
         Xexoqr = qrfact!(Xexo)
@@ -161,6 +165,8 @@ function reg(f::Formula, df::AbstractDataFrame,
         Xhat = Xexo
         X = Xexo
         basecoef = basecolXexo
+        # free memory (not sure it helps)
+        Xexoqr = nothing
     end
 
     # iter and convergence
@@ -314,13 +320,8 @@ end
 
 
 function basecol(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}})
-    R = QR[:R]
-    out = Array(Bool, size(QR, 2))
-    out[1] = true
-    for i in 2:size(QR, 2)
-        out[i] = abs(R[i, i]) >= (abs(R[1, 1]) * 1e-10)
-    end
-    return out
+    R = diag(QR[:R])
+    return Bool[abs(r) >= abs(R[1]) * 1e-10 for r in R]
 end
 
 function getcols(X::Matrix{Float64},  basecolX::Vector{Bool})

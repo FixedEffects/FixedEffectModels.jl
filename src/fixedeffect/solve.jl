@@ -21,6 +21,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect})
     h = FixedEffectVector(fes)
     hbar = FixedEffectVector(fes)
     u = Array(Float64, length(fes[1].refs))
+
     FixedEffectProblem(m, x, v, h, hbar, u)
 end
 
