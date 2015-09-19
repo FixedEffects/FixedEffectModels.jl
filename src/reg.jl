@@ -333,12 +333,14 @@ function getcols(X::Matrix{Float64},  basecolX::Vector{Bool})
 end
 
 function getcols(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}}, basecolX::Vector{Bool})
+    Q = QR[:Q]
+    R = QR[:R]
     Xnew = Array(Float64, size(QR, 1), sum(basecolX))
     idx = 0
     for i in 1:size(QR, 2)
         if basecolX[i]
             idx += 1
-            Xnew[:, idx] =  QR[:Q] * slice(QR[:R], :, i)
+            Xnew[:, idx] = Q * slice(R, :, i)
         end
     end
     return Xnew
