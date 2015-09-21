@@ -1,4 +1,37 @@
 
+"""
+Partial out variables
+
+### Arguments
+* `f` : Formula, 
+* `df` : AbstractDataFrame
+* `add_mean` : should intial mean added to the returned variable
+* `weight` : Symbol for weight variables. 
+* `subset` : AbstractVector{Bool} for subsample
+* `maxiter` : Maximum number of iterations
+* `tol` : tolerance
+
+### Returns
+* `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+
+### Details
+`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+The regression model is estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
+
+### Examples
+```julia
+using  RDatasets, DataFrames, FixedEffectModels, Gadfly
+df = dataset("datasets", "iris")
+result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
+plot(
+   layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
+   layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
+)
+```
+"""
+
+
+
 function partial_out(f::Formula, df::AbstractDataFrame; 
                      add_mean = false, weight::Union{Symbol, Void} = nothing,
                      maxiter::Integer = 10000, tol::Real = 1e-8)

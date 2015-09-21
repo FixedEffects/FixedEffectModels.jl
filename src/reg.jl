@@ -1,3 +1,49 @@
+
+"""
+Estimate a linear model with high dimensional categorical variables / instrumental variables
+
+### Arguments
+* `f` : Formula, 
+* `df` : AbstractDataFrame
+* `vcov_method` : An object of type AbstractVcovMethod. Default to VcovSimple(). For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
+* `weight` : Symbol for weight variables. Corresponds to analytical weights
+* `subset` : AbstractVector{Bool} for subsample
+* `save` : SHould residuals and eventual estimated fixed effects saved in a dataframe?
+* `maxiter` : Maximum number of iterations
+* `tol` : tolerance
+
+### Returns
+* `::AbstractRegressionResult` : a regression results
+
+### Details
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
+```
+depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
+```
+Categorical variable should be of type PooledDataArray.  See the following to create PooledDataArray:
+* `pool` : transform one variable into a `PooledDataArray`. 
+* `group` : combine multiple variables into a `PooledDataArray`. 
+Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
+
+### Examples
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+df[:YearPooled] =  pool(df[:Year])
+reg(Sales ~ Price |> StatePooled + YearPooled, df)
+reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
+reg(Sales ~ (Price = Pimin), df)
+reg(Sales ~ Price, df, weight = :Pop)
+reg(Sales ~ NDI, weight = :Pop, subset = df[:State] .< 30)
+reg(Sales ~ NDI, df, VcovWhite())
+reg(Sales ~ NDI, df, VcovCluster([:State]))
+reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
+```
+"""
+
+
+
 # TODO: minimize memory. For now two factorizations (qr and cholfact)
 function reg(f::Formula, df::AbstractDataFrame, 
              vcov_method::AbstractVcovMethod = VcovSimple(); 

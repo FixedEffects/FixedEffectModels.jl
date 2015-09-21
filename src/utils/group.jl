@@ -44,6 +44,28 @@ end
 function group(x::PooledDataVector)
 	PooledDataArray(RefArray(copy(x.refs)), collect(1:length(x.pool)))
 end
+
+"""
+Group multiple variables into one DataArray
+
+### Arguments
+* `df` : AbstractDataFrame
+* `cols` : A vector of symbols
+
+### Returns
+* `::PooledDataArray` where each value corresponds to a unique combination of values in `cols`
+
+### Details
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
+
+### Examples
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StateYearPooled] = group(df, [:State, :Year])
+```
+"""
+
 function group(df::AbstractDataFrame) 
 	ncols = size(df, 2)
 	v = df[1]
