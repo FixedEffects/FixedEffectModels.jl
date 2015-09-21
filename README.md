@@ -73,7 +73,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. Use `group` to combine multiple variables into a `PooledDataArray`, 
 
 ```
-df[:StateYear] = group(df, [:State, :Year])
+df[:pStateYear] = group(df, [:State, :Year])
 ```
 
 ##### Fixed effects
