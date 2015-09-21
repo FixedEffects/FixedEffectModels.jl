@@ -73,7 +73,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
-        fixedeffects = FixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+        fixedeffects = FixedEffect(subdf, absorb_terms, sqrtw)
         # in case there is any intercept fe, remove the intercept
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             xt.intercept = false

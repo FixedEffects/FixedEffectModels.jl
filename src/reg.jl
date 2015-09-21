@@ -109,7 +109,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
-        fixedeffects = FixedEffect[FixedEffect(subdf, a, sqrtw) for a in absorb_terms.terms]
+        fixedeffects = FixedEffect(subdf, absorb_terms, sqrtw)
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             rt.intercept = false

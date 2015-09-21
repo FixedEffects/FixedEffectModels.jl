@@ -28,6 +28,8 @@ df[:w] = df[:Pop]
 
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))   [-1.08471] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))    [-0.53470] 1e-4
+
+
 @test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df))  [13.993028174622104,-0.5804357763515606] 1e-4
 
 @test_approx_eq_eps  coef(reg(y ~ x1 |> id2&pid1 , df))  [13.993028174622104,-0.5804357763515606] 1e-4
@@ -38,6 +40,8 @@ df[:w] = df[:Pop]
 @test_approx_eq_eps  coef(reg(y ~ x1 + x2 |> pid1&id2 + pid2&id1, df))  [-46.4464,-0.2546, -0.005563] 1e-4
 
 @test_approx_eq_eps  coef(reg(y ~ 0 + x1 + x2 |> pid1&id2 + pid2&id1, df))   [-0.21226562244177932,-0.004775616634862829] 1e-4
+
+
 
 
 # absorb + weights

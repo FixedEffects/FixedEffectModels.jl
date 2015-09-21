@@ -15,6 +15,13 @@ type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector
     id::Symbol              # Name of new variable if save = true
 end
 
+
+
+##############################################################################
+##
+## Constructor
+##
+##############################################################################
 # Constructor
 function FixedEffect{R <: Integer}(
     refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
@@ -30,33 +37,30 @@ function FixedEffect{R <: Integer}(
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
 
-##############################################################################
-##
-## Build from DataFrame
-##
-##############################################################################
-
 # Constructors from dataframe + expression
 function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
-    if a.args[1] == :&
+    if a.args[1] == :& && isa(a.args[2], Symbol) && isa(a.args[3], Symbol)
         id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
         v1 = df[a.args[2]]
         v2 = df[a.args[3]]
         if isa(v1, PooledDataVector) && !isa(v2, PooledDataVector)
-            f = v1
-            x = convert(Vector{Float64}, v2)
-            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[2], a.args[3], id)
+            refs = v1.refs
+            l = length(v1.pool)
+            interaction = convert(Vector{Float64}, v2)
+            factorname = a.args[2]
+            interactionname = a.args[3]
         elseif isa(v2, PooledDataVector) && !isa(v1, PooledDataVector)
-            f = v2
-            x = convert(Vector{Float64}, v1)
-            return FixedEffect(f.refs, length(f.pool), sqrtw, x, a.args[3], a.args[2], id)
-        else
-            v1 = pool(v1)
-            x =  convert(Vector{Float64}, v2)
-            return FixedEffect(v1.refs, length(v1.pool), sqrtw, x, a.args[3], a.args[2], id)
+            refs = v2.refs
+            l = length(v2.pool)
+            interaction = convert(Vector{Float64}, v1)
+            factorname = a.args[3]
+            interactionname = a.args[2]
+        else 
+            error("Expression $(a) should be of the form factor&nonfactor or nonfactor&factor")
         end
+        return FixedEffect(refs, l, sqrtw, interaction, factorname, interactionname, id)
     else
-        error("Exp $(a) should be of the form factor&nonfactor")
+        error("Exp $(a) should be of the form var1&var2 or var1*var2")
     end
 end
 
@@ -66,6 +70,20 @@ function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Flo
         v = pool(v)
     end
     return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
+end
+
+
+function FixedEffect(df::AbstractDataFrame, terms::Terms, sqrtw::AbstractVector{Float64})
+    out = FixedEffect[]
+    for term in terms.terms
+        result = FixedEffect(df, term, sqrtw)
+        if isa(result, FixedEffect)
+            push!(out, result)
+        else
+            append!(out, result)
+        end
+    end
+    return out
 end
 
 ##############################################################################

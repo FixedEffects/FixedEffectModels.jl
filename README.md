@@ -55,7 +55,7 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
-Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. 
+Categorical variable should be of type PooledDataArray (see [DataFrames documentation](http://dataframesjl.readthedocs.org/en/latest/pooling.html)).  Use the function `pool` to transform one variable into a `PooledDataArray`. 
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
