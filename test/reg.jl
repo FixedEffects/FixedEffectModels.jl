@@ -73,17 +73,6 @@ result =  [125.26251,0.00426,-0.40085,-0.36012,-0.34378,-0.34446,-0.41338,-0.457
 @test_approx_eq_eps coef(reg(y ~ x1 + pid2 |> pid1, df,  weight = :w))[1]   -0.88794 1e-4
 @test_approx_eq_eps coef(reg(y ~ x2 + (x1 = z1) + pid2 |> pid1, df))[1]   -0.00525 1e-4
 
-
-##############################################################################
-##
-## formula with non factors
-##
-##############################################################################
-
-@test_approx_eq_eps coef(reg(y ~ x1 |> id1, df))  coef(reg(y ~ x1 |> id1, df)) 1e-4
-@test_approx_eq_eps coef(reg(y ~ x1 |> id1&id2, df))  coef(reg(y ~ x1 |> pid1&id2, df)) 1e-4
-
-
 ##############################################################################
 ##
 ## collinearity
