@@ -20,3 +20,4 @@ df = DataFrame(v1 = @data(["ok", NA, "ok", "first"]), v2 = @data([1, 3, 2, 1]), 
 df = DataFrame(v1 = pool(collect(1:1000)), v2 = pool(fill(1, 1000)))
 @test group(df, [:v1, :v2]) == collect(1:1000)
 
+@test group(df[:v1], df[:v2]) == collect(1:1000)

@@ -35,16 +35,6 @@ function pool_combine!{T}(x::Array{UInt64, T}, dv::PooledDataVector, ngroups::In
 	return(x, ngroups * length(dv.pool))
 end
 
-function group(x::AbstractVector) 
-	v = PooledDataArray(x)
-	PooledDataArray(RefArray(v.refs), collect(1:length(v.pool)))
-end
-
-# faster specialization
-function group(x::PooledDataVector)
-	PooledDataArray(RefArray(copy(x.refs)), collect(1:length(x.pool)))
-end
-
 """
 Group multiple variables into one DataArray
 
@@ -62,9 +52,20 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
+df[:StateYearPooled] = group(df[:State], df[:Year])
 df[:StateYearPooled] = group(df, [:State, :Year])
 ```
 """
+
+function group(x::AbstractVector) 
+	v = PooledDataArray(x)
+	PooledDataArray(RefArray(v.refs), collect(1:length(v.pool)))
+end
+
+# faster specialization
+function group(x::PooledDataVector)
+	PooledDataArray(RefArray(copy(x.refs)), collect(1:length(x.pool)))
+end
 
 function group(df::AbstractDataFrame) 
 	ncols = size(df, 2)
@@ -86,3 +87,7 @@ function group(df::AbstractDataFrame)
 end
 group(df::AbstractDataFrame, cols::Vector) =  group(df[cols])
 
+function group(args...) 
+	df = DataFrame(Any[a for a in args], Symbol[convert(Symbol, "v$i") for i in 1:length(args)])
+	return group(df)
+end
