@@ -86,8 +86,9 @@ function group(df::AbstractDataFrame)
 	return(factorize!(x))
 end
 group(df::AbstractDataFrame, cols::Vector) =  group(df[cols])
-
+group(df::AbstractDataFrame, args...) =  group(df, [a for a in args])
 function group(args...) 
-	df = DataFrame(Any[a for a in args], Symbol[convert(Symbol, "v$i") for i in 1:length(args)])
+	df = DataFrame(Any[a for a in args], 
+		Symbol[convert(Symbol, "v$i") for i in 1:length(args)])
 	return group(df)
 end
