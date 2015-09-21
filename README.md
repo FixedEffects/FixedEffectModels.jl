@@ -73,7 +73,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. 
 
 ```julia
-using RDatasets, DataFrames, FixedEffectModels
+using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
@@ -82,6 +82,8 @@ df[:YearPooled] =  pool(df[:Year])
 Use `group` to combine multiple variables into a `PooledDataArray`, 
 
 ```
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
 df[:StateYearPooled] = group(df, [:State, :Year])
 ```
 
@@ -90,7 +92,7 @@ df[:StateYearPooled] = group(df, [:State, :Year])
 - Estimate models with an arbitrary number of high dimensional fixed effects.
 
   ```julia
-  using RDatasets, DataFrames, FixedEffectModels
+  using DataFrames, RDatasets, FixedEffectModels
   df = dataset("plm", "Cigar")
   df[:StatePooled] =  pool(df[:State])
   df[:YearPooled] =  pool(df[:Year])
@@ -109,6 +111,9 @@ df[:StateYearPooled] = group(df, [:State, :Year])
 - Interact fixed effects with continuous variables using `&`
 
   ```julia
+  using DataFrames, RDatasets, FixedEffectModels
+  df = dataset("plm", "Cigar")
+  df[:StatePooled] =  pool(df[:State])
   reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
   # =====================================================================
   # Number of obs                1380   Degree of freedom              93
@@ -128,6 +133,8 @@ df[:StateYearPooled] = group(df, [:State, :Year])
 - `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
   ```julia
+  using DataFrames, RDatasets, FixedEffectModels
+  df = dataset("plm", "Cigar")
   reg(Sales ~ (Price = Pimin), df)
   #                                IV Model                               
   # ======================================================================
@@ -148,7 +155,9 @@ df[:StateYearPooled] = group(df, [:State, :Year])
  Weights are supported with the option `weight`. They correspond to analytical weights in Stata.
 
 ```julia
-reg(Sales ~ Price |> StatePooled, df, weight = :Pop)
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+reg(Sales ~ Price, df, weight = :Pop)
 ```
 
 #### Subset
@@ -156,13 +165,17 @@ reg(Sales ~ Price |> StatePooled, df, weight = :Pop)
 Estimate a model on a subset of your data with the option `subset` 
 
 ```julia
-reg(Sales ~ NDI |> StatePooled, weight = :Pop, subset = df[:StatePooled] .< 30)
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+reg(Sales ~ NDI, weight = :Pop, subset = df[:State] .< 30)
 ```
 
 #### Errors
 Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
 ```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
 reg(Sales ~ NDI, df, VcovWhite())
 reg(Sales ~ NDI, df, VcovCluster([:State]))
 reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
@@ -172,7 +185,6 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
 The regression model is estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
-
 
 
 ```julia
