@@ -70,7 +70,16 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
-Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. Use `group` to combine multiple variables into a `PooledDataArray`, 
+Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. 
+
+```julia
+using RDatasets, DataFrames, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+df[:YearPooled] =  pool(df[:Year])
+```
+
+Use `group` to combine multiple variables into a `PooledDataArray`, 
 
 ```
 df[:StateYearPooled] = group(df, [:State, :Year])
