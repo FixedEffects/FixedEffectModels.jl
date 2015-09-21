@@ -49,21 +49,6 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
 ## Syntax
 
-The general syntax is
-```julia
-reg(f::Formula, 
-    df::AbstractDataFrame, 
-    vcov_method::AbstractVcovMethod = VcovSimple(); 
-    weight::Union(Symbol, Nothing) = nothing, 
-    subset::Union(AbstractVector{Bool}, Nothing) = nothing, 
-    save::Bool = true, 
-    maxiter::Int64 = 10000, tol::Float64 = 1e-8
-    )
-```
-
-
-#### Formula
-
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
 
 ```
@@ -127,10 +112,7 @@ df[:StateYearPooled] = group(df, [:State, :Year])
   # =====================================================================
   ```
 
-##### Instrumental variables
-
 - Models with instruments variables are estimated using 2SLS.
-- `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -150,6 +132,7 @@ df[:StateYearPooled] = group(df, [:State, :Year])
   # ======================================================================
   ```
 
+`reg` also supports the `weights`, `subset`, and `errors` option.
 #### Weights
 
  Weights are supported with the option `weight`. They correspond to analytical weights in Stata.
@@ -170,16 +153,6 @@ df = dataset("plm", "Cigar")
 reg(Sales ~ NDI, weight = :Pop, subset = df[:State] .< 30)
 ```
 
-#### Errors
-Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
-
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-reg(Sales ~ NDI, df, VcovWhite())
-reg(Sales ~ NDI, df, VcovCluster([:State]))
-reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
-```
 
 ## Partial out
 
