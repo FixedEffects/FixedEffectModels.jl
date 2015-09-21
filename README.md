@@ -73,7 +73,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. Use `group` to combine multiple variables into a `PooledDataArray`, 
 
 ```
-df[:pStateYear] = group(df, [:State, :Year])
+df[:StateYearPooled] = group(df, [:State, :Year])
 ```
 
 ##### Fixed effects
@@ -83,9 +83,9 @@ df[:pStateYear] = group(df, [:State, :Year])
   ```julia
   using RDatasets, DataFrames, FixedEffectModels
   df = dataset("plm", "Cigar")
-  df[:pState] =  pool(df[:State])
-  df[:pYear] =  pool(df[:Year])
-  reg(Sales ~ Price |> pState + pYear, df)
+  df[:StatePooled] =  pool(df[:State])
+  df[:YearPooled] =  pool(df[:Year])
+  reg(Sales ~ Price |> StatePooled + YearPooled, df)
   # ===============================================================
   # Number of obs             1380   Degree of freedom           77
   # R2                       0.137   R2 Adjusted              0.085
@@ -100,7 +100,7 @@ df[:pStateYear] = group(df, [:State, :Year])
 - Interact fixed effects with continuous variables using `&`
 
   ```julia
-  reg(Sales ~ NDI |> pState + pState&Year, df)
+  reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
   # =====================================================================
   # Number of obs                1380   Degree of freedom              93
   # R2                          0.245   R2 Adjusted                 0.190
@@ -139,7 +139,7 @@ df[:pStateYear] = group(df, [:State, :Year])
  Weights are supported with the option `weight`. They correspond to analytical weights in Stata.
 
 ```julia
-reg(Sales ~ Price |> pState, df, weight = :Pop)
+reg(Sales ~ Price |> StatePooled, df, weight = :Pop)
 ```
 
 #### Subset
@@ -147,7 +147,7 @@ reg(Sales ~ Price |> pState, df, weight = :Pop)
 Estimate a model on a subset of your data with the option `subset` 
 
 ```julia
-reg(Sales ~ NDI |> pState, weight = :Pop, subset = df[:pState] .< 30)
+reg(Sales ~ NDI |> StatePooled, weight = :Pop, subset = df[:StatePooled] .< 30)
 ```
 
 #### Errors
@@ -169,9 +169,9 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:pState] =  pool(df[:State])
-df[:pYear] =  pool(df[:Year])
-result = partial_out(Sales + Price ~ 1|> pYear + pState, df, add_mean = true)
+df[:StatePooled] =  pool(df[:State])
+df[:YearPooled] =  pool(df[:Year])
+result = partial_out(Sales + Price ~ 1|> YearPooled + StatePooled, df, add_mean = true)
 #> 1380x2 DataFrame
 #> | Row  | Sales   | Price   |
 #> |------|---------|---------|
