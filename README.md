@@ -70,8 +70,13 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
-##### Fixed effects
+Categorical variable should be of type PooledDataArray.  Use the function `pool` to transform one variable into a `PooledDataArray`. Use `group` to combine multiple variables into a `PooledDataArray`, 
 
+```
+df[:StateYear] = group(df, [:State, :Year])
+```
+
+##### Fixed effects
 
 - Estimate models with an arbitrary number of high dimensional fixed effects.
 
@@ -107,8 +112,6 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
   # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
   # =====================================================================
   ```
-
-- Categorical variables must be of type PooledDataArray. Use the function `pool` to transform one column into a `PooledDataArray` and  `group` to combine multiple columns into a `PooledDataArray`.
 
 ##### Instrumental variables
 

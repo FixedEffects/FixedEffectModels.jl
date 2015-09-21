@@ -72,7 +72,8 @@ end
 ## 
 ## FixedEffectVector 
 ##
-## We need to define these methods used in lsmr! (duck typing)
+## We define these methods used in lsmr! (duck typing): 
+## copy!, fill!, scale!, axpy!, norm
 ##
 ##############################################################################
 
@@ -89,44 +90,42 @@ function FixedEffectVector(fes::Vector{FixedEffect})
     return FixedEffectVector(out)
 end
 
-getindex(fev::FixedEffectVector, i::Integer) = fev._[i]
-length(fev::FixedEffectVector) = length(fev._)
-
 function copy!(fev2::FixedEffectVector, fev1::FixedEffectVector)
-    for i in 1:length(fev1)
-        copy!(fev2[i], fev1[i])
+    for i in 1:length(fev1._)
+        copy!(fev2._[i], fev1._[i])
     end
     return fev2
 end
 
-function axpy!(α::Float64, fev1::FixedEffectVector, fev2::FixedEffectVector)
-    for i in 1:length(fev1)
-        axpy!(α, fev1[i], fev2[i])
+function fill!(fev::FixedEffectVector, x)
+    for i in 1:length(fev._)
+        fill!(fev._[i], x)
     end
-    return fev2
 end
 
 function scale!(fev::FixedEffectVector, α::Float64)
-    for i in 1:length(fev)
-        scale!(fev[i], α)
+    for i in 1:length(fev._)
+        scale!(fev._[i], α)
     end
     return fev
 end
 
-function sumabs2(fev::FixedEffectVector)
-    out = zero(Float64)
-    for i in 1:length(fev)
-        out += sumabs2(fev[i])
+function axpy!(α::Float64, fev1::FixedEffectVector, fev2::FixedEffectVector)
+    for i in 1:length(fev1._)
+        axpy!(α, fev1._[i], fev2._[i])
     end
-    return out
+    return fev2
 end
-norm(fev::FixedEffectVector) = sqrt(sumabs2(fev))
 
-function fill!(fev::FixedEffectVector, x)
-    for i in 1:length(fev)
-        fill!(fev[i], x)
+function norm(fev::FixedEffectVector)
+    out = zero(Float64)
+    for i in 1:length(fev._)
+        out += sumabs2(fev._[i])
     end
+    return sqrt(out)
 end
+
+
 
 ##############################################################################
 ## 
@@ -135,6 +134,7 @@ end
 ## A is the model matrix of categorical variables
 ## normalized by diag(1/a1, ..., 1/aN) (Jacobi preconditoner)
 ##
+## We define these methods used in lsmr! (duck typing):
 ## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
 ## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
 ##############################################################################
@@ -157,8 +157,8 @@ function A_mul_B!(α::Float64, fem::FixedEffectMatrix, fev::FixedEffectVector,
     elseif β != 1.0
         scale!(y, β)
     end
-    for i in 1:length(fev)
-        A_mul_B_helper!(α, fem._[i], fev[i], y)
+    for i in 1:length(fev._)
+        A_mul_B_helper!(α, fem._[i], fev._[i], y)
     end
     return y
 end
@@ -177,8 +177,8 @@ function Ac_mul_B!(α::Float64, fem::FixedEffectMatrix,
     elseif β != 1.0
         scale!(fev, β)
     end
-    for i in 1:length(fev)
-        Ac_mul_B_helper!(α, fem._[i], y, fev[i])
+    for i in 1:length(fev._)
+        Ac_mul_B_helper!(α, fem._[i], y, fev._[i])
     end
     return fev
 end

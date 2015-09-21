@@ -63,3 +63,4 @@ function group(df::AbstractDataFrame)
 	return(factorize!(x))
 end
 group(df::AbstractDataFrame, cols::Vector) =  group(df[cols])
+
