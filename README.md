@@ -55,10 +55,11 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
-Categorical variable should be of type PooledDataArray (see the [DataFrames doc](http://dataframesjl.readthedocs.org/en/latest/pooling.html)).
 
 
 - Enter high dimensional terms after the `|>` symbol, with the same syntax as a usual formula.
+
+  Categorical variable should be of type PooledDataArray.
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -78,7 +79,7 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # ===============================================================
   ```
 
-  Interact fixed effects with continuous variables using `&`
+  In addition to specifying main effects, it is possible to specify interactions using the & operator inside a Formula:
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -97,7 +98,27 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # =====================================================================
   ```
 
-  Combine multiple fixed effects into one group using `&`
+
+  If you would like to specify both main effects and an interaction term at once, use the * operator inside a Formula:
+  
+  ```julia
+  using DataFrames, RDatasets, FixedEffectModels
+  df = dataset("plm", "Cigar")
+  df[:StatePooled] =  pool(df[:State])
+  reg(Sales ~ NDI |> StatePooled*Year, df)
+  # =====================================================================
+  # Number of obs                1380   Degree of freedom              93
+  # R2                          0.245   R2 Adjusted                 0.190
+  # F Stat                    417.342   p-val                       0.000
+  # Iterations                      2   Converged:                   true
+  # =====================================================================
+  #         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
+  # ---------------------------------------------------------------------
+  # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
+  # =====================================================================
+  ```
+
+  `&` also allows to combine multiple categorical variables:
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -116,6 +137,8 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # NDI  -0.0020522 0.000177339 -11.5722    0.000 -0.00240014 -0.00170427
   # =====================================================================
   ```
+
+
 
 - Estimate models with instruments variables (using 2SLS).
 
