@@ -64,7 +64,6 @@ df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
 ```
 
-##### Fixed effects
 
 - Estimate models with an arbitrary number of high dimensional fixed effects.
 
@@ -147,27 +146,7 @@ df[:YearPooled] =  pool(df[:Year])
   # ======================================================================
   ```
 
-`reg` also supports the `weights`, `subset`, and `errors` option.
-#### Weights
-
- Weights are supported with the option `weight`. They correspond to analytical weights in Stata.
-
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-reg(Sales ~ Price, df, weight = :Pop)
-```
-
-#### Subset
-
-Estimate a model on a subset of your data with the option `subset` 
-
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-reg(Sales ~ NDI, weight = :Pop, subset = df[:State] .< 30)
-```
-
+`reg` also supports `weights`, `subset`, and `errors` option. See `?reg`.
 
 ## Partial out
 
