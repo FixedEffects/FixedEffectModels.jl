@@ -47,7 +47,7 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
 
 
-## Syntax
+## Formula
 
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
 
@@ -138,8 +138,6 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # ======================================================================
   ```
 
-`reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
-
 ## Errors
 
 Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
@@ -150,6 +148,7 @@ reg(Sales ~ NDI, df, VcovCluster([:State]))
 reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
+`reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
 ## Partial out
 
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
