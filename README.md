@@ -58,7 +58,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 Categorical variable should be of type PooledDataArray (see the [DataFrames doc](http://dataframesjl.readthedocs.org/en/latest/pooling.html)).
 
 
-- Estimate models with an arbitrary number of high dimensional fixed effects.
+- Enter high dimensional terms after the `|>` symbol, with the same syntax as a usual formula.
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -78,8 +78,7 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # ===============================================================
   ```
 
-
-- Interact fixed effects with continuous variables using `&`
+  Interact fixed effects with continuous variables using `&`
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -98,7 +97,7 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # =====================================================================
   ```
 
-- Combine multiple fixed effects into one group using `&`
+  Combine multiple fixed effects into one group using `&`
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
