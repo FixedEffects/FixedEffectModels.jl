@@ -33,12 +33,13 @@ df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
 reg(Sales ~ Price |> StatePooled + YearPooled, df)
 reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
+reg(Sales ~ NDI |> StatePooled*Year, df)
 reg(Sales ~ (Price = Pimin), df)
 reg(Sales ~ Price, df, weight = :Pop)
-reg(Sales ~ NDI, weight = :Pop, subset = df[:State] .< 30)
+reg(Sales ~ NDI, df, subset = df[:State] .< 30)
 reg(Sales ~ NDI, df, VcovWhite())
-reg(Sales ~ NDI, df, VcovCluster([:State]))
-reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
+reg(Sales ~ NDI, df, VcovCluster([:StatePooled]))
+reg(Sales ~ NDI, df, VcovCluster([:StatePooled, :YearPooled]))
 ```
 """
 
@@ -279,7 +280,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute Fstat
     coefF = deepcopy(coef)
     matrix_vcovF = matrix_vcov
-    if rt.intercept && length(coef)==1 
+    if (rt.intercept && length(coef)== 1)  || length(coef) == 0
         # TODO: check I can't do better
         F = NaN
         p = NaN

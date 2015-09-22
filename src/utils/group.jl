@@ -68,6 +68,7 @@ function group(x::PooledDataVector)
 end
 
 function group(df::AbstractDataFrame) 
+	isempty(df) && throw("df is empty")
 	ncols = size(df, 2)
 	v = df[1]
 	ncols = size(df, 2)

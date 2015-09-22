@@ -37,50 +37,82 @@ function FixedEffect{R <: Integer}(
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
 
-# Constructors from dataframe + expression
-function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
-    if a.args[1] == :& && isa(a.args[2], Symbol) && isa(a.args[3], Symbol)
-        id = convert(Symbol, "$(a.args[2])x$(a.args[3])")
-        v1 = df[a.args[2]]
-        v2 = df[a.args[3]]
-        if isa(v1, PooledDataVector) && !isa(v2, PooledDataVector)
-            refs = v1.refs
-            l = length(v1.pool)
-            interaction = convert(Vector{Float64}, v2)
-            factorname = a.args[2]
-            interactionname = a.args[3]
-        elseif isa(v2, PooledDataVector) && !isa(v1, PooledDataVector)
-            refs = v2.refs
-            l = length(v2.pool)
-            interaction = convert(Vector{Float64}, v1)
-            factorname = a.args[3]
-            interactionname = a.args[2]
-        else 
-            error("Expression $(a) should be of the form factor&nonfactor or nonfactor&factor")
-        end
-        return FixedEffect(refs, l, sqrtw, interaction, factorname, interactionname, id)
-    else
-        error("Exp $(a) should be of the form var1&var2 or var1*var2")
-    end
-end
-
-function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
-    v = df[a]
-    if !isa(v, PooledDataVector)
-        v = pool(v)
-    end
-    return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
-end
-
-
+# Constructors from dataframe + terms
 function FixedEffect(df::AbstractDataFrame, terms::Terms, sqrtw::AbstractVector{Float64})
     out = FixedEffect[]
     for term in terms.terms
         result = FixedEffect(df, term, sqrtw)
         if isa(result, FixedEffect)
             push!(out, result)
-        else
+        elseif isa(result, Vector{FixedEffect})
             append!(out, result)
+        end
+    end
+    return out
+end
+
+# Constructors from dataframe + symbol
+function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
+    v = df[a]
+    if isa(v, PooledDataVector)
+        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
+    else
+        # x from x*id -> x + id + x&id
+        return nothing
+    end
+end
+
+# Constructors from dataframe + expression
+function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
+    _check(a) || throw("Expression $a shouyld only contain & and variable names")
+    factorvars, interactionvars = _split(df, allvars(a))
+    if isempty(factorvars)
+        # x1&x2 from (x1&x2)*id
+        return nothing
+    end
+    z = group(df, factorvars)
+    interaction = _multiply(df, interactionvars)
+    factorname = _name(factorvars)
+    interactionname = _name(interactionvars)
+    id = _name(allvars(a))
+    l = length(z.pool)
+    return FixedEffect(z.refs, l, sqrtw, interaction, factorname, interactionname, id)
+end
+
+
+function _check(a::Expr)
+    a.args[1] == :& && check(a.args[2]) && check(a.args[3])
+end
+check(a::Symbol) = true
+
+function _name(s::Vector{Symbol})
+    if isempty(s)
+        out = :none
+    else
+        out = convert(Symbol, reduce((x1, x2) -> string(x1)*"x"*string(x2), s))
+    end
+    return out
+end
+
+function _split(df::AbstractDataFrame, ss::Vector{Symbol})
+    catvars, contvars = Symbol[], Symbol[]
+    for s in ss
+        isa(df[s], PooledDataVector) ? push!(catvars, s) : push!(contvars, s)
+    end
+    return catvars, contvars
+end
+
+function _multiply(df, ss::Vector{Symbol})
+    if isempty(ss)
+        out = Ones(size(df, 1))
+    else
+        if isa(df[ss[1]], Vector{Float64})
+            out = deepcopy(df[ss[1]])
+        else
+            out = convert(Vector{Float64}, df[ss[1]])
+        end
+        for i in 2:length(ss)
+            broadcast!(*, out, out, df[ss[i]])
         end
     end
     return out

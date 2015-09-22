@@ -5,6 +5,7 @@ df = dataset("plm", "Cigar")
 df[:id1] = df[:State]
 df[:id2] = df[:Year]
 df[:pid1] = pool(df[:id1])
+df[:ppid1] = pool(div(df[:id1], 10))
 df[:pid2] = pool(df[:id2])
 df[:y] = df[:Sales]
 df[:x1] = df[:Price]
@@ -28,20 +29,21 @@ df[:w] = df[:Pop]
 
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))   [-1.08471] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))    [-0.53470] 1e-4
-
+@test_approx_eq_eps coef(reg(y ~ x1 |> pid1*id2 , df))    [-0.53470] 1e-4
+@test isempty(coef(reg(y ~ 0 |> pid1*x1, df)))
+@test_approx_eq_eps coef(reg(y ~ x1 |> ppid1&pid2 , df))    [-1.44255] 1e-4
 
 @test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df))  [13.993028174622104,-0.5804357763515606] 1e-4
-
 @test_approx_eq_eps  coef(reg(y ~ x1 |> id2&pid1 , df))  [13.993028174622104,-0.5804357763515606] 1e-4
-
 @test_approx_eq_eps  coef(reg(y ~ 1 |> id2&pid1 , df))  [174.4084407796102] 1e-4
 @test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2 + pid2&id1, df))  [51.2358,-0.5797] 1e-4
-
 @test_approx_eq_eps  coef(reg(y ~ x1 + x2 |> pid1&id2 + pid2&id1, df))  [-46.4464,-0.2546, -0.005563] 1e-4
-
 @test_approx_eq_eps  coef(reg(y ~ 0 + x1 + x2 |> pid1&id2 + pid2&id1, df))   [-0.21226562244177932,-0.004775616634862829] 1e-4
 
 
+# recheck these two below
+@test_approx_eq_eps coef(reg(y ~ z1 |> x1&x2&pid1 , df))    [122.98713,0.30933] 1e-4
+@test_approx_eq_eps coef(reg(y ~ z1 |> (x1&x2)*pid1 , df))    [0.421406] 1e-4
 
 
 # absorb + weights
