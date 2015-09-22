@@ -65,7 +65,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     rt = Terms(rf)
     has_weight = weight != nothing
 
-    # check symbols in original formula are all PooledDataArray
+    # check depth 1 symbols in original formula are all PooledDataArray
     if has_absorb
         if isa(f.rhs.args[3], Symbol)
             x = f.rhs.args[3]
