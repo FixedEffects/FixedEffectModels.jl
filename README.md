@@ -55,14 +55,7 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 ```
 
-Categorical variable should be of type PooledDataArray (see [DataFrames documentation](http://dataframesjl.readthedocs.org/en/latest/pooling.html)).  Use the function `pool` to transform one variable into a `PooledDataArray`. 
-
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-df[:YearPooled] =  pool(df[:Year])
-```
+Categorical variable should be of type PooledDataArray (see the [DataFrames doc](http://dataframesjl.readthedocs.org/en/latest/pooling.html)).
 
 
 - Estimate models with an arbitrary number of high dimensional fixed effects.
@@ -125,8 +118,7 @@ df[:YearPooled] =  pool(df[:Year])
   # =====================================================================
   ```
 
-
-- Models with instruments variables are estimated using 2SLS.
+- Estimate models with instruments variables (using 2SLS).
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -146,7 +138,7 @@ df[:YearPooled] =  pool(df[:Year])
   # ======================================================================
   ```
 
-`reg` also supports `weights`, `subset`, and `errors` option. See `?reg`.
+`reg` also supports `weights`, `subset`, and `errors` option. Type `?reg` to learn about these options.
 
 ## Partial out
 
