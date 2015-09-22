@@ -138,7 +138,17 @@ Categorical variable should be of type PooledDataArray (see the [DataFrames doc]
   # ======================================================================
   ```
 
-`reg` also supports `weights`, `subset`, and `errors` option. Type `?reg` to learn about these options.
+`reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
+
+## Errors
+
+Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
+
+```julia
+reg(Sales ~ NDI, df, VcovWhite())
+reg(Sales ~ NDI, df, VcovCluster([:State]))
+reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
+```
 
 ## Partial out
 
