@@ -65,6 +65,18 @@ function reg(f::Formula, df::AbstractDataFrame,
     rt = Terms(rf)
     has_weight = weight != nothing
 
+    # check symbols in original formula are all PooledDataArray
+    if has_absorb
+        if isa(f.rhs.args[3], Symbol)
+            x = f.rhs.args[3]
+            !isa(df[x], PooledDataArray) && error("$x should be PooledDataArray")
+        elseif f.rhs.args[3].args[1] == :+
+            x = f.rhs.args[3].args
+            for i in 2:length(x)
+                isa(x[i], Symbol) && !isa(df[x[i]], PooledDataArray) && error("$(x[i]) should be PooledDataArray")
+            end
+        end
+    end
     ##############################################################################
     ##
     ## Construct new dataframe

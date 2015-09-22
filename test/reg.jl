@@ -94,6 +94,10 @@ model = reg(y ~  x22 + x2 + (x1 = z1), df)
 # catch when IV underidentified 
 @test_throws ErrorException reg(y ~ x1 + (x2 + w = x2), df)
 
+# catch continuous variables in fixed effects
+@test_throws ErrorException reg(y ~ x1 |> x2, df)
+@test_throws ErrorException reg(y ~ x1 |> x2 + pid1, df)
+
 
 ##############################################################################
 ##
