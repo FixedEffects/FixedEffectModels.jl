@@ -64,14 +64,6 @@ df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
 ```
 
-Use `group` to combine multiple variables into a `PooledDataArray`, 
-
-```
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StateYearPooled] = group(df, [:State, :Year])
-```
-
 ##### Fixed effects
 
 - Estimate models with an arbitrary number of high dimensional fixed effects.
@@ -93,6 +85,8 @@ df[:StateYearPooled] = group(df, [:State, :Year])
   # Price  -1.08471 0.0755775 -14.3523    0.000  -1.23298 -0.936445
   # ===============================================================
   ```
+
+
 - Interact fixed effects with continuous variables using `&`
 
   ```julia
@@ -111,6 +105,27 @@ df[:StateYearPooled] = group(df, [:State, :Year])
   # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
   # =====================================================================
   ```
+
+- Combine multiple fixed effects into one group using `&`
+
+  ```julia
+  using DataFrames, RDatasets, FixedEffectModels
+  df = dataset("plm", "Cigar")
+  df[:StatePooled] =  pool(df[:State])
+  df[:DecPooled] =  pool(div(df[:Year], 10))
+  reg(Sales ~ NDI |> StatePooled&DecPooled, df)
+  =====================================================================
+  Number of obs:               1380   Degree of freedom:            185
+  R2:                         0.923   R2 within:                  0.101
+  F-Statistic:              133.916   p-value:                    0.000
+  Iterations:                     1   Converged:                   true
+  =====================================================================
+         Estimate   Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
+  ---------------------------------------------------------------------
+  NDI  -0.0020522 0.000177339 -11.5722    0.000 -0.00240014 -0.00170427
+  =====================================================================
+  ```
+
 
 - Models with instruments variables are estimated using 2SLS.
 
