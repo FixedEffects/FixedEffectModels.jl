@@ -57,9 +57,9 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 
 
 
-- Enter high dimensional terms after the `|>` symbol, with the same syntax as a usual formula.
+- High dimensional categorical variables should enter after the `|>` symbol, using the same syntax as usual.
 
-  Categorical variable should be of type PooledDataArray.
+  Categorical variable must be of type PooledDataArray.
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -101,7 +101,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 
 
 
-  In addition to specifying main effects, it is possible to specify interactions using the `&` operator:
+  In addition to specifying main effects, specify interactions using the `&` operator:
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -120,7 +120,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
   # =====================================================================
   ```
 
-  If you would like to specify both main effects and an interaction term at once, use the `*` operator:
+  Specify both main effects and an interaction term at once using the `*` operator:
   
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
