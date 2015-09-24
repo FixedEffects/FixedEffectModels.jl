@@ -12,7 +12,7 @@
 ## Adapted from the BSD-licensed Matlab implementation at
 ##  http://web.stanford.edu/group/SOL/software/lsmr/
 ##
-## A is anything such that
+## A is a sparse matrix or anything that implements
 ## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
 ## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
 ##############################################################################
@@ -63,7 +63,6 @@ function lsmr!(x, r, A, u, v, h, hbar;
     # Exit if b = 0 or A'b = zero(Float64).
     normAr = α * β
     if normAr == zero(Float64) 
-        A_mul_B!(-1.0, A, x, 1.0, r)
         return 1, true
     end
 
@@ -172,6 +171,7 @@ function lsmr!(x, r, A, u, v, h, hbar;
         # the parameters atol, btol, conlim  to 0.)
         # The effect is equivalent to the normAl tests using
         # atol = eps,  btol = eps,  conlim = one(Float64)/eps.
+        
         if 1 + test3 <= one(Float64) istop = 6; break end
         if 1 + test2 <= one(Float64) istop = 5; break end
         if 1 + t1 <= one(Float64) istop = 4; break end
@@ -181,7 +181,6 @@ function lsmr!(x, r, A, u, v, h, hbar;
         if test2 <= atol istop = 2; break end
         if test1 <= rtol  istop = 1; break end
     end
-    A_mul_B!(-1.0, A, x, 1.0, r)
     return iter, (istop != 7) && (istop != 3)
 end
     

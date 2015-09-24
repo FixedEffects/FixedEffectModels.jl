@@ -24,22 +24,19 @@ function FixedEffectProblem(fes::Vector{FixedEffect})
     return FixedEffectProblem(m, x, v, h, hbar, u)
 end
 
-function lsmr!(x, r, fep::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    lsmr!(x, r, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
-        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
-end
-
-function lsmr!(::Void, r, fep::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
-    fill!(fep.x, zero(Float64))
-    lsmr!(fep.x, r, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
-        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
-end
 
 ##############################################################################
 ##
 ## get residuals
 ##
 ##############################################################################
+function lsmr!(::Void, r, fep::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    fill!(fep.x, zero(Float64))
+    iterations, converged = lsmr!(fep.x, r, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
+        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
+    A_mul_B!(-1.0, fep.m, fep.x, 1.0, r)
+    return iterations, converged
+end
 
 function residualize!(x::AbstractVector{Float64}, fep::FixedEffectProblem, 
                       iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
@@ -68,6 +65,10 @@ end
 ## get fixed effects
 ## 
 ###############################################################################
+function lsmr!(x, r, fep::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    lsmr!(x, r, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
+        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
+end
 
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64};  
                 tol::Real = 1e-8, maxiter::Integer = 100_000)
