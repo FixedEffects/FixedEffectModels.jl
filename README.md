@@ -26,9 +26,9 @@ When a regression model contains high dimensional categorical variables, the des
 
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` by conjugate gradient least squares (with Jacobi preconditioner).
+1. `y, X`  are regressed on `D` by conjugate gradient least squares (more precisely [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) with diagonal preconditioner).
 
-2.  Estimates for `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (Frisch Waugh-Lovell Theorem)
+2.  Estimates for `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
 
 ## result
@@ -39,7 +39,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
   - a set of scalars (number of observations, the degree of freedoms, r2, etc)
   - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
 
-Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The size of `lm` and `glm` models in R (and for now in Julia) is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
+Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 `reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
@@ -57,7 +57,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 
 
 
-- High dimensional categorical variables should enter after the `|>` symbol, using the same syntax as usual.
+- High dimensional categorical variables should enter after the `|>` symbol/
 
   Categorical variable must be of type PooledDataArray.
 
@@ -101,7 +101,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 
 
 
-  In addition to specifying main effects, specify interactions using the `&` operator:
+  In addition to specifying main effects, specify interactions with continuous variables using the `&` operator:
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
