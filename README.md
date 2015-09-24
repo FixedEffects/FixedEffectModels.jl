@@ -26,9 +26,9 @@ When a regression model contains high dimensional categorical variables, the des
 
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` by conjugate gradient least squares (more precisely [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) with diagonal preconditioner).
+1. `y, X`  are regressed on `D` by a conjugate gradient method (more precisely [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) with a diagonal preconditioner).
 
-2.  Estimates for `β` (and their standard errors) are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
+2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
 
 ## result
