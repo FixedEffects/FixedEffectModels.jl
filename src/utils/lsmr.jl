@@ -4,10 +4,10 @@
 ## Minimize ||Ax-b||^2 + λ^2 ||x||^2
 ##
 ## Arguments:
-## x is initial x0. Will equal the solution.
-## r is initial b - Ax0. Will equal the residual b - Ax.
-## u, utmp are storage arrays of length size(A, 1)
-## v, h, hbar, vtmp are storage arrays of length size(A, 2)
+## x is initial x0. Transformed in place to the solution.
+## r is initial b - Ax0
+## u are storage arrays of length size(A, 1) = length(r)
+## v, h, hbar are storage arrays of length size(A, 2) = length(x)
 ## 
 ## Adapted from the BSD-licensed Matlab implementation at
 ##  http://web.stanford.edu/group/SOL/software/lsmr/
@@ -18,41 +18,42 @@
 ##############################################################################
 
 function lsmr!(x, r, A, u, v, h, hbar; 
-    atol = 1e-8, btol = 1e-8, conlim = 1e8, maxiter::Integer=100, λ::Real = zero(Float64))
+    atol::Number = 1e-10, btol::Number = 1e-10, conlim::Number = 1e10, 
+    maxiter::Integer=100, λ::Number = 0)
 
-    conlim > 0.0 ? ctol = 1 / conlim : ctol = zero(Float64)
-
+    conlim > 0 ? ctol = inv(conlim) : ctol = 0
+ 
     # form the first vectors u and v (satisfy  β*u = b,  α*v = A'u)
     copy!(u, r)
     β = norm(u)
-    β > 0 && scale!(u, 1/β)
-    Ac_mul_B!(1.0, A, u, 0.0, v)
+    β > 0 && scale!(u, inv(β))
+    Ac_mul_B!(1, A, u, 0, v)
     α = norm(v)
-    α > 0 && scale!(v, 1/α)
+    α > 0 && scale!(v, inv(α))
 
     # Initialize variables for 1st iteration.
     ζbar = α * β
     αbar = α
-    ρ = one(Float64)
-    ρbar = one(Float64)
-    cbar = one(Float64)
-    sbar = zero(Float64)
+    ρ = 1
+    ρbar = 1
+    cbar = 1
+    sbar = 0
 
     copy!(h, v)
-    fill!(hbar, zero(Float64))
+    fill!(hbar, 0)
 
     # Initialize variables for estimation of ||r||.
     βdd = β
-    βd = zero(Float64)
-    ρdold = one(Float64)
-    τtildeold = zero(Float64)
-    θtilde  = zero(Float64)
-    ζ = zero(Float64)
-    d = zero(Float64)
+    βd = 0
+    ρdold = 1
+    τtildeold = 0
+    θtilde  = 0
+    ζ = 0
+    d = 0
 
     # Initialize variables for estimation of ||A|| and cond(A).
     normA2 = α^2
-    maxrbar = zero(Float64)
+    maxrbar = 0
     minrbar = 1e100
 
     # Items for use in stopping rules.
@@ -60,22 +61,22 @@ function lsmr!(x, r, A, u, v, h, hbar;
     istop = 7
     normr = β
 
-    # Exit if b = 0 or A'b = zero(Float64).
+    # Exit if b = 0 or A'b = 0.
     normAr = α * β
-    if normAr == zero(Float64) 
+    if normAr == 0 
         return 1, true
     end
 
     iter = 0
     while iter < maxiter
         iter += 1
-        A_mul_B!(1.0, A, v, -α, u)
+        A_mul_B!(1, A, v, -α, u)
         β = norm(u)
         if β > 0
-            scale!(u, 1/β)
-            Ac_mul_B!(1.0, A, u, -β, v)
+            scale!(u, inv(β))
+            Ac_mul_B!(1, A, u, -β, v)
             α = norm(v)
-            α > 0 && scale!(v, 1/α)
+            α > 0 && scale!(v, inv(α))
         end
 
         # Construct rotation Qhat_{k,2k+1}.
@@ -104,10 +105,10 @@ function lsmr!(x, r, A, u, v, h, hbar;
 
         # Update h, h_hat, x.
         scale!(hbar, - θbar * ρ / (ρold * ρbarold))
-        axpy!(1.0, h, hbar)
+        axpy!(1, h, hbar)
         axpy!(ζ / (ρ * ρbar), hbar, x)
         scale!(h, - θnew / ρ)
-        axpy!(1.0, v, h)
+        axpy!(1, v, h)
 
         ##############################################################################
         ##
@@ -170,11 +171,11 @@ function lsmr!(x, r, A, u, v, h, hbar;
         # atol, btol or ctol.  (The user may have set any or all of
         # the parameters atol, btol, conlim  to 0.)
         # The effect is equivalent to the normAl tests using
-        # atol = eps,  btol = eps,  conlim = one(Float64)/eps.
+        # atol = eps,  btol = eps,  conlim = 1/eps.
         
-        if 1 + test3 <= one(Float64) istop = 6; break end
-        if 1 + test2 <= one(Float64) istop = 5; break end
-        if 1 + t1 <= one(Float64) istop = 4; break end
+        if 1 + test3 <= 1 istop = 6; break end
+        if 1 + test2 <= 1 istop = 5; break end
+        if 1 + t1 <= 1 istop = 4; break end
 
         # Allow for tolerances set by the user.
         if test3 <= ctol istop = 3; break end

@@ -153,14 +153,14 @@ function fill!(fev::FixedEffectVector, x)
     end
 end
 
-function scale!(fev::FixedEffectVector, α::Float64)
+function scale!(fev::FixedEffectVector, α::Number)
     for i in 1:length(fev._)
         scale!(fev._[i], α)
     end
     return fev
 end
 
-function axpy!(α::Float64, fev1::FixedEffectVector, fev2::FixedEffectVector)
+function axpy!(α::Number, fev1::FixedEffectVector, fev2::FixedEffectVector)
     for i in 1:length(fev1._)
         axpy!(α, fev1._[i], fev2._[i])
     end
@@ -194,14 +194,14 @@ type FixedEffectMatrix
 end
 
 # Define x -> A * x
-function A_mul_B_helper!(α::Float64, fe::FixedEffect, 
+function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64})
     @inbounds @simd for i in 1:length(y)
         y[i] += α * x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function A_mul_B!(α::Float64, fem::FixedEffectMatrix, fev::FixedEffectVector, 
-                β::Float64, y::AbstractVector{Float64})
+function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
+                β::Number, y::AbstractVector{Float64})
     if β == 0.0
         fill!(y, zero(Float64))
     elseif β != 1.0
@@ -214,14 +214,14 @@ function A_mul_B!(α::Float64, fem::FixedEffectMatrix, fev::FixedEffectVector,
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!(α::Float64, fe::FixedEffect, 
+function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
         x[fe.refs[i]] += α * y[i] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
-function Ac_mul_B!(α::Float64, fem::FixedEffectMatrix, 
-                y::AbstractVector{Float64}, β::Float64, fev::FixedEffectVector)
+function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
+                y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
     if β == 0.0
         fill!(fev, zero(Float64))
     elseif β != 1.0
