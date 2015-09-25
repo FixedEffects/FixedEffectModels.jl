@@ -178,8 +178,6 @@ result = reg(y ~ x1 + pid1, df, subset = df[:State] .<= 30)
 @test_approx_eq_eps reg(y ~ CPI + (x1 = z1), df, VcovWhite()).F_kp    2093.46609 1e-4
 @test_approx_eq_eps reg(y ~ (x1 = z1 + CPI), df, VcovWhite()).F_kp  16418.21196 1e-4
 
-
-
 # like in ivreg2 but += 5 difference. there is a degree of freedom difference. not sure where.
 @test_approx_eq_eps reg(y ~ (x1 = z1), df, VcovCluster(:pid1)).F_kp     7249.88606 1e-4
 @test_approx_eq_eps reg(y ~ CPI + (x1 = z1), df, VcovCluster(:pid1)).F_kp   538.40393 1e-4
@@ -220,6 +218,6 @@ df[:w] = df[:Output]
 
 ## the last two ones test an ill conditioned model matrix
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))     [-0.122354] 1e-4
-@test reg(y ~ x1 |> pid1 + pid1&id2 , df).iterations <= 20
+@test reg(y ~ x1 |> pid1 + pid1&id2 , df).iterations <= 22
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w))  [-0.11752306001586807] 1e-4
 @test reg(y ~ x1 |> pid1 + pid1&id2, df, weight = :w).iterations <= 20

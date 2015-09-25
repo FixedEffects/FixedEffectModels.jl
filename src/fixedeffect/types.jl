@@ -8,7 +8,7 @@
 type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
-    scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
+    scale::Vector{Float64}  # ∑ w * interaction^2) within each group
     interaction::I          # the continuous interaction 
     factorname::Symbol      # Name of factor variable 
     interactionname::Symbol # Name of continuous variable in the original dataframe
@@ -31,9 +31,6 @@ function FixedEffect{R <: Integer}(
     @inbounds @simd for i in 1:length(refs)
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
-    @inbounds @simd for i in 1:l
-           scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
-       end
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
 
@@ -175,7 +172,12 @@ function norm(fev::FixedEffectVector)
     return sqrt(out)
 end
 
-
+function map!(f, out::FixedEffectVector,  fev::FixedEffectVector...)
+    for i in 1:length(out._)
+        map!(f, out._[i], map(x -> x._[i], fev)...)
+    end
+    return out
+end
 
 ##############################################################################
 ## 
@@ -197,7 +199,7 @@ end
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64})
     @inbounds @simd for i in 1:length(y)
-        y[i] += α * x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+        y[i] += α * x[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
@@ -217,7 +219,7 @@ end
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
-        x[fe.refs[i]] += α * y[i] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+        x[fe.refs[i]] += α * y[i] * fe.interaction[i] * fe.sqrtw[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
@@ -231,4 +233,11 @@ function Ac_mul_B!(α::Number, fem::FixedEffectMatrix,
         Ac_mul_B_helper!(α, fem._[i], y, fev._[i])
     end
     return fev
+end
+
+# define diag(A'A)
+function colsumabs2!(fev::FixedEffectVector, fem::FixedEffectMatrix)
+    for i in 1:length(fev._)
+        copy!(fev._[i], fem._[i].scale)
+    end
 end
