@@ -7,37 +7,43 @@
 
 type FixedEffectProblem
     m::FixedEffectMatrix
-    fev::NTuple{6, FixedEffectVector}
-    b::Vector{Float64}
+    x::FixedEffectVector
+    v::FixedEffectVector
+    h::FixedEffectVector
+    hbar::FixedEffectVector
+    u::Vector{Float64}
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect})
     m = FixedEffectMatrix(fes)
-    fev = (FixedEffectVector(fes), FixedEffectVector(fes), FixedEffectVector(fes), 
-            FixedEffectVector(fes), FixedEffectVector(fes), FixedEffectVector(fes))
-    b = Array(Float64, length(fes[1].refs))
-    return FixedEffectProblem(m, NTuple(fev), b)
+    x = FixedEffectVector(fes)
+    v = FixedEffectVector(fes)
+    h = FixedEffectVector(fes)
+    hbar = FixedEffectVector(fes)
+    u = Array(Float64, length(fes[1].refs))
+    return FixedEffectProblem(m, x, v, h, hbar, u)
 end
+
 
 ##############################################################################
 ##
 ## get residuals
 ##
 ##############################################################################
+function lsmr!(::Void, r, fep::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    fill!(fep.x, zero(Float64))
+    iterations, converged = lsmr!(fep.x, r, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
+        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
+    A_mul_B!(-1.0, fep.m, fep.x, 1.0, r)
+    return iterations, converged
+end
 
-function residualize!(y::AbstractVector{Float64}, fep::FixedEffectProblem, 
+function residualize!(x::AbstractVector{Float64}, fep::FixedEffectProblem, 
                       iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
                       maxiter::Int = 1000, tol::Float64 = 1e-8)
-    x, normalization, tmp, v, h, hbar = fep.fev
-    fill!(x, zero(Float64))
-    b = fep.b
-    copy!(b, y)
-    lls = LinearLeastSquares(x, b, fep.m)
-    alls = LinearLeastSquaresAllocated(lls, NTuple((normalization, tmp, v, h, hbar))) 
-    result = optimize!(alls, atol = tol, btol = tol, iterations = maxiter)
-    A_mul_B!(-1.0, fep.m, x, 1.0, y)
-    push!(iterationsv, result.iterations)
-    push!(convergedv, result.converged)
+    iterations, converged = lsmr!(nothing, x, fep;  maxiter = maxiter, tol = tol)
+    push!(iterationsv, iterations)
+    push!(convergedv, converged)
 end
 
 function residualize!(X::Matrix{Float64}, fep::FixedEffectProblem, 
@@ -59,28 +65,34 @@ end
 ## get fixed effects
 ## 
 ###############################################################################
+function lsmr!(x, r, fep::FixedEffectProblem; tol::Real=1e-8, maxiter::Integer=1000)
+    lsmr!(x, r, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
+        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
+end
 
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64};  
-                tol::Real = 1e-8, maxiter::Integer = 100_000) 
-
+                tol::Real = 1e-8, maxiter::Integer = 100_000)
+    
     # solve Ax = b
-    x, normalization, tmp, v, h, hbar = fep.fev
-    fill!(x, zero(Float64))
-    lls = LinearLeastSquares(x, b, fep.m)
-    alls = LinearLeastSquaresAllocated(lls, NTuple((normalization, tmp, v, h, hbar)))
-    result = optimize!(alls, atol = tol, btol = tol, iterations = maxiter)
-    if !result.converged 
+    fes = fep.m._
+    fev = FixedEffectVector(fes)
+    fill!(fev, zero(Float64))
+    iterations, converged = lsmr!(fev, b, fep; tol = tol, maxiter = maxiter)
+    if !converged 
        warn("getfe did not converge")
+    end
+    for i in 1:length(fev._)
+        broadcast!(*, fev._[i], fev._[i], fep.m._[i].scale)
     end
 
     # The solution is generally not unique. Find connected components and scale accordingly
-    findintercept = find(fe -> isa(fe.interaction, Ones), fep.m._)
+    findintercept = find(fe -> isa(fe.interaction, Ones), fes)
     if length(findintercept) >= 2
-        components = connectedcomponent(sub(fep.m._, findintercept))
-        rescale!(x, fep, findintercept, components)
+        components = connectedcomponent(sub(fes, findintercept))
+        rescale!(fev, fep, findintercept, components)
     end
 
-    return x
+    return fev
 end
 
 # Convert estimates to dataframes 
