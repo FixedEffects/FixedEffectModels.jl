@@ -57,7 +57,6 @@ function shat!{T}(v::VcovClusterData, x::VcovData{T, 1})
 end
 
 function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
-    refs = f.refs
     if fsize == size(Xu, 1)
         # if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
         return At_mul_B(Xu, Xu)
@@ -66,7 +65,7 @@ function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
         X2 = fill(zero(Float64), (fsize, size(Xu, 2)))
         for j in 1:size(Xu, 2)
              @inbounds @simd for i in 1:size(Xu, 1)
-                X2[refs[i], j] += Xu[i, j]
+                X2[f.refs[i], j] += Xu[i, j]
             end
         end
         out = At_mul_B(X2, X2)
@@ -106,7 +105,6 @@ end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_g (\sum_{i in g} X[i, k] res[i, l]) (\sum_{i in g} X[i, k'] res[i, l'])
 function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int)
-    refs = f.refs
     dim = size(X, 2) * size(res, 2)
     nobs = size(X, 1)
     S = fill(zero(Float64), (dim, dim))
@@ -125,7 +123,7 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataV
         @inbounds for l in 1:size(res, 2), k in 1:size(X, 2)
             index += 1
             @simd for i in 1:nobs
-                temp[refs[i], index] += X[i, k] * res[i, l]
+                temp[f.refs[i], index] += X[i, k] * res[i, l]
             end
         end
         S = At_mul_B(temp, temp)

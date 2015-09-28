@@ -110,10 +110,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     
     # Compute residuals
     if length(xvars) > 0 || xt.intercept
-        H = At_mul_B(X, X)
-        H = inv(cholfact!(H))
-        coef = H * (At_mul_B(X, Y))
-        residuals = Y - X * coef
+        residuals = Y - X * (X \ Y)
     else
         residuals = Y
     end
