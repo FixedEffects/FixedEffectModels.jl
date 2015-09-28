@@ -1,4 +1,3 @@
-
 """
 Estimate a linear model with high dimensional categorical variables / instrumental variables
 
