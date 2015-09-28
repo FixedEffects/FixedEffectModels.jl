@@ -236,26 +236,4 @@ function lsmr!(x, A, b, v, h, hbar;
     return x, ch
 end
 
-## Arguments:
-## x is initial x0. Transformed in place to the solution.
-function lsmr!(x, A, b; kwargs...)
-    T = Adivtype(A, b)
-    m, n = size(A, 1), size(A, 2)
-    btmp = similar(b, T)
-    copy!(btmp, b)
-    v, h, hbar = similar(x, T), similar(x, T), similar(x, T)
-    lsmr!(x, A, btmp, v, h, hbar; kwargs...)
-end
-
-function lsmr(A, b; kwargs...)
-    lsmr!(zerox(A, b), A, b; kwargs...)
-end
-
-for (name, symbol) in ((:Ac_mul_B!, 'T'), (:A_mul_B!, 'N'))
-    @eval begin
-        function Base.$name(α::Number, A::StridedVecOrMat, x::AbstractVector, β::Number, y::AbstractVector)
-            BLAS.gemm!($symbol, 'N', convert(eltype(y), α), A, x, convert(eltype(y), β), y)
-        end
-    end
-end
 
