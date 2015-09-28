@@ -132,6 +132,7 @@ type FixedEffectVector
     _::Vector{Vector{Float64}}
 end
 
+
 function FixedEffectVector(fes::Vector{FixedEffect})
     out = Vector{Float64}[]
     for fe in fes
@@ -139,6 +140,8 @@ function FixedEffectVector(fes::Vector{FixedEffect})
     end
     return FixedEffectVector(out)
 end
+
+length(fev::FixedEffectVector) = reduce(+, map(length, fev._))
 
 function copy!(fev2::FixedEffectVector, fev1::FixedEffectVector)
     for i in 1:length(fev1._)
@@ -191,7 +194,18 @@ end
 
 type FixedEffectMatrix
     _::Vector{FixedEffect}
+    m::Int
+    n::Int
 end
+
+function FixedEffectMatrix(fev::Vector{FixedEffect})
+    m = length(fev[1].refs)
+    n = reduce(+, map(x -> length(x.scale),  fev))
+    return FixedEffectMatrix(fev, m, n)
+end
+eltype(fem::FixedEffectMatrix) = Float64
+size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
+                                            (dim == 2) ? fem.n : 1
 
 # Define x -> A * x
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
