@@ -32,7 +32,7 @@ function shat!{T}(v::VcovClusterData, x::VcovData{T, 1})
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors
-    Xu = scale!(x.residuals,  X)
+    broadcast!(*, X, X, x.residuals)
     S = fill(zero(Float64), (size(X, 2), size(X, 2)))
     for i in 1:length(clusternames)
         for c in combinations(clusternames, i)
@@ -46,9 +46,9 @@ function shat!{T}(v::VcovClusterData, x::VcovData{T, 1})
                 fsize = length(f.pool)
             end
             if rem(length(c), 2) == 1
-                S += helper_cluster(Xu, f, fsize)
+                S += helper_cluster(X, f, fsize)
             else
-                S -= helper_cluster(Xu, f, fsize)
+                S -= helper_cluster(X, f, fsize)
             end
         end
     end
