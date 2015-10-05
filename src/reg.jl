@@ -318,26 +318,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
     # Compute Fstat
-    coefF = deepcopy(coef)
-    matrix_vcovF = matrix_vcov
-    if length(coef) == rt.intercept
-        # TODO: check I can't do better
-        F = NaN
-        p = NaN
-    else
-        if rt.intercept && length(coef) > 1
-            coefF = coefF[2:end]
-            matrix_vcovF = matrix_vcovF[2:end, 2:end]
-        end
-        F = (diagm(coefF)' * (matrix_vcovF \ diagm(coefF)))[1]
-        if typeof(vcov_method) == VcovCluster 
-            df_ans = minimum(values(vcov_method_data.size)) - 1
-        else
-            df_ans =  df_residual - df_intercept
-        end
-        p = ccdf(FDist(nobs - df_intercept, max(df_ans, 1)), F)
-    end
-
+    (F, p) = compute_Fstat(coef, matrix_vcov, nobs, rt.intercept, vcov_method_data, vcov_data)
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
@@ -415,3 +396,20 @@ function getcols(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}}, basecolX
     end
     return Xnew
 end
+
+function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
+    nobs::Int, hasintercept::Bool, 
+    vcov_method_data::AbstractVcovMethodData, vcov_data::VcovData)
+    coefF = deepcopy(coef)
+    # TODO: check I can't do better
+    length(coef) == hasintercept && return NaN, NaN
+    if hasintercept && length(coef) > 1
+        coefF = coefF[2:end]
+        matrix_vcov = matrix_vcov[2:end, 2:end]
+    end
+    F = (diagm(coefF)' * (matrix_vcov \ diagm(coefF)))[1]
+    df_ans = df_FStat(vcov_method_data, vcov_data, hasintercept)
+    dist = FDist(nobs - hasintercept, max(df_ans, 1))
+    return F, ccdf(dist, F)
+end
+

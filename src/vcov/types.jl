@@ -52,3 +52,4 @@ abstract AbstractVcovMethodData
 # utilities
 
 sandwich(H, S::Matrix{Float64}) = H \ S * inv(H)
+df_FStat(::AbstractVcovMethodData, x::VcovData, hasintercept::Bool) = x.df_residual - hasintercept

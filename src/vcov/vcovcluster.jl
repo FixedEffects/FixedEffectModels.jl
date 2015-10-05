@@ -24,6 +24,9 @@ function VcovMethodData(v::VcovCluster, df::AbstractDataFrame)
     return VcovClusterData(vclusters, vsize)
 end
 
+df_FStat(v::VcovClusterData, ::VcovData, ::Bool) = minimum(values(v.size)) - 1
+
+
 function vcov!(v::VcovClusterData, x::VcovData)
     S = shat!(v, x)
     return sandwich(x.crossmatrix, S)
