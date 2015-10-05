@@ -145,14 +145,9 @@ function reg(f::Formula, df::AbstractDataFrame,
     ##
     ##############################################################################
 
-    # Compute X
     mf = simpleModelFrame(subdf, rt, esample)
-    coef_names = coefnames(mf)
-    Xexo = ModelMatrix(mf).m
-    broadcast!(*, Xexo, Xexo, sqrtw)
-    residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
-    # Compute y
+    # Obtain y
     py = model_response(mf)[:]
     if eltype(py) != Float64
         y = convert(py, Float64)
@@ -164,10 +159,18 @@ function reg(f::Formula, df::AbstractDataFrame,
     # old y will be used if fixed effects
     if has_absorb
         oldy = deepcopy(y)
+    else
+        oldy = y
     end
     residualize!(y, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
-    # Compute Xendo and Z
+    # Obtain X
+    coef_names = coefnames(mf)
+    Xexo = ModelMatrix(mf).m
+    broadcast!(*, Xexo, Xexo, sqrtw)
+    residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
+
+    # Obtain Xendo and Z
     if has_iv
         mf = simpleModelFrame(subdf, endo_terms, esample)
         coef_names = vcat(coef_names, coefnames(mf))
@@ -177,15 +180,21 @@ function reg(f::Formula, df::AbstractDataFrame,
         
         mf = simpleModelFrame(subdf, iv_terms, esample)
         Z = ModelMatrix(mf).m
-        if size(Z, 2) < size(Xendo, 2)
-            error("Model not identified. There must be at least as many ivs as endogeneneous variables")
-        end
         broadcast!(*, Z, Z, sqrtw)
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
     end
 
+    ##############################################################################
+    ##
+    ## Regression
+    ##
+    ##############################################################################
+
     # Compute Xhat
     if has_iv
+        if size(Z, 2) < size(Xendo, 2)
+            error("Model not identified. There must be at least as many ivs as endogeneneous variables")
+        end
         # get liearly independent columns
         allqr = qrfact!(hcat(Xendo, Xexo, Z))
         baseall= basecol(allqr)
@@ -233,82 +242,17 @@ function reg(f::Formula, df::AbstractDataFrame,
         converged = all(converged)
     end
 
-    ##############################################################################
-    ##
-    ## Regression
-    ##
-    ##############################################################################
 
     # Compute coef and residuals
     crossx =  cholfact!(At_mul_B(Xhat, Xhat))
     coef = crossx \ At_mul_B(Xhat, y)
-
-    ##############################################################################
-    ##
-    ## Statistics
-    ##
-    ##############################################################################
-
     residuals = y - X * coef
 
-    # Compute degrees of freedom
-    df_intercept = 0
-    if has_absorb || rt.intercept
-        df_intercept = 1
-    end
-    df_absorb = 0
-    if has_absorb 
-        ## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
-        for fe in fixedeffects
-            if typeof(vcov_method) == VcovCluster && in(fe.factorname, vcov_vars)
-                df_absorb += 0
-                else
-                df_absorb += sum(fe.scale .!= zero(Float64))
-            end
-        end
-    end
-    nobs = size(X, 1)
-    df_residual = max(1, size(X, 1) - size(X, 2) - df_absorb - df_add)
-
-    # Compute ess, tss, r2, r2 adjusted
-    ess = sumabs2(residuals)
-    if has_absorb
-        tss = compute_tss(y, rt.intercept, sqrtw)
-        r2_within = 1 - ess / tss 
-        tss = compute_tss(oldy, has_intercept, sqrtw)
-        r2 = 1 - ess / tss 
-        r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
-    else    
-        tss = compute_tss(y, has_intercept, sqrtw)
-        r2 = 1 - ess / tss 
-        r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
-    end
-
-    # Compute standard error
-    vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
-    matrix_vcov = vcov!(vcov_method_data, vcov_data)
-
-    # Compute Fstat
-    coefF = deepcopy(coef)
-    matrix_vcovF = matrix_vcov
-    if (rt.intercept && length(coef)== 1)  || length(coef) == 0
-        # TODO: check I can't do better
-        F = NaN
-        p = NaN
-    else
-        if rt.intercept && length(coef) > 1
-            coefF = coefF[2:end]
-            matrix_vcovF = matrix_vcovF[2:end, 2:end]
-        end
-        F = diagm(coefF)' * (matrix_vcovF \ diagm(coefF))
-        F = F[1] 
-        if typeof(vcov_method) == VcovCluster 
-            nclust = minimum(values(vcov_method_data.size))
-            p = ccdf(FDist(size(X, 1) - df_intercept, nclust - 1), F)
-        else
-            p = ccdf(FDist(size(X, 1) - df_intercept, max(df_residual - df_intercept, 1)), F)
-        end    
-    end
+    ##############################################################################
+    ##
+    ## Save
+    ##
+    ##############################################################################
 
     # save residuals in a new dataframe
     augmentdf = DataFrame()
@@ -333,12 +277,80 @@ function reg(f::Formula, df::AbstractDataFrame,
         end
     end
 
-    # Compute Fstat first stage based on Kleibergen-Paap
+    ##############################################################################
+    ##
+    ## Test Statistics
+    ##
+    ##############################################################################
+
+    # Compute degrees of freedom
+    df_intercept = 0
+    if has_absorb || rt.intercept
+        df_intercept = 1
+    end
+    df_absorb = 0
+    if has_absorb 
+        ## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
+        for fe in fixedeffects
+            if typeof(vcov_method) == VcovCluster && in(fe.factorname, vcov_vars)
+                df_absorb += 0
+                else
+                df_absorb += sum(fe.scale .!= zero(Float64))
+            end
+        end
+    end
+    nobs = size(X, 1)
+    nvars = size(X, 2)
+    df_residual = max(1, nobs - nvars - df_absorb - df_add)
+
+    # Compute ess, tss, r2, r2 adjusted
+    ess = sumabs2(residuals)
+    if has_absorb
+        tss = compute_tss(y, rt.intercept, sqrtw)
+        r2_within = 1 - ess / tss 
+    end
+    tss = compute_tss(oldy, has_intercept, sqrtw)
+    r2 = 1 - ess / tss 
+    r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
+
+    # Compute standard error
+    vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
+    matrix_vcov = vcov!(vcov_method_data, vcov_data)
+
+    # Compute Fstat
+    coefF = deepcopy(coef)
+    matrix_vcovF = matrix_vcov
+    if length(coef) == rt.intercept
+        # TODO: check I can't do better
+        F = NaN
+        p = NaN
+    else
+        if rt.intercept && length(coef) > 1
+            coefF = coefF[2:end]
+            matrix_vcovF = matrix_vcovF[2:end, 2:end]
+        end
+        F = (diagm(coefF)' * (matrix_vcovF \ diagm(coefF)))[1]
+        if typeof(vcov_method) == VcovCluster 
+            df_ans = minimum(values(vcov_method_data.size)) - 1
+        else
+            df_ans =  df_residual - df_intercept
+        end
+        p = ccdf(FDist(nobs - df_intercept, max(df_ans, 1)), F)
+    end
+
+    # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip, 
-                                  vcov_method_data, size(X, 2), df_absorb)
+                                  vcov_method_data, nvars, df_absorb)
     end
+
+
+    ##############################################################################
+    ##
+    ## Return
+    ##
+    ##############################################################################
 
     # add omitted variables
     if !all(basecoef) 

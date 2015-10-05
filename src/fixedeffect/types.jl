@@ -140,6 +140,7 @@ function FixedEffectVector(fes::Vector{FixedEffect})
     end
     return FixedEffectVector(out)
 end
+eltype(fem::FixedEffectVector) = Float64
 
 length(fev::FixedEffectVector) = reduce(+, map(length, fev._))
 
@@ -216,11 +217,7 @@ function A_mul_B_helper!(α::Number, fe::FixedEffect,
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
                 β::Number, y::AbstractVector{Float64})
-    if β == 0.0
-        fill!(y, zero(Float64))
-    elseif β != 1.0
-        scale!(y, β)
-    end
+    safe_scale!(y, β)
     for i in 1:length(fev._)
         A_mul_B_helper!(α, fem._[i], fev._[i], y)
     end
@@ -236,13 +233,18 @@ function Ac_mul_B_helper!(α::Number, fe::FixedEffect,
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
                 y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
-    if β == 0.0
-        fill!(fev, zero(Float64))
-    elseif β != 1.0
-        scale!(fev, β)
-    end
+   safe_scale!(fev, β)
     for i in 1:length(fev._)
         Ac_mul_B_helper!(α, fem._[i], y, fev._[i])
     end
     return fev
 end
+
+
+function safe_scale!(x, β)
+    if β != 1
+        β == 0 ? fill!(x, zero(eltype(x))) : scale!(x, β)
+    end
+end
+
+
