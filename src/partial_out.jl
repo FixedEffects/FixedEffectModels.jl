@@ -56,7 +56,6 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     esample = complete_cases(df[all_vars])
     if weight != nothing
         esample &= isnaorneg(df[weight])
-        all_vars = unique(vcat(all_vars, weight))
     end
     subdf = df[esample, all_vars]
     all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
@@ -65,7 +64,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     end
 
     # Compute weight vector
-    sqrtw = get_weight(subdf, weight)
+    sqrtw = get_weight(df, esample, weight)
 
     # initialize iterations & converged
     iterations = Int[]

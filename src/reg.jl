@@ -93,9 +93,9 @@ function reg(f::Formula, df::AbstractDataFrame,
     all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = complete_cases(df[all_vars])
+
     if has_weight
         esample &= isnaorneg(df[weight])
-        all_vars = unique(vcat(all_vars, weight))
     end
     if subset != nothing
         if length(subset) != size(df, 1)
@@ -103,10 +103,14 @@ function reg(f::Formula, df::AbstractDataFrame,
         end
         esample &= convert(BitArray, subset)
     end
-    subdf = df[esample, all_vars]
-    (size(subdf, 1) > 0) || error("sample is empty")
+    nobs = sum(esample)
+    (nobs > 0) || error("sample is empty")
+
+    # Compute weight
+    sqrtw = get_weight(df, esample, weight)
 
     # remove unusued levels
+    subdf = df[esample, all_vars]
     main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
     for v in main_vars
         # in case subdataframe, don't construct subdf[v] if you dont need to do it
@@ -114,9 +118,6 @@ function reg(f::Formula, df::AbstractDataFrame,
             dropUnusedLevels!(subdf[v])
         end
     end
-
-    # Compute weight
-    sqrtw = get_weight(subdf, weight)
 
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
@@ -299,7 +300,6 @@ function reg(f::Formula, df::AbstractDataFrame,
             end
         end
     end
-    nobs = size(X, 1)
     nvars = size(X, 2)
     df_residual = max(1, nobs - nvars - df_absorb - df_add)
 

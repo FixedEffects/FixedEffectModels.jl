@@ -17,8 +17,14 @@ Base.linearindexing(::Type{Ones}) = Base.LinearFast()
 Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
 
 
-get_weight(df::AbstractDataFrame, weight::Symbol) = map!(sqrt, df[weight])
-get_weight(df::AbstractDataFrame, ::Void) = Ones(size(df, 1))
+function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
+	out = df[esample, weight]
+	# there are no NA in it. DataVector to Vector
+	out = convert(Vector{Float64}, out)
+	map!(sqrt, out, out)
+	return out
+end
+get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones(sum(esample))
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
 	if hasintercept
