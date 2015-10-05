@@ -11,9 +11,9 @@ end
 
 Base.size(O::Ones) = O.length
 
-Base.getindex(::Ones, i::Int...) = 1.0
-Base.unsafe_getindex(::Ones, i::Int...) = 1.0
-
+@inline Base.getindex(::Ones, i::Int...) = 1.0
+@inline Base.unsafe_getindex(::Ones, i::Int...) = 1.0
+Base.linearindexing(::Type{Ones}) = Base.LinearFast()
 Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
 
 

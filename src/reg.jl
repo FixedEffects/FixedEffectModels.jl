@@ -196,7 +196,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         # get liearly independent columns
-        allqr = qrfact!(hcat(Xendo, Xexo, Z))
+        allqr = qrfact!(hcat(Xendo, Xexo, Z), Val{false})
         baseall= basecol(allqr)
         allqr = nothing
         basecolXendo = baseall[1:size(Xendo, 2)]
@@ -319,13 +319,13 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     # Compute Fstat
     (F, p) = compute_Fstat(coef, matrix_vcov, nobs, rt.intercept, vcov_method_data, vcov_data)
+
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip, 
                                   vcov_method_data, nvars, df_absorb)
     end
-
 
     ##############################################################################
     ##
@@ -370,8 +370,8 @@ function reg(f::Formula, df::AbstractDataFrame,
 end
 
 
-function basecol(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}})
-    R = diag(QR[:R])
+function basecol(QR::Base.LinAlg.QRCompactWY)
+    R = diag(QR.factors)
     return Bool[abs(r) >= abs(R[1]) * 1e-10 for r in R]
 end
 
@@ -383,18 +383,8 @@ function getcols(X::Matrix{Float64},  basecolX::Vector{Bool})
     end
 end
 
-function getcols(QR::Base.LinAlg.QRCompactWY{Float64,Array{Float64,2}}, basecolX::Vector{Bool})
-    Q = QR[:Q]
-    R = QR[:R]
-    Xnew = Array(Float64, size(QR, 1), sum(basecolX))
-    idx = 0
-    for i in 1:size(QR, 2)
-        if basecolX[i]
-            idx += 1
-            Xnew[:, idx] = Q * slice(R, :, i)
-        end
-    end
-    return Xnew
+function getcols(QR::Base.LinAlg.QRCompactWY, basecolX::Vector{Bool})
+    LAPACK.gemqrt!('L','N', QR.factors, QR.T, triu!(QR.factors[:, basecolX]))
 end
 
 function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
