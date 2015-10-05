@@ -10,6 +10,7 @@ y= 3 .* x1 .+ 5 .* x2 .+ cos(id1) .+ cos(id2).^2 .+ randn(N)
 df = DataFrame(id1 = pool(id1), id2 = pool(id2), x1 = x1, x2 = x2, w = w, y = y)
 @time reg(y ~ x1 + x2, df)
 # 1.258554 seconds (723 allocations: 1.205 GB, 18.70% gc time)
+#852MB to obtain the matrix etc, and then 1.205 for Regressions part
 @time reg(y ~ x1 + x2, df, VcovCluster(:id2))
 #  1.569679 seconds (843 allocations: 1.293 GB, 25.21% gc time)
 @time reg(y ~ x1 + x2 |> id1, df)

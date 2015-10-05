@@ -17,7 +17,7 @@ Base.linearindexing(::Type{Ones}) = Base.LinearFast()
 Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
 
 
-get_weight(df::AbstractDataFrame, weight::Symbol) = convert(Vector{Float64}, sqrt(df[weight]))
+get_weight(df::AbstractDataFrame, weight::Symbol) = map!(sqrt, df[weight])
 get_weight(df::AbstractDataFrame, ::Void) = Ones(size(df, 1))
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
