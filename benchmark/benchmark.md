@@ -31,6 +31,14 @@ Code to reproduce this graph:
   # 4.118974 seconds (20.00 M allocations: 1.018 GB, 9.60% gc time)
   ````
 
+  Additionally, `FixedEffectModels` can use a sparse matrix factorization
+  ```julia
+  @time reg(y ~ x1 + x2 |> id1 + id2, df, method = :cholfact)
+  # 21.603901 seconds (200.51 M allocations: 7.460 GB, 6.16% gc time)
+  @time reg(y ~ x1 + x2 |> id1 + id2, df, method = :qrfact)
+  # 120.274748 seconds (199.94 M allocations: 23.713 GB, 1.35% gc time)
+  ```
+
   R (lfe package)
   ```R
   library(lfe)

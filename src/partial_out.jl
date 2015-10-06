@@ -10,7 +10,7 @@ Partial out variables
 * `subset` : AbstractVector{Bool} for subsample
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent).Other choices are :qr and :cholfact (factorization methods)
+* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qrfact and :cholfact (factorization methods)
 
 ### Returns
 * `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -36,7 +36,7 @@ plot(
 function partial_out(f::Formula, df::AbstractDataFrame; 
                      add_mean = false, weight::Union{Symbol, Void} = nothing,
                      maxiter::Integer = 10000, tol::Real = 1e-8,
-                     method::Union{Type{Val{:lsmr}}, Type{Val{:cholfact}}} = Val{:lsmr})
+                     method::Symbol = :lmsr)
 
 
     rf = deepcopy(f)
@@ -79,7 +79,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             xt.intercept = false
         end
-        pfe = FixedEffectProblem(fixedeffects, method)
+        pfe = FixedEffectProblem(fixedeffects, Val{method})
     else
         pfe = nothing
     end

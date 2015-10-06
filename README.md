@@ -28,7 +28,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 
 1. `y, X`  are regressed on `D` by one of these methods
   - iterative method with `method = :lsmr` (more precisely [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) with a diagonal preconditioner).
-  - factorization with `method = :cholfact` or `method = :qr`. This sparse factorization method is generally slower, but tends to work well in hard situations for the conjugate gradient method.
+  - factorization with `method = :cholfact` or `method = :qrfact`. This sparse factorization method is generally slower, but tends to work well in hard situations for the conjugate gradient method.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 

@@ -57,21 +57,21 @@ end
 ##
 ##############################################################################
 
-type QRFixedEffectProblem <: FixedEffectProblem
+type QRfactFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
     qr::Base.SparseMatrix.SPQR.Factorization{Float64}
     b::Vector{Float64}
 end
 
-function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
+function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qrfact}})
     m = sparse(fes)
     qr = qrfact(m)
     b = Array(Float64, length(fes[1].refs))
-    return QRFixedEffectProblem(fes, m, qr, b)
+    return QRfactFixedEffectProblem(fes, m, qr, b)
 end
 
-function solve!(fep::QRFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
+function solve!(fep::QRfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
     copy!(fep.b, r)
     fep.qr \ fep.b
 end
@@ -104,7 +104,7 @@ function Base.sparse(fes::Vector{FixedEffect})
 end
 
 # updates r as the residual of the projection of r on A
-function solve_residuals!(fep::Union{CholfactFixedEffectProblem, QRFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
+function solve_residuals!(fep::Union{CholfactFixedEffectProblem, QRfactFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
     x = solve!(fep, r; kwargs...)
     A_mul_B!(-1.0, fep.m, x, 1.0, r)
     return r, 1, true
@@ -113,7 +113,7 @@ end
 # solves A'Ax = A'r
 # transform x from Vector{Float64} (stacked vector of coefficients) 
 # to Vector{Vector{Float64}} (vector of coefficients for each categorical variable)
-function solve_coefficients!(fep::Union{CholfactFixedEffectProblem, QRFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
+function solve_coefficients!(fep::Union{CholfactFixedEffectProblem, QRfactFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
     x = solve!(fep, r; kwargs...)
     out = Vector{Float64}[]
     iend = 0
@@ -125,5 +125,5 @@ function solve_coefficients!(fep::Union{CholfactFixedEffectProblem, QRFixedEffec
     return out, 1, true
 end
 
-get_fes(fep::Union{CholfactFixedEffectProblem, QRFixedEffectProblem}) = fep.fes
+get_fes(fep::Union{CholfactFixedEffectProblem, QRfactFixedEffectProblem}) = fep.fes
 
