@@ -69,7 +69,7 @@ include("fixedeffect/solve.jl")
 
 
 include("fixedeffect/solve_lsmr.jl")
-include("fixedeffect/solve_cholfact.jl")
+include("fixedeffect/solve_factorization.jl")
 
 
 include("vcov/types.jl")

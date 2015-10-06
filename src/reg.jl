@@ -10,7 +10,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `save` : SHould residuals and eventual estimated fixed effects saved in a dataframe?
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Another choice is :cholfact (factorization method)
+* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholfact (factorization methods)
 
 
 ### Returns

@@ -10,7 +10,7 @@ Partial out variables
 * `subset` : AbstractVector{Bool} for subsample
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Another choice is :cholfact (factorization method)
+* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent).Other choices are :qr and :cholfact (factorization methods)
 
 ### Returns
 * `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
