@@ -210,22 +210,22 @@ df[:w] = df[:Output]
 
 for method in [:cholfact, :lsmr]
 	# absorb
-	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, method = Val{method}))  [-0.11981270017206136] 1e-4
-	@test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df, method = Val{method}))   [-315.0000747500431,-0.07633636891202833] 1e-4
+	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, method = method))  [-0.11981270017206136] 1e-4
+	@test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df, method = method))   [-315.0000747500431,-0.07633636891202833] 1e-4
 	#
-	@test_approx_eq_eps  coef(reg(y ~ x1 |> id2&pid1 , df, method = Val{method}))   [-315.0000747500431,-0.07633636891202833] 1e-4
+	@test_approx_eq_eps  coef(reg(y ~ x1 |> id2&pid1 , df, method = method))   [-315.0000747500431,-0.07633636891202833] 1e-4
 
-	@test_approx_eq_eps  coef(reg(y ~ 1 |> id2&pid1 , df, method = Val{method}))   [-356.40430526316396] 1e-4
-	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, method = Val{method}, weight = :w))  [-0.11514363590574725] 1e-4
+	@test_approx_eq_eps  coef(reg(y ~ 1 |> id2&pid1 , df, method = method))   [-356.40430526316396] 1e-4
+	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, method = method, weight = :w))  [-0.11514363590574725] 1e-4
 
 	# absorb + weights
-	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df, method = Val{method}))    [-0.04683333721137311] 1e-4
-	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df, method = Val{method},  weight = :w))   [-0.043475472188120416] 1e-3
+	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df, method = method))    [-0.04683333721137311] 1e-4
+	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df, method = method,  weight = :w))   [-0.043475472188120416] 1e-3
 
 	## the last two ones test an ill conditioned model matrix
-	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df, method = Val{method}))     [-0.122354] 1e-4
-	@test reg(y ~ x1 |> pid1 + pid1&id2 , df, method = Val{method}).iterations <= 20
-	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, method = Val{method}, weight = :w))  [-0.11752306001586807] 1e-4
-	@test reg(y ~ x1 |> pid1 + pid1&id2, df, method = Val{method}, weight = :w).iterations <= 20
+	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df, method = method))     [-0.122354] 1e-4
+	@test reg(y ~ x1 |> pid1 + pid1&id2 , df, method = method).iterations <= 20
+	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, method = method, weight = :w))  [-0.11752306001586807] 1e-4
+	@test reg(y ~ x1 |> pid1 + pid1&id2, df, method = method, weight = :w).iterations <= 20
 end
 
