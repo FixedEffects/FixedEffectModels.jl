@@ -36,7 +36,7 @@ plot(
 function partial_out(f::Formula, df::AbstractDataFrame; 
                      add_mean = false, weight::Union{Symbol, Void} = nothing,
                      maxiter::Integer = 10000, tol::Real = 1e-8,
-                     method::Symbol = :lmsr)
+                     method::Symbol = :lsmr)
 
 
     rf = deepcopy(f)
