@@ -208,7 +208,7 @@ df[:x1] = df[:Emp]
 df[:w] = df[:Output]
 
 
-for method in [:cholfact, :qr, :lsmr]
+for method in [:cholfact, :qrfact, :lsmr]
 	# absorb
 	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df, method = method))  [-0.11981270017206136] 1e-4
 	@test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df, method = method))   [-315.0000747500431,-0.07633636891202833] 1e-4
