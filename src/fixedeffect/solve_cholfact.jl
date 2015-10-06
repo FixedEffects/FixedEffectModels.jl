@@ -38,24 +38,22 @@ get_fes(fep::CholfactFixedEffectProblem) = fep.fes
 
 
 # solves A'Ax = A'r
-function solve!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64}, ; tol = tol::Real = 1e-8, maxiter = maxiter::Integer = 100_000)
-    out = fep.chol \ At_mul_B!(fep.x, fep.A, r)
-    return out, 1, true
+function solve!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
+    fep.chol \ At_mul_B!(fep.x, fep.A, r)
 end
-
 
 # updates r as the residual of the projection of r on A
 function solve_residuals!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
-    out, iterations, converged = solve!(fep, r; kwargs...)
-    A_mul_B!(-1.0, fep.A, out, 1.0, r)
-    return r, iterations, converged
+    x = solve!(fep, r; kwargs...)
+    A_mul_B!(-1.0, fep.A, x, 1.0, r)
+    return r, 1, true
 end
 
 # solves A'Ax = A'r
 # transform x from Vector{Float64} (stacked vector of coefficients) 
 # to Vector{Vector{Float64}} (vector of coefficients for each categorical variable)
 function solve_coefficients!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
-    x, iterations, converged = solve!(fep, r; kwargs...)
+    x = solve!(fep, r; kwargs...)
     out = Vector{Float64}[]
     iend = 0
     for fe in get_fes(fep)
@@ -63,7 +61,7 @@ function solve_coefficients!(fep::CholfactFixedEffectProblem, r::AbstractVector{
         iend = istart + sum(fe.scale .!= 0) - 1
         push!(out, x[istart:iend])
     end
-    return out, iterations, converged
+    return out, 1, true
 end
 
 
