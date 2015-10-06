@@ -10,6 +10,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `save` : SHould residuals and eventual estimated fixed effects saved in a dataframe?
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
+* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Another choice is :cholfact (factorization method)
+
 
 ### Returns
 * `::AbstractRegressionResult` : a regression results
@@ -50,7 +52,8 @@ function reg(f::Formula, df::AbstractDataFrame,
              weight::Union{Symbol, Void} = nothing, 
              subset::Union{AbstractVector{Bool}, Void} = nothing, 
              maxiter::Integer = 10000, tol::Real= 1e-10, df_add::Integer = 0, 
-             save::Bool = false)
+             save::Bool = false,
+             method::Symbol = :lsmr)
 
     ##############################################################################
     ##
@@ -128,7 +131,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             rt.intercept = false
             has_intercept = true
         end
-        pfe = FixedEffectProblem(fixedeffects)
+        pfe = FixedEffectProblem(fixedeffects, Val{method})
     else
         pfe = nothing
     end

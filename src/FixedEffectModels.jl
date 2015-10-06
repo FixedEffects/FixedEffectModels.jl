@@ -68,6 +68,10 @@ include("fixedeffect/types.jl")
 include("fixedeffect/solve.jl")
 
 
+include("fixedeffect/solve_lsmr.jl")
+include("fixedeffect/solve_cholfact.jl")
+
+
 include("vcov/types.jl")
 include("vcov/vcovsimple.jl")
 include("vcov/vcovwhite.jl")

@@ -1,37 +1,4 @@
-##############################################################################
-##
-## FixedEffectProblem is a wrapper around a FixedEffectMatrix 
-## with some storage arrays used when solving (A'A)X = A'y 
-##
-##############################################################################
-
-type FixedEffectProblem
-    m::FixedEffectMatrix
-    x::FixedEffectVector
-    v::FixedEffectVector
-    h::FixedEffectVector
-    hbar::FixedEffectVector
-    u::Vector{Float64}
-end
-
-function FixedEffectProblem(fes::Vector{FixedEffect})
-    m = FixedEffectMatrix(fes)
-    x = FixedEffectVector(fes)
-    v = FixedEffectVector(fes)
-    h = FixedEffectVector(fes)
-    hbar = FixedEffectVector(fes)
-    u = Array(Float64, size(m, 1))
-    return FixedEffectProblem(m, x, v, h, hbar, u)
-end
-
-function solve!(fep::FixedEffectProblem, r::AbstractVector{Float64}, ; tol = tol::Real = 1e-8, maxiter = maxiter::Integer = 100_000)
-    fill!(fep.x, zero(Float64))
-    copy!(fep.u, r)
-    x, ch = lsmr!(fep.x, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
-        atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
-    return div(ch.mvps, 2), ch.isconverged
-end
-
+abstract FixedEffectProblem
 ##############################################################################
 ##
 ## get residuals
@@ -41,10 +8,9 @@ end
 function residualize!(r::AbstractVector{Float64}, fep::FixedEffectProblem, 
                       iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
                       kwargs...)
-    iterations, converged = solve!(fep, r; kwargs...)
+    r, iterations, converged = solve_residuals!(fep, r; kwargs...)
     push!(iterationsv, iterations)
     push!(convergedv, converged)
-    A_mul_B!(-1.0, fep.m, fep.x, 1.0, r)
 end
 
 function residualize!(X::Matrix{Float64}, fep::FixedEffectProblem, 
@@ -66,31 +32,29 @@ end
 ## get fixed effects
 ## 
 ###############################################################################
+
+
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
     
     # solve Ax = b
-    iterations, converged = solve!(fep, b; kwargs...)
-    for i in 1:length(fep.x._)
-        broadcast!(*, fep.x._[i], fep.x._[i], fep.m._[i].scale)
-    end
+    x, iterations, converged = solve_coefficients!(fep, b; kwargs...)
     if !converged 
        warn("getfe did not converge")
     end
 
-
     # The solution is generally not unique. Find connected components and scale accordingly
-    findintercept = find(fe -> isa(fe.interaction, Ones), fep.m._)
+    findintercept = find(fe -> isa(fe.interaction, Ones), get_fes(fep))
     if length(findintercept) >= 2
-        components = connectedcomponent(sub(fep.m._, findintercept))
-        rescale!(fep.x, fep, findintercept, components)
+        components = connectedcomponent(sub(get_fes(fep), findintercept))
+        rescale!(x, fep, findintercept, components)
     end
 
-    return fep.x
+    return x
 end
 
 # Convert estimates to dataframes 
-function DataFrame(fev::FixedEffectVector, fep::FixedEffectProblem, esample::BitVector)
-    fes = fep.m._
+function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esample::BitVector)
+    fes = get_fes(fep)
     newdf = DataFrame()
     len = length(esample)
     for j in 1:length(fes)
@@ -98,7 +62,7 @@ function DataFrame(fev::FixedEffectVector, fep::FixedEffectProblem, esample::Bit
         T = eltype(fes[j].refs)
         refs = fill(zero(T), len)
         refs[esample] = fes[j].refs
-        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fev._[j])
+        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fev[j])
     end
     return newdf
 end
@@ -201,10 +165,10 @@ end
 ##
 ###############################################################################
 
-function rescale!(fev::FixedEffectVector, fep::FixedEffectProblem, 
+function rescale!(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, 
                   findintercept,
                   components::Vector{Vector{Set{Int}}})
-    fes = fep.m._
+    fes = get_fes(fep)
     adj1 = zero(Float64)
     i1 = findintercept[1]
     for component in components
@@ -213,17 +177,17 @@ function rescale!(fev::FixedEffectVector, fep::FixedEffectProblem,
             if i != 1
                 adji = zero(Float64)
                 for j in component[i]
-                    adji += fev._[i][j]
+                    adji += fev[i][j]
                 end
                 adji = adji / length(component[i])
                 for j in component[i]
-                    fev._[i][j] -= adji
+                    fev[i][j] -= adji
                 end
                 adj1 += adji
             else
                 # rescale the first fixed effects
                 for j in component[i1]
-                    fev._[i1][j] += adj1
+                    fev[i1][j] += adj1
                 end
             end
         end
