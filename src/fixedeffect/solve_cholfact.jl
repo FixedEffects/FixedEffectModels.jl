@@ -9,7 +9,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholfact}})
     nobs = length(fes[1].refs)
     total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
 
-    # construct sparse matrix A
+    # construct model matrix A constituted by fixed effects
     N = length(fes) * nobs
     I = Array(Int, N)
     J = similar(I)
@@ -27,6 +27,8 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholfact}})
     end
 
     A = sparse(I, J, V)
+
+    # compute cholesky factorization once and for all
     chol = cholfact(At_mul_B(A, A))
     x = Array(Float64, total_len)
     return CholfactFixedEffectProblem(fes, A, chol, x)
@@ -34,17 +36,24 @@ end
 
 get_fes(fep::CholfactFixedEffectProblem) = fep.fes
 
+
+# solves A'Ax = A'r
 function solve!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64}, ; tol = tol::Real = 1e-8, maxiter = maxiter::Integer = 100_000)
     out = fep.chol \ At_mul_B!(fep.x, fep.A, r)
     return out, 1, true
 end
 
+
+# updates r as the residual of the projection of r on A
 function solve_residuals!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     out, iterations, converged = solve!(fep, r; kwargs...)
     A_mul_B!(-1.0, fep.A, out, 1.0, r)
     return r, iterations, converged
 end
 
+# solves A'Ax = A'r
+# transform x from Vector{Float64} (stacked vector of coefficients) 
+# to Vector{Vector{Float64}} (vector of coefficients for each categorical variable)
 function solve_coefficients!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     x, iterations, converged = solve!(fep, r; kwargs...)
     out = Vector{Float64}[]
