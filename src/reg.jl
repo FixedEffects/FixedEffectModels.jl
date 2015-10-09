@@ -199,8 +199,8 @@ function reg(f::Formula, df::AbstractDataFrame,
         if size(Z, 2) < size(Xendo, 2)
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
-        # get liearly independent columns
-        allqr = qrfact!(hcat(Xendo, Xexo, Z), Val{false})
+        # get linearly independent columns
+        allqr = cholfact!(crossprod(Xendo, Xexo, Z), :U, Val{true})
         baseall= basecol(allqr)
         allqr = nothing
         basecolXendo = baseall[1:size(Xendo, 2)]
@@ -230,9 +230,9 @@ function reg(f::Formula, df::AbstractDataFrame,
         Xexo = nothing
     else
         # get linearly independent columns
-        Xexoqr = qrfact!(Xexo)
+        Xexoqr = cholfact!(crossprod(Xexo), :U, Val{true})
         basecolXexo = basecol(Xexoqr)
-        Xexo = getcols(Xexoqr, basecolXexo)
+        Xexo = getcols(Xexo, basecolXexo)
         Xhat = Xexo
         X = Xexo
         basecoef = basecolXexo
@@ -373,12 +373,67 @@ function reg(f::Formula, df::AbstractDataFrame,
 end
 
 
-function basecol(QR::Base.LinAlg.QRCompactWY)
-    R = diag(QR.factors)
-    return Bool[abs(r) >= abs(R[1]) * 1e-10 for r in R]
+crossprod(A::Matrix{Float64}) = A'A
+
+# Construct [A B C]'[A B C] without generating [A B C]
+function crossprod(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64})
+    sizetuple = size(A, 2) + size(B, 2) + size(C, 2)
+    R = Array(Float64,  div(sizetuple * (sizetuple+1), 2))
+    idx = 0
+    for i in 1:size(A, 2)
+        slicei = slice(A, :, i)
+        for j in i:size(A, 2)
+            idx += 1
+            R[idx] = dot(slicei, slice(A, :, j))
+        end
+        for j in 1:size(B, 2)
+            idx += 1
+            R[idx] = dot(slicei, slice(B, :, j))
+        end
+        for j in 1:size(C, 2)
+            idx += 1
+            R[idx] = dot(slicei, slice(C, :, j))
+        end
+    end
+    for i in 1:size(B, 2)
+        slicei = slice(B, :, i)
+        for j in i:size(B, 2)
+            idx += 1
+            R[idx] = dot(slicei, slice(B, :, j))
+        end
+        for j in 1:size(C, 2)
+            idx += 1
+            R[idx] = dot(slicei, slice(C, :, j))
+        end
+    end
+    for i in 1:size(C, 2)
+        slicei = slice(C, :, i)
+        for j in i:size(C, 2)
+            idx += 1
+            R[idx] = dot(slicei, slice(C, :, j))
+        end
+    end
+    out = Array(Float64,  sizetuple, sizetuple)
+    idx = 0
+    for j in 1:size(out, 2)
+        for i in j:size(out, 1)
+            idx += 1
+            out[i, j] = R[idx]
+        end
+    end
+    for j in 1:size(out, 2)
+        for i in 1:(j-1)
+            out[i, j] = out[j, i]
+        end
+    end
+    return out
 end
 
-function getcols(X::Matrix{Float64},  basecolX::Vector{Bool})
+function basecol(X::Base.LinAlg.CholeskyPivoted)
+    diag(X.factors)[X.piv] .> 0
+end
+
+function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
     if sum(basecolX) == size(X, 2)
         return X
     else
@@ -386,9 +441,6 @@ function getcols(X::Matrix{Float64},  basecolX::Vector{Bool})
     end
 end
 
-function getcols(QR::Base.LinAlg.QRCompactWY, basecolX::Vector{Bool})
-    LAPACK.gemqrt!('L','N', QR.factors, QR.T, triu!(QR.factors[:, basecolX]))
-end
 
 function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
     nobs::Int, hasintercept::Bool, 
