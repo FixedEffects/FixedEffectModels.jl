@@ -200,8 +200,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         # get linearly independent columns
-        allqr = cholfact!(crossprod(Xendo, Xexo, Z), :U, Val{true})
-        baseall= basecol(allqr)
+        baseall= basecol(Xendo, Xexo, Z)
         allqr = nothing
         basecolXendo = baseall[1:size(Xendo, 2)]
         basecolXexo = baseall[size(Xendo, 2)+1:size(Xendo, 2) + size(Xexo, 2)]
@@ -230,8 +229,7 @@ function reg(f::Formula, df::AbstractDataFrame,
         Xexo = nothing
     else
         # get linearly independent columns
-        Xexoqr = cholfact!(crossprod(Xexo), :U, Val{true})
-        basecolXexo = basecol(Xexoqr)
+        basecolXexo = basecol(Xexo)
         Xexo = getcols(Xexo, basecolXexo)
         Xhat = Xexo
         X = Xexo
@@ -372,65 +370,66 @@ function reg(f::Formula, df::AbstractDataFrame,
     end
 end
 
+##############################################################################
+##
+## Compute basecold of matrix [A B C...] without generating it
+## Simply construct the matrix [A B C ...]'[A B C ....]
+##
+##############################################################################
 
-crossprod(A::Matrix{Float64}) = A'A
+# Construct Combination type that behaves as appended [A B C]
+type Combination{N}
+    A::NTuple{N, Matrix{Float64}}
+    cumlength::Vector{Int}
+end
+
+function Combination(A::Matrix{Float64}...)
+    cumlength = cumsum([size(x, 2) for x in A])
+    Combination(A, cumlength)
+end
+
+function size(c::Combination, i)
+    if i == 1
+        size(c.A[1], 1)
+    elseif i == 2
+        c.cumlength[end]
+    end
+end
+
+function slice(c::Combination, ::Colon, j)
+    index = searchsortedfirst(c.cumlength, j)
+    newj = j
+    if index > 1
+        newj = j - c.cumlength[index-1]
+    end
+    slice(c.A[index], :, newj)
+end
 
 # Construct [A B C]'[A B C] without generating [A B C]
-function crossprod(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64})
-    sizetuple = size(A, 2) + size(B, 2) + size(C, 2)
-    R = Array(Float64,  div(sizetuple * (sizetuple+1), 2))
+function crossprod{N}(c::Combination{N})
+    out = Array(Float64,  size(c, 2), size(c, 2))
     idx = 0
-    for i in 1:size(A, 2)
-        slicei = slice(A, :, i)
-        for j in i:size(A, 2)
+    for j in 1:size(c, 2)
+        slicej = slice(c, :, j)
+        @inbounds for i in j:size(c, 2)
             idx += 1
-            R[idx] = dot(slicei, slice(A, :, j))
-        end
-        for j in 1:size(B, 2)
-            idx += 1
-            R[idx] = dot(slicei, slice(B, :, j))
-        end
-        for j in 1:size(C, 2)
-            idx += 1
-            R[idx] = dot(slicei, slice(C, :, j))
+            out[i, j] = dot(slicej, slice(c, :, i))
         end
     end
-    for i in 1:size(B, 2)
-        slicei = slice(B, :, i)
-        for j in i:size(B, 2)
-            idx += 1
-            R[idx] = dot(slicei, slice(B, :, j))
-        end
-        for j in 1:size(C, 2)
-            idx += 1
-            R[idx] = dot(slicei, slice(C, :, j))
-        end
-    end
-    for i in 1:size(C, 2)
-        slicei = slice(C, :, i)
-        for j in i:size(C, 2)
-            idx += 1
-            R[idx] = dot(slicei, slice(C, :, j))
-        end
-    end
-    out = Array(Float64,  sizetuple, sizetuple)
-    idx = 0
-    for j in 1:size(out, 2)
-        for i in j:size(out, 1)
-            idx += 1
-            out[i, j] = R[idx]
-        end
-    end
-    for j in 1:size(out, 2)
-        for i in 1:(j-1)
-            out[i, j] = out[j, i]
-        end
+    @inbounds for j in 1:size(c, 2), i in 1:(j-1)
+        out[i, j] = out[j, i]
     end
     return out
 end
+crossprod(A::Matrix{Float64}) = A'A
+crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 
-function basecol(X::Base.LinAlg.CholeskyPivoted)
-    diag(X.factors)[X.piv] .> 0
+
+
+# rank(A) == rank(A'A)
+function basecol(X::Matrix{Float64}...)
+    chol = cholfact!(crossprod(X...), :U, Val{true})
+    diag(chol.factors)[chol.piv] .> 0
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
@@ -441,6 +440,11 @@ function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
     end
 end
 
+##############################################################################
+##
+## Fstat
+##
+##############################################################################
 
 function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
     nobs::Int, hasintercept::Bool, 
