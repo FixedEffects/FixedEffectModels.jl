@@ -91,7 +91,7 @@ model = reg(y ~ x1 + x12, df)
 # iv
 df[:x22] = df[:x2]
 model = reg(y ~  x22 + x2 + (x1 = z1), df)
-@test_approx_eq_eps coef(model) [137.45096580480387,0.0,0.005169677634275297,-0.7627670265757879] 1e-4
+@test  coef(model)[2] == 0 || coef(model)[3] == 0
 
 df[:zz1] = df[:z1]
 model = reg(y ~  zz1 + (x1 = x2 + z1), df)

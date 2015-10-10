@@ -201,16 +201,13 @@ function reg(f::Formula, df::AbstractDataFrame,
         if size(Z, 2) < size(Xendo, 2)
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
-        @show size(Z, 2)
         # get linearly independent columns
         baseall= basecol(Z, Xexo, Xendo)
-        allqr = nothing
-        basecolZ = baseall[1:size(Z, 2)]
-        basecolXexo = baseall[size(Z, 2)+1:size(Z, 2) + size(Xexo, 2)]
-        basecolXendo = baseall[size(Z, 2) + size(Xexo, 2) + 1:end]
-        Xendo = getcols(Xendo, basecolXendo)
+        basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))]
+        basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end]
+        Z = getcols(Z, baseall[1:size(Z, 2)])
         Xexo = getcols(Xexo, basecolXexo)
-        Z = getcols(Z, basecolZ)
+        Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
 
         # Build
@@ -432,7 +429,7 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...)
     chol = cholfact!(crossprod(X...), :U, Val{true})
-    diag(chol.factors)[chol.piv] .> 0
+    ipermute!(diag(chol.factors) .> 0, chol.piv)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
