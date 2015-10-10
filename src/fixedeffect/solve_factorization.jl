@@ -1,31 +1,3 @@
-
-##############################################################################
-##
-## Construct sparse model matrix
-##
-##############################################################################
-
-function Base.sparse(fes::Vector{FixedEffect})
-    # construct model matrix A constituted by fixed effects
-    nobs = length(fes[1].refs)
-    N = length(fes) * nobs
-    I = Array(Int, N)
-    J = similar(I)
-    V = Array(Float64, N)
-    start = 0
-    idx = 0
-    for fe in fes
-       for i in 1:length(fe.refs)
-           idx += 1
-           I[idx] = i
-           J[idx] = start + fe.refs[i]
-           V[idx] = fe.interaction[i] * fe.sqrtw[i]
-       end
-       start += sum(fe.scale .!= 0)
-    end
-    return sparse(I, J, V)
-end
-
 ##############################################################################
 ##
 ## Least Squares via Cholesky Factorization
@@ -72,6 +44,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qrfact}})
 end
 
 function solve!(fep::QRfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
+    # since \ needs a vector
     copy!(fep.b, r)
     fep.qr \ fep.b
 end

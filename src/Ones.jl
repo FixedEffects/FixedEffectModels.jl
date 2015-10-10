@@ -8,13 +8,21 @@
 type Ones <: AbstractVector{Float64}
     length::Int
 end
-
+Base.length(O::Ones) = O.length
 Base.size(O::Ones) = O.length
+convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
+Base.similar(o::Ones) = Ones(length(o))
+Base.copy(o::Ones) = Ones(length(o))
+Base.deepcopy(o::Ones) = Ones(length(o))
 
+#indexing
+Base.linearindexing(::Type{Ones}) = Base.LinearFast()
 @inline Base.getindex(::Ones, i::Int...) = 1.0
 @inline Base.unsafe_getindex(::Ones, i::Int...) = 1.0
-Base.linearindexing(::Type{Ones}) = Base.LinearFast()
-Base.broadcast!{T}(::Function, ::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = nothing
+
+# implement map
+# implement broadcast
+Base.broadcast!{T}(::Function, x::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = x
 
 
 function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
