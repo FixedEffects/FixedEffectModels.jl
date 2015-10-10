@@ -10,7 +10,7 @@ type Ones <: AbstractVector{Float64}
 end
 Base.length(O::Ones) = O.length
 Base.size(O::Ones) = O.length
-convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
+Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
 Base.similar(o::Ones) = Ones(length(o))
 Base.copy(o::Ones) = Ones(length(o))
 Base.deepcopy(o::Ones) = Ones(length(o))

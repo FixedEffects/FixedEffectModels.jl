@@ -79,6 +79,8 @@ function reg(f::Formula, df::AbstractDataFrame,
             end
         end
     end
+
+
     ##############################################################################
     ##
     ## Construct new dataframe
@@ -199,12 +201,13 @@ function reg(f::Formula, df::AbstractDataFrame,
         if size(Z, 2) < size(Xendo, 2)
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
+        @show size(Z, 2)
         # get linearly independent columns
-        baseall= basecol(Xendo, Xexo, Z)
+        baseall= basecol(Z, Xexo, Xendo)
         allqr = nothing
-        basecolXendo = baseall[1:size(Xendo, 2)]
-        basecolXexo = baseall[size(Xendo, 2)+1:size(Xendo, 2) + size(Xexo, 2)]
-        basecolZ = baseall[size(Xendo, 2) + size(Xexo, 2) + 1:end]
+        basecolZ = baseall[1:size(Z, 2)]
+        basecolXexo = baseall[size(Z, 2)+1:size(Z, 2) + size(Xexo, 2)]
+        basecolXendo = baseall[size(Z, 2) + size(Xexo, 2) + 1:end]
         Xendo = getcols(Xendo, basecolXendo)
         Xexo = getcols(Xexo, basecolXexo)
         Z = getcols(Z, basecolZ)
