@@ -84,11 +84,11 @@ end
 function FixedEffectMatrix(fev::Vector{FixedEffect})
     m = length(fev[1].refs)
     n = reduce(+, map(x -> length(x.scale),  fev))
-    cache = Vector{Float64}[]
+    caches = Vector{Float64}[]
     for i in 1:length(fev)
-        push!(annex, cache(fev[i]))
+        push!(caches, cache(fev[i]))
     end
-    return FixedEffectMatrix(fev, m, n, annex)
+    return FixedEffectMatrix(fev, m, n, caches)
 end
 
 function cache(fe::FixedEffect)
@@ -105,16 +105,16 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 
 # Define x -> A * x
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
-                        x::Vector{Float64}, y::AbstractVector{Float64}, annex::Vector{Float64})
+                        x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
     @inbounds for (i, j) in zip(1:length(y), eachindex(y))
-        y[j] += α * x[fe.refs[i]] * annex[i]
+        y[j] += α * x[fe.refs[i]] * cache[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
                 β::Number, y::AbstractVector{Float64})
     safe_scale!(y, β)
     for i in 1:length(fev._)
-        A_mul_B_helper!(α, fem._[i], fev._[i], y, fem.annex[i])
+        A_mul_B_helper!(α, fem._[i], fev._[i], y, fem.cache[i])
     end
     return y
 end
@@ -135,7 +135,6 @@ function Ac_mul_B!(α::Number, fem::FixedEffectMatrix,
     end
     return fev
 end
-
 
 function safe_scale!(x, β)
     if β != 1
@@ -171,8 +170,8 @@ end
 
 get_fes(fep::LSMRFixedEffectProblem) = fep.m._
 
-
-function solve!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}, ; tol = tol::Real = 1e-8, maxiter = maxiter::Integer = 100_000)
+function solve!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; 
+    tol::Real = 1e-8, maxiter::Integer = 100_000)
     fill!(fep.x, zero(Float64))
     copy!(fep.u, r)
     x, ch = lsmr!(fep.x, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
