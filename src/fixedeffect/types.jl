@@ -26,7 +26,7 @@ function FixedEffect{R <: Integer}(
     refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
     interaction::AbstractVector{Float64}, factorname::Symbol, 
     interactionname::Symbol, id::Symbol)
-    scale = fill(zero(Float64), l)
+    scale = zeros(Float64, l)
     @inbounds @simd for i in 1:length(refs)
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
@@ -54,7 +54,7 @@ end
 function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
     v = df[a]
     if isa(v, PooledDataVector)
-        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones(length(v)), a, :none, a)
+        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones{Float64}(length(v)), a, :none, a)
     else
         # x from x*id -> x + id + x&id
         return nothing

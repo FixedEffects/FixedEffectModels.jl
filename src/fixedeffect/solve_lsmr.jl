@@ -78,12 +78,25 @@ type FixedEffectMatrix
     _::Vector{FixedEffect}
     m::Int
     n::Int
+    cache::Vector{Vector{Float64}}
 end
 
 function FixedEffectMatrix(fev::Vector{FixedEffect})
     m = length(fev[1].refs)
     n = reduce(+, map(x -> length(x.scale),  fev))
-    return FixedEffectMatrix(fev, m, n)
+    cache = Vector{Float64}[]
+    for i in 1:length(fev)
+        push!(annex, cache(fev[i]))
+    end
+    return FixedEffectMatrix(fev, m, n, annex)
+end
+
+function cache(fe::FixedEffect)
+    out = zeros(Float64, length(fe.refs))
+    @inbounds @simd for i in 1:length(out)
+        out[i] = fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+    end
+    return out
 end
 eltype(fem::FixedEffectMatrix) = Float64
 size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
@@ -92,32 +105,33 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 
 # Define x -> A * x
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
-                        x::Vector{Float64}, y::AbstractVector{Float64})
-    @inbounds @simd for i in 1:length(y)
-        y[i] += α * x[fe.refs[i]] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+                        x::Vector{Float64}, y::AbstractVector{Float64}, annex::Vector{Float64})
+    @inbounds for (i, j) in zip(1:length(y), eachindex(y))
+        y[j] += α * x[fe.refs[i]] * annex[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
                 β::Number, y::AbstractVector{Float64})
     safe_scale!(y, β)
     for i in 1:length(fev._)
-        A_mul_B_helper!(α, fem._[i], fev._[i], y)
+        A_mul_B_helper!(α, fem._[i], fev._[i], y, fem.annex[i])
     end
     return y
 end
 
 # Define x -> A' * x
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
-                        y::AbstractVector{Float64}, x::Vector{Float64})
-    @inbounds @simd for i in 1:length(y)
-        x[fe.refs[i]] += α * y[i] * fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
+                        y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
+    @inbounds for (i, j) in zip(1:length(y), eachindex(y))
+        x[fe.refs[i]] += α * y[j] * cache[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
                 y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
    safe_scale!(fev, β)
     for i in 1:length(fev._)
-        Ac_mul_B_helper!(α, fem._[i], y, fev._[i])
+       # @code_warntype Ac_mul_B_helper!(α, fem._[i], y, fev._[i])
+        Ac_mul_B_helper!(α, fem._[i], y, fev._[i], fem.cache[i])
     end
     return fev
 end

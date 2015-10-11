@@ -5,25 +5,62 @@
 ## 
 ##############################################################################
 
-type Ones <: AbstractVector{Float64}
+type Ones{T} <: AbstractVector{T}
     length::Int
 end
-Base.length(O::Ones) = O.length
-Base.size(O::Ones) = O.length
-Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
-Base.similar(o::Ones) = Ones(length(o))
-Base.copy(o::Ones) = Ones(length(o))
-Base.deepcopy(o::Ones) = Ones(length(o))
+
+# constructuor mimic ones syntax
+Ones(T::Type, v::Int) = Ones{T}(v)
+Ones(v::Integer) = Ones{Float64}(v)
+Ones{T}(v::AbstractVector{T}) = Ones{T}(length(v))
 
 #indexing
 Base.linearindexing(::Type{Ones}) = Base.LinearFast()
-@inline Base.getindex(::Ones, i::Int...) = 1.0
-@inline Base.unsafe_getindex(::Ones, i::Int...) = 1.0
+@inline Base.getindex{T}(::Ones{T}, i::Int...) = one(T)
+@inline Base.unsafe_getindex{T}(::Ones{T}, i::Int...) = one(T)
+Base.eltype{T}(o::Ones{T}) = T
+Base.length(O::Ones) = O.length
+Base.size(O::Ones) = O.length
+
+Base.similar{T}(o::Ones{T}) = Ones{T}(length(o))
+Base.copy{T}(o::Ones{T}) = Ones{T}(length(o))
+Base.deepcopy{T}(o::Ones{T}) = Ones{T}(length(o))
+Base.diagm{T}(o::Ones{T}, args...) = eye(T, O.length, args...)
+
+Base.sum(O::Ones) = O.length
+
+Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
+Base.collect{T}(o::Ones{T}) = ones(T, length(o))
+
+
 
 # implement map
-# implement broadcast
-Base.broadcast!{T}(::Function, x::Array{Float64, T}, ::Array{Float64, T}, ::Ones) = x
 
+
+# implement broadcast
+## solve ambiguity
+for t in (BitArray, DataArray, PooledDataArray)
+	@eval begin
+		function Base.broadcast!(op::Function, A::$t, o::Ones)
+			invoke(broadcast!, (Any, Any, Ones), op, A, o)
+		end
+	end
+end
+
+function Base.broadcast!(op::Function, A::Any, o::Ones) 
+	if op == *
+		A
+	else 
+		invoke(broadcast!, (Any, typeof(A), AbstractVector), op, A, o)
+	end
+end
+
+
+##############################################################################
+##
+## Use
+## 
+##############################################################################
 
 function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
 	out = df[esample, weight]
@@ -32,7 +69,7 @@ function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol)
 	map!(sqrt, out, out)
 	return out
 end
-get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones(sum(esample))
+get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones{Float64}(sum(esample))
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
 	if hasintercept
