@@ -1,16 +1,9 @@
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
 
-
-
-
-The function `reg` estimates linear models with 
-  - high dimensional categorical variable
-  - instrumental variables (via 2SLS)
-  - robust standard errors (White or multi-way clustered) 
-  
-
-This package objective is similar to the Stata command `reghdfe` and the R command `felm`.
+This package estimates linear models with high dimensional categorical variables and/or instrumental variables. Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
+`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 
 
@@ -18,19 +11,6 @@ To install the package,
 Pkg.add("FixedEffectModels")
 ```
 
-
-
-## high dimensional categorical variables
-
-When a regression model contains high dimensional categorical variables, the design matrix constructed in OLS can be too large to fit into memory. This package handles these situations.
-
-Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
-
-1. `y, X`  are regressed on `D` by one of these methods
-  - iterative method with `method = :lsmr` (more precisely [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) with a diagonal preconditioner).
-  - factorization with `method = :cholfact` or `method = :qrfact`. Sparse factorization methods are generally slower, but may be helpful in hard situations for the conjugate gradient method.
-
-2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
 ## result
 `reg` returns a light object. This allows to estimate multiple models without worrying about memory space. It is simply composed of 
@@ -41,10 +21,6 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
   - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
 
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
-
-`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
-
 
 
 
@@ -140,9 +116,6 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
   # =====================================================================
   ```
 
-
-
-
 - Estimate models with instruments variables (using 2SLS).
 
   ```julia
@@ -174,6 +147,22 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 ```
 
 `reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
+
+## How does it work
+Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
+
+1. `y, X`  are regressed on `D` by one of these methods
+  - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
+  - sparse cholesky factorization with `method = :cholfact` (using the SuiteSparse library)
+
+  The default method, `:lsmr`, is faster in most cases. When the design matrix is poorly conditioned, `method = :cholfact` can be faster and more robust than `:lsmr`.
+
+2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
+
+3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D`
+
+
+
 ## Partial out
 
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -242,6 +231,9 @@ plot(
 ![binscatter](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/9a12681d81f9d713cec3b88b1abf362cdddb9a14/benchmark/third.svg)
 
 The combination of `partial_out` and Gadfly `Stat.binmean` is similar to the the Stata program [binscatter](https://michaelstepner.com/binscatter/).
+
+
+
 
 
 # References
