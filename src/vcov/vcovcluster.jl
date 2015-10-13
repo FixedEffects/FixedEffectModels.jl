@@ -29,7 +29,10 @@ df_FStat(v::VcovClusterData, ::VcovData, ::Bool) = minimum(values(v.size)) - 1
 
 function vcov!(v::VcovClusterData, x::VcovData)
     S = shat!(v, x)
-    return sandwich(x.crossmatrix, S)
+    out = sandwich(x.crossmatrix, S)
+    # Cameron, Gelbach, & Miller (2011)
+    pinvertible(out)
+    return out
 end
 function shat!{T}(v::VcovClusterData, x::VcovData{T, 1}) 
     # Cameron, Gelbach, & Miller (2011).
@@ -133,4 +136,19 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataV
         scale!(S, fsize / (fsize - 1))
     end
     return S
+end
+
+
+function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
+    SVD         = svdfact(A, thin=true)
+    Stype       = eltype(SVD.S)
+    small = SVD.S .<= tol
+    if any(small)
+        warn("estimated covariance matrix of moment conditions not of full rank.
+                 model tests should be interpreted with caution.")
+        SVD.S[small] = 0
+        return  SVD.U * diagm(SVD.S) * SVD.Vt
+    else
+        return A
+    end
 end

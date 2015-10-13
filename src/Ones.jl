@@ -28,13 +28,8 @@ Base.deepcopy{T}(o::Ones{T}) = Ones{T}(length(o))
 Base.diagm{T}(o::Ones{T}, args...) = eye(T, O.length, args...)
 
 Base.sum(O::Ones) = O.length
-
 Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
 Base.collect{T}(o::Ones{T}) = ones(T, length(o))
-
-
-
-# implement map
 
 
 # implement broadcast

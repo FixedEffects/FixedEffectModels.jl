@@ -60,6 +60,7 @@ VcovCluster
 include("utils/group.jl")
 include("utils/formula.jl")
 include("utils/lsmr.jl")
+include("utils/basecol.jl")
 
 include("Ones.jl")
 include("RegressionResult.jl")
