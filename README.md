@@ -5,7 +5,7 @@ This package estimates linear models with high dimensional categorical variables
 
 Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
 
-`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
+The package is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 
@@ -13,6 +13,16 @@ To install the package,
 ```julia
 Pkg.add("FixedEffectModels")
 ```
+
+
+## Formula
+
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
+
+```
+depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
+```
+High dimensional categorical variables should enter after the `|>` symbol
 
 
 ## result
@@ -26,20 +36,11 @@ Pkg.add("FixedEffectModels")
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
+## Syntax
 
-## Formula
+Similarly to the `DataFrames` documentation
 
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
-
-```
-depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
-```
-
-
-
-- High dimensional categorical variables should enter after the `|>` symbol/
-
-  Categorical variable must be of type PooledDataArray.
+-  Categorical variable must be of type PooledDataArray.
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -59,7 +60,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
   # ===============================================================
   ```
 
-  Combine multiple categorical variables with the operator `&` 
+-  Combine multiple categorical variables with the operator `&` 
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -81,7 +82,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
 
 
 
-  In addition to specifying main effects, specify interactions with continuous variables using the `&` operator:
+-  In addition to specifying main effects, specify interactions with continuous variables using the `&` operator:
 
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -100,7 +101,7 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
   # =====================================================================
   ```
 
-  Specify both main effects and an interaction term at once using the `*` operator:
+-  Specify both main effects and an interaction term at once using the `*` operator:
   
   ```julia
   using DataFrames, RDatasets, FixedEffectModels
@@ -117,26 +118,6 @@ depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
   # ---------------------------------------------------------------------
   # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
   # =====================================================================
-  ```
-
-- Estimate models with instruments variables (using 2SLS).
-
-  ```julia
-  using DataFrames, RDatasets, FixedEffectModels
-  df = dataset("plm", "Cigar")
-  reg(Sales ~ (Price = Pimin), df)
-  #                                IV Model                               
-  # ======================================================================
-  # Number of obs                 1380  Degree of freedom                2
-  # R2                           0.096  R2 Adjusted                  0.095
-  # F Statistic                117.173  Prob > F                     0.000
-  # First Stage F-stat (KP)    52248.8  First State p-val (KP):      0.000
-  # ======================================================================
-  #               Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
-  # ----------------------------------------------------------------------
-  # Price        -0.207335  0.019154 -10.8247    0.000  -0.24491 -0.169761
-  # (Intercept)    138.195   1.53661  89.9347    0.000    135.18   141.209
-  # ======================================================================
   ```
 
 ## Errors
