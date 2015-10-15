@@ -5,7 +5,7 @@ This package estimates linear models with high dimensional categorical variables
 
 Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
 
-`reg` is faster than these alternatives (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
+`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 
