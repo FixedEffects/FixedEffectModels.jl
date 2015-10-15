@@ -5,7 +5,7 @@ df = dataset("plm", "Cigar")
 df[:pState] = pool(df[:State])
 df[:pYear] = pool(df[:Year])
 
-for method in [:cholfact, :qrfact, :lsmr]
+for method in [:cholesky, :qr, :lsmr]
 	result = reg(Sales ~ Price |> pYear, df, save = true, method = method)
 	@test_approx_eq  result.augmentdf[1, :pYear] 164.77833189721005
 

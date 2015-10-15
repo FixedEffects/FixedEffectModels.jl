@@ -11,7 +11,7 @@ type CholfactFixedEffectProblem <: FixedEffectProblem
     x::Vector{Float64}
 end
 
-function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholfact}})
+function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholesky}})
     m = sparse(fes)
     chol = cholfact(At_mul_B(m, m))
     total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
@@ -36,7 +36,7 @@ type QRfactFixedEffectProblem <: FixedEffectProblem
     b::Vector{Float64}
 end
 
-function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qrfact}})
+function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
     m = sparse(fes)
     qr = qrfact(m)
     b = Array(Float64, length(fes[1].refs))

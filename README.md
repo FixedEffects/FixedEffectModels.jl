@@ -5,7 +5,7 @@ This package estimates linear models with high dimensional categorical variables
 
 Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
 
-The package is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
+The package is [fast](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md):
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 
@@ -137,9 +137,9 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 
 1. `y, X`  are regressed on `D` by one of these methods
   - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
-  - sparse cholesky factorization with `method = :cholfact` (using the SuiteSparse library)
+  - sparse factorization with `method = :cholesky` or `method = :qr` (using the SuiteSparse library)
 
-  The default method, `:lsmr`, is faster in most cases. When the design matrix is poorly conditioned, `method = :cholfact` can be faster and more robust than `:lsmr`.
+  The default method, `:lsmr`, is faster in most cases. Now, when the design matrix is poorly conditioned, `method = :cholesky` may be faster than `:lsmr`.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
