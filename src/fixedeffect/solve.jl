@@ -1,4 +1,5 @@
 abstract FixedEffectProblem
+
 ##############################################################################
 ##
 ## get residuals
@@ -27,11 +28,23 @@ function residualize!(::Array, ::Void,
     nothing
 end
 
+
 ##############################################################################
 ##
-## get fixed effects
-## 
-###############################################################################
+## Get fixed effects
+##
+## Fixed effects are generally not identified
+## We standardize the solution in the following way :
+## Mean within connected component of all fixed effects except the first
+## is zero
+##
+## Unique solution with two components, not really with more
+##
+## Connected component : Breadth-first search
+## components is an array of component
+## A component is an array of set (length is number of values taken)
+##
+##############################################################################
 
 
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
@@ -74,14 +87,6 @@ function getfe!(fep::FixedEffectProblem, b::Vector{Float64},esample::BitVector;
 end
 
 
-##############################################################################
-##
-## Connected component : Breadth-first search
-## components is an array of component
-## A component is an array of set (length is number of values taken)
-##
-##############################################################################
-
 function connectedcomponent(fes::AbstractVector{FixedEffect})
     # initialize
     where = initialize_where(fes)
@@ -89,14 +94,10 @@ function connectedcomponent(fes::AbstractVector{FixedEffect})
     nobs = size(refs, 2)
     visited = fill(false, nobs)
     components = Vector{Set{Int}}[]
-
     # start
-    for i in 1:nobs
+    @inbounds for i in 1:nobs
         if !visited[i]
-            component = Set{Int}[]
-            for _ in 1:length(fes)
-                push!(component, Set{Int}())
-            end
+            component = Set{Int}[Set{Int}() for fe in fes]
             connectedcomponent!(component, visited, i, refs, where)
             push!(components, component)
         end
@@ -107,14 +108,12 @@ end
 function initialize_where(fes::AbstractVector{FixedEffect})
     where = Vector{Set{Int}}[]
     for j in 1:length(fes)
-        push!(where, Set{Int}[])
         fe = fes[j]
-        for _ in 1:length(fe.scale)
-            push!(where[j], Set{Int}())
-        end
+        wherej = Set{Int}[Set{Int}() for fe in fe.scale]
         @inbounds for i in 1:length(fe.refs)
-            push!(where[j][fe.refs[i]], i)
+            push!(wherej[fe.refs[i]], i)
         end
+        push!(where, wherej)
     end
     return where
 end
@@ -122,7 +121,7 @@ end
 function initialize_refs(fes::AbstractVector{FixedEffect})
     nobs = length(fes[1].refs)
     refs = fill(zero(Int), length(fes), nobs)
-    for j in 1:length(fes)
+    @inbounds for j in 1:length(fes)
         ref = fes[j].refs
         for i in 1:length(ref)
             refs[j, i] = ref[i]
@@ -138,7 +137,7 @@ function connectedcomponent!(component::Vector{Set{Int}},
     visited[i] = true
     tovisit = Set{Int}()
     # for each fixed effect
-    for j in 1:size(refs, 1)
+    @inbounds for j in 1:size(refs, 1)
         ref = refs[j, i]
         # if category has not been encountered
         if !(ref in component[j])
@@ -157,21 +156,13 @@ function connectedcomponent!(component::Vector{Set{Int}},
     end
 end
 
-##############################################################################
-##
-## rescale fixed effect to make solution unique (at least in case of 2 fixed effects)
-## normalization: for each factor except the first one, mean within each component is 0 
-## Unique solution with two components, not really with more
-##
-###############################################################################
-
 function rescale!(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, 
                   findintercept,
                   components::Vector{Vector{Set{Int}}})
     fes = get_fes(fep)
     adj1 = zero(Float64)
     i1 = findintercept[1]
-    for component in components
+    @inbounds for component in components
         for i in reverse(findintercept)
             # demean all fixed effects except the first
             if i != 1

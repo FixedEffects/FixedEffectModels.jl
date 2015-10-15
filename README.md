@@ -1,8 +1,11 @@
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
 
-This package estimates linear models with high dimensional categorical variables and/or instrumental variables. Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
-`reg` is fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
+This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
+
+Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
+
+`reg` is written to be fast (see the [code used in this benchmark](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md))
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 

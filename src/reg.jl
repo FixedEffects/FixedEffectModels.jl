@@ -114,7 +114,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute weight
     sqrtw = get_weight(df, esample, weight)
 
-    # remove unusued levels
+    # remove unusused levels
     subdf = df[esample, all_vars]
     main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
     for v in main_vars
@@ -141,15 +141,15 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute data for std errors
     vcov_method_data = VcovMethodData(vcov_method, subdf)
 
-    # initialize iterations and converged
-    iterations = Int[]
-    converged = Bool[]
-
     ##############################################################################
     ##
     ## Dataframe --> Matrix
     ##
     ##############################################################################
+
+    # initialize iterations and converged
+    iterations = Int[]
+    converged = Bool[]
 
     mf = simpleModelFrame(subdf, rt, esample)
 
