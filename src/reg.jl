@@ -156,7 +156,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Obtain y
     py = model_response(mf)[:]
     if eltype(py) != Float64
-        y = convert(py, Float64)
+        y = convert(Vector{Float64}, py)
     else
         y = py
     end

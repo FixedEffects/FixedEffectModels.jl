@@ -25,6 +25,9 @@ df[:w] = df[:Pop]
 @test_approx_eq_eps coef(reg(y ~ x1, df))  [139.73446,-0.22974] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1, df, weight = :w))  [137.72495428982756,-0.23738] 1e-4
 
+df[:SalesInt] = round(Int64, df[:Sales])
+@test_approx_eq_eps coef(reg(SalesInt ~ Price, df)) [139.72674,-0.2296683205] 1e-4
+
 # absorb
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1, df))  [-0.20984] 1e-4
 @test reg(y ~ x1 |> pid1, df).iterations == 1
@@ -229,7 +232,11 @@ for method in [:cholesky, :qr, :lsmr]
 	## the last two ones test an ill conditioned model matrix
 	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df, method = method))     [-0.122354] 1e-4
 	@test reg(y ~ x1 |> pid1 + pid1&id2 , df, method = method).iterations <= 30
+
 	@test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2, df, method = method, weight = :w))  [-0.11752306001586807] 1e-4
 	@test reg(y ~ x1 |> pid1 + pid1&id2, df, method = method, weight = :w).iterations <= 50
 end
+
+
+
 
