@@ -132,14 +132,14 @@ reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
 
 `reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
 
-## How does it work
+## Solution Method
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
 1. `y, X`  are regressed on `D` by one of these methods
   - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
   - sparse factorization with `method = :cholesky` or `method = :qr` (using the SuiteSparse library)
 
-  The default method, `:lsmr`, is faster in most cases. Now, when the design matrix is poorly conditioned, `method = :cholesky` may be faster than `:lsmr`.
+  The default method, `:lsmr`, is faster in most cases. Now, when the design matrix is poorly conditioned, `method = :cholesky` may be faster.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
