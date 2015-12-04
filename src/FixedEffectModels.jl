@@ -14,6 +14,9 @@ import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!, pool
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
+if VERSION >= v"0.5.0-"
+	import Combinatorics: combinations
+end
 ##############################################################################
 ##
 ## Exported methods and types 
