@@ -127,8 +127,8 @@ Compute robust standard errors by constructing an object of type `AbstractVcovMe
 
 ```julia
 reg(Sales ~ NDI, df, VcovWhite())
-reg(Sales ~ NDI, df, VcovCluster([:State]))
-reg(Sales ~ NDI, df, VcovCluster([:State, :Year]))
+reg(Sales ~ NDI, df, VcovCluster([:StatePooled]))
+reg(Sales ~ NDI, df, VcovCluster([:StatePooled, :YearPooled]))
 ```
 
 `reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
