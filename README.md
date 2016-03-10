@@ -1,5 +1,6 @@
 [![FixedEffectModels](http://pkg.julialang.org/badges/FixedEffectModels_0.4.svg)](http://pkg.julialang.org/?pkg=FixedEffectModels)
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
+[![FixedEffectModels](http://pkg.julialang.org/badges/FixedEffectModels_0.5.svg)](http://pkg.julialang.org/?pkg=FixedEffectModels)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
