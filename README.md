@@ -4,9 +4,9 @@
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
 
-Its objective is similar to the Stata command `reghdfe` and the R command `felm`.
+Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R command `felm`(https://cran.r-project.org/web/packages/lfe/lfe.pdf)
 
-The package is [fast](https://github.com/matthieugomez/FixedEffectModels.jl/blob/master/benchmark/benchmark.md):
+The package is fast:
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 
