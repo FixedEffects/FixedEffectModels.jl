@@ -64,16 +64,13 @@ include("utils/group.jl")
 include("utils/formula.jl")
 include("utils/lsmr.jl")
 include("utils/basecol.jl")
-
-include("Ones.jl")
+include("utils/Ones.jl")
 include("RegressionResult.jl")
 
-include("fixedeffect/types.jl")
-include("fixedeffect/solve.jl")
-
-
-include("fixedeffect/solve_lsmr.jl")
-include("fixedeffect/solve_factorization.jl")
+include("fixedeffect/FixedEffect.jl")
+include("fixedeffect/FixedEffectProblem.jl")
+include("fixedeffect/FixedEffectProblem_LSMR.jl")
+include("fixedeffect/FixedEffectProblem_Factorization.jl")
 
 
 include("vcov/types.jl")

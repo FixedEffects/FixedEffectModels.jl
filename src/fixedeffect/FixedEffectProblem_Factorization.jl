@@ -15,8 +15,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholesky}})
     m = sparse(fes)
     chol = cholfact(At_mul_B(m, m))
     total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
-    x = Array(Float64, total_len)
-    return CholfactFixedEffectProblem(fes, m, chol, x)
+    CholfactFixedEffectProblem(fes, m, chol, Array(Float64, total_len))
 end
 
 function solve!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
@@ -40,7 +39,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
     m = sparse(fes)
     qr = qrfact(m)
     b = Array(Float64, length(fes[1].refs))
-    return QRfactFixedEffectProblem(fes, m, qr, b)
+    QRfactFixedEffectProblem(fes, m, qr, b)
 end
 
 function solve!(fep::QRfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
@@ -55,6 +54,7 @@ end
 ##
 ##############################################################################
 
+# construct the sparse matrix of fixed effects A in  A'Ax = A'r
 function Base.sparse(fes::Vector{FixedEffect})
     # construct model matrix A constituted by fixed effects
     nobs = length(fes[1].refs)
@@ -73,7 +73,7 @@ function Base.sparse(fes::Vector{FixedEffect})
        end
        start += sum(fe.scale .!= 0)
     end
-    return sparse(I, J, V)
+    sparse(I, J, V)
 end
 
 # updates r as the residual of the projection of r on A

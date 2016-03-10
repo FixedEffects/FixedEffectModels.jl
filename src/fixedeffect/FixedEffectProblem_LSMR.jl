@@ -8,18 +8,16 @@
 
 ##############################################################################
 ## 
-## FixedEffectVector 
+## FixedEffectVector : vector x in A'Ax = A'b
 ##
 ## We define these methods used in lsmr! (duck typing): 
 ## copy!, fill!, scale!, axpy!, norm
 ##
 ##############################################################################
 
-# Vector in the space of solutions (vector x in A'Ax = A'b)
 type FixedEffectVector
     _::Vector{Vector{Float64}}
 end
-
 
 function FixedEffectVector(fes::Vector{FixedEffect})
     out = Vector{Float64}[]
@@ -28,6 +26,7 @@ function FixedEffectVector(fes::Vector{FixedEffect})
     end
     return FixedEffectVector(out)
 end
+
 eltype(fem::FixedEffectVector) = Float64
 
 length(fev::FixedEffectVector) = reduce(+, map(length, fev._))
@@ -67,8 +66,6 @@ function norm(fev::FixedEffectVector)
     return sqrt(out)
 end
 
-
-
 ##############################################################################
 ## 
 ## FixedEffectMatrix
@@ -79,6 +76,7 @@ end
 ## We define these methods used in lsmr! (duck typing):
 ## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
 ## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
+##
 ##############################################################################
 
 type FixedEffectMatrix
@@ -105,10 +103,11 @@ function cache(fe::FixedEffect)
     end
     return out
 end
+
 eltype(fem::FixedEffectMatrix) = Float64
+
 size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
                                             (dim == 2) ? fem.n : 1
-
 
 # Define x -> A * x
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
