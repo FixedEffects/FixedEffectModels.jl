@@ -31,7 +31,7 @@ Base.sum(O::Ones) = O.length
 Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
 Base.collect{T}(o::Ones{T}) = ones(T, length(o))
 if VERSION > v"0.5.0-"
-	Base.shape{T}(o::Ones{T}) = Tuple{Int}(length(o))
+	Base.shape{T}(o::Ones{T}) = (length(o),)
 end
 
 # implement broadcast
