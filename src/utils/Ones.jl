@@ -20,7 +20,7 @@ Base.linearindexing(::Type{Ones}) = Base.LinearFast()
 @inline Base.unsafe_getindex{T}(::Ones{T}, i::Int...) = one(T)
 Base.eltype{T}(o::Ones{T}) = T
 Base.length(O::Ones) = O.length
-Base.size(O::Ones) = O.length
+Base.size(O::Ones) = (O.length,)
 
 Base.similar{T}(o::Ones{T}) = Ones{T}(length(o))
 Base.copy{T}(o::Ones{T}) = Ones{T}(length(o))
@@ -30,9 +30,7 @@ Base.diagm{T}(o::Ones{T}, args...) = eye(T, O.length, args...)
 Base.sum(O::Ones) = O.length
 Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
 Base.collect{T}(o::Ones{T}) = ones(T, length(o))
-if VERSION > v"0.5.0-dev+961"
-	Base.shape{T}(o::Ones{T}) = (length(o),)
-end
+
 
 # implement broadcast
 ## solve ambiguity
