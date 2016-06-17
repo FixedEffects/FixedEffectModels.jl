@@ -9,14 +9,11 @@ module FixedEffectModels
 ##############################################################################
 using Compat
 import Base.BLAS: axpy!
-import Base: A_mul_B!, Ac_mul_B!, size, sumabs2, copy!, getindex, length, fill!, norm, scale!, eltype, length, slice
+import Base: A_mul_B!, Ac_mul_B!, size, sumabs2, copy!, getindex, length, fill!, norm, scale!, eltype, length, slice, start, next, done
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
 import DataFrames: @~, DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, complete_cases, names!, pool
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
-if VERSION >= v"0.5.0-"
-	import Combinatorics: combinations
-end
 ##############################################################################
 ##
 ## Exported methods and types 
@@ -65,6 +62,8 @@ include("utils/formula.jl")
 include("utils/lsmr.jl")
 include("utils/basecol.jl")
 include("utils/Ones.jl")
+include("utils/combinations.jl")
+
 include("RegressionResult.jl")
 
 include("fixedeffect/FixedEffect.jl")
