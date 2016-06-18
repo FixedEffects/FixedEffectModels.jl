@@ -14,14 +14,14 @@ Pkg.add("FixedEffectModels")
 ```
 
 
-## Formula
+## Syntax
 
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and high dimensional categorical variables
 
 ```
 reg(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> categoricalvars, df)
 ```
-
+#### fixed effects
 Categorical variable must be of type PooledDataArray.
 
 ```julia
@@ -100,20 +100,7 @@ reg(Sales ~ NDI |> StatePooled*Year, df)
 # =====================================================================
 ```
 
-
-
-## result
-`reg` returns a light object. It is composed of 
- 
-  - the vector of coefficients & the covariance matrix
-  - a boolean vector reporting rows used in the estimation
-  - a set of scalars (number of observations, the degree of freedoms, r2, etc)
-  - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
-
-Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
-
-
-## Errors
+#### standard errors
 
 Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
@@ -124,6 +111,19 @@ reg(Sales ~ NDI, df, VcovCluster([:StatePooled, :YearPooled]))
 ```
 
 `reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
+
+
+## Result
+`reg` returns a light object. It is composed of 
+ 
+  - the vector of coefficients & the covariance matrix
+  - a boolean vector reporting rows used in the estimation
+  - a set of scalars (number of observations, the degree of freedoms, r2, etc)
+  - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
+
+Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
+
+
 
 ## Solution Method
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
