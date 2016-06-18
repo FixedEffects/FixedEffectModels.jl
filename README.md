@@ -4,9 +4,7 @@
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
 
-Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R command [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf)
-
-The package is fast:
+Its is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R command [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf), but usually faster
 ![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
 
 To install the package, 
@@ -18,16 +16,94 @@ Pkg.add("FixedEffectModels")
 
 ## Formula
 
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and high dimensional categorical variables
 
 ```
-depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
+reg(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> categoricalvars, df)
 ```
-High dimensional categorical variables should enter after the `|>` symbol
+
+Categorical variable must be of type PooledDataArray.
+
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+df[:YearPooled] =  pool(df[:Year])
+reg(Sales ~ Price |> StatePooled + YearPooled, df)
+# ===============================================================
+# Number of obs             1380   Degree of freedom           77
+# R2                       0.137   R2 Adjusted              0.085
+# F Stat                 205.989   p-val                    0.000
+# Iterations                   2   Converged:                true
+# ===============================================================
+#        Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
+# ---------------------------------------------------------------
+# Price  -1.08471 0.0755775 -14.3523    0.000  -1.23298 -0.936445
+# ===============================================================
+```
+
+Combine multiple categorical variables with the operator `&` 
+
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+df[:DecPooled] =  pool(div(df[:Year], 10))
+reg(Sales ~ NDI |> StatePooled&DecPooled, df)
+# =====================================================================
+# Number of obs:               1380   Degree of freedom:            185
+# R2:                         0.923   R2 within:                  0.101
+# F-Statistic:              133.916   p-value:                    0.000
+# Iterations:                     1   Converged:                   true
+# =====================================================================
+#        Estimate   Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
+# ---------------------------------------------------------------------
+# NDI  -0.0020522 0.000177339 -11.5722    0.000 -0.00240014 -0.00170427
+# =====================================================================
+```
+
+Specify interactions with continuous variables using the `&` operator:
+
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
+# =====================================================================
+# Number of obs                1380   Degree of freedom              93
+# R2                          0.245   R2 Adjusted                 0.190
+# F Stat                    417.342   p-val                       0.000
+# Iterations                      2   Converged:                   true
+# =====================================================================
+#         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
+# ---------------------------------------------------------------------
+# NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
+# =====================================================================
+```
+
+Specify both main effects and an interaction term at once using the `*` operator:
+
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+reg(Sales ~ NDI |> StatePooled*Year, df)
+# =====================================================================
+# Number of obs                1380   Degree of freedom              93
+# R2                          0.245   R2 Adjusted                 0.190
+# F Stat                    417.342   p-val                       0.000
+# Iterations                      2   Converged:                   true
+# =====================================================================
+#         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
+# ---------------------------------------------------------------------
+# NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
+# =====================================================================
+```
+
 
 
 ## result
-`reg` returns a light object. This allows to estimate multiple models without worrying about memory space. It is simply composed of 
+`reg` returns a light object. It is composed of 
  
   - the vector of coefficients & the covariance matrix
   - a boolean vector reporting rows used in the estimation
@@ -36,90 +112,6 @@ High dimensional categorical variables should enter after the `|>` symbol
 
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
-
-## Syntax
-
-Similarly to the `DataFrames` documentation
-
--  Categorical variable must be of type PooledDataArray.
-
-  ```julia
-  using DataFrames, RDatasets, FixedEffectModels
-  df = dataset("plm", "Cigar")
-  df[:StatePooled] =  pool(df[:State])
-  df[:YearPooled] =  pool(df[:Year])
-  reg(Sales ~ Price |> StatePooled + YearPooled, df)
-  # ===============================================================
-  # Number of obs             1380   Degree of freedom           77
-  # R2                       0.137   R2 Adjusted              0.085
-  # F Stat                 205.989   p-val                    0.000
-  # Iterations                   2   Converged:                true
-  # ===============================================================
-  #        Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
-  # ---------------------------------------------------------------
-  # Price  -1.08471 0.0755775 -14.3523    0.000  -1.23298 -0.936445
-  # ===============================================================
-  ```
-
--  Combine multiple categorical variables with the operator `&` 
-
-  ```julia
-  using DataFrames, RDatasets, FixedEffectModels
-  df = dataset("plm", "Cigar")
-  df[:StatePooled] =  pool(df[:State])
-  df[:DecPooled] =  pool(div(df[:Year], 10))
-  reg(Sales ~ NDI |> StatePooled&DecPooled, df)
-  # =====================================================================
-  # Number of obs:               1380   Degree of freedom:            185
-  # R2:                         0.923   R2 within:                  0.101
-  # F-Statistic:              133.916   p-value:                    0.000
-  # Iterations:                     1   Converged:                   true
-  # =====================================================================
-  #        Estimate   Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
-  # ---------------------------------------------------------------------
-  # NDI  -0.0020522 0.000177339 -11.5722    0.000 -0.00240014 -0.00170427
-  # =====================================================================
-  ```
-
-
-
--  In addition to specifying main effects, specify interactions with continuous variables using the `&` operator:
-
-  ```julia
-  using DataFrames, RDatasets, FixedEffectModels
-  df = dataset("plm", "Cigar")
-  df[:StatePooled] =  pool(df[:State])
-  reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
-  # =====================================================================
-  # Number of obs                1380   Degree of freedom              93
-  # R2                          0.245   R2 Adjusted                 0.190
-  # F Stat                    417.342   p-val                       0.000
-  # Iterations                      2   Converged:                   true
-  # =====================================================================
-  #         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
-  # ---------------------------------------------------------------------
-  # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
-  # =====================================================================
-  ```
-
--  Specify both main effects and an interaction term at once using the `*` operator:
-  
-  ```julia
-  using DataFrames, RDatasets, FixedEffectModels
-  df = dataset("plm", "Cigar")
-  df[:StatePooled] =  pool(df[:State])
-  reg(Sales ~ NDI |> StatePooled*Year, df)
-  # =====================================================================
-  # Number of obs                1380   Degree of freedom              93
-  # R2                          0.245   R2 Adjusted                 0.190
-  # F Stat                    417.342   p-val                       0.000
-  # Iterations                      2   Converged:                   true
-  # =====================================================================
-  #         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
-  # ---------------------------------------------------------------------
-  # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
-  # =====================================================================
-  ```
 
 ## Errors
 
@@ -150,8 +142,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 
 ## Partial out
 
-`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The regression model is estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
+`partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
 
 
 ```julia
@@ -183,7 +174,7 @@ result = partial_out(Sales + Price ~ 1|> YearPooled + StatePooled, df, add_mean 
 #> | 1380 | 122.503 | 57.7017 |
 ```
 
-This allows to examine graphically the relation between two variables after partialing out the variation due to control variables. For instance, the relationship between SepalLength seems to be decreasing in SepalWidth in the `iris` dataset
+`partial_out` allows to examine graphically the relation between two variables after partialing out the variation due to control variables. For instance, the relationship between SepalLength seems to be decreasing in SepalWidth in the `iris` dataset
 ```julia
 using  RDatasets, DataFrames, Gadfly, FixedEffectModels
 df = dataset("datasets", "iris")
