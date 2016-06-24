@@ -1,9 +1,9 @@
-# basecol returns a base from a set of matrix
-## It avoids to generate the matrix [A B C]
-## Simply construct the matrix [A B C ...]'[A B C ....] and compute its rank
+##############################################################################
+##
+## Combination behaves like [A B C ...] without forming it
+## 
+##############################################################################
 
-
-# Construct Combination type that behaves as appended [A B C]
 type Combination{N}
     A::NTuple{N, Matrix{Float64}}
     cumlength::Vector{Int}
@@ -31,6 +31,12 @@ function slice(c::Combination, ::Colon, j)
     slice(c.A[index], :, newj)
 end
 
+##############################################################################
+##
+## Crossprod computes [A B C ...]' [A B C ...] without forming it
+## 
+##############################################################################
+
 # Construct [A B C]'[A B C] without generating [A B C]
 function crossprod{N}(c::Combination{N})
     out = Array(Float64,  size(c, 2), size(c, 2))
@@ -51,7 +57,11 @@ end
 crossprod(A::Matrix{Float64}) = A'A
 crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 
-
+##############################################################################
+##
+## Returns base of [A B C ...]
+## 
+##############################################################################
 
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...)

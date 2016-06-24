@@ -83,7 +83,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     ##############################################################################
     ##
-    ## Construct new dataframe
+    ## Construct new dataframe after removing missing values
     ##
     ##############################################################################
 
@@ -249,7 +249,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     ##############################################################################
     ##
-    ## Save
+    ## Optionally save some vectors in a new dataframe
     ##
     ##############################################################################
 
@@ -327,7 +327,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     ##############################################################################
     ##
-    ## Return
+    ## Return regression result
     ##
     ##############################################################################
 
@@ -389,3 +389,43 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
     return F, ccdf(dist, F)
 end
 
+##############################################################################
+##
+## Weight
+## 
+##############################################################################
+
+function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
+    out = df[esample, weight]
+    # there are no NA in it. DataVector to Vector
+    out = convert(Vector{Float64}, out)
+    map!(sqrt, out, out)
+    return out
+end
+get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones{Float64}(sum(esample))
+
+function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
+    if hasintercept
+        tss = zero(Float64)
+        m = mean(y)::Float64
+        @inbounds @simd  for i in 1:length(y)
+            tss += abs2((y[i] - m))
+        end
+    else
+        tss = sumabs2(y)
+    end
+    return tss
+end
+
+function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
+    if hasintercept
+        m = (mean(y) / sum(sqrtw) * length(y))::Float64
+        tss = zero(Float64)
+        @inbounds @simd  for i in 1:length(y)
+            tss += abs2(y[i] - sqrtw[i] * m)
+        end
+    else
+        tss = sumabs2(y)
+    end
+    return tss
+end

@@ -1,4 +1,3 @@
-
 ##############################################################################
 ##
 ## Create light weight type
@@ -48,46 +47,4 @@ function Base.broadcast!(op::Function, A::Any, o::Ones)
 	else 
 		invoke(broadcast!, (Any, typeof(A), AbstractVector), op, A, o)
 	end
-end
-
-
-##############################################################################
-##
-## Use
-## 
-##############################################################################
-
-function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
-	out = df[esample, weight]
-	# there are no NA in it. DataVector to Vector
-	out = convert(Vector{Float64}, out)
-	map!(sqrt, out, out)
-	return out
-end
-get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones{Float64}(sum(esample))
-
-function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
-	if hasintercept
-		tss = zero(Float64)
-		m = mean(y)::Float64
-		@inbounds @simd  for i in 1:length(y)
-			tss += abs2((y[i] - m))
-		end
-	else
-		tss = sumabs2(y)
-	end
-	return tss
-end
-
-function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
-	if hasintercept
-		m = (mean(y) / sum(sqrtw) * length(y))::Float64
-		tss = zero(Float64)
-		@inbounds @simd  for i in 1:length(y)
-			tss += abs2(y[i] - sqrtw[i] * m)
-		end
-	else
-		tss = sumabs2(y)
-	end
-	return tss
 end
