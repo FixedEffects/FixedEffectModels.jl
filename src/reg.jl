@@ -46,7 +46,7 @@ reg(Sales ~ NDI, df, VcovCluster([:StatePooled, :YearPooled]))
 
 
 
-# TODO: minimize memory. For now two factorizations (qr and cholfact)
+# TODO: minimize memory
 function reg(f::Formula, df::AbstractDataFrame, 
              vcov_method::AbstractVcovMethod = VcovSimple(); 
              weight::Union{Symbol, Void} = nothing, 

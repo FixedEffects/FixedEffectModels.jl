@@ -132,7 +132,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
   - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
   - sparse factorization with `method = :cholesky` or `method = :qr` (using the SuiteSparse library)
 
-  The default method, `:lsmr`, is faster in most cases. Now, when the design matrix is poorly conditioned, `method = :cholesky` may be faster.
+  The default method, `:lsmr`, is faster in most cases. Now, when the diagonal matrix is a poor preconditioner, `method = :cholesky` may be faster.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
