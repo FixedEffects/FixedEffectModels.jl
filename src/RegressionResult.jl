@@ -196,7 +196,7 @@ type RegressionResult <: AbstractRegressionResult
     formula::Formula        # Original formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degree of freedoms
+    df_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -206,7 +206,7 @@ end
 title(::RegressionResult) =  "Linear Model"
 top(x::RegressionResult) = [
             "Number of obs" sprint(showcompact, nobs(x));
-            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
             "F Statistic" sprint(showcompact, x.F);
@@ -226,7 +226,7 @@ type RegressionResultIV <: AbstractRegressionResult
     formula::Formula        # Original formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degree of freedoms
+    df_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -240,7 +240,7 @@ end
 title(::RegressionResultIV) = "IV Model"
 top(x::RegressionResultIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
-            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
             "F-Statistic" sprint(showcompact, x.F);
@@ -262,7 +262,7 @@ type RegressionResultFE <: AbstractRegressionResult
     formula::Formula        # Original formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degree of freedoms
+    df_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -282,7 +282,7 @@ end
 title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
             "Number of obs" sprint(showcompact, nobs(x));
-            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 within" format_scientific(x.r2_within);
             "F-Statistic" sprint(showcompact, x.F);
@@ -303,7 +303,7 @@ type RegressionResultFEIV <: AbstractRegressionResult
     formula::Formula        # Original formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degree of freedoms
+    df_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -326,7 +326,7 @@ end
 title(::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
-            "Degree of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
             "R2" format_scientific(x.r2);
             "R2 within" format_scientific(x.r2_within);
             "F Statistic" sprint(showcompact, x.F);
