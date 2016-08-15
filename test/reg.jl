@@ -172,7 +172,7 @@ result = reg(y ~ x1 + pid1, df, subset = df[:State] .<= 30)
 
 ##############################################################################
 ##
-## F_kp r_kp statistics for IV. Difference degree of freedom.
+## F_kp r_kp statistics for IV. Difference degrees of freedom.
 ## 
 ##############################################################################
 
@@ -189,7 +189,7 @@ result = reg(y ~ x1 + pid1, df, subset = df[:State] .<= 30)
 
 
 
-# like in ivreg2 but += 5 difference. there is a degree of freedom difference. not sure where.
+# like in ivreg2 but += 5 difference. there is a degrees of freedom difference. not sure where.
 @test_approx_eq_eps reg(y ~ (x1 = z1), df, VcovCluster(:pid1)).F_kp     7249.88606 1e-4
 @test_approx_eq_eps reg(y ~ CPI + (x1 = z1), df, VcovCluster(:pid1)).F_kp   538.40393 1e-4
 @test_approx_eq_eps reg(y ~ CPI + (x1 = z1), df, VcovCluster([:pid1, :pid2])).F_kp   423.00342 1e-4
