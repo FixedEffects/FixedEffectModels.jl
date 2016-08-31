@@ -1,4 +1,4 @@
-julia 0.5
+julia 0.5-
 Compat
 Distributions 0.4.6
 StatsBase 0.7.1
