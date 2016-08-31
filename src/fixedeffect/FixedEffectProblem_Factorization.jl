@@ -7,7 +7,7 @@
 type CholfactFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
-    chol::Base.SparseMatrix.CHOLMOD.Factor{Float64}
+    chol::Base.SparseArrays.CHOLMOD.Factor{Float64}
     x::Vector{Float64}
 end
 
@@ -31,7 +31,7 @@ end
 type QRfactFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
-    qr::Base.SparseMatrix.SPQR.Factorization{Float64}
+    qr::Base.SparseArrays.SPQR.Factorization{Float64}
     b::Vector{Float64}
 end
 

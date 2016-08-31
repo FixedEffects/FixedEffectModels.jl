@@ -22,13 +22,13 @@ function size(c::Combination, i)
     end
 end
 
-function slice(c::Combination, ::Colon, j)
+function view(c::Combination, ::Colon, j)
     index = searchsortedfirst(c.cumlength, j)
     newj = j
     if index > 1
         newj = j - c.cumlength[index-1]
     end
-    slice(c.A[index], :, newj)
+    view(c.A[index], :, newj)
 end
 
 ##############################################################################
@@ -42,10 +42,10 @@ function crossprod{N}(c::Combination{N})
     out = Array(Float64,  size(c, 2), size(c, 2))
     idx = 0
     for j in 1:size(c, 2)
-        slicej = slice(c, :, j)
+        viewj = view(c, :, j)
         @inbounds for i in j:size(c, 2)
             idx += 1
-            out[i, j] = dot(slicej, slice(c, :, i))
+            out[i, j] = dot(viewj, view(c, :, i))
         end
     end
     # make symmetric

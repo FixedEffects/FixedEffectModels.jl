@@ -29,7 +29,7 @@ function residualize!(X::Matrix{Float64}, fep::FixedEffectProblem,
                       iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
                       kwargs...)
     for j in 1:size(X, 2)
-        residualize!(slice(X, :, j), fep, iterationsv, convergedv; kwargs...)
+        residualize!(view(X, :, j), fep, iterationsv, convergedv; kwargs...)
     end
 end
 
@@ -69,7 +69,7 @@ function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
     # The solution is generally not unique. Find connected components and scale accordingly
     findintercept = find(fe -> isa(fe.interaction, Ones), get_fes(fep))
     if length(findintercept) >= 2
-        components = connectedcomponent(sub(get_fes(fep), findintercept))
+        components = connectedcomponent(view(get_fes(fep), findintercept))
         rescale!(x, fep, findintercept, components)
     end
 
