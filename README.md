@@ -1,4 +1,4 @@
-[![FixedEffectModels](http://pkg.julialang.org/badges/FixedEffectModels_0.4.svg)](http://pkg.julialang.org/?pkg=FixedEffectModels)
+[![FixedEffectModels](http://pkg.julialang.org/badges/FixedEffectModels_0.5.svg)](http://pkg.julialang.org/?pkg=FixedEffectModels)
 [![Build Status](https://travis-ci.org/matthieugomez/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.org/matthieugomez/FixedEffectModels.jl)
 [![Coverage Status](https://coveralls.io/repos/matthieugomez/FixedEffectModels.jl/badge.svg?branch=master)](https://coveralls.io/r/matthieugomez/FixedEffectModels.jl?branch=master)
 
