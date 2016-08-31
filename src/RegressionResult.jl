@@ -274,10 +274,10 @@ type RegressionResultFE <: AbstractRegressionResult
     converged::Bool         # Has the demeaning algorithm converged?
 end
 function predict(::RegressionResultFE, ::AbstractDataFrame)
-    error("predict is not defined for fixed effect models.  Run reg with the the option savefe = true")
+    error("predict is not defined by default for fixed effect models.  Run reg with the the option save = true")
 end
 function residuals(::RegressionResultFE, ::AbstractDataFrame)
-    error("residuals is not defined for fixed effect models. Use the function partial_out")
+    error("predict is not defined by default for fixed effect models.  Run reg with the the option save = true")
 end
 title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 

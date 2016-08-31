@@ -138,8 +138,10 @@ function reg(f::Formula, df::AbstractDataFrame,
         pfe = nothing
     end
 
+
     # Compute data for std errors
     vcov_method_data = VcovMethodData(vcov_method, subdf)
+
 
     ##############################################################################
     ##
@@ -170,12 +172,22 @@ function reg(f::Formula, df::AbstractDataFrame,
     end
     residualize!(y, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
+
     # Obtain X
     coef_names = coefnames(mf)
-    Xexo = ModelMatrix(mf).m
+    if isempty(mf.terms.terms) && mf.terms.intercept == false
+        Xexo = Matrix{Float64}(sum(mf.msng), 0)
+    else    
+        Xexo = ModelMatrix(mf).m
+        if size(Xexo, 2) == 1
+            # See pull request #1017 in DataFrames Package
+            Xexo = deepcopy(Xexo)
+        end
+    end
     broadcast!(*, Xexo, Xexo, sqrtw)
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
+    
     # Obtain Xendo and Z
     if has_iv
         mf = simpleModelFrame(subdf, endo_terms, esample)
@@ -195,6 +207,7 @@ function reg(f::Formula, df::AbstractDataFrame,
         iterations = maximum(iterations)
         converged = all(converged)
     end
+
 
     ##############################################################################
     ##
@@ -247,6 +260,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     coef = crossx \ At_mul_B(Xhat, y)
     residuals = y - X * coef
 
+
     ##############################################################################
     ##
     ## Optionally save some vectors in a new dataframe
@@ -272,6 +286,8 @@ function reg(f::Formula, df::AbstractDataFrame,
             broadcast!(*, oldX, oldX, sqrtw)
             BLAS.gemm!('N', 'N', -1.0, oldX, coef, 1.0, oldy)
             axpy!(-1.0, residuals, oldy)
+
+
             augmentdf = hcat(augmentdf, getfe!(pfe, oldy, esample; tol = tol, maxiter = maxiter))
         end
     end

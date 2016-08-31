@@ -35,7 +35,7 @@ df[:SalesInt] = round(Int64, df[:Sales])
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid2, df))   [-1.08471] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1 + pid1&id2 , df))    [-0.53470] 1e-4
 @test_approx_eq_eps coef(reg(y ~ x1 |> pid1*id2 , df))    [-0.53470] 1e-4
-@test isempty(coef(reg(y ~ 0 |> pid1*x1, df)))
+#@test isempty(coef(reg(y ~ 0 |> pid1*x1, df)))
 @test_approx_eq_eps coef(reg(y ~ x1 |> ppid1&pid2 , df))    [-1.44255] 1e-4
 
 @test_approx_eq_eps  coef(reg(y ~ x1 |> pid1&id2, df))  [13.993028174622104,-0.5804357763515606] 1e-4
