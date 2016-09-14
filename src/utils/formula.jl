@@ -36,7 +36,12 @@ function decompose_iv!(rf::Formula)
 	if typeof(rf.rhs) == Expr
 		if rf.rhs.head == :(=)
 			has_iv = true
-			iv_formula = Formula(nothing,  rf.rhs.args[2])
+			if isa(rf.rhs.args[2], Expr) && rf.rhs.args[2].head == :block
+				# happens when several endogeneous variable
+				iv_formula = Formula(nothing,  rf.rhs.args[2].args[2])
+			else
+				iv_formula = Formula(nothing,  rf.rhs.args[2])
+			end
 			endo_formula = Formula(nothing, rf.rhs.args[1])
 			rf.rhs = :1
 		elseif rf.rhs.head == :call
@@ -91,11 +96,13 @@ end
 ##
 ##############################################################################
 
-function simpleModelFrame(df, t, esample)
-	df1 = DataFrame(map(x -> df[x], t.eterms))
-	names!(df1, convert(Vector{Symbol}, map(string, t.eterms)))
-	mf = ModelFrame(df1, t, esample)
+
+function ModelFrame2(trms::Terms, d::AbstractDataFrame, esample; contrasts::Dict = Dict())
+	mf = ModelFrame(trms, d; contrasts = contrasts)
+	mf.msng = esample
+	return mf
 end
+
 
 
 #  remove observations with negative weights
@@ -113,17 +120,18 @@ function isnaorneg{T <: Real}(a::DataVector{T})
 end
 
 # Directly from DataFrames.jl
-function remove_response(t::Terms)
-    # shallow copy original terms
-    t = Terms(t.terms, t.eterms, t.factors, t.order, t.response, t.intercept)
-    if t.response
-        t.order = t.order[2:end]
-        t.eterms = t.eterms[2:end]
-        t.factors = t.factors[2:end, 2:end]
-        t.response = false
+
+function dropresponse(trms::Terms)
+    if trms.response
+        ckeep = 2:size(trms.factors, 2)
+        rkeep = vec(any(trms.factors[:, ckeep], 2))
+        Terms(trms.terms, trms.eterms[rkeep], trms.factors[rkeep, ckeep],
+              trms.is_non_redundant[rkeep, ckeep], trms.order[ckeep], false, trms.intercept)
+    else
+        trms
     end
-    return t
 end
+
 
 function allvars(ex::Expr)
     if ex.head != :call error("Non-call expression encountered") end

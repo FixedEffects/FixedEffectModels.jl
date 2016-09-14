@@ -88,7 +88,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     yf = Formula(nothing, rf.lhs)
     yt = Terms(yf)
     yt.intercept = false
-    mfY = simpleModelFrame(subdf, yt, esample)
+    mfY = ModelFrame2(yt, subdf, esample)
     Y = ModelMatrix(mfY).m
     broadcast!(*, Y, Y, sqrtw)
     if add_mean
@@ -100,7 +100,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     xvars = allvars(xf)
     if length(xvars) > 0 || xt.intercept
         if length(xvars) > 0 
-            mf = simpleModelFrame(subdf, xt, esample)
+            mf = ModelFrame2(xt, subdf, esample)
             X = ModelMatrix(mf).m
         else
             X = fill(one(Float64), (size(subdf, 1), 1))

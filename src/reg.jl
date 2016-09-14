@@ -153,7 +153,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     iterations = Int[]
     converged = Bool[]
 
-    mf = simpleModelFrame(subdf, rt, esample)
+    mf = ModelFrame2(rt, subdf, esample)
 
     # Obtain y
     py = model_response(mf)[:]
@@ -190,13 +190,13 @@ function reg(f::Formula, df::AbstractDataFrame,
     
     # Obtain Xendo and Z
     if has_iv
-        mf = simpleModelFrame(subdf, endo_terms, esample)
+        mf = ModelFrame2(endo_terms, subdf, esample)
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         broadcast!(*, Xendo, Xendo, sqrtw)
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
         
-        mf = simpleModelFrame(subdf, iv_terms, esample)
+        mf = ModelFrame2(iv_terms, subdf, esample)
         Z = ModelMatrix(mf).m
         broadcast!(*, Z, Z, sqrtw)
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
@@ -278,7 +278,7 @@ function reg(f::Formula, df::AbstractDataFrame,
             augmentdf[esample, :residuals] = residuals
         end
         if has_absorb
-            mf = simpleModelFrame(subdf, rt, esample)
+            mf = ModelFrame2(rt, subdf, esample)
             oldX = ModelMatrix(mf).m
             if !all(basecoef)
                 oldX = oldX[:, basecoef]

@@ -25,7 +25,7 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     rf = deepcopy(x.formula)
     secondstage!(rf)
 
-    newTerms = remove_response(Terms(rf))
+    newTerms = dropresponse(Terms(rf))
     mf = ModelFrame(newTerms, df)
     newX = ModelMatrix(mf).m
 

@@ -3,4 +3,4 @@ Compat
 Distributions 0.4.6
 StatsBase 0.7.1
 DataArrays
-DataFrames 0.6
+DataFrames 0.8
