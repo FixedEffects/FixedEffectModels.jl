@@ -1,7 +1,7 @@
 ##############################################################################
 ##
 ## Create light weight type
-## 
+##
 ##############################################################################
 
 type Ones{T} <: AbstractVector{T}
@@ -36,15 +36,15 @@ Base.collect{T}(o::Ones{T}) = ones(T, length(o))
 for t in (BitArray, DataArray, PooledDataArray)
 	@eval begin
 		function Base.broadcast!(op::Function, A::$t, o::Ones)
-			invoke(broadcast!, (Any, Any, Ones), op, A, o)
+			invoke(broadcast!, Tuple{Any,Any,Ones}, op, A, o)
 		end
 	end
 end
 
-function Base.broadcast!(op::Function, A::Any, o::Ones) 
+function Base.broadcast!(op::Function, A::Any, o::Ones)
 	if op == *
 		A
-	else 
-		invoke(broadcast!, (Any, typeof(A), AbstractVector), op, A, o)
+	else
+		invoke(broadcast!, Tuple{Any,typeof(A),AbstractVector}, op, A, o)
 	end
 end
