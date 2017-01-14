@@ -116,8 +116,8 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataV
     S = fill(zero(Float64), (dim, dim))
     temp = fill(zero(Float64), fsize, dim)
     if fsize == nobs
-        index = zero(Int)
-        @inbounds for l in 1:size(res, 2), k in 1:size(X, 2)
+        index = 0
+        for l in 1:size(res, 2), k in 1:size(X, 2)
             index += 1
             @simd for i in 1:nobs
                 temp[i, index] = X[i, k] * res[i, l]
@@ -125,8 +125,8 @@ function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataV
         end
         S = At_mul_B(temp, temp)
     else
-        index = zero(Int)
-        @inbounds for l in 1:size(res, 2), k in 1:size(X, 2)
+        index = 0
+        for l in 1:size(res, 2), k in 1:size(X, 2)
             index += 1
             @simd for i in 1:nobs
                 temp[f.refs[i], index] += X[i, k] * res[i, l]
