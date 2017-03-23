@@ -77,7 +77,7 @@ function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
 end
 
 # Convert estimates to dataframes 
-function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esample::BitVector)
+function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esample)
     fes = get_fes(fep)
     newdf = DataFrame()
     len = length(esample)
@@ -91,7 +91,7 @@ function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esampl
     return newdf
 end
 
-function getfe!(fep::FixedEffectProblem, b::Vector{Float64},esample::BitVector;
+function getfe!(fep::FixedEffectProblem, b::Vector{Float64},esample;
                 tol::Real = 1e-8, maxiter::Integer = 100_000)
     fev = getfe!(fep, b; tol = tol, maxiter = maxiter)
     return DataFrame(fev, fep, esample)

@@ -19,7 +19,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Details
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
 ```
-depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars
+@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars)
 ```
 Categorical variable should be of type PooledDataArray.  See the following to create PooledDataArray:
 * `pool` : transform one variable into a `PooledDataArray`. 
@@ -97,7 +97,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # create a dataframe without missing values & negative weights
     all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
-    esample = complete_cases(df[all_vars])
+    esample = completecases(df[all_vars])
 
     if has_weight
         esample &= isnaorneg(df[weight])
@@ -411,14 +411,14 @@ end
 ## 
 ##############################################################################
 
-function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
+function get_weight(df::AbstractDataFrame, esample, weight::Symbol) 
     out = df[esample, weight]
     # there are no NA in it. DataVector to Vector
     out = convert(Vector{Float64}, out)
     map!(sqrt, out, out)
     return out
 end
-get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones{Float64}(sum(esample))
+get_weight(df::AbstractDataFrame, esample, ::Void) = Ones{Float64}(sum(esample))
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
     if hasintercept

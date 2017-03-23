@@ -22,7 +22,7 @@ Pkg.add("FixedEffectModels")
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and high dimensional categorical variables
 
 ```
-reg(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> categoricalvars, df)
+reg(@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> categoricalvars), df)
 ```
 #### fixed effects
 Categorical variable must be of type PooledDataArray.
@@ -32,7 +32,7 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(Sales ~ Price |> StatePooled + YearPooled, df)
+reg(@formula(Sales ~ Price |> StatePooled + YearPooled), df)
 # ===============================================================
 # Number of obs             1380   Degree of freedom           77
 # R2                       0.137   R2 Adjusted              0.085
@@ -52,7 +52,7 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:DecPooled] =  pool(div(df[:Year], 10))
-reg(Sales ~ NDI |> StatePooled&DecPooled, df)
+reg(@formula(Sales ~ NDI |> StatePooled&DecPooled), df)
 # =====================================================================
 # Number of obs:               1380   Degree of freedom:            185
 # R2:                         0.923   R2 within:                  0.101
@@ -71,7 +71,7 @@ Specify interactions with continuous variables using the `&` operator:
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
-reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
+reg(@formula(Sales ~ NDI |> StatePooled + StatePooled&Year), df)
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
@@ -90,7 +90,7 @@ Specify both main effects and an interaction term at once using the `*` operator
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
-reg(Sales ~ NDI |> StatePooled*Year, df)
+reg(@formula(Sales ~ NDI |> StatePooled*Year), df)
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
@@ -108,9 +108,9 @@ reg(Sales ~ NDI |> StatePooled*Year, df)
 Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
 
 ```julia
-reg(Sales ~ NDI, df, VcovWhite())
-reg(Sales ~ NDI, df, VcovCluster([:StatePooled]))
-reg(Sales ~ NDI, df, VcovCluster([:StatePooled, :YearPooled]))
+reg(@formula(Sales ~ NDI), df, VcovWhite())
+reg(@formula(Sales ~ NDI), df, VcovCluster([:StatePooled]))
+reg(@formula(Sales ~ NDI), df, VcovCluster([:StatePooled, :YearPooled]))
 ```
 
 `reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
@@ -153,7 +153,7 @@ using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-result = partial_out(Sales + Price ~ 1|> YearPooled + StatePooled, df, add_mean = true)
+result = partial_out(@formula(Sales + Price ~ 1|> YearPooled + StatePooled), df, add_mean = true)
 #> 1380x2 DataFrame
 #> | Row  | Sales   | Price   |
 #> |------|---------|---------|

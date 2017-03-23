@@ -55,7 +55,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     absorb_vars = allvars(absorb_formula)
     all_vars = vcat(vars, absorb_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
-    esample = complete_cases(df[all_vars])
+    esample = completecases(df[all_vars])
     if weight != nothing
         esample &= isnaorneg(df[weight])
     end
