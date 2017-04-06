@@ -17,7 +17,7 @@ Pkg.add("FixedEffectModels")
 ```
 
 
-#### instrumental variables
+#### formula
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 ```
 @formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars)
@@ -32,75 +32,19 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(df, @formula(Sales ~ Price), @fe(StatePooled + YearPooled))
-# ===============================================================
-# Number of obs             1380   Degree of freedom           77
-# R2                       0.137   R2 Adjusted              0.085
-# F Stat                 205.989   p-val                    0.000
-# Iterations                   2   Converged:                true
-# ===============================================================
-#        Estimate Std.Error  t value Pr(>|t|) Lower 95% Upper 95%
-# ---------------------------------------------------------------
-# Price  -1.08471 0.0755775 -14.3523    0.000  -1.23298 -0.936445
-# ===============================================================
+@fe(StatePooled + YearPooled))
 ```
-
 Combine multiple categorical variables with the operator `&` 
-
 ```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-df[:DecPooled] =  pool(div(df[:Year], 10))
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled&DecPooled))
-# =====================================================================
-# Number of obs:               1380   Degree of freedom:            185
-# R2:                         0.923   R2 within:                  0.101
-# F-Statistic:              133.916   p-value:                    0.000
-# Iterations:                     1   Converged:                   true
-# =====================================================================
-#        Estimate   Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
-# ---------------------------------------------------------------------
-# NDI  -0.0020522 0.000177339 -11.5722    0.000 -0.00240014 -0.00170427
-# =====================================================================
+@fe(StatePooled&DecPooled))
 ```
-
-Specify interactions with continuous variables using the `&` operator:
-
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled + StatePooled&Year))
-# =====================================================================
-# Number of obs                1380   Degree of freedom              93
-# R2                          0.245   R2 Adjusted                 0.190
-# F Stat                    417.342   p-val                       0.000
-# Iterations                      2   Converged:                   true
-# =====================================================================
-#         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
-# ---------------------------------------------------------------------
-# NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
-# =====================================================================
+Specify interactions with continuous variables  with the operato `&`
 ```
-
+@fe(StatePooled + StatePooled&Year)
+```
 Specify both main effects and an interaction term at once using the `*` operator:
-
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
-# =====================================================================
-# Number of obs                1380   Degree of freedom              93
-# R2                          0.245   R2 Adjusted                 0.190
-# F Stat                    417.342   p-val                       0.000
-# Iterations                      2   Converged:                   true
-# =====================================================================
-#         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
-# ---------------------------------------------------------------------
-# NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
-# =====================================================================
+```
+@fe(StatePooled*Year)
 ```
 
 #### standard errors
@@ -122,6 +66,24 @@ reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled, YearPooled))
   - a boolean vector reporting rows used in the estimation
   - a set of scalars (number of observations, the degree of freedoms, r2, etc)
   - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
+
+
+  ```julia
+  using DataFrames, RDatasets, FixedEffectModels
+  df = dataset("plm", "Cigar")
+  df[:StatePooled] =  pool(df[:State])
+  reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
+  # =====================================================================
+  # Number of obs                1380   Degree of freedom              93
+  # R2                          0.245   R2 Adjusted                 0.190
+  # F Stat                    417.342   p-val                       0.000
+  # Iterations                      2   Converged:                   true
+  # =====================================================================
+  #         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
+  # ---------------------------------------------------------------------
+  # NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
+  # =====================================================================
+  ```
 
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
