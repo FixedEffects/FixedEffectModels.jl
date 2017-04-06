@@ -17,7 +17,7 @@ Pkg.add("FixedEffectModels")
 ```
 
 ## Syntax
-#### formula
+#### `@formula`
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
@@ -25,7 +25,7 @@ df = dataset("plm", "Cigar")
 @formula(dependent variable ~ exogenous variables + (endogenous variables = instrumental variables))
 @formula(Sales ~ Pop + (Price = Pimin))
 ```
-#### fixed effects
+#### `@fe`
 
 Fixed effect variable are indicated with the macro `@fe`. Fixed effect variables must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
 
@@ -47,7 +47,7 @@ Specify both main effects and an interaction term at once using the `*` operator
 @fe(StatePooled*Year)
 ```
 
-#### standard errors
+#### `@vcov`
 
 Standard errors are indicated with the macro `@vcovrobust()` or `@vcovcluster()`
 ```julia
@@ -56,13 +56,13 @@ Standard errors are indicated with the macro `@vcovrobust()` or `@vcovcluster()`
 @vcovcluster(StatePooled + YearPooled)
 ```
 
-#### weight
+#### `@weight`
 weights are indicated with the macro `@weight`
 ```julia
 @weight(Pop)
 ```
 
-###  Putting everything together
+####  Putting everything together
 ```julia
 reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year), @weight(Pop))
 # =====================================================================
