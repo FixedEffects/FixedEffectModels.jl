@@ -22,22 +22,21 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-
+@formula(dependent variable ~ exogenous variables + (endogenous variables = instrumental variables))
 @formula(Sales ~ Pop + (Price = Pimin))
 ```
 #### fixed effects
 
-Fixed effect variable are indicated with the macro `@fe`
-The corresponding categorical variables must be of type PooledDataArray.
+Fixed effect variable are indicated with the macro `@fe`. Fixed effect variables must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
 
 ```julia
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-@fe(StatePooled + YearPooled))
+@fe(StatePooled + YearPooled)
 ```
 Combine multiple categorical variables with the operator `&` 
 ```julia
-@fe(StatePooled&DecPooled))
+@fe(StatePooled&DecPooled)
 ```
 Specify interactions with continuous variables  with the operator `&`
 ```julia
@@ -54,7 +53,7 @@ Standard errors are indicated with the macro `@vcovrobust()` or `@vcovcluster()`
 ```julia
 @vcovrobust()
 @vcovcluster(StatePooled)
-@vcovcluster(StatePooled, YearPooled)
+@vcovcluster(StatePooled + YearPooled)
 ```
 
 #### weight
@@ -65,10 +64,7 @@ weights are indicated with the macro `@weight`
 
 ###  Putting everything together
 ```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year), @weight(Pop))
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
