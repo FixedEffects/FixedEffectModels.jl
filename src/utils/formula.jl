@@ -1,30 +1,3 @@
-
-##############################################################################
-##
-## read formula
-##
-##############################################################################
-
-function decompose!(rf::Formula)
-	(has_absorb, absorb_formula, absorb_terms) = decompose_absorb!(rf)
-	(has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
-	return (has_absorb, absorb_formula, absorb_terms, has_iv, iv_formula, iv_terms, endo_formula, endo_terms)
-end
-
-# decompose formula into normal + iv vs absorbpart
-function decompose_absorb!(rf::Formula)
-	has_absorb = false
-	absorb_formula = nothing
-	absorb_terms = nothing
-	if typeof(rf.rhs) == Expr && rf.rhs.args[1] == :(|>)
-		has_absorb = true
-		absorb_formula = Formula(nothing, rf.rhs.args[3])
-		rf.rhs = rf.rhs.args[2]
-		absorb_terms = Terms(absorb_formula)
-	end
-	return(has_absorb, absorb_formula, absorb_terms)
-end
-
 # decompose formula into normal vs iv part
 function decompose_iv!(rf::Formula)
 	has_iv = false
@@ -32,7 +5,6 @@ function decompose_iv!(rf::Formula)
 	iv_terms = nothing
 	endo_formula = nothing
 	endo_terms = nothing
-
 	if typeof(rf.rhs) == Expr
 		if rf.rhs.head == :(=)
 			has_iv = true
@@ -77,7 +49,7 @@ function decompose_iv!(rf::Formula)
 end
 
 function secondstage!(rf::Formula)
-	(has_absorb, absorb_formula, absorb_terms, has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
+	(has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
 	if has_iv
 	    if typeof(rf.rhs) == Symbol
 	        rf.rhs = endo_formula.rhs
@@ -157,7 +129,5 @@ function dropUnusedLevels!(f::PooledDataVector)
 end
 
 dropUnusedLevels!(f::DataVector) = f
-
-
 
 

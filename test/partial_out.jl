@@ -13,18 +13,18 @@ function glm_helper(formula::Formula, x::DataFrame, wts::Symbol)
 end
 
 test = (
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ NDI), x)),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ NDI |> pState), x)),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ 1 |> pState), x)),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ 1), x)),
-    mean(convert(Array{Float64}, partial_out(@formula(Sales + Price ~ NDI), x, add_mean = true)), 1),
-    mean(convert(Array{Float64}, partial_out(@formula(Sales + Price ~ NDI |> pState), x, add_mean = true)), 1),
-    mean(convert(Array{Float64}, partial_out(@formula(Sales + Price ~ 1 |> pState), x, add_mean = true)), 1),
-    mean(convert(Array{Float64}, partial_out(@formula(Sales + Price ~ 1), x, add_mean = true)), 1),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ NDI), x, weight = :Pop)),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ NDI |> pState), x, weight = :Pop)),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ 1 |> pState), x, weight = :Pop)),
-    convert(Array{Float64}, partial_out(@formula(Sales + Price ~ 1), x, weight = :Pop)),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ NDI))),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ NDI), @fe(pState))),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ 1), @fe(pState))),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ 1))),
+    mean(convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ NDI), add_mean = true)), 1),
+    mean(convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ NDI), @fe(pState), add_mean = true)), 1),
+    mean(convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ 1), @fe(pState), add_mean = true)), 1),
+    mean(convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ 1), add_mean = true)), 1),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ NDI), @weight(Pop))),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ NDI), @fe(pState), @weight(Pop))),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ 1), @fe(pState), @weight(Pop))),
+    convert(Array{Float64}, partial_out(x, @formula(Sales + Price ~ 1), @weight(Pop))),
     )
 
 answer = (
@@ -51,4 +51,4 @@ x[1, :Sales] = NA
 x[2, :Price]  = NA
 x[5, :Pop]  = NA
 x[6, :Pop]  = -1.0
-partial_out(@formula(Sales + Price ~ 1), x, weight = :Pop)
+partial_out(x, @formula(Sales + Price ~ 1), @weight(Pop))

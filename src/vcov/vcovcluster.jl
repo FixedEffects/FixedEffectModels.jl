@@ -1,40 +1,47 @@
-
-type VcovCluster  <: AbstractVcovMethod
-    clusters::Vector{Symbol}
+type VcovClusterFormula <: AbstractVcovFormula
+    x::Vector{Symbol}
 end
-VcovCluster(x::Symbol) = VcovCluster([x])
-allvars(x::VcovCluster) = x.clusters
+macro vcovcluster(x::Symbol)
+    return VcovClusterFormula([x])
+end
+macro vcovcluster(x::Expr)
+    return VcovClusterFormula(allvars(x))
+end
+allvars(x::VcovClusterFormula) = x.x
 
-type VcovClusterData <: AbstractVcovMethodData
+type VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
     size::Dict{Symbol, Int}
 end
 
-function VcovMethodData(v::VcovCluster, df::AbstractDataFrame) 
-    vclusters = DataFrame(Vector, size(df, 1), length(v.clusters))
-    names!(vclusters, v.clusters)
+
+
+function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula) 
+    clusters = vcovcluster.x
+    vclusters = DataFrame(Vector, size(df, 1), length(clusters))
+    names!(vclusters, clusters)
     vsize = Dict{Symbol, Int}()
-    for c in v.clusters
+    for c in clusters
         p = df[c]
         typeof(p) <: PooledDataVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataVector.")
         vclusters[c] = p
         # may be subset / NA
         vsize[c] = length(unique(p.refs))
     end
-    return VcovClusterData(vclusters, vsize)
+    return VcovClusterMethod(vclusters, vsize)
 end
 
-df_FStat(v::VcovClusterData, ::VcovData, ::Bool) = minimum(values(v.size)) - 1
+df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool) = minimum(values(v.size)) - 1
 
 
-function vcov!(v::VcovClusterData, x::VcovData)
+function vcov!(v::VcovClusterMethod, x::VcovData)
     S = shat!(v, x)
     out = sandwich(x.crossmatrix, S)
     # Cameron, Gelbach, & Miller (2011)
     pinvertible(out)
     return out
 end
-function shat!{T}(v::VcovClusterData, x::VcovData{T, 1}) 
+function shat!{T}(v::VcovClusterMethod, x::VcovData{T, 1}) 
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors
@@ -80,7 +87,7 @@ function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
     end
 end
 
-function shat!{T}(v::VcovClusterData, x::VcovData{T, 2}) 
+function shat!{T}(v::VcovClusterMethod, x::VcovData{T, 2}) 
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors

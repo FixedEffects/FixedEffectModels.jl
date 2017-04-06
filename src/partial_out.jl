@@ -3,10 +3,11 @@
 Partial out variables
 
 ### Arguments
-* `f` : Formula, 
 * `df` : AbstractDataFrame
+* `f` : Formula,
+* `fe` : Fixed effect formula. Default to fe()
+* `weight`: Weight formula. Corresponds to analytical weights 
 * `add_mean` : should intial mean added to the returned variable
-* `weight` : Symbol for weight variables. 
 * `subset` : AbstractVector{Bool} for subsample
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
@@ -23,7 +24,7 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
-result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
+result = partial_out(df, SepalWidth + SepalLength ~ 1, @fe(Species), add_mean = true)
 plot(
    layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
@@ -33,31 +34,31 @@ plot(
 
 
 
-function partial_out(f::Formula, df::AbstractDataFrame; 
+function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, weightformula::WeightFormula; 
                      add_mean = false, weight::Union{Symbol, Void} = nothing,
                      maxiter::Integer = 10000, tol::Real = 1e-8,
                      method::Symbol = :lsmr)
 
 
     rf = deepcopy(f)
-    (has_absorb, absorb_formula, absorb_terms, 
-        has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose!(rf)
+    (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
+    has_absorb = feformula.arg != nothing
     if has_iv
         error("partial_out does not support instrumental variables")
     end
     rt = Terms(rf)
-    has_weight = weight != nothing
+    has_weight = (weightformula.arg != nothing)
     xf = Formula(nothing, rf.rhs)
     xt = Terms(xf)
 
     # create a dataframe without missing values & negative weights
     vars = allvars(rf)
-    absorb_vars = allvars(absorb_formula)
+    absorb_vars = allvars(feformula)
     all_vars = vcat(vars, absorb_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = completecases(df[all_vars])
-    if weight != nothing
-        esample &= isnaorneg(df[weight])
+    if has_weight
+        esample &= isnaorneg(df[weightformula.arg])
     end
     subdf = df[esample, all_vars]
     all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
@@ -66,7 +67,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
     end
 
     # Compute weight vector
-    sqrtw = get_weight(df, esample, weight)
+    sqrtw = get_weight(df, esample, weightformula)
 
     # initialize iterations & converged
     iterations = Int[]
@@ -74,7 +75,7 @@ function partial_out(f::Formula, df::AbstractDataFrame;
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
-        fixedeffects = FixedEffect(subdf, absorb_terms, sqrtw)
+        fixedeffects = FixedEffect(subdf, feformula, sqrtw)
         # in case there is any intercept fe, remove the intercept
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             xt.intercept = false
@@ -132,5 +133,15 @@ function partial_out(f::Formula, df::AbstractDataFrame;
         out[esample, y] = residuals[:, j]
     end
     return(out)
+end
+
+function partial_out(df::AbstractDataFrame, f::Formula; kwargs...) 
+    partial_out(df, f, @fe(), @weight(); kwargs...)
+end
+function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula; kwargs...) 
+    partial_out(df, f, feformula, @weight(); kwargs...)
+end
+function partial_out(df::AbstractDataFrame, f::Formula, weightformula::WeightFormula; kwargs...) 
+    partial_out(df, f, @fe(), weightformula; kwargs...)
 end
 

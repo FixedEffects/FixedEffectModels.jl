@@ -12,7 +12,7 @@
 function ranktest!(X::Matrix{Float64}, 
                     Z::Matrix{Float64}, 
                     Pi::Matrix{Float64}, 
-                    vcov_method_data::AbstractVcovMethodData, 
+                    vcov_method::AbstractVcovMethod, 
                     df_small::Int, 
                     df_absorb::Int)
 
@@ -46,14 +46,14 @@ function ranktest!(X::Matrix{Float64},
     lambda = kronv * vec(theta)
 
     # compute vhat
-    if typeof(vcov_method_data) == VcovSimpleData
+    if typeof(vcov_method) == VcovSimpleMethod
         vhat= eye(L * K) / size(X, 1)
     else
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
         temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
         k = kron(temp1, temp2)'
         vcovmodel = VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
-        matrix_vcov2 = shat!(vcov_method_data, vcovmodel)
+        matrix_vcov2 = shat!(vcov_method, vcovmodel)
         vhat = k \ (k \ matrix_vcov2)'
     end
 

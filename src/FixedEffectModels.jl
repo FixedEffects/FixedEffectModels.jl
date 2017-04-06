@@ -25,10 +25,12 @@ reg,
 partial_out,
 residualize!,
 getfe!,
-decompose!,
+decompose_iv!,
 allvars,
 
+WeightFormula,
 Ones,
+FixedEffectFormula,
 FixedEffect,
 FixedEffectProblem,
 
@@ -40,16 +42,28 @@ RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
 
+AbstractVcovFormula, 
+VcovSimpleFormula, 
+VcovWhiteFormula, 
+VcovClusterFormula,
 
-AbstractVcovMethod,
-AbstractVcovMethodData, 
+AbstractVcovMethod, 
+VcovMethod,
+VcovSimpleMethod, 
+VcovWhiteMethod, 
+VcovClusterMethod,
+
 vcov!,
 shat!,
-VcovMethodData,
 VcovData,
-VcovSimple, 
-VcovWhite, 
-VcovCluster
+
+
+
+@fe,
+@vcov,
+@vcovrobust,
+@vcovcluster,
+@weight
 
 
 ##############################################################################
@@ -61,20 +75,23 @@ include("utils/group.jl")
 include("utils/formula.jl")
 include("utils/lsmr.jl")
 include("utils/basecol.jl")
-include("utils/Ones.jl")
 include("utils/combinations.jl")
 
-include("RegressionResult.jl")
+include("weight/Ones.jl")
+include("weight/weight.jl")
+
+
 
 include("fixedeffect/FixedEffect.jl")
 include("fixedeffect/FixedEffectProblem.jl")
 include("fixedeffect/FixedEffectProblem_LSMR.jl")
 include("fixedeffect/FixedEffectProblem_Factorization.jl")
 
+include("RegressionResult.jl")
 
 include("vcov/types.jl")
 include("vcov/vcovsimple.jl")
-include("vcov/vcovwhite.jl")
+include("vcov/vcovrobust.jl")
 include("vcov/vcovcluster.jl")
 include("vcov/ranktest.jl")
 

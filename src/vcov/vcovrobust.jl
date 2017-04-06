@@ -1,16 +1,19 @@
+type VcovRobustFormula <: AbstractVcovFormula end
+macro vcovrobust()
+    return VcovRobustFormula()
+end
 
-type VcovWhite <: AbstractVcovMethod end
 
-type VcovWhiteData <: AbstractVcovMethodData end
+type VcovRobustMethod <: AbstractVcovMethod end
 
-VcovMethodData(::VcovWhite, ::AbstractDataFrame) = VcovWhiteData()
+VcovMethod(::AbstractDataFrame, ::VcovRobustFormula) = VcovRobustMethod()
 
-function vcov!(v::VcovWhiteData, x::VcovData) 
+function vcov!(v::VcovRobustMethod, x::VcovData) 
     S = shat!(v, x)
     return sandwich(x.crossmatrix, S) 
 end
 
-function shat!{T}(::VcovWhiteData, x::VcovData{T, 1}) 
+function shat!{T}(::VcovRobustMethod, x::VcovData{T, 1}) 
     X = x.regressors
     res = x.residuals
     Xu = scale!(res, X)
@@ -20,7 +23,7 @@ function shat!{T}(::VcovWhiteData, x::VcovData{T, 1})
 end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
-function shat!{T}(::VcovWhiteData, x::VcovData{T, 2}) 
+function shat!{T}(::VcovRobustMethod, x::VcovData{T, 2}) 
     X = x.regressors
     res = x.residuals
     nobs = size(X, 1)

@@ -1,3 +1,20 @@
+##############################################################################
+##
+## Fixed  Effect Formula
+##
+##############################################################################
+
+type FixedEffectFormula
+    arg::Union{Symbol, Expr, Void}
+end
+macro fe()
+    return FixedEffectFormula(nothing)
+end
+macro fe(arg)
+    return FixedEffectFormula(arg)
+end
+allvars(feformula::FixedEffectFormula) = allvars(feformula.arg)
+Terms(feformula::FixedEffectFormula) = Terms(Formula(nothing, feformula.arg))
 
 ##############################################################################
 ##
@@ -15,12 +32,6 @@ type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector
     id::Symbol              # Name of new variable if save = true
 end
 
-##############################################################################
-##
-## Constructor
-##
-##############################################################################
-
 # Constructor
 function FixedEffect{R <: Integer}(
     refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
@@ -37,9 +48,9 @@ function FixedEffect{R <: Integer}(
 end
 
 # Constructors from dataframe + terms
-function FixedEffect(df::AbstractDataFrame, terms::Terms, sqrtw::AbstractVector{Float64})
+function FixedEffect(df::AbstractDataFrame, feformula::FixedEffectFormula, sqrtw::AbstractVector{Float64})
     out = FixedEffect[]
-    for term in terms.terms
+    for term in Terms(feformula).terms
         result = FixedEffect(df, term, sqrtw)
         if isa(result, FixedEffect)
             push!(out, result)
@@ -63,7 +74,7 @@ end
 
 # Constructors from dataframe + expression
 function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
-    _check(a) || throw("Expression $a shouyld only contain & and variable names")
+    _check(a) || throw("Expression $a should only contain & and variable names")
     factorvars, interactionvars = _split(df, allvars(a))
     if isempty(factorvars)
         # x1&x2 from (x1&x2)*id

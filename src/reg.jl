@@ -2,12 +2,13 @@
 Estimate a linear model with high dimensional categorical variables / instrumental variables
 
 ### Arguments
-* `f` : Formula, 
 * `df` : AbstractDataFrame
-* `vcov_method` : An object of type AbstractVcovMethod. Default to VcovSimple(). For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
-* `weight` : Symbol for weight variables. Corresponds to analytical weights
+* `f` : Formula, 
+* `fe` : Fixed effect formula. Default to fe()
+* `vcovformula` : Vcov formula. Default to vcov(). `vcovrobust()` and `vcovcluster()` are also implemented
+* `weight`: Weight formula. Corresponds to analytical weights
 * `subset` : AbstractVector{Bool} for subsample
-* `save` : SHould residuals and eventual estimated fixed effects saved in a dataframe?
+* `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
 * `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
@@ -17,9 +18,9 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `::AbstractRegressionResult` : a regression results
 
 ### Details
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instruments, and high dimensional fixed effects
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instruments
 ```
-@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> absorbvars)
+@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) 
 ```
 Categorical variable should be of type PooledDataArray.  See the following to create PooledDataArray:
 * `pool` : transform one variable into a `PooledDataArray`. 
@@ -32,24 +33,23 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(Sales ~ Price |> StatePooled + YearPooled, df)
-reg(Sales ~ NDI |> StatePooled + StatePooled&Year, df)
-reg(Sales ~ NDI |> StatePooled*Year, df)
-reg(Sales ~ (Price = Pimin), df)
-reg(Sales ~ Price, df, weight = :Pop)
-reg(Sales ~ NDI, df, subset = df[:State] .< 30)
-reg(Sales ~ NDI, df, VcovWhite())
-reg(Sales ~ NDI, df, VcovCluster([:StatePooled]))
-reg(Sales ~ NDI, df, VcovCluster([:StatePooled, :YearPooled]))
+reg(df, @formula(Sales ~ Price),  @fe(StatePooled + YearPooled))
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled + StatePooled&Year))
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
+reg(df, @formula(Sales ~ (Price = Pimin)))
+reg(df, @formula(Sales ~ Price), @weight(Pop))
+reg(df, @formula(Sales ~ NDI), subset = df[:State] .< 30)
+reg(df, @formula(Sales ~ NDI), @vcovrobust())
+reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled))
+reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled + YearPooled))
 ```
 """
 
 
 
+
 # TODO: minimize memory
-function reg(f::Formula, df::AbstractDataFrame, 
-             vcov_method::AbstractVcovMethod = VcovSimple(); 
-             weight::Union{Symbol, Void} = nothing, 
+function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, vcovformula::AbstractVcovFormula, weightformula::WeightFormula; 
              subset::Union{AbstractVector{Bool}, Void} = nothing, 
              maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
              save::Bool = false,
@@ -60,25 +60,23 @@ function reg(f::Formula, df::AbstractDataFrame,
     ## Parse formula
     ##
     ##############################################################################
-
     rf = deepcopy(f)
-    (has_absorb, absorb_formula, absorb_terms,
-        has_iv,iv_formula,iv_terms,endo_formula,endo_terms) = decompose!(rf)
+    (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
     rt = Terms(rf)
-    has_weight = weight != nothing
-
-    # check depth 1 symbols in original formula are all PooledDataArray
+    has_absorb = feformula.arg != nothing
     if has_absorb
-        if isa(f.rhs.args[3], Symbol)
-            x = f.rhs.args[3]
+        # check depth 1 symbols in original formula are all PooledDataArray
+        if isa(feformula.arg, Symbol)
+            x = feformula.arg
             !isa(df[x], PooledDataArray) && error("$x should be PooledDataArray")
-        elseif f.rhs.args[3].args[1] == :+
-            x = f.rhs.args[3].args
+        elseif feformula.arg.args[1] == :+
+            x = feformula.arg.args
             for i in 2:length(x)
                 isa(x[i], Symbol) && !isa(df[x[i]], PooledDataArray) && error("$(x[i]) should be PooledDataArray")
             end
         end
     end
+    has_weight = (weightformula.arg != nothing)
 
 
     ##############################################################################
@@ -89,10 +87,10 @@ function reg(f::Formula, df::AbstractDataFrame,
 
     # create a dataframe without missing values & negative weights
     vars = allvars(rf)
-    absorb_vars = allvars(absorb_formula)
     iv_vars = allvars(iv_formula)
     endo_vars = allvars(endo_formula)
-    vcov_vars = allvars(vcov_method)
+    absorb_vars = allvars(feformula)
+    vcov_vars = allvars(vcovformula)
 
     # create a dataframe without missing values & negative weights
     all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
@@ -100,7 +98,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     esample = completecases(df[all_vars])
 
     if has_weight
-        esample &= isnaorneg(df[weight])
+        esample &= isnaorneg(df[weightformula.arg])
     end
     if subset != nothing
         if length(subset) != size(df, 1)
@@ -112,7 +110,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     (nobs > 0) || error("sample is empty")
 
     # Compute weight
-    sqrtw = get_weight(df, esample, weight)
+    sqrtw = get_weight(df, esample, weightformula)
 
     # remove unusused levels
     subdf = df[esample, all_vars]
@@ -127,7 +125,7 @@ function reg(f::Formula, df::AbstractDataFrame,
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
-        fixedeffects = FixedEffect(subdf, absorb_terms, sqrtw)
+        fixedeffects = FixedEffect(subdf, feformula, sqrtw)
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             rt.intercept = false
@@ -140,7 +138,7 @@ function reg(f::Formula, df::AbstractDataFrame,
 
 
     # Compute data for std errors
-    vcov_method_data = VcovMethodData(vcov_method, subdf)
+    vcov_method_data = VcovMethod(subdf, vcovformula)
 
 
     ##############################################################################
@@ -307,9 +305,9 @@ function reg(f::Formula, df::AbstractDataFrame,
     if has_absorb 
         ## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
         for fe in fixedeffects
-            if typeof(vcov_method) == VcovCluster && in(fe.factorname, vcov_vars)
+            if typeof(vcovformula) == VcovClusterFormula && in(fe.factorname, vcov_vars)
                 df_absorb += 0
-                else
+            else
                 df_absorb += sum(fe.scale .!= zero(Float64))
             end
         end
@@ -373,15 +371,43 @@ function reg(f::Formula, df::AbstractDataFrame,
                                   r2, r2_a, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
         return RegressionResultFE(coef, matrix_vcov, esample, augmentdf, 
-                                  coef_names, yname, f, nobs, df_residual, 
+                                  coef_names, yname, f, feformula, nobs, df_residual, 
                                   r2, r2_a, r2_within, F, p, iterations, converged)
     elseif has_iv && has_absorb 
         return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, 
-                                   coef_names, yname, f, nobs, df_residual, 
+                                   coef_names, yname, f, feformula, nobs, df_residual, 
                                    r2, r2_a, r2_within, F, p, F_kp, p_kp, 
                                    iterations, converged)
     end
 end
+
+function reg(df::AbstractDataFrame, f::Formula; kwargs...) 
+    reg(df, f, @fe(), @vcov(), @weight(); kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula; kwargs...) 
+    reg(df, f, feformula, @vcov(), @weight(); kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, vcovformula::AbstractVcovFormula; kwargs...) 
+    reg(df, f, @fe(), vcovformula, @weight(); kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, weightformula::WeightFormula; kwargs...) 
+    reg(df, f, @fe(), @vcov(), weightformula; kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula,  vcovformula::AbstractVcovFormula, weightformula::WeightFormula; kwargs...) 
+    reg(df, f, @fe(), vcovformula, weightformula; kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, weightformula::WeightFormula; kwargs...) 
+    reg(df, f, feformula, @vcov(), weightformula; kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, vcovformula::AbstractVcovFormula; kwargs...) 
+    reg(df, f, feformula, vcovformula, @weight(); kwargs...)
+end
+
+
+
+
+
+
 
 ##############################################################################
 ##
@@ -391,7 +417,7 @@ end
 
 function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
     nobs::Int, hasintercept::Bool, 
-    vcov_method_data::AbstractVcovMethodData, vcov_data::VcovData)
+    vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
     coefF = deepcopy(coef)
     # TODO: check I can't do better
     length(coef) == hasintercept && return NaN, NaN
@@ -405,20 +431,7 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
     return F, ccdf(dist, F)
 end
 
-##############################################################################
-##
-## Weight
-## 
-##############################################################################
 
-function get_weight(df::AbstractDataFrame, esample, weight::Symbol) 
-    out = df[esample, weight]
-    # there are no NA in it. DataVector to Vector
-    out = convert(Vector{Float64}, out)
-    map!(sqrt, out, out)
-    return out
-end
-get_weight(df::AbstractDataFrame, esample, ::Void) = Ones{Float64}(sum(esample))
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
     if hasintercept

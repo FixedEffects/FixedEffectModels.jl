@@ -17,22 +17,22 @@ Pkg.add("FixedEffectModels")
 ```
 
 
-## Syntax
-
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and high dimensional categorical variables
-
+#### instrumental variables
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 ```
-reg(@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) |> categoricalvars), df)
+@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars)
 ```
 #### fixed effects
-Categorical variable must be of type PooledDataArray.
+
+Fixed effect variable are indicated with the macro `@fe`
+The corresponding categorical variables must be of type PooledDataArray.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(@formula(Sales ~ Price |> StatePooled + YearPooled), df)
+reg(df, @formula(Sales ~ Price), @fe(StatePooled + YearPooled))
 # ===============================================================
 # Number of obs             1380   Degree of freedom           77
 # R2                       0.137   R2 Adjusted              0.085
@@ -52,7 +52,7 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:DecPooled] =  pool(div(df[:Year], 10))
-reg(@formula(Sales ~ NDI |> StatePooled&DecPooled), df)
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled&DecPooled))
 # =====================================================================
 # Number of obs:               1380   Degree of freedom:            185
 # R2:                         0.923   R2 within:                  0.101
@@ -71,7 +71,7 @@ Specify interactions with continuous variables using the `&` operator:
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
-reg(@formula(Sales ~ NDI |> StatePooled + StatePooled&Year), df)
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled + StatePooled&Year))
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
@@ -90,7 +90,7 @@ Specify both main effects and an interaction term at once using the `*` operator
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
-reg(@formula(Sales ~ NDI |> StatePooled*Year), df)
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
@@ -105,12 +105,11 @@ reg(@formula(Sales ~ NDI |> StatePooled*Year), df)
 
 #### standard errors
 
-Compute robust standard errors by constructing an object of type `AbstractVcovMethod`. For now, `VcovSimple()` (default), `VcovWhite()` and `VcovCluster(cols)` are implemented.
-
+Standard errors are indicated with the macro `@vcovrobust()` or `@vcovcluster()`
 ```julia
-reg(@formula(Sales ~ NDI), df, VcovWhite())
-reg(@formula(Sales ~ NDI), df, VcovCluster([:StatePooled]))
-reg(@formula(Sales ~ NDI), df, VcovCluster([:StatePooled, :YearPooled]))
+reg(df, @formula(Sales ~ NDI), @vcovrobust())
+reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled))
+reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled, YearPooled))
 ```
 
 `reg` also supports `weights`, `subset`. Type `?reg` to learn about these options.
@@ -153,7 +152,7 @@ using  RDatasets, DataFrames, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-result = partial_out(@formula(Sales + Price ~ 1|> YearPooled + StatePooled), df, add_mean = true)
+result = partial_out(df, @formula(Sales + Price ~ 1), @fe(YearPooled + StatePooled), add_mean = true)
 #> 1380x2 DataFrame
 #> | Row  | Sales   | Price   |
 #> |------|---------|---------|
