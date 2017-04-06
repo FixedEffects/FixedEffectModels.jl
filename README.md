@@ -19,10 +19,14 @@ Pkg.add("FixedEffectModels")
 ## Syntax
 #### `@formula`
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
+```
+@formula(dependent variable ~ exogenous variables + (endogenous variables = instrumental variables))
+```
+
+
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-@formula(dependent variable ~ exogenous variables + (endogenous variables = instrumental variables))
 @formula(Sales ~ Pop + (Price = Pimin))
 ```
 #### `@fe`
