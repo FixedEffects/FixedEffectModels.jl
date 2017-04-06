@@ -38,17 +38,18 @@ df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
 @fe(StatePooled + YearPooled)
 ```
-Combine multiple categorical variables with the operator `&` 
+Interact multiple categorical variables using `&` 
 ```julia
 @fe(StatePooled&DecPooled)
 ```
-Specify interactions with continuous variables  with the operator `&`
+Interact a categorical variable with a continuous variable using `&`
 ```julia
 @fe(StatePooled + StatePooled&Year)
 ```
-Specify both main effects and an interaction term at once using the `*` operator:
+Specify both main effects and interaction terms using the `*` operator:
 ```julia
 @fe(StatePooled*Year)
+# equivalent to @fe(StatePooled StatePooled&year)
 ```
 
 #### `@vcov`
@@ -72,7 +73,7 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year), @weight(Pop))
+reg(df, @formula(Sales ~ NDI), @fe(StatePooled + YearPooled), @weight(Pop))
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
