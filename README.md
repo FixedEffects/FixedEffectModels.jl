@@ -168,7 +168,7 @@ plot(
 
 If there is large number of groups, a better way to visualize this fact is to plot the variables after partialing them out:
 ```julia
-result = partial_out(SepalWidth + SepalLength ~ 1|> Species, df, add_mean = true)
+result = partial_out(df, @formula(SepalWidth + SepalLength ~ 1), @fe(Species), add_mean = true)
 using Gadfly
 plot(
    layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
