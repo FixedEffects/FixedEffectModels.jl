@@ -68,6 +68,10 @@ weights are indicated with the macro `@weight`
 
 ####  Putting everything together
 ```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+df[:YearPooled] =  pool(df[:Year])
 reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year), @weight(Pop))
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
