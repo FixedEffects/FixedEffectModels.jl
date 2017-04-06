@@ -36,6 +36,9 @@ Fixed effect variable are indicated with the macro `@fe`. Fixed effect variables
 ```julia
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
+# one high dimensional fixed effect
+@fe(StatePooled)
+# two high dimensional fixed effects
 @fe(StatePooled + YearPooled)
 ```
 Interact multiple categorical variables using `&` 
