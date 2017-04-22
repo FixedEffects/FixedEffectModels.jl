@@ -7,7 +7,6 @@ module FixedEffectModels
 ## Dependencies
 ##
 ##############################################################################
-using Compat
 import Base.BLAS: axpy!
 import Base: A_mul_B!, Ac_mul_B!, size, sumabs2, copy!, getindex, length, fill!, norm, scale!, eltype, length, view, start, next, done
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
