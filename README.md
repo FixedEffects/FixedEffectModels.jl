@@ -19,7 +19,7 @@ To estimate a linear model, one needs to specify a formula with `@formula`, and,
 
 #### `@formula`
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
-```
+```julia
 @formula(dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables))
 ```
 
@@ -39,7 +39,7 @@ df[:StatePooled] =  pool(df[:State])
 @fe(StatePooled)
 ```
 You can add an arbitrary number of high dimensional fixed effects, separated with `+`
-```
+```julia
 df[:YearPooled] =  pool(df[:Year])
 @fe(StatePooled + YearPooled)
 ```

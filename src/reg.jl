@@ -20,7 +20,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Details
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instruments
 ```
-@formula(depvar ~ exogeneousvars + (endogeneousvars = instrumentvars) 
+@formula(depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars) 
 ```
 Categorical variable should be of type PooledDataArray.  See the following to create PooledDataArray:
 * `pool` : transform one variable into a `PooledDataArray`. 
