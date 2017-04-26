@@ -35,10 +35,12 @@ Fixed effect variable are indicated with the macro `@fe`. Fixed effect variables
 
 ```julia
 df[:StatePooled] =  pool(df[:State])
-df[:YearPooled] =  pool(df[:Year])
 # one high dimensional fixed effect
 @fe(StatePooled)
-# two high dimensional fixed effects
+```
+You can add an arbitrary number of high dimensional fixed effects, separated with `+`
+```
+df[:YearPooled] =  pool(df[:Year])
 @fe(StatePooled + YearPooled)
 ```
 Interact multiple categorical variables using `&` 
@@ -49,7 +51,7 @@ Interact a categorical variable with a continuous variable using `&`
 ```julia
 @fe(StatePooled + StatePooled&Year)
 ```
-Specify both main effects and interaction terms using the `*` operator:
+Instead of adding a categorical variable and its interaction with a continuous variable, you can directly use `*`
 ```julia
 @fe(StatePooled*Year)
 # equivalent to @fe(StatePooled StatePooled&year)
