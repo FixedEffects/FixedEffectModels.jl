@@ -57,30 +57,30 @@ x[:SalesInt] = round(Int64, x[:Sales])
 @test_approx_eq_eps coef(reg(x, @formula(y ~ x1), @fe(pid1 + pid1&id2), @weight(w)))  [-0.461085492] 1e-4
 
 # iv
-@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 = z1))))  [138.19479,-0.20733] 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 = z1))))   [137.45096,0.00516,-0.76276] 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 = z1 + w))))  [137.57335,0.00534,-0.78365] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 ~ z1))))  [138.19479,-0.20733] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 ~ z1))))   [137.45096,0.00516,-0.76276] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 ~ z1 + w))))  [137.57335,0.00534,-0.78365] 1e-4
 ## multiple endogeneous variables
-@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 + x2 = z1 + w))))  [139.544, .8001, -.00937] 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ 1 + (x1 + x2 = z1 + w))))  [139.544, .8001, -.00937] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 + x2 ~ z1 + w))))  [139.544, .8001, -.00937] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ 1 + (x1 + x2 ~ z1 + w))))  [139.544, .8001, -.00937] 1e-4
 result = [196.576, 0.00490989, -2.94019, -3.00686, -2.94903, -2.80183, -2.74789, -2.66682, -2.63855, -2.52394, -2.34751, -2.19241, -2.18707, -2.09244, -1.9691, -1.80463, -1.81865, -1.70428, -1.72925, -1.68501, -1.66007, -1.56102, -1.43582, -1.36812, -1.33677, -1.30426, -1.28094, -1.25175, -1.21438, -1.16668, -1.13033, -1.03782]
-@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1&pid2 = z1&pid2)))) result 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1&pid2 ~ z1&pid2)))) result 1e-4
 
 
 # iv + weight
-@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 = z1)), @weight(w)))  [137.03637,-0.22802] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 ~ z1)), @weight(w)))  [137.03637,-0.22802] 1e-4
 
 
 # iv + weight + absorb
-@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 = z1)), @fe(pid1))) [-0.20284] 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 = z1)), @fe(pid1), @weight(w))) [-0.20995] 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 = z1))))   [137.45096580480387,0.005169677634275297,-0.7627670265757879] 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 = z1)), @fe(pid1)))    [0.0011021722526916768,-0.3216374943695231] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1))) [-0.20284] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1), @weight(w))) [-0.20995] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 ~ z1))))   [137.45096580480387,0.005169677634275297,-0.7627670265757879] 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 ~ z1)), @fe(pid1)))    [0.0011021722526916768,-0.3216374943695231] 1e-4
 
 # non high dimensional factors
 @test_approx_eq_eps coef(reg(x, @formula(y ~ x1 + pid2), @fe(pid1)))[1]   -1.08471 1e-4
 @test_approx_eq_eps coef(reg(x, @formula(y ~ x1 + pid2), @fe(pid1),  @weight(w)))[1]   -0.88794 1e-4
-@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 = z1) + pid2), @fe(pid1)))[1]   -0.00525 1e-4
+@test_approx_eq_eps coef(reg(x, @formula(y ~ x2 + (x1 ~ z1) + pid2), @fe(pid1)))[1]   -0.00525 1e-4
 
 ##############################################################################
 ##
@@ -95,11 +95,11 @@ model = reg(x, @formula(y ~ x1 + x12))
 
 # iv
 x[:x22] = x[:x2]
-model = reg(x, @formula(y ~  x22 + x2 + (x1 = z1)))
+model = reg(x, @formula(y ~  x22 + x2 + (x1 ~ z1)))
 @test  coef(model)[2] == 0 || coef(model)[3] == 0
 
 x[:zz1] = x[:z1]
-model = reg(x, @formula(y ~  zz1 + (x1 = x2 + z1)))
+model = reg(x, @formula(y ~  zz1 + (x1 ~ x2 + z1)))
 @test coef(model)[2] != 0.0 
 
 # catch when IV underidentified : re-try when 0.5
@@ -119,7 +119,7 @@ model = reg(x, @formula(y ~  zz1 + (x1 = x2 + z1)))
 # Simple
 @test_approx_eq_eps stderr(reg(x, @formula(y ~ x1))) [1.52126,0.01889] 1e-4
 # Stata ivreg
-@test_approx_eq_eps stderr(reg(x, @formula(y ~ (x1 = z1)))) [1.53661,0.01915] 1e-4
+@test_approx_eq_eps stderr(reg(x, @formula(y ~ (x1 ~ z1)))) [1.53661,0.01915] 1e-4
 # Stata areg
 @test_approx_eq_eps stderr(reg(x, @formula(y ~ x1), @fe(pid1)))  [0.00980] 1e-4
 
@@ -127,7 +127,7 @@ model = reg(x, @formula(y ~  zz1 + (x1 = x2 + z1)))
 # Stata reg
 @test_approx_eq_eps stderr(reg(x, @formula(y ~ x1), @vcovrobust())) [1.68679,0.01670] 1e-4
 # Stata ivreg
-@test_approx_eq_eps stderr(reg(x, @formula(y ~ (x1 = z1)), @vcovrobust()))  [1.63305,0.01674] 1e-4
+@test_approx_eq_eps stderr(reg(x, @formula(y ~ (x1 ~ z1)), @vcovrobust()))  [1.63305,0.01674] 1e-4
 # Stata areg
 @test_approx_eq_eps stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcovrobust())) [0.01100] 1e-4
 
@@ -164,13 +164,13 @@ result = reg(x, @formula(y ~ x1 + pid1), subset = x[:State] .<= 30)
 
 @test_approx_eq_eps reg(x, @formula(y ~ x1)).F  147.82425 1e-4
 @test_approx_eq_eps reg(x, @formula(y ~ x1), @fe(pid1)).F  458.45825 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1))).F  117.17329 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1))).F  117.17329 1e-4
 
 @test_approx_eq_eps reg(x, @formula(y ~ x1), @vcovcluster(pid1)).F    36.70275 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1)), @vcovcluster(pid1)).F  39.67227 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1)), @vcovcluster(pid1)).F  39.67227 1e-4
 
 #  xtivreg2 
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1)), @fe(pid1)).F  422.46444 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1)).F  422.46444 1e-4
 
 ##############################################################################
 ##
@@ -178,25 +178,25 @@ result = reg(x, @formula(y ~ x1 + pid1), subset = x[:State] .<= 30)
 ## 
 ##############################################################################
 
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1))).F_kp    52248.79247 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ x2 + (x1 = z1))).F_kp    5159.812208193612 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1 + CPI))).F_kp   27011.44080 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1)), @fe(pid1)).F_kp 100927.75710 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1))).F_kp    52248.79247 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ x2 + (x1 ~ z1))).F_kp    5159.812208193612 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1 + CPI))).F_kp   27011.44080 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1)).F_kp 100927.75710 1e-4
 
 # exactly same with ivreg2
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1)), @vcovrobust()).F_kp    23160.06350 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1)), @fe(pid1), @vcovrobust()).F_kp  37662.82808 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ CPI + (x1 = z1)), @vcovrobust()).F_kp    2093.46609 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1 + CPI)), @vcovrobust()).F_kp  16418.21196 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1)), @vcovrobust()).F_kp    23160.06350 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1), @vcovrobust()).F_kp  37662.82808 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcovrobust()).F_kp    2093.46609 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1 + CPI)), @vcovrobust()).F_kp  16418.21196 1e-4
 
 
 
 # like in ivreg2 but += 5 difference. there is a degrees of freedom difference. not sure where.
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1)), @vcovcluster(pid1)).F_kp     7249.88606 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ CPI + (x1 = z1)), @vcovcluster(pid1)).F_kp   538.40393 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ CPI + (x1 = z1)), @vcovcluster(pid1 + pid2)).F_kp   423.00342 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~ (x1 = z1 + CPI)), @vcovcluster(pid1)).F_kp      4080.66081 1e-4
-@test_approx_eq_eps reg(x, @formula(y ~  (x1 = z1 + CPI)), @vcovcluster(pid1 + pid2)).F_kp     2877.94477 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1)), @vcovcluster(pid1)).F_kp     7249.88606 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcovcluster(pid1)).F_kp   538.40393 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcovcluster(pid1 + pid2)).F_kp   423.00342 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~ (x1 ~ z1 + CPI)), @vcovcluster(pid1)).F_kp      4080.66081 1e-4
+@test_approx_eq_eps reg(x, @formula(y ~  (x1 ~ z1 + CPI)), @vcovcluster(pid1 + pid2)).F_kp     2877.94477 1e-4
 
 
 ##############################################################################

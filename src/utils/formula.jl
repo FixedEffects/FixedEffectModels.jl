@@ -1,44 +1,63 @@
 # decompose formula into normal vs iv part
+function is_iv(ex::Expr)
+	if (ex.head == :(=))
+		# expression with =
+		Base.depwarn("The iv formula syntax (lhs = rhs) is deprecated. Use (lhs ~ rhs) instead",  :(=))
+		length(ex.args) == 2 || error("malformed expression in formula")
+		has_iv = true
+		endos = ex.args[1]
+		if isa(ex.args[2], Expr) && ex.args[2].head == :block
+			ivs =  ex.args[2].args[2]
+		else
+			ivs = ex.args[2]
+		end
+	elseif (ex.head == :macrocall && ex.args[1] == Symbol("@~")) || (ex.head == :call && ex.args[1] == :(~)) 
+		# expression with ~
+		length(ex.args) == 3 || error("malformed expression in formula")
+		has_iv = true
+		endos = ex.args[2]
+		ivs = ex.args[3]
+	else
+		has_iv = false
+		endos = nothing
+		ivs = nothing
+	end
+	return has_iv, endos, ivs
+end
+is_iv(ex) = false, nothing, nothing
+
 function decompose_iv!(rf::Formula)
-	has_iv = false
 	iv_formula = nothing
 	iv_terms = nothing
 	endo_formula = nothing
 	endo_terms = nothing
-	if typeof(rf.rhs) == Expr
-		if rf.rhs.head == :(=)
+	if !isa(rf.rhs, Expr)
+		# symbol or Int 0
+		# case with exactly 1 exogenous, 0 endogeneous
+		has_iv = false
+	else
+		has_iv, endos, ivs = is_iv(rf.rhs)
+		if has_iv
+			# case without exogeneous variables
 			has_iv = true
-			if isa(rf.rhs.args[2], Expr) && rf.rhs.args[2].head == :block
-				# happens when several endogeneous variable
-				iv_formula = Formula(nothing,  rf.rhs.args[2].args[2])
-			else
-				iv_formula = Formula(nothing,  rf.rhs.args[2])
-			end
-			endo_formula = Formula(nothing, rf.rhs.args[1])
+			endo_formula = Formula(nothing, endos)
+			iv_formula = Formula(nothing, ivs)
 			rf.rhs = :1
-		elseif rf.rhs.head == :call
-			i = 1
+		elseif (rf.rhs.head == :call) && (rf.rhs.args[1] == :(+))
+			# case with exogeneous variable(s)
+			i = 2
 			while !has_iv && i <= length(rf.rhs.args)
-				if isa(rf.rhs.args[i], Expr) && rf.rhs.args[i].head == :(=)
-					has_iv = true
-					iv_vars = rf.rhs.args[2]
-					if isa(rf.rhs.args[i].args[2], Expr) && rf.rhs.args[i].args[2].head == :block
-						# happens when several endogeneous variable
-						iv_formula = Formula(nothing,  rf.rhs.args[i].args[2].args[2])
-					else
-						iv_formula = Formula(nothing,  rf.rhs.args[i].args[2])
-					end
-					endo_formula = Formula(nothing, rf.rhs.args[i].args[1])
+				has_iv, endos, ivs = is_iv(rf.rhs.args[i])
+				if has_iv
+					endo_formula = Formula(nothing, endos)
+					iv_formula = Formula(nothing,  ivs)
 					splice!(rf.rhs.args, i)
 				else
 					i += 1
 				end
 			end
-		else
-			error("formula not correct")
 		end
 	end
-
 	if has_iv
 		iv_terms = Terms(iv_formula)
 		iv_terms.intercept = false
