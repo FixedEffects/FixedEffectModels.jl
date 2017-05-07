@@ -51,10 +51,10 @@ Interact a categorical variable with a continuous variable using `&`
 ```julia
 @fe(StatePooled + StatePooled&Year)
 ```
-Instead of adding a categorical variable and its interaction with a continuous variable, you can directly use `*`
+Alternative, use `*` to add a categorical variable and its interaction with a continuous variable
 ```julia
 @fe(StatePooled*Year)
-# equivalent to @fe(StatePooled StatePooled&year)
+# equivalent to @fe(StatePooled + StatePooled&year)
 ```
 
 #### `@vcov`
