@@ -1,6 +1,1 @@
-*.jl.cov
-*.jl.mem
-
-src/demean.jl
-
 benchmark/benchmark.md
