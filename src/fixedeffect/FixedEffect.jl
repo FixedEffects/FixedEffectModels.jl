@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-type FixedEffectFormula
+struct FixedEffectFormula
     arg::Union{Symbol, Expr, Void}
 end
 macro fe()
@@ -22,7 +22,7 @@ Terms(feformula::FixedEffectFormula) = Terms(Formula(nothing, feformula.arg))
 ##
 ##############################################################################
 
-type FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
+struct FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
     refs::Vector{R}         # refs of the original PooledDataVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group

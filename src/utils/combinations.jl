@@ -1,7 +1,7 @@
 # From JuliaLang/Combinatorics
 
 
-immutable Combinations{T}
+struct Combinations{T}
     a::T
     t::Int
 end

@@ -101,7 +101,7 @@ function isnaorneg{T <: Real}(a::Vector{T})
 	BitArray(a .> zero(eltype(a)))
 end
 function isnaorneg{T <: Real}(a::DataVector{T}) 
-	out = !a.na
+	out = .!(a.na)
 	@simd for i in 1:length(a)
 		if out[i]
 			@inbounds out[i] = a[i] > zero(Float64)
@@ -130,7 +130,7 @@ function allvars(ex::Expr)
 end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
-allvars(::Any) = Array(Symbol, 0)
+allvars(::Any) = Array{Symbol}(0)
 
 # used when removing certain rows in a dataset
 # NA always removed

@@ -4,7 +4,7 @@
 ## 
 ##############################################################################
 
-type Combination{N}
+struct Combination{N}
     A::NTuple{N, Matrix{Float64}}
     cumlength::Vector{Int}
 end
@@ -39,7 +39,7 @@ end
 
 # Construct [A B C]'[A B C] without generating [A B C]
 function crossprod{N}(c::Combination{N})
-    out = Array(Float64,  size(c, 2), size(c, 2))
+    out = Array{Float64}(size(c, 2), size(c, 2))
     idx = 0
     for j in 1:size(c, 2)
         viewj = view(c, :, j)

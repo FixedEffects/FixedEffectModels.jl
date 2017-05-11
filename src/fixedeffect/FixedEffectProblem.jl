@@ -1,4 +1,4 @@
-abstract FixedEffectProblem
+abstract type FixedEffectProblem end
 
 ##############################################################################
 ##

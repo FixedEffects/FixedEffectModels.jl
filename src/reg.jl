@@ -98,13 +98,13 @@ function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, v
     esample = completecases(df[all_vars])
 
     if has_weight
-        esample &= isnaorneg(df[weightformula.arg])
+        esample .&= isnaorneg(df[weightformula.arg])
     end
     if subset != nothing
         if length(subset) != size(df, 1)
             error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
         end
-        esample &= convert(BitArray, subset)
+        esample .&= convert(BitArray, subset)
     end
     nobs = sum(esample)
     (nobs > 0) || error("sample is empty")
@@ -316,7 +316,7 @@ function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, v
     df_residual = max(1, nobs - nvars - df_absorb - df_add)
 
     # Compute ess, tss, r2, r2 adjusted
-    ess = sumabs2(residuals)
+    ess = sum(abs2, residuals)
     if has_absorb
         tss = compute_tss(y, rt.intercept, sqrtw)
         r2_within = 1 - ess / tss 
@@ -441,7 +441,7 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
             tss += abs2((y[i] - m))
         end
     else
-        tss = sumabs2(y)
+        tss = sum(abs2, y)
     end
     return tss
 end
@@ -454,7 +454,7 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float
             tss += abs2(y[i] - sqrtw[i] * m)
         end
     else
-        tss = sumabs2(y)
+        tss = sum(abs2, y)
     end
     return tss
 end

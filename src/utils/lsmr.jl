@@ -6,7 +6,7 @@ function zerox(A, b)
 end
 
 
-type ConvergenceHistory{T, R}
+struct ConvergenceHistory{T, R}
     isconverged::Bool
     threshold::T
     mvps::Int

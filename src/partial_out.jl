@@ -58,7 +58,7 @@ function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFo
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = completecases(df[all_vars])
     if has_weight
-        esample &= isnaorneg(df[weightformula.arg])
+        esample .&= isnaorneg(df[weightformula.arg])
     end
     subdf = df[esample, all_vars]
     all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))

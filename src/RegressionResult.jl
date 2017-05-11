@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-abstract AbstractRegressionResult <: RegressionModel
+abstract type AbstractRegressionResult <: RegressionModel end
 
 
 # fields
@@ -78,7 +78,7 @@ function coeftable(x::AbstractRegressionResult)
     end
     tt = cc ./ se
     CoefTable2(
-        hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2(tt)), conf_int[:, 1], conf_int[:, 2]),
+        hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
@@ -91,7 +91,7 @@ end
 ## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients. 
 ## Pull request: https://github.com/JuliaStats/StatsBase.jl/pull/119
 
-type CoefTable2
+struct CoefTable2
     mat::Matrix
     colnms::Vector
     rownms::Vector
@@ -184,7 +184,7 @@ end
 ##
 ##############################################################################
 
-type RegressionResult <: AbstractRegressionResult
+struct RegressionResult <: AbstractRegressionResult
     coef::Vector{Float64}   # Vector of coefficients
     vcov::Matrix{Float64}   # Covariance matrix
 
@@ -214,7 +214,7 @@ top(x::RegressionResult) = [
             ]
 
 
-type RegressionResultIV <: AbstractRegressionResult
+struct RegressionResultIV <: AbstractRegressionResult
     coef::Vector{Float64}   # Vector of coefficients
     vcov::Matrix{Float64}   # Covariance matrix
 
@@ -250,7 +250,7 @@ top(x::RegressionResultIV) = [
             ]
 
 
-type RegressionResultFE <: AbstractRegressionResult
+struct RegressionResultFE <: AbstractRegressionResult
     coef::Vector{Float64}   # Vector of coefficients
     vcov::Matrix{Float64}   # Covariance matrix
 
@@ -292,7 +292,7 @@ top(x::RegressionResultFE) = [
             "Converged" sprint(showcompact, x.converged)
             ]
 
-type RegressionResultFEIV <: AbstractRegressionResult
+struct RegressionResultFEIV <: AbstractRegressionResult
     coef::Vector{Float64}   # Vector of coefficients
     vcov::Matrix{Float64}   # Covariance matrix
 

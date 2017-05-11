@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-type Ones{T} <: AbstractVector{T}
+struct Ones{T} <: AbstractVector{T}
     length::Int
 end
 
@@ -14,7 +14,7 @@ Ones(v::Integer) = Ones{Float64}(v)
 Ones{T}(v::AbstractVector{T}) = Ones{T}(length(v))
 
 #indexing
-Base.linearindexing(::Type{Ones}) = Base.LinearFast()
+Base.IndexStyle(::Type{Ones}) = Base.LinearFast()
 @inline Base.getindex{T}(::Ones{T}, i::Int...) = one(T)
 @inline Base.unsafe_getindex{T}(::Ones{T}, i::Int...) = one(T)
 Base.eltype{T}(o::Ones{T}) = T

@@ -1,6 +1,6 @@
-using RDatasets, DataFrames, FixedEffectModels, GLM, Base.Test
+using DataFrames, FixedEffectModels, GLM, Base.Test
 
-x = dataset("plm", "Cigar")
+x = readtable(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv.gz"))
 x[:pState] = pool(x[:State])
 x[:pYear] = pool(x[:Year])
 
@@ -43,7 +43,7 @@ answer = (
     )
 
 for i in 1:12
-    @test_approx_eq_eps test[i] answer[i]	1e-5
+    @test test[i] ≈ answer[i] atol = 1e-5
 end
 
 

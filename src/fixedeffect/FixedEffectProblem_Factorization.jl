@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-type CholfactFixedEffectProblem <: FixedEffectProblem
+struct CholfactFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
     chol::Base.SparseArrays.CHOLMOD.Factor{Float64}
@@ -15,7 +15,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholesky}})
     m = sparse(fes)
     chol = cholfact(At_mul_B(m, m))
     total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
-    CholfactFixedEffectProblem(fes, m, chol, Array(Float64, total_len))
+    CholfactFixedEffectProblem(fes, m, chol, Array{Float64}(total_len))
 end
 
 function solve!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
@@ -28,7 +28,7 @@ end
 ##
 ##############################################################################
 
-type QRfactFixedEffectProblem <: FixedEffectProblem
+struct QRfactFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
     qr::Base.SparseArrays.SPQR.Factorization{Float64}
@@ -38,7 +38,7 @@ end
 function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
     m = sparse(fes)
     qr = qrfact(m)
-    b = Array(Float64, length(fes[1].refs))
+    b = Array{Float64}(length(fes[1].refs))
     QRfactFixedEffectProblem(fes, m, qr, b)
 end
 
@@ -59,9 +59,9 @@ function Base.sparse(fes::Vector{FixedEffect})
     # construct model matrix A constituted by fixed effects
     nobs = length(fes[1].refs)
     N = length(fes) * nobs
-    I = Array(Int, N)
+    I = Array{Int}(N)
     J = similar(I)
-    V = Array(Float64, N)
+    V = Array{Float64}(N)
     start = 0
     idx = 0
     for fe in fes

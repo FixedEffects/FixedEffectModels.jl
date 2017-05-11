@@ -15,7 +15,7 @@
 ##
 ##############################################################################
 
-type FixedEffectVector
+struct FixedEffectVector
     _::Vector{Vector{Float64}}
 end
 
@@ -61,7 +61,7 @@ end
 function norm(fev::FixedEffectVector)
     out = zero(Float64)
     for i in 1:length(fev._)
-        out += sumabs2(fev._[i])
+        out += sum(abs2, fev._[i])
     end
     return sqrt(out)
 end
@@ -79,7 +79,7 @@ end
 ##
 ##############################################################################
 
-type FixedEffectMatrix
+struct FixedEffectMatrix
     _::Vector{FixedEffect}
     m::Int
     n::Int
@@ -155,7 +155,7 @@ end
 ##
 ##############################################################################
 
-type LSMRFixedEffectProblem <: FixedEffectProblem
+struct LSMRFixedEffectProblem <: FixedEffectProblem
     m::FixedEffectMatrix
     x::FixedEffectVector
     v::FixedEffectVector
@@ -170,7 +170,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:lsmr}})
     v = FixedEffectVector(fes)
     h = FixedEffectVector(fes)
     hbar = FixedEffectVector(fes)
-    u = Array(Float64, size(m, 1))
+    u = Array{Float64}(size(m, 1))
     return LSMRFixedEffectProblem(m, x, v, h, hbar, u)
 end
 
