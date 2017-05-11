@@ -15,7 +15,7 @@ Pkg.add("FixedEffectModels")
 ```
 
 ## Syntax
-To estimate a linear model, one needs to specify a formula with `@formula`, and, eventually, a set of fixed effects with `@fe`, a way to compute standard errors with `@vcov`, or a weight variable with `@weight`.
+To estimate a linear model, one needs to specify  a formula with `@formula`, and, eventually, a set of fixed effects with `@fe`, a way to compute standard errors with `@vcov`, or a weight variable with `@weight`.
 
 #### `@formula`
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
