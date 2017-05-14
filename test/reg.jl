@@ -123,23 +123,23 @@ model = reg(x, @formula(y ~  zz1 + (x1 ~ x2 + z1)))
 
 # White
 # Stata reg
-@test stderr(reg(x, @formula(y ~ x1), @vcovrobust())) ≈ [1.68679, 0.01670] atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @vcov(robust))) ≈ [1.68679, 0.01670] atol = 1e-4
 # Stata ivreg
-@test stderr(reg(x, @formula(y ~ (x1 ~ z1)), @vcovrobust())) ≈ [1.63305, 0.01674] atol = 1e-4
+@test stderr(reg(x, @formula(y ~ (x1 ~ z1)), @vcov(robust))) ≈ [1.63305, 0.01674] atol = 1e-4
 # Stata areg
-@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcovrobust())) ≈ [0.01100] atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(robust))) ≈ [0.01100] atol = 1e-4
 
 # cluster
-@test stderr(reg(x, @formula(y ~ x1), @vcovcluster(pid1)))[2] ≈ 0.03792 atol = 1e-4
-@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcovcluster(pid2))) ≈ [0.02205] atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @vcov(cluster(pid1))))[2] ≈ 0.03792 atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid2)))) ≈ [0.02205] atol = 1e-4
 # stata reghxe
-@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcovcluster(pid1))) ≈ [0.03573] atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid1)))) ≈ [0.03573] atol = 1e-4
 # no reference
-@test stderr(reg(x, @formula(y ~ x1), @vcovcluster(pid1 + pid2)))[1] ≈ 6.17025 atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @vcov(cluster(pid1 + pid2))))[1] ≈ 6.17025 atol = 1e-4
 # no reference
-@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcovcluster(pid1 + pid2)))[1] ≈ 0.04037 atol = 1e-4
+@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid1 + pid2))))[1] ≈ 0.04037 atol = 1e-4
 
-@test_throws ErrorException reg(x, @formula(y ~ x1), @vcovcluster(State))
+@test_throws ErrorException reg(x, @formula(y ~ x1), @vcov(cluster(State)))
 
 ##############################################################################
 ##
@@ -164,8 +164,8 @@ result = reg(x, @formula(y ~ x1 + pid1), subset = x[:State] .<= 30)
 @test reg(x, @formula(y ~ x1), @fe(pid1)).F  ≈ 458.45825 atol = 1e-4
 @test reg(x, @formula(y ~ (x1 ~ z1))).F  ≈ 117.17329 atol = 1e-4
 
-@test reg(x, @formula(y ~ x1), @vcovcluster(pid1)).F    ≈ 36.70275 atol = 1e-4
-@test reg(x, @formula(y ~ (x1 ~ z1)), @vcovcluster(pid1)).F  ≈ 39.67227 atol = 1e-4
+@test reg(x, @formula(y ~ x1), @vcov(cluster(pid1))).F    ≈ 36.70275 atol = 1e-4
+@test reg(x, @formula(y ~ (x1 ~ z1)), @vcov(cluster(pid1))).F  ≈ 39.67227 atol = 1e-4
 
 #  xtivreg2 
 @test reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1)).F  ≈ 422.46444 atol = 1e-4
@@ -182,19 +182,19 @@ result = reg(x, @formula(y ~ x1 + pid1), subset = x[:State] .<= 30)
 @test reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1)).F_kp ≈ 100927.75710 atol = 1e-4
 
 # exactly same with ivreg2
-@test reg(x, @formula(y ~ (x1 ~ z1)), @vcovrobust()).F_kp    ≈ 23160.06350 atol = 1e-4
-@test reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1), @vcovrobust()).F_kp  ≈ 37662.82808 atol = 1e-4
-@test reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcovrobust()).F_kp    ≈ 2093.46609 atol = 1e-4
-@test reg(x, @formula(y ~ (x1 ~ z1 + CPI)), @vcovrobust()).F_kp  ≈ 16418.21196 atol = 1e-4
+@test reg(x, @formula(y ~ (x1 ~ z1)), @vcov(robust)).F_kp    ≈ 23160.06350 atol = 1e-4
+@test reg(x, @formula(y ~ (x1 ~ z1)), @fe(pid1), @vcov(robust)).F_kp  ≈ 37662.82808 atol = 1e-4
+@test reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcov(robust)).F_kp    ≈ 2093.46609 atol = 1e-4
+@test reg(x, @formula(y ~ (x1 ~ z1 + CPI)), @vcov(robust)).F_kp  ≈ 16418.21196 atol = 1e-4
 
 
 
 # like in ivreg2 but += 5 difference. there is a degrees of freedom difference. not sure where.
-@test reg(x, @formula(y ~ (x1 ~ z1)), @vcovcluster(pid1)).F_kp     ≈ 7249.88606 atol = 1e-4
-@test reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcovcluster(pid1)).F_kp   ≈ 538.40393 atol = 1e-4
-@test reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcovcluster(pid1 + pid2)).F_kp   ≈ 423.00342 atol = 1e-4
-@test reg(x, @formula(y ~ (x1 ~ z1 + CPI)), @vcovcluster(pid1)).F_kp      ≈ 4080.66081 atol = 1e-4
-@test reg(x, @formula(y ~  (x1 ~ z1 + CPI)), @vcovcluster(pid1 + pid2)).F_kp     ≈ 2877.94477 atol = 1e-4
+@test reg(x, @formula(y ~ (x1 ~ z1)), @vcov(cluster(pid1))).F_kp     ≈ 7249.88606 atol = 1e-4
+@test reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcov(cluster(pid1))).F_kp   ≈ 538.40393 atol = 1e-4
+@test reg(x, @formula(y ~ CPI + (x1 ~ z1)), @vcov(cluster(pid1 + pid2))).F_kp   ≈ 423.00342 atol = 1e-4
+@test reg(x, @formula(y ~ (x1 ~ z1 + CPI)), @vcov(cluster(pid1))).F_kp      ≈ 4080.66081 atol = 1e-4
+@test reg(x, @formula(y ~  (x1 ~ z1 + CPI)), @vcov(cluster(pid1 + pid2))).F_kp     ≈ 2877.94477 atol = 1e-4
 
 
 ##############################################################################

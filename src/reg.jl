@@ -5,7 +5,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `df` : AbstractDataFrame
 * `f` : Formula, 
 * `fe` : Fixed effect formula. Default to fe()
-* `vcovformula` : Vcov formula. Default to vcov(). `vcovrobust()` and `vcovcluster()` are also implemented
+* `vcov` : Vcov formula. Default to vcov(). `vcov(robust)` and `vcov(cluster())` are also implemented
 * `weight`: Weight formula. Corresponds to analytical weights
 * `subset` : AbstractVector{Bool} for subsample
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
@@ -39,22 +39,23 @@ reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
 reg(df, @formula(Sales ~ (Price = Pimin)))
 reg(df, @formula(Sales ~ Price), @weight(Pop))
 reg(df, @formula(Sales ~ NDI), subset = df[:State] .< 30)
-reg(df, @formula(Sales ~ NDI), @vcovrobust())
-reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled))
-reg(df, @formula(Sales ~ NDI), @vcovcluster(StatePooled + YearPooled))
+reg(df, @formula(Sales ~ NDI), @vcov(robust))
+reg(df, @formula(Sales ~ NDI), @vcov(cluster(StatePooled)))
+reg(df, @formula(Sales ~ NDI), @vcov(cluster(StatePooled + YearPooled)))
 ```
 """
 
 
 
-
 # TODO: minimize memory
-function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, vcovformula::AbstractVcovFormula, weightformula::WeightFormula; 
+function reg(df::AbstractDataFrame, f::Formula; fe::FixedEffectFormula = @fe(), vcov::AbstractVcovFormula = @vcov(), weight::WeightFormula = @weight(), 
              subset::Union{AbstractVector{Bool}, Void} = nothing, 
              maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
              save::Bool = false,
              method::Symbol = :lsmr)
-
+    feformula = fe
+    vcovformula = vcov
+    weightformula = weight
     ##############################################################################
     ##
     ## Parse formula
@@ -381,28 +382,6 @@ function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, v
     end
 end
 
-function reg(df::AbstractDataFrame, f::Formula; kwargs...) 
-    reg(df, f, @fe(), @vcov(), @weight(); kwargs...)
-end
-function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula; kwargs...) 
-    reg(df, f, feformula, @vcov(), @weight(); kwargs...)
-end
-function reg(df::AbstractDataFrame, f::Formula, vcovformula::AbstractVcovFormula; kwargs...) 
-    reg(df, f, @fe(), vcovformula, @weight(); kwargs...)
-end
-function reg(df::AbstractDataFrame, f::Formula, weightformula::WeightFormula; kwargs...) 
-    reg(df, f, @fe(), @vcov(), weightformula; kwargs...)
-end
-function reg(df::AbstractDataFrame, f::Formula,  vcovformula::AbstractVcovFormula, weightformula::WeightFormula; kwargs...) 
-    reg(df, f, @fe(), vcovformula, weightformula; kwargs...)
-end
-function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, weightformula::WeightFormula; kwargs...) 
-    reg(df, f, feformula, @vcov(), weightformula; kwargs...)
-end
-function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, vcovformula::AbstractVcovFormula; kwargs...) 
-    reg(df, f, feformula, vcovformula, @weight(); kwargs...)
-end
-
 
 
 
@@ -458,3 +437,57 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float
     end
     return tss
 end
+##############################################################################
+##
+## Syntax without keywords
+##
+##############################################################################
+
+
+function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, args...; kwargs...) 
+    reg(df, f, args...; fe = feformula, kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, vcovformula::AbstractVcovFormula, args...; kwargs...) 
+    reg(df, f, args...; vcov = vcovformula, kwargs...)
+end
+function reg(df::AbstractDataFrame, f::Formula, weightformula::WeightFormula, args...; kwargs...) 
+    reg(df, f, args...; weight = weightformula, kwargs...)
+end
+
+
+
+##############################################################################
+##
+## Alternative Syntax @reg df y ~ x2 fe(ok) weight(ok) etc
+##
+##############################################################################
+
+macro subset(ex)
+    return ex
+end
+macro maxiter(ex)
+    return ex
+end
+macro tol(ex)
+    return ex
+end
+macro df_add(ex)
+    return ex
+end
+macro save(ex)
+    return ex
+end
+macro method(ex)
+    return ex
+end
+
+function make_macro(x)
+    x.head == :call || throw("Argument $(x) is not a function call")
+    Expr(:kw, x.args[1], Expr(:macrocall, Symbol("@$(x.args[1])"), (esc(x.args[i]) for i in 2:length(x.args))...))
+end
+macro reg(kw...)
+    Expr(:call, :reg, esc(kw[1]), :(@formula $(esc(kw[2]))), (make_macro(kw[i]) for i in 3:length(kw))...)
+end
+
+
+

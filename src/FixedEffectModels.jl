@@ -11,7 +11,7 @@ import Base.BLAS: axpy!
 import Base: A_mul_B!, Ac_mul_B!, size, copy!, getindex, length, fill!, norm, scale!, eltype, length, view, start, next, done
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
 import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
-import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, completecases, names!, pool
+import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, completecases, names!, pool, @formula
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
 ##############################################################################
 ##
@@ -60,9 +60,8 @@ VcovData,
 
 @fe,
 @vcov,
-@vcovrobust,
-@vcovcluster,
-@weight
+@weight,
+@reg
 
 
 ##############################################################################

@@ -42,4 +42,3 @@ function shat!{T}(::VcovRobustMethod, x::VcovData{T, 2})
     return S
 end
 
-

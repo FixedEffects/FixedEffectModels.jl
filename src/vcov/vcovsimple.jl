@@ -1,5 +1,5 @@
 type VcovSimpleFormula <: AbstractVcovFormula end
-macro vcov()
+macro vcovsimple()
     return VcovSimpleFormula()
 end
 

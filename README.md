@@ -59,11 +59,11 @@ Alternative, use `*` to add a categorical variable and its interaction with a co
 
 #### `@vcov`
 
-Standard errors are indicated with the macro `@vcovrobust()` or `@vcovcluster()`
+Standard errors are indicated with the macro `@vcov(robust)` or `@vcov(cluster())`
 ```julia
-@vcovrobust()
-@vcovcluster(StatePooled)
-@vcovcluster(StatePooled + YearPooled)
+@vcov(robust)
+@vcov(cluster(StatePooled))
+@vcov(cluster(StatePooled + YearPooled))
 ```
 
 #### `@weight`
