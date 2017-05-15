@@ -1,13 +1,14 @@
 type VcovClusterFormula <: AbstractVcovFormula
-    x::Vector{Symbol}
+    x::Vector{Any}
 end
-macro vcovcluster(x::Symbol)
-    return VcovClusterFormula([x])
+
+macro vcovcluster(x)
+    ex = Expr(:call, Formula, :nothing, Base.Meta.quot(x))
+    return :(VcovClusterFormula(Terms($(ex)).terms))
 end
-macro vcovcluster(x::Expr)
-    return VcovClusterFormula(allvars(x))
-end
-allvars(x::VcovClusterFormula) = x.x
+
+allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x.x]...)
+
 
 type VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
@@ -15,18 +16,23 @@ type VcovClusterMethod <: AbstractVcovMethod
 end
 
 
-
 function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula) 
     clusters = vcovcluster.x
-    vclusters = DataFrame(Vector, size(df, 1), length(clusters))
-    names!(vclusters, clusters)
+    vclusters = DataFrame(Vector, size(df, 1), 0)
     vsize = Dict{Symbol, Int}()
     for c in clusters
-        p = df[c]
-        typeof(p) <: PooledDataVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataVector.")
-        vclusters[c] = p
+        if isa(c, Symbol)
+            cname = c
+            p = df[c]
+            typeof(p) <: PooledDataVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataVector.")
+        elseif isa(c, Expr)
+            factorvars, interactionvars = _split(df, allvars(c))
+            cname = _name(factorvars)
+            p = group(df, factorvars)
+        end
+        vclusters[cname] = p
         # may be subset / NA
-        vsize[c] = length(unique(p.refs))
+        vsize[cname] = length(unique(p.refs))
     end
     return VcovClusterMethod(vclusters, vsize)
 end

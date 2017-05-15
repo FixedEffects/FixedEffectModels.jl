@@ -134,10 +134,14 @@ model = reg(x, @formula(y ~  zz1 + (x1 ~ x2 + z1)))
 @test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid2)))) ≈ [0.02205] atol = 1e-4
 # stata reghxe
 @test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid1)))) ≈ [0.03573] atol = 1e-4
+
 # no reference
 @test stderr(reg(x, @formula(y ~ x1), @vcov(cluster(pid1 + pid2))))[1] ≈ 6.17025 atol = 1e-4
 # no reference
 @test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid1 + pid2))))[1] ≈ 0.04037 atol = 1e-4
+
+# TO CHECK WITH STATA
+@test stderr(reg(x, @formula(y ~ x1), @fe(pid1), @vcov(cluster(pid1&pid2)))) ≈ [0.0108116] atol = 1e-4
 
 @test_throws ErrorException reg(x, @formula(y ~ x1), @vcov(cluster(State)))
 
