@@ -1,12 +1,8 @@
+VcovFormula(::Type{Val{:cluster}}, x) = Expr(:call, :VcovClusterFormula, Base.Meta.quot(Terms(Formula(nothing, x)).terms))
+
 type VcovClusterFormula <: AbstractVcovFormula
     x::Vector{Any}
 end
-
-macro vcovcluster(x)
-    ex = Expr(:call, Formula, :nothing, Base.Meta.quot(x))
-    return :(VcovClusterFormula(Terms($(ex)).terms))
-end
-
 allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x.x]...)
 
 

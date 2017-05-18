@@ -43,7 +43,7 @@ RegressionResultFEIV,
 
 AbstractVcovFormula, 
 VcovSimpleFormula, 
-VcovWhiteFormula, 
+VcovRobustFormula, 
 VcovClusterFormula,
 
 AbstractVcovMethod, 
@@ -57,12 +57,8 @@ shat!,
 VcovData,
 
 
-
-@fe,
-@vcov,
-@weight,
-@reg
-
+@reg,
+@partial_out
 
 ##############################################################################
 ##

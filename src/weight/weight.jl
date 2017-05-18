@@ -3,24 +3,12 @@
 ## Weight
 ## 
 ##############################################################################
-type WeightFormula
-    arg::Union{Symbol, Void}
+function get_weight(df::AbstractDataFrame, esample::BitVector, weight::Symbol) 
+    out = df[esample, weight]
+    # there are no NA in it. DataVector to Vector
+    out = convert(Vector{Float64}, out)
+    map!(sqrt, out, out)
+    return out
 end
-macro weight()
-    return WeightFormula(nothing)
-end
-macro weight(arg)
-    return Expr(:call, :WeightFormula, Base.Meta.quot(arg))
-end
+get_weight(df::AbstractDataFrame, esample::BitVector, ::Void) = Ones{Float64}(sum(esample))
 
-function get_weight(df::AbstractDataFrame, esample, weightformula::WeightFormula) 
-    if weightformula.arg == nothing
-        Ones{Float64}(sum(esample))
-    else
-        out = df[esample, weightformula.arg]
-        # there are no NA in it. DataVector to Vector
-        out = convert(Vector{Float64}, out)
-        map!(sqrt, out, out)
-        return out
-    end
-end

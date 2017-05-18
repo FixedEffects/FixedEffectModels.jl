@@ -1,7 +1,7 @@
+VcovFormula(::Type{Val{:simple}}) = Expr(:call, :VcovSimpleFormula)
+
 type VcovSimpleFormula <: AbstractVcovFormula end
-macro vcovsimple()
-    return VcovSimpleFormula()
-end
+allvars(x::VcovSimpleFormula) = Symbol[]
 
 
 type VcovSimpleMethod <: AbstractVcovMethod end

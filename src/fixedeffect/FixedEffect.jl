@@ -1,5 +1,3 @@
-
-
 ##############################################################################
 ##
 ## Fixed  Effect Formula
@@ -8,12 +6,6 @@
 
 struct FixedEffectFormula
     arg::Union{Symbol, Expr, Void}
-end
-macro fe()
-    return FixedEffectFormula(nothing)
-end
-macro fe(arg)
-    return FixedEffectFormula(arg)
 end
 allvars(feformula::FixedEffectFormula) = allvars(feformula.arg)
 Terms(feformula::FixedEffectFormula) = Terms(Formula(nothing, feformula.arg))

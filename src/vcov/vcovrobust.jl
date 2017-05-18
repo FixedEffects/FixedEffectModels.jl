@@ -1,7 +1,7 @@
-type VcovRobustFormula <: AbstractVcovFormula end
-macro vcovrobust()
-    return VcovRobustFormula()
-end
+VcovFormula(::Type{Val{:robust}}) = Expr(:call, :VcovRobustFormula)
+
+type VcovRobustFormula <: AbstractVcovFormula  end
+allvars(x::VcovRobustFormula) = Symbol[]
 
 
 type VcovRobustMethod <: AbstractVcovMethod end
@@ -41,4 +41,10 @@ function shat!{T}(::VcovRobustMethod, x::VcovData{T, 2})
     scale!(S, nobs / x.df_residual)
     return S
 end
+
+type MT{T}
+    x
+    MT{V}(x) where {V} = new(x)
+end
+
 

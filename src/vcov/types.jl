@@ -23,20 +23,7 @@ VcovDataMatrix{T} = VcovData{T, 2}
 ##
 ##############################################################################
 abstract type AbstractVcovFormula end
-macro vcov()
-    :(VcovSimpleFormula())
-end
-macro vcov(ex)
-    if isa(ex, Symbol)
-        return Expr(:macrocall, Symbol("@vcov$(ex)"))
-    elseif ex.head == :call
-        return Expr(:macrocall, Symbol("@vcov$(ex.args[1])"), (esc(ex.args[i]) for i in 2:length(ex.args))...)
-    else
-        throw("vcov has error")
-    end
-end
 
-allvars(::AbstractVcovFormula) = Symbol[]
 
 abstract type AbstractVcovMethod end
 sandwich(H, S::Matrix{Float64}) = H \ S * inv(H)

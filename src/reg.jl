@@ -4,8 +4,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Arguments
 * `df` : AbstractDataFrame
 * `f` : Formula, 
-* `fe` : Fixed effect formula. Default to fe()
-* `vcov` : Vcov formula. Default to vcov(). `vcov(robust)` and `vcov(cluster())` are also implemented
+* `fe` : Fixed effect formula.
+* `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
 * `weight`: Weight formula. Corresponds to analytical weights
 * `subset` : AbstractVector{Bool} for subsample
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
@@ -20,11 +20,9 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Details
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instruments
 ```
-@formula(depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars) 
+depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
 ```
-Categorical variable should be of type PooledDataArray.  See the following to create PooledDataArray:
-* `pool` : transform one variable into a `PooledDataArray`. 
-* `group` : combine multiple variables into a `PooledDataArray`. 
+Categorical variable should be of type PooledDataArray.  Use the function `pool` to create PooledDataArray.
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
 ### Examples
@@ -33,29 +31,31 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(df, @formula(Sales ~ Price),  @fe(StatePooled + YearPooled))
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled + StatePooled&Year))
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled*Year))
-reg(df, @formula(Sales ~ (Price = Pimin)))
-reg(df, @formula(Sales ~ Price), @weight(Pop))
-reg(df, @formula(Sales ~ NDI), subset = df[:State] .< 30)
-reg(df, @formula(Sales ~ NDI), @vcov(robust))
-reg(df, @formula(Sales ~ NDI), @vcov(cluster(StatePooled)))
-reg(df, @formula(Sales ~ NDI), @vcov(cluster(StatePooled + YearPooled)))
+@reg df Sales ~ Price fe = StatePooled + YearPooled
+@reg df Sales ~ NDI fe = StatePooled + StatePooled&Year
+@reg df Sales ~ NDI fe = StatePooled*Year
+@reg df Sales ~ (Price ~ Pimin)
+@reg df Sales ~ Price weight = Pop
+@reg df Sales ~ NDI subset = (df[:State] .< 30)
+@reg df Sales ~ NDI vcov = robust
+@reg df Sales ~ NDI vcov = cluster(StatePooled)
+@reg df Sales ~ NDI vcov = cluster(StatePooled + YearPooled)
 ```
 """
 
 
 
 # TODO: minimize memory
-function reg(df::AbstractDataFrame, f::Formula; fe::FixedEffectFormula = @fe(), vcov::AbstractVcovFormula = @vcov(), weight::WeightFormula = @weight(), 
-             subset::Union{AbstractVector{Bool}, Void} = nothing, 
-             maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
-             save::Bool = false,
-             method::Symbol = :lsmr)
+function reg(df::AbstractDataFrame, f::Formula; 
+    fe::FixedEffectFormula = FixedEffectFormula(nothing), 
+    vcov::AbstractVcovFormula = VcovSimpleFormula(), 
+    weight::Union{Symbol, Void} = nothing, 
+    subset::Union{AbstractVector{Bool}, Void} = nothing, 
+    maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
+    save::Bool = false,
+    method::Symbol = :lsmr)
     feformula = fe
     vcovformula = vcov
-    weightformula = weight
     ##############################################################################
     ##
     ## Parse formula
@@ -77,7 +77,7 @@ function reg(df::AbstractDataFrame, f::Formula; fe::FixedEffectFormula = @fe(), 
             end
         end
     end
-    has_weight = (weightformula.arg != nothing)
+    has_weight = (weight != nothing)
 
 
     ##############################################################################
@@ -99,7 +99,7 @@ function reg(df::AbstractDataFrame, f::Formula; fe::FixedEffectFormula = @fe(), 
     esample = completecases(df[all_vars])
 
     if has_weight
-        esample .&= isnaorneg(df[weightformula.arg])
+        esample .&= isnaorneg(df[weight])
     end
     if subset != nothing
         if length(subset) != size(df, 1)
@@ -111,7 +111,7 @@ function reg(df::AbstractDataFrame, f::Formula; fe::FixedEffectFormula = @fe(), 
     (nobs > 0) || error("sample is empty")
 
     # Compute weight
-    sqrtw = get_weight(df, esample, weightformula)
+    sqrtw = get_weight(df, esample, weight)
 
     # remove unusused levels
     subdf = df[esample, all_vars]
@@ -444,15 +444,31 @@ end
 ##############################################################################
 
 
-function reg(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, args...; kwargs...) 
-    reg(df, f, args...; fe = feformula, kwargs...)
+function _transform_expr(x)
+    if isa(x, Expr) && x.head == :(=)
+        if x.args[1] == :fe
+            x = Expr(:kw, :fe, Expr(:call, :FixedEffectFormula, Base.Meta.quot(x.args[2])))
+        elseif x.args[1] == :ife
+            x.args[2].head == :tuple || throw("Error when specifying ife")
+            x = Expr(:call, :InteractiveFixedEffectFormula, Base.Meta.quot(Terms(Formula(nothing, x.args[2].args[1])).terms), x.args[2].args[2])
+        elseif x.args[1] == :vcov
+            if isa(x.args[2], Symbol)
+                x = Expr(:kw, :vcov, VcovFormula(Val{x.args[2]}))
+            else 
+                x = Expr(:kw, :vcov, VcovFormula(Val{x.args[2].args[1]}, (x.args[2].args[i] for i in 2:length(x.args[2].args))...))
+            end
+        elseif x.args[1] == :weight
+            x = Expr(:kw, :weight, Base.Meta.quot(x.args[2]))
+        else
+            x = Expr(:kw, x.args[1], (x.args[i] for i in 2:length(x.args))...)
+        end
+    end
+    return x
 end
-function reg(df::AbstractDataFrame, f::Formula, vcovformula::AbstractVcovFormula, args...; kwargs...) 
-    reg(df, f, args...; vcov = vcovformula, kwargs...)
+macro reg(args...)
+    Expr(:call, :reg, esc(args[1]), :(@formula($(esc(args[2])))), (esc(_transform_expr(args[i])) for i in 3:length(args))...)
 end
-function reg(df::AbstractDataFrame, f::Formula, weightformula::WeightFormula, args...; kwargs...) 
-    reg(df, f, args...; weight = weightformula, kwargs...)
-end
+
 
 
 

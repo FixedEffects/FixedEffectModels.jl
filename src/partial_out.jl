@@ -24,7 +24,7 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
-result = partial_out(df, SepalWidth + SepalLength ~ 1, @fe(Species), add_mean = true)
+result = @partial_out df SepalWidth + SepalLength ~ 1 fe = Species add_mean = true
 plot(
    layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
@@ -34,10 +34,14 @@ plot(
 
 
 
-function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula, weightformula::WeightFormula; 
-                     add_mean = false, weight::Union{Symbol, Void} = nothing,
-                     maxiter::Integer = 10000, tol::Real = 1e-8,
-                     method::Symbol = :lsmr)
+function partial_out(df::AbstractDataFrame, f::Formula; 
+    fe::FixedEffectFormula = FixedEffectFormula(nothing), 
+    weight::Union{Symbol, Void} = nothing,
+    add_mean = false,
+    maxiter::Integer = 10000, tol::Real = 1e-8,
+    method::Symbol = :lsmr)
+    feformula = fe
+    weightvar = weight
 
 
     rf = deepcopy(f)
@@ -47,7 +51,7 @@ function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFo
         error("partial_out does not support instrumental variables")
     end
     rt = Terms(rf)
-    has_weight = (weightformula.arg != nothing)
+    has_weight = (weightvar != nothing)
     xf = Formula(nothing, rf.rhs)
     xt = Terms(xf)
 
@@ -58,7 +62,7 @@ function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFo
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = completecases(df[all_vars])
     if has_weight
-        esample .&= isnaorneg(df[weightformula.arg])
+        esample .&= isnaorneg(df[weightvar])
     end
     subdf = df[esample, all_vars]
     all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
@@ -67,7 +71,7 @@ function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFo
     end
 
     # Compute weight vector
-    sqrtw = get_weight(df, esample, weightformula)
+    sqrtw = get_weight(df, esample, weightvar)
 
     # initialize iterations & converged
     iterations = Int[]
@@ -135,13 +139,8 @@ function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFo
     return(out)
 end
 
-function partial_out(df::AbstractDataFrame, f::Formula; kwargs...) 
-    partial_out(df, f, @fe(), @weight(); kwargs...)
-end
-function partial_out(df::AbstractDataFrame, f::Formula, feformula::FixedEffectFormula; kwargs...) 
-    partial_out(df, f, feformula, @weight(); kwargs...)
-end
-function partial_out(df::AbstractDataFrame, f::Formula, weightformula::WeightFormula; kwargs...) 
-    partial_out(df, f, @fe(), weightformula; kwargs...)
+
+macro partial_out(args...)
+    Expr(:call, :partial_out, esc(args[1]), :(@formula($(esc(args[2])))), (esc(_transform_expr(args[i])) for i in 3:length(args))...)
 end
 

@@ -15,70 +15,61 @@ Pkg.add("FixedEffectModels")
 ```
 
 ## Syntax
-To estimate a linear model, one needs to specify  a formula with `@formula`, and, eventually, a set of fixed effects with `@fe`, a way to compute standard errors with `@vcov`, or a weight variable with `@weight`.
-
-#### `@formula`
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
-```julia
-@formula(dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables))
-```
-
+To estimate a linear model, one needs to specify  a formula with, and, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weight`.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-@formula(Sales ~ Pop + (Price ~ Pimin))
-```
-#### `@fe`
-
-Fixed effect variable are indicated with the macro `@fe`. Fixed effect variables must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
-
-```julia
 df[:StatePooled] =  pool(df[:State])
-# one high dimensional fixed effect
-@fe(StatePooled)
-```
-You can add an arbitrary number of high dimensional fixed effects, separated with `+`
-```julia
 df[:YearPooled] =  pool(df[:Year])
-@fe(StatePooled + YearPooled)
+@reg df Sales ~ NDI fe = StatePooled + YearPooled weight = Pop
 ```
-Interact multiple categorical variables using `&` 
-```julia
-@fe(StatePooled&DecPooled)
-```
-Interact a categorical variable with a continuous variable using `&`
-```julia
-@fe(StatePooled + StatePooled&Year)
-```
-Alternative, use `*` to add a categorical variable and its interaction with a continuous variable
-```julia
-@fe(StatePooled*Year)
-# equivalent to @fe(StatePooled + StatePooled&year)
-```
+- A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
+	```julia
+	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables
+	```
 
-#### `@vcov`
+- Fixed effect variables are indicated with the keyword argument `fe`. They must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
 
-Standard errors are indicated with the macro `@vcov(robust)` or `@vcov(cluster())`
-```julia
-@vcov(robust)
-@vcov(cluster(StatePooled))
-@vcov(cluster(StatePooled + YearPooled))
-```
+	```julia
+	df[:StatePooled] =  pool(df[:State])
+	# one high dimensional fixed effect
+	fe = StatePooled
+	```
+	You can add an arbitrary number of high dimensional fixed effects, separated with `+`
+	```julia
+	df[:YearPooled] =  pool(df[:Year])
+	fe = StatePooled + YearPooled
+	```
+	Interact multiple categorical variables using `&` 
+	```julia
+	fe = StatePooled&DecPooled
+	```
+	Interact a categorical variable with a continuous variable using `&`
+	```julia
+	fe = StatePooled + StatePooled&Year
+	```
+	Alternative, use `*` to add a categorical variable and its interaction with a continuous variable
+	```julia
+	fe = StatePooled*Year
+	# equivalent to fe = StatePooled + StatePooled&year
+	```
 
-#### `@weight`
-weights are indicated with the macro `@weight`
-```julia
-@weight(Pop)
-```
+- Standard errors are indicated with the keyword argument `vcov`.
+	```julia
+	vcov = robust()
+	vcov = cluster(StatePooled)
+	vcov = cluster(StatePooled + YearPooled)
+	```
+
+- weights are indicated with the keyword argument `weight`
+	```julia
+	weight = Pop
+	```
 
 ####  Putting everything together
 ```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-df[:YearPooled] =  pool(df[:Year])
-reg(df, @formula(Sales ~ NDI), @fe(StatePooled + YearPooled), @weight(Pop))
+
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
