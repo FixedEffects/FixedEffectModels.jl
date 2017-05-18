@@ -23,6 +23,16 @@ df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
 @reg df Sales ~ NDI fe = StatePooled + YearPooled weight = Pop
+# =====================================================================
+# Number of obs                1380   Degree of freedom              93
+# R2                          0.245   R2 Adjusted                 0.190
+# F Stat                    417.342   p-val                       0.000
+# Iterations                      2   Converged:                   true
+# =====================================================================
+#         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
+# ---------------------------------------------------------------------
+# NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
+# =====================================================================
 ```
 - A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 	```julia
@@ -67,20 +77,6 @@ df[:YearPooled] =  pool(df[:Year])
 	weight = Pop
 	```
 
-####  Putting everything together
-```julia
-
-# =====================================================================
-# Number of obs                1380   Degree of freedom              93
-# R2                          0.245   R2 Adjusted                 0.190
-# F Stat                    417.342   p-val                       0.000
-# Iterations                      2   Converged:                   true
-# =====================================================================
-#         Estimate   Std.Error t value Pr(>|t|)   Lower 95%   Upper 95%
-# ---------------------------------------------------------------------
-# NDI  -0.00568607 0.000278334 -20.429    0.000 -0.00623211 -0.00514003
-# =====================================================================
-```
 
 ## Result
 `reg` returns a light object. It is composed of 
