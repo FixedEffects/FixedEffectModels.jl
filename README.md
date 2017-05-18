@@ -36,7 +36,7 @@ df[:YearPooled] =  pool(df[:Year])
 ```
 - A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 	```julia
-	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables
+	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables)
 	```
 
 - Fixed effect variables are indicated with the keyword argument `fe`. They must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
