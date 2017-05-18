@@ -5,10 +5,13 @@
 ##############################################################################
 
 struct FixedEffectFormula
-    arg::Union{Symbol, Expr, Void}
+    _::Union{Symbol, Expr, Void}
 end
-allvars(feformula::FixedEffectFormula) = allvars(feformula.arg)
-Terms(feformula::FixedEffectFormula) = Terms(Formula(nothing, feformula.arg))
+function Terms(feformula::FixedEffectFormula)
+    Terms(Formula(nothing, feformula._))
+end
+allvars(feformula::FixedEffectFormula) = allvars(feformula._)
+
 
 ##############################################################################
 ##
@@ -121,4 +124,6 @@ function _multiply(df, ss::Vector{Symbol})
     end
     return out
 end
+
+
 

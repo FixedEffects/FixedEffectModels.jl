@@ -64,14 +64,14 @@ function reg(df::AbstractDataFrame, f::Formula;
     rf = deepcopy(f)
     (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
     rt = Terms(rf)
-    has_absorb = feformula.arg != nothing
+    has_absorb = feformula._ != nothing
     if has_absorb
         # check depth 1 symbols in original formula are all PooledDataArray
-        if isa(feformula.arg, Symbol)
-            x = feformula.arg
+        if isa(feformula._, Symbol)
+            x = feformula._
             !isa(df[x], PooledDataArray) && error("$x should be PooledDataArray")
-        elseif feformula.arg.args[1] == :+
-            x = feformula.arg.args
+        elseif feformula._.args[1] == :+
+            x = feformula._.args
             for i in 2:length(x)
                 isa(x[i], Symbol) && !isa(df[x[i]], PooledDataArray) && error("$(x[i]) should be PooledDataArray")
             end

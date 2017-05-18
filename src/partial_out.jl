@@ -46,7 +46,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     rf = deepcopy(f)
     (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
-    has_absorb = feformula.arg != nothing
+    has_absorb = feformula._ != nothing
     if has_iv
         error("partial_out does not support instrumental variables")
     end

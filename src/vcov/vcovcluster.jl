@@ -1,9 +1,9 @@
 VcovFormula(::Type{Val{:cluster}}, x) = Expr(:call, :VcovClusterFormula, Base.Meta.quot(Terms(Formula(nothing, x)).terms))
 
 type VcovClusterFormula <: AbstractVcovFormula
-    x::Vector{Any}
+    _::Vector{Any}
 end
-allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x.x]...)
+allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
 
 
 type VcovClusterMethod <: AbstractVcovMethod
@@ -13,7 +13,7 @@ end
 
 
 function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula) 
-    clusters = vcovcluster.x
+    clusters = vcovcluster._
     vclusters = DataFrame(Vector, size(df, 1), 0)
     vsize = Dict{Symbol, Int}()
     for c in clusters
