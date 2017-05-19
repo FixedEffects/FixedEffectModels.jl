@@ -97,10 +97,10 @@ end
 
 
 #  remove observations with negative weights
-function isnaorneg{T <: Real}(a::Vector{T}) 
+function isnaorneg(a::Vector{T}) where {T <: Real}
 	BitArray(a .> zero(eltype(a)))
 end
-function isnaorneg{T <: Real}(a::DataVector{T}) 
+function isnaorneg(a::DataVector{T}) where {T <: Real}
 	out = .!(a.na)
 	@simd for i in 1:length(a)
 		if out[i]

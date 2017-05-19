@@ -13,7 +13,7 @@ function vcov!(v::VcovRobustMethod, x::VcovData)
     return sandwich(x.crossmatrix, S) 
 end
 
-function shat!{T}(::VcovRobustMethod, x::VcovData{T, 1}) 
+function shat!(::VcovRobustMethod, x::VcovData{T, 1}) where {T}
     X = x.regressors
     res = x.residuals
     Xu = scale!(res, X)
@@ -23,7 +23,7 @@ function shat!{T}(::VcovRobustMethod, x::VcovData{T, 1})
 end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
-function shat!{T}(::VcovRobustMethod, x::VcovData{T, 2}) 
+function shat!(::VcovRobustMethod, x::VcovData{T, 2}) where {T}
     X = x.regressors
     res = x.residuals
     nobs = size(X, 1)
@@ -40,11 +40,6 @@ function shat!{T}(::VcovRobustMethod, x::VcovData{T, 2})
     S = At_mul_B(temp, temp)
     scale!(S, nobs / x.df_residual)
     return S
-end
-
-type MT{T}
-    x
-    MT{V}(x) where {V} = new(x)
 end
 
 

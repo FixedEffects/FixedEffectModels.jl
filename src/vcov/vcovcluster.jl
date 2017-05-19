@@ -43,7 +43,7 @@ function vcov!(v::VcovClusterMethod, x::VcovData)
     pinvertible(out)
     return out
 end
-function shat!{T}(v::VcovClusterMethod, x::VcovData{T, 1}) 
+function shat!(v::VcovClusterMethod, x::VcovData{T, 1}) where {T}
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors

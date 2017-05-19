@@ -38,7 +38,7 @@ end
 ##############################################################################
 
 # Construct [A B C]'[A B C] without generating [A B C]
-function crossprod{N}(c::Combination{N})
+function crossprod(c::Combination{N}) where {N}
     out = Array{Float64}(size(c, 2), size(c, 2))
     idx = 0
     for j in 1:size(c, 2)

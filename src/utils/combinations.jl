@@ -30,7 +30,7 @@ done(c::Combinations, s) = !isempty(s) && s[1] > length(c.a)-c.t+1
 
 length(c::Combinations) = binomial(length(c.a),c.t)
 
-eltype{T}(::Type{Combinations{T}}) = Vector{eltype(T)}
+eltype(::Type{Combinations{T}}) where {T} = Vector{eltype(T)} 
 
 "Generate all combinations of `n` elements from an indexable object. Because the number of combinations can be very large, this function returns an iterator object. Use `collect(combinations(array,n))` to get an array of all combinations.
 "

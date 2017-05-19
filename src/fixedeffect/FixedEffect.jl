@@ -15,10 +15,10 @@ struct FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVect
 end
 
 # Constructor
-function FixedEffect{R <: Integer}(
+function FixedEffect(
     refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
     interaction::AbstractVector{Float64}, factorname::Symbol, 
-    interactionname::Symbol, id::Symbol)
+    interactionname::Symbol, id::Symbol) where {R <: Integer}
     scale = zeros(Float64, l)
     @inbounds @simd for i in 1:length(refs)
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])

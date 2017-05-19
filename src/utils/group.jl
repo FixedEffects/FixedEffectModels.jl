@@ -27,7 +27,7 @@ function factorize!(refs::Array)
 	PooledDataArray(RefArray(refs), collect(1:(length(uu)-has_na)))
 end
 
-function pool_combine!{T}(x::Array{UInt64, T}, dv::PooledDataVector, ngroups::Integer)
+function pool_combine!(x::Array{UInt64, T}, dv::PooledDataVector, ngroups::Integer) where {T}
 	@inbounds for i in 1:length(x)
 	    # if previous one is NA or this one is NA, set to NA
 	    x[i] = (dv.refs[i] == 0 || x[i] == zero(UInt64)) ? zero(UInt64) : x[i] + (dv.refs[i] - 1) * ngroups
