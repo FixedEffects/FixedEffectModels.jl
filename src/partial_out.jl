@@ -6,7 +6,7 @@ Partial out variables
 * `df` : AbstractDataFrame
 * `f` : Formula,
 * `fe` : Fixed effect formula. Default to fe()
-* `weight`: Weight formula. Corresponds to analytical weights 
+* `weights`: Weight formula. Corresponds to analytical weights 
 * `add_mean` : should intial mean added to the returned variable
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
@@ -35,12 +35,12 @@ plot(
 
 function partial_out(df::AbstractDataFrame, f::Formula; 
     fe::Union{Symbol, Expr, Void} = nothing, 
-    weight::Union{Symbol, Expr, Void} = nothing,
+    weights::Union{Symbol, Expr, Void} = nothing,
     add_mean = false,
     maxiter::Integer = 10000, tol::Real = 1e-8,
     method::Symbol = :lsmr)
     feformula = fe
-    weightvar = weight
+    weightvar = weights
 
 
     rf = deepcopy(f)
@@ -50,7 +50,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
         error("partial_out does not support instrumental variables")
     end
     rt = Terms(rf)
-    has_weight = (weightvar != nothing)
+    has_weights = (weightvar != nothing)
     xf = Formula(nothing, rf.rhs)
     xt = Terms(xf)
 
@@ -60,7 +60,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     all_vars = vcat(vars, absorb_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = completecases(df[all_vars])
-    if has_weight
+    if has_weights
         esample .&= isnaorneg(df[weightvar])
     end
     subdf = df[esample, all_vars]
@@ -70,7 +70,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     end
 
     # Compute weight vector
-    sqrtw = get_weight(df, esample, weightvar)
+    sqrtw = get_weights(df, esample, weightvar)
 
     # initialize iterations & converged
     iterations = Int[]

@@ -6,7 +6,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `f` : Formula, 
 * `fe` : Fixed effect formula.
 * `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
-* `weight`: Weight formula. Corresponds to analytical weights
+* `weights`: Weights formula. Corresponds to analytical weights
 * `subset` : Expression of the form State .>= 30
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
 * `maxiter` : Maximum number of iterations
@@ -35,7 +35,7 @@ reg(df, @model(Sales ~ Price, fe = StatePooled + YearPooled))
 reg(df, @model(Sales ~ NDI, fe = StatePooled + StatePooled&Year))
 reg(df, @model(Sales ~ NDI, fe = StatePooled*Year))
 reg(df, @model(Sales ~ (Price ~ Pimin)))
-reg(df, @model(Sales ~ Price, weight = Pop))
+reg(df, @model(Sales ~ Price, weights = Pop))
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled)))
@@ -49,7 +49,7 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled + YearPooled)))
 function reg(df::AbstractDataFrame, f::Formula; 
     fe::Union{Symbol, Expr, Void} = nothing, 
     vcov::Union{Symbol, Expr, Void} = :(simple()), 
-    weight::Union{Symbol, Expr, Void} = nothing, 
+    weights::Union{Symbol, Expr, Void} = nothing, 
     subset::Union{Symbol, Expr, Void} = nothing, 
     maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
     save::Bool = false,
@@ -83,7 +83,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             end
         end
     end
-    has_weight = (weight != nothing)
+    has_weights = (weights != nothing)
 
 
     ##############################################################################
@@ -104,8 +104,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     all_vars = unique(convert(Vector{Symbol}, all_vars))
     esample = completecases(df[all_vars])
 
-    if has_weight
-        esample .&= isnaorneg(df[weight])
+    if has_weights
+        esample .&= isnaorneg(df[weights])
     end
     if subset != nothing
         subset = eval(evaluate_subset(df, subset))
@@ -117,8 +117,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     nobs = sum(esample)
     (nobs > 0) || error("sample is empty")
 
-    # Compute weight
-    sqrtw = get_weight(df, esample, weight)
+    # Compute weights
+    sqrtw = get_weights(df, esample, weights)
 
     # remove unusused levels
     subdf = df[esample, all_vars]

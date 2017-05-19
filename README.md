@@ -15,14 +15,14 @@ Pkg.add("FixedEffectModels")
 ```
 
 ## Syntax
-To estimate a linear model, one needs to specify  a formula with, and, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weight`.
+To estimate a linear model, one needs to specify  a formula with, and, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weight = Pop, vcov = cluster(StatePooled)))
+reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov = cluster(StatePooled)))
 # =====================================================================
 # Number of obs                1380   Degree of freedom              93
 # R2                          0.245   R2 Adjusted                 0.190
@@ -72,9 +72,9 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weight = Pop, vcov = 
 	vcov = cluster(StatePooled + YearPooled)
 	```
 
-- weights are indicated with the keyword argument `weight`
+- weights are indicated with the keyword argument `weights`
 	```julia
-	weight = Pop
+	weights = Pop
 	```
 
 

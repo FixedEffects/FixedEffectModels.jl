@@ -23,7 +23,7 @@ df[:w] = df[:Pop]
 m = @model y ~ x1
 x = reg(df, m)
 @test coef(x) ≈ [139.73446,-0.22974] atol = 1e-4
-m = @model y ~ x1 weight = w
+m = @model y ~ x1 weights = w
 x = reg(df, m)
 @test coef(x) ≈ [137.72495428982756,-0.23738] atol = 1e-4
 
@@ -83,13 +83,13 @@ x = reg(df, m)
 
 
 # absorb + weights
-m = @model y ~ x1 fe = pid1 weight = w
+m = @model y ~ x1 fe = pid1 weights = w
 x = reg(df, m)
 @test coef(x) ≈ [- 0.21741] atol = 1e-4
-m = @model y ~ x1 fe = pid1 + pid2 weight = w
+m = @model y ~ x1 fe = pid1 + pid2 weights = w
 x = reg(df, m)
 @test coef(x) ≈ [- 0.88794] atol = 1e-3
-m = @model y ~ x1 fe = pid1 + pid1&id2 weight = w
+m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w
 x = reg(df, m)
 @test coef(x) ≈ [- 0.461085492] atol = 1e-4
 
@@ -117,7 +117,7 @@ x = reg(df, m)
 
 
 # iv + weight
-m = @model y ~ (x1 ~ z1) weight = w
+m = @model y ~ (x1 ~ z1) weights = w
 x = reg(df, m)
 @test coef(x) ≈ [137.03637,- 0.22802] atol = 1e-4
 
@@ -126,7 +126,7 @@ x = reg(df, m)
 m = @model y ~ (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test coef(x) ≈ [-0.20284] atol = 1e-4
-m = @model y ~ (x1 ~ z1) fe = pid1 weight = w
+m = @model y ~ (x1 ~ z1) fe = pid1 weights = w
 x = reg(df, m)
 @test coef(x) ≈ [-0.20995] atol = 1e-4
 m = @model y ~ x2 + (x1 ~ z1)
@@ -140,7 +140,7 @@ x = reg(df, m)
 m = @model y ~ x1 + pid2 fe = pid1
 x = reg(df, m)
 @test coef(x)[1] ≈ -1.08471 atol = 1e-4
-m = @model y ~ x1 + pid2 fe = pid1 weight = w
+m = @model y ~ x1 + pid2 fe = pid1 weights = w
 x = reg(df, m)
 @test coef(x)[1] ≈ -0.88794 atol = 1e-4
 m = @model y ~ x2 + (x1 ~ z1) + pid2 fe = pid1
@@ -362,7 +362,7 @@ for method in [:cholesky, :qr, :lsmr]
 	m = @model y ~ 1 fe = id2&pid1 method = $(method)
 	x = reg(df, m)
 	@test coef(x) ≈  [- 356.40430526316396] atol = 1e-4
-	m = @model y ~ x1 fe = pid1 weight = w method = $(method)
+	m = @model y ~ x1 fe = pid1 weights = w method = $(method)
 	x = reg(df, m)
 	@test coef(x) ≈ [- 0.11514363590574725] atol = 1e-4
 
@@ -370,7 +370,7 @@ for method in [:cholesky, :qr, :lsmr]
 	m = @model y ~ x1 fe = pid1 + pid2 method = $(method)
 	x = reg(df, m)
 	@test coef(x)  ≈  [- 0.04683333721137311] atol = 1e-4
-	m = @model y ~ x1 fe = pid1 + pid2 weight = w method = $(method)
+	m = @model y ~ x1 fe = pid1 + pid2 weights = w method = $(method)
 	x = reg(df, m)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
@@ -380,7 +380,7 @@ for method in [:cholesky, :qr, :lsmr]
 	@test coef(x)  ≈   [- 0.122354] atol = 1e-4
 	@test x.iterations <= 30
 
-	m = @model y ~ x1 fe = pid1 + pid1&id2 weight = w method = $(method)
+	m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w method = $(method)
 	x = reg(df, m)
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
