@@ -457,11 +457,9 @@ end
 
 function reg(df::AbstractDataFrame, ex::Tuple)
     dict = Dict{Symbol, Any}()
-    for i in 1:length(ex)
-        isa(ex[i], Expr) || throw("All arguments of @models, except the first one, should be keyboard arguments")
-        if ex[i].head== :(=)
-            dict[ex[i].args[1]] = ex[i].args[2]
-        end
+    for i in 2:length(ex)
+        isa(ex[i], Expr) &&  ex[i].head== :(=) || throw("All arguments of @models, except the first one, should be keyboard arguments")
+        dict[ex[i].args[1]] = ex[i].args[2]
     end
     reg(df, Formula(ex[1].args[2], ex[1].args[3]); dict...)
 end
