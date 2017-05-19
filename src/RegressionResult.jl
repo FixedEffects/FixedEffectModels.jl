@@ -260,7 +260,7 @@ struct RegressionResultFE <: AbstractRegressionResult
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
     formula::Formula        # Original formula 
-    feformula::FixedEffectFormula      # fixed effect formula 
+    feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations
     df_residual::Int64      # degrees of freedoms
@@ -302,7 +302,7 @@ struct RegressionResultFEIV <: AbstractRegressionResult
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
     formula::Formula        # Original formula 
-    feformula::FixedEffectFormula      # fixed effect formula 
+    feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations
     df_residual::Int64      # degrees of freedoms

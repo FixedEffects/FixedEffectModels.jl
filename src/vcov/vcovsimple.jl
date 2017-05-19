@@ -1,4 +1,4 @@
-VcovFormula(::Type{Val{:simple}}) = Expr(:call, :VcovSimpleFormula)
+VcovFormula(::Type{Val{:simple}}) = VcovSimpleFormula()
 
 type VcovSimpleFormula <: AbstractVcovFormula end
 allvars(x::VcovSimpleFormula) = Symbol[]

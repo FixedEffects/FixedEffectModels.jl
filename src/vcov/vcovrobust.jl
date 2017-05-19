@@ -1,4 +1,4 @@
-VcovFormula(::Type{Val{:robust}}) = Expr(:call, :VcovRobustFormula)
+VcovFormula(::Type{Val{:robust}}) = VcovRobustFormula()
 
 type VcovRobustFormula <: AbstractVcovFormula  end
 allvars(x::VcovRobustFormula) = Symbol[]

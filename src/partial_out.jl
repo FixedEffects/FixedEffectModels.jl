@@ -8,7 +8,6 @@ Partial out variables
 * `fe` : Fixed effect formula. Default to fe()
 * `weight`: Weight formula. Corresponds to analytical weights 
 * `add_mean` : should intial mean added to the returned variable
-* `subset` : AbstractVector{Bool} for subsample
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
 * `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qrfact and :cholfact (factorization methods)
@@ -35,8 +34,8 @@ plot(
 
 
 function partial_out(df::AbstractDataFrame, f::Formula; 
-    fe::FixedEffectFormula = FixedEffectFormula(nothing), 
-    weight::Union{Symbol, Void} = nothing,
+    fe::Union{Symbol, Expr, Void} = nothing, 
+    weight::Union{Symbol, Expr, Void} = nothing,
     add_mean = false,
     maxiter::Integer = 10000, tol::Real = 1e-8,
     method::Symbol = :lsmr)
@@ -46,7 +45,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     rf = deepcopy(f)
     (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
-    has_absorb = feformula._ != nothing
+    has_absorb = feformula != nothing
     if has_iv
         error("partial_out does not support instrumental variables")
     end
@@ -139,8 +138,13 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     return(out)
 end
 
-
-macro partial_out(args...)
-    Expr(:call, :partial_out, esc(args[1]), :(@formula($(esc(args[2])))), (esc(_transform_expr(args[i])) for i in 3:length(args))...)
+function partial_out(df::AbstractDataFrame, ex::Tuple)
+    dict = Dict{Symbol, Any}()
+    for i in 1:length(ex)
+        isa(ex[i], Expr) || throw("All arguments of @models, except the first one, should be keyboard arguments")
+        if ex[i].head== :(=)
+            dict[ex[i].args[1]] = ex[i].args[2]
+        end
+    end
+    partial_out(df, Formula(ex[1].args[2], ex[1].args[3]); dict...)
 end
-

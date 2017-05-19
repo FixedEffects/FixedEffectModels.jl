@@ -1,20 +1,5 @@
 ##############################################################################
 ##
-## Fixed  Effect Formula
-##
-##############################################################################
-
-struct FixedEffectFormula
-    _::Union{Symbol, Expr, Void}
-end
-function Terms(feformula::FixedEffectFormula)
-    Terms(Formula(nothing, feformula._))
-end
-allvars(feformula::FixedEffectFormula) = allvars(feformula._)
-
-
-##############################################################################
-##
 ## FixedEffect
 ##
 ##############################################################################
@@ -45,10 +30,10 @@ function FixedEffect{R <: Integer}(
 end
 
 # Constructors from dataframe + terms
-function FixedEffect(df::AbstractDataFrame, feformula::FixedEffectFormula, sqrtw::AbstractVector{Float64})
+function FixedEffect(df::AbstractDataFrame, feformula, sqrtw::AbstractVector{Float64})
     out = FixedEffect[]
-    for term in Terms(feformula).terms
-        result = FixedEffect(df, term, sqrtw)
+    for term in Terms(Formula(nothing, feformula)).terms
+        result = _FixedEffect(df, term, sqrtw)
         if isa(result, FixedEffect)
             push!(out, result)
         elseif isa(result, Vector{FixedEffect})
@@ -59,7 +44,7 @@ function FixedEffect(df::AbstractDataFrame, feformula::FixedEffectFormula, sqrtw
 end
 
 # Constructors from dataframe + symbol
-function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
+function _FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
     v = df[a]
     if isa(v, PooledDataVector)
         return FixedEffect(v.refs, length(v.pool), sqrtw, Ones{Float64}(length(v)), a, :none, a)
@@ -70,7 +55,7 @@ function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Flo
 end
 
 # Constructors from dataframe + expression
-function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
+function _FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     _check(a) || throw("Expression $a should only contain & and variable names")
     factorvars, interactionvars = _split(df, allvars(a))
     if isempty(factorvars)

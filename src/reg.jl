@@ -7,11 +7,11 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `fe` : Fixed effect formula.
 * `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
 * `weight`: Weight formula. Corresponds to analytical weights
-* `subset` : AbstractVector{Bool} for subsample
+* `subset` : Expression of the form State .>= 30
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
+* `method` : Default is lsmr (akin to conjugate gradient descent). Other choices are qr and cholesky (factorization methods)
 
 
 ### Returns
@@ -31,15 +31,15 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 df[:YearPooled] =  pool(df[:Year])
-@reg df Sales ~ Price fe = StatePooled + YearPooled
-@reg df Sales ~ NDI fe = StatePooled + StatePooled&Year
-@reg df Sales ~ NDI fe = StatePooled*Year
-@reg df Sales ~ (Price ~ Pimin)
-@reg df Sales ~ Price weight = Pop
-@reg df Sales ~ NDI subset = (df[:State] .< 30)
-@reg df Sales ~ NDI vcov = robust
-@reg df Sales ~ NDI vcov = cluster(StatePooled)
-@reg df Sales ~ NDI vcov = cluster(StatePooled + YearPooled)
+reg(df, @model(Sales ~ Price, fe = StatePooled + YearPooled))
+reg(df, @model(Sales ~ NDI, fe = StatePooled + StatePooled&Year))
+reg(df, @model(Sales ~ NDI, fe = StatePooled*Year))
+reg(df, @model(Sales ~ (Price ~ Pimin)))
+reg(df, @model(Sales ~ Price, weight = Pop))
+reg(df, @model(Sales ~ NDI, subset = State .< 30))
+reg(df, @model(Sales ~ NDI, vcov = robust))
+reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled + YearPooled)))
 ```
 """
 
@@ -47,15 +47,21 @@ df[:YearPooled] =  pool(df[:Year])
 
 # TODO: minimize memory
 function reg(df::AbstractDataFrame, f::Formula; 
-    fe::FixedEffectFormula = FixedEffectFormula(nothing), 
-    vcov::AbstractVcovFormula = VcovSimpleFormula(), 
-    weight::Union{Symbol, Void} = nothing, 
-    subset::Union{AbstractVector{Bool}, Void} = nothing, 
+    fe::Union{Symbol, Expr, Void} = nothing, 
+    vcov::Union{Symbol, Expr, Void} = :(simple()), 
+    weight::Union{Symbol, Expr, Void} = nothing, 
+    subset::Union{Symbol, Expr, Void} = nothing, 
     maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
     save::Bool = false,
     method::Symbol = :lsmr)
     feformula = fe
-    vcovformula = vcov
+    if isa(vcov, Symbol)
+        vcovformula = VcovFormula(Val{vcov})
+    else 
+        vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
+    end
+
+
     ##############################################################################
     ##
     ## Parse formula
@@ -64,14 +70,14 @@ function reg(df::AbstractDataFrame, f::Formula;
     rf = deepcopy(f)
     (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
     rt = Terms(rf)
-    has_absorb = feformula._ != nothing
+    has_absorb = feformula != nothing
     if has_absorb
         # check depth 1 symbols in original formula are all PooledDataArray
-        if isa(feformula._, Symbol)
-            x = feformula._
+        if isa(feformula, Symbol)
+            x = feformula
             !isa(df[x], PooledDataArray) && error("$x should be PooledDataArray")
-        elseif feformula._.args[1] == :+
-            x = feformula._.args
+        elseif feformula.args[1] == :+
+            x = feformula.args
             for i in 2:length(x)
                 isa(x[i], Symbol) && !isa(df[x[i]], PooledDataArray) && error("$(x[i]) should be PooledDataArray")
             end
@@ -102,6 +108,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         esample .&= isnaorneg(df[weight])
     end
     if subset != nothing
+        subset = eval(evaluate_subset(df, subset))
         if length(subset) != size(df, 1)
             error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
         end
@@ -444,33 +451,31 @@ end
 ##############################################################################
 
 
-function _transform_expr(x)
-    if isa(x, Expr) && x.head == :(=)
-        if x.args[1] == :fe
-            x = Expr(:kw, :fe, Expr(:call, :FixedEffectFormula, Base.Meta.quot(x.args[2])))
-        elseif x.args[1] == :ife
-            x.args[2].head == :tuple || throw("Error when specifying ife")
-            x = Expr(:call, :InteractiveFixedEffectFormula, Base.Meta.quot(Terms(Formula(nothing, x.args[2].args[1])).terms), x.args[2].args[2])
-        elseif x.args[1] == :vcov
-            if isa(x.args[2], Symbol)
-                x = Expr(:kw, :vcov, VcovFormula(Val{x.args[2]}))
-            else 
-                x = Expr(:kw, :vcov, VcovFormula(Val{x.args[2].args[1]}, (x.args[2].args[i] for i in 2:length(x.args[2].args))...))
-            end
-        elseif x.args[1] == :weight
-            x = Expr(:kw, :weight, Base.Meta.quot(x.args[2]))
-        else
-            x = Expr(:kw, x.args[1], (x.args[i] for i in 2:length(x.args))...)
+macro model(args...)
+    Expr(:tuple, (esc(Base.Meta.quot(args[i])) for i in 1:length(args))...)
+end
+
+function reg(df::AbstractDataFrame, ex::Tuple)
+    dict = Dict{Symbol, Any}()
+    for i in 1:length(ex)
+        isa(ex[i], Expr) || throw("All arguments of @models, except the first one, should be keyboard arguments")
+        if ex[i].head== :(=)
+            dict[ex[i].args[1]] = ex[i].args[2]
         end
     end
-    return x
-end
-macro reg(args...)
-    Expr(:call, :reg, esc(args[1]), :(@formula($(esc(args[2])))), (esc(_transform_expr(args[i])) for i in 3:length(args))...)
+    reg(df, Formula(ex[1].args[2], ex[1].args[3]); dict...)
 end
 
 
-
+function evaluate_subset(df, ex::Expr)
+    if ex.head == :call
+        return Expr(ex.head, ex.args[1], (evaluate_subset(df, ex.args[i]) for i in 2:length(ex.args))...)
+    else
+        return Expr(ex.head, (evaluate_subset(df, ex.args[i]) for i in 1:length(ex.args))...)
+    end
+end
+evaluate_subset(df, ex::Symbol) = df[ex]
+evaluate_subset(df, ex)  = ex
 
 
 

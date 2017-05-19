@@ -29,7 +29,6 @@ allvars,
 
 WeightFormula,
 Ones,
-FixedEffectFormula,
 FixedEffect,
 FixedEffectProblem,
 
@@ -45,6 +44,7 @@ AbstractVcovFormula,
 VcovSimpleFormula, 
 VcovRobustFormula, 
 VcovClusterFormula,
+VcovFormula,
 
 AbstractVcovMethod, 
 VcovMethod,
@@ -57,8 +57,7 @@ shat!,
 VcovData,
 
 
-@reg,
-@partial_out
+@model
 
 ##############################################################################
 ##
