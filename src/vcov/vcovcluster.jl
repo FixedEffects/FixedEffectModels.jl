@@ -89,7 +89,7 @@ function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
     end
 end
 
-function shat!{T}(v::VcovClusterMethod, x::VcovData{T, 2}) 
+function shat!(v::VcovClusterMethod, x::VcovData{T, 2}) where {T}
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors

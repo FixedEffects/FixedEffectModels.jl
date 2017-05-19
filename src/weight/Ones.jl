@@ -11,24 +11,24 @@ end
 # constructuor mimic ones syntax
 Ones(T::Type, v::Int) = Ones{T}(v)
 Ones(v::Integer) = Ones{Float64}(v)
-Ones{T}(v::AbstractVector{T}) = Ones{T}(length(v))
+Ones(v::AbstractVector{T}) where {T} = Ones{T}(length(v))
 
 #indexing
 Base.IndexStyle(::Type{Ones}) = Base.LinearFast()
-@inline Base.getindex{T}(::Ones{T}, i::Int...) = one(T)
-@inline Base.unsafe_getindex{T}(::Ones{T}, i::Int...) = one(T)
-Base.eltype{T}(o::Ones{T}) = T
+@inline Base.getindex(::Ones{T}, i::Int...) where {T} = one(T)
+@inline Base.unsafe_getindex(::Ones{T}, i::Int...) where {T} = one(T)
+Base.eltype(o::Ones{T}) where {T} = T
 Base.length(O::Ones) = O.length
 Base.size(O::Ones) = (O.length,)
 
-Base.similar{T}(o::Ones{T}) = Ones{T}(length(o))
-Base.copy{T}(o::Ones{T}) = Ones{T}(length(o))
-Base.deepcopy{T}(o::Ones{T}) = Ones{T}(length(o))
-Base.diagm{T}(o::Ones{T}, args...) = eye(T, O.length, args...)
+Base.similar(o::Ones{T}) where {T} = Ones{T}(length(o))
+Base.copy(o::Ones{T}) where {T} = Ones{T}(length(o))
+Base.deepcopy(o::Ones{T}) where {T} = Ones{T}(length(o))
+Base.diagm(o::Ones{T}, args...) where {T} = eye(T, O.length, args...)
 
 Base.sum(O::Ones) = O.length
-Base.convert{T}(::Type{Vector{T}}, o::Ones) = ones(T, length(o))
-Base.collect{T}(o::Ones{T}) = ones(T, length(o))
+Base.convert(::Type{Vector{T}}, o::Ones) where {T} = ones(T, length(o))
+Base.collect(o::Ones{T}) where {T} = ones(T, length(o))
 
 
 # implement broadcast
