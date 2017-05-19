@@ -67,7 +67,7 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weight = Pop, vcov = 
 
 - Standard errors are indicated with the keyword argument `vcov`.
 	```julia
-	vcov = robust()
+	vcov = robust
 	vcov = cluster(StatePooled)
 	vcov = cluster(StatePooled + YearPooled)
 	```
