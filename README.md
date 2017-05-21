@@ -77,7 +77,7 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov =
 	weights = Pop
 	```
 
-Arguments of `@model` are captured and transformed into expressions. This makes it very convenient to build `@model` in interactive use. If you want to program with `@model`, use expression interpolations:
+Arguments of `@model` are captured and transformed into expressions. If you want to program with `@model`, use expression interpolations:
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
