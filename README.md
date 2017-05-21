@@ -77,16 +77,15 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov =
 	weights = Pop
 	```
 
-Arguments of `@model` are captured and transformed into expressions. This makes it very convenient to build `@model` in interactive use. If you want to program with `@model`, you need to use expression interpolations: 
-	```julia
-	using DataFrames, RDatasets, FixedEffectModels
-	df = dataset("plm", "Cigar")
-	df[:StatePooled] =  pool(df[:State])
-	categorical = :StatePooled
-	weight = :Pop
-	reg(df, @model(Sales ~ NDI, fe = $(categorical), weights = $(weight), vcov = cluster($(categorical))))
-	```
-
+Arguments of `@model` are captured and transformed into expressions. This makes it very convenient to build `@model` in interactive use. If you want to program with `@model`, you need to use expression interpolations:
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StatePooled] =  pool(df[:State])
+categorical = :StatePooled
+weight = :Pop
+reg(df, @model(Sales ~ NDI, fe = $(categorical), weights = $(weight), vcov = cluster($(categorical))))
+```
 
 ## Output
 `reg` returns a light object. It is composed of 
