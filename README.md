@@ -15,7 +15,7 @@ Pkg.add("FixedEffectModels")
 ```
 
 ## Syntax
-To estimate a linear model, one needs to specify  a formula with, and, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
+To estimate a `@model`, one needs to specify  a formula with, and, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
@@ -77,8 +77,15 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov =
 	weights = Pop
 	```
 
+The arguments of `@model` are captured and transformed into expressions. To use `@model` in non interactive use, simply use expression interpolations
+	```julia
+	categorical = :StatePooled
+	weight = :Pop
+	reg(df, @model(Sales ~ NDI, fe = $(varname), weights = $(weight), vcov = cluster($(categorical))))
+	```
 
-## Result
+
+## Output
 `reg` returns a light object. It is composed of 
  
   - the vector of coefficients & the covariance matrix
@@ -100,7 +107,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
   - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = lsmr` (with a diagonal preconditioner).
   - sparse factorization with `method = cholesky` or `method = qr` (using the SuiteSparse library)
 
-  The default method`:lsmr`, should be the fastest in most cases. If the method does not converge, frist please get in touch, I'd be interested to hear about your problem.  Second use the `method = cholesky`, which should do the trick.
+  The default method`lsmr`, should be the fastest in most cases. If the method does not converge, frist please get in touch, I'd be interested to hear about your problem.  Second use the `method = cholesky`, which should do the trick.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
