@@ -14,7 +14,7 @@ To install the package,
 Pkg.add("FixedEffectModels")
 ```
 
-## Build a `@model`
+## Estimate a model
 To estimate a `@model`, specify  a formula with, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
 
 ```julia
