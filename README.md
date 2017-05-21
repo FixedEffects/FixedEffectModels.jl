@@ -15,7 +15,7 @@ Pkg.add("FixedEffectModels")
 ```
 
 ## Syntax
-To estimate a `@model`, one needs to specify  a formula with, and, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
+To estimate a `@model`, specify  a formula with, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
@@ -77,7 +77,7 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov =
 	weights = Pop
 	```
 
-The arguments of `@model` are captured and transformed into expressions. To use `@model` in non interactive use, simply use expression interpolations
+Arguments of `@model` are captured and transformed into expressions. This makes it very convenient for interactive use. If you want to program with `@model`, you need to use expression interpolations
 	```julia
 	categorical = :StatePooled
 	weight = :Pop
