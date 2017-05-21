@@ -47,7 +47,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, 1}) where {T}
     # Cameron, Gelbach, & Miller (2011).
     clusternames = names(v.clusters)
     X = x.regressors
-    broadcast!(*, X, X, x.residuals)
+    X .= X .* x.residuals
     S = fill(zero(Float64), (size(X, 2), size(X, 2)))
     for i in 1:length(clusternames)
         for c in combinations(clusternames, i)

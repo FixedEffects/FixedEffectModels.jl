@@ -194,7 +194,7 @@ end
 function solve_coefficients!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     iterations, converged = solve!(fep, r; kwargs...)
     for i in 1:length(fep.x._)
-        broadcast!(*, fep.x._[i], fep.x._[i], fep.m._[i].scale)
+        fep.x._[i] .= fep.x._[i] .* fep.m._[i].scale
     end
     return fep.x._, iterations, converged
 end

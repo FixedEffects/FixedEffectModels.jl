@@ -96,7 +96,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     yt.intercept = false
     mfY = ModelFrame2(yt, subdf, esample)
     Y = ModelMatrix(mfY).m
-    broadcast!(*, Y, Y, sqrtw)
+    Y .= Y .* sqrtw
     if add_mean
         m = mean(Y, 1)
     end
@@ -111,21 +111,21 @@ function partial_out(df::AbstractDataFrame, f::Formula;
         else
             X = fill(one(Float64), (size(subdf, 1), 1))
         end     
-        broadcast!(*, X, X, sqrtw)
+        X .= X .* sqrtw
         residualize!(X, pfe, iterations, converged, maxiter = maxiter, tol = tol)
     end
     
     # Compute residuals
     if length(xvars) > 0 || xt.intercept
-        residuals = Y - X * (X \ Y)
+        residuals = Y .- X * (X \ Y)
     else
         residuals = Y
     end
 
     # rescale residuals
-    broadcast!(/, residuals,  residuals, sqrtw)
+    residuals .= residuals ./ sqrtw
     if add_mean
-        broadcast!(+, residuals, m, residuals)
+        residuals .= residuals .+ m
     end
 
     # Return a dataframe

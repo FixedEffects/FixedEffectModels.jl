@@ -104,7 +104,7 @@ function _multiply(df, ss::Vector{Symbol})
             out = convert(Vector{Float64}, df[ss[1]])
         end
         for i in 2:length(ss)
-            broadcast!(*, out, out, df[ss[i]])
+            out .= out .* df[ss[i]]
         end
     end
     return out

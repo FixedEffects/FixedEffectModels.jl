@@ -173,7 +173,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         y = py
     end
     yname = rt.eterms[1]
-    broadcast!(*, y, y, sqrtw)
+    y .= y .* sqrtw
     # old y will be used if fixed effects
     if has_absorb
         oldy = deepcopy(y)
@@ -194,7 +194,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             Xexo = deepcopy(Xexo)
         end
     end
-    broadcast!(*, Xexo, Xexo, sqrtw)
+    Xexo .= Xexo .* sqrtw
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
     
@@ -203,12 +203,12 @@ function reg(df::AbstractDataFrame, f::Formula;
         mf = ModelFrame2(endo_terms, subdf, esample)
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
-        broadcast!(*, Xendo, Xendo, sqrtw)
+        Xendo .= Xendo .* sqrtw
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
         
         mf = ModelFrame2(iv_terms, subdf, esample)
         Z = ModelMatrix(mf).m
-        broadcast!(*, Z, Z, sqrtw)
+        Z .= Z .* sqrtw
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
     end
 
@@ -280,7 +280,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # save residuals in a new dataframe
     augmentdf = DataFrame()
     if save
-        broadcast!(/, residuals, residuals, sqrtw)
+        residuals .= residuals ./ sqrtw
         if all(esample)
             augmentdf[:residuals] = residuals
         else
@@ -293,7 +293,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
             end
-            broadcast!(*, oldX, oldX, sqrtw)
+            oldX .= oldX .* sqrtw
             BLAS.gemm!('N', 'N', -1.0, oldX, coef, 1.0, oldy)
             axpy!(-1.0, residuals, oldy)
 
