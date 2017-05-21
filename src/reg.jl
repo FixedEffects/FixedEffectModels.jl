@@ -46,6 +46,10 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled + YearPooled)))
 
 
 # TODO: minimize memory
+function reg(df::AbstractDataFrame, m::Model)
+    reg(df, m.f; m.dict...)
+end
+
 function reg(df::AbstractDataFrame, f::Formula; 
     fe::Union{Symbol, Expr, Void} = nothing, 
     vcov::Union{Symbol, Expr, Void} = :(simple()), 
@@ -444,27 +448,13 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float
     end
     return tss
 end
+
+
 ##############################################################################
 ##
 ## Syntax without keywords
 ##
 ##############################################################################
-
-
-macro model(args...)
-    Expr(:tuple, (esc(Base.Meta.quot(args[i])) for i in 1:length(args))...)
-end
-
-function reg(df::AbstractDataFrame, ex::Tuple)
-    dict = Dict{Symbol, Any}()
-    for i in 2:length(ex)
-        isa(ex[i], Expr) &&  ex[i].head== :(=) || throw("All arguments of @models, except the first one, should be keyboard arguments")
-        dict[ex[i].args[1]] = ex[i].args[2]
-    end
-    reg(df, Formula(ex[1].args[2], ex[1].args[3]); dict...)
-end
-
-
 function evaluate_subset(df, ex::Expr)
     if ex.head == :call
         return Expr(ex.head, ex.args[1], (evaluate_subset(df, ex.args[i]) for i in 2:length(ex.args))...)

@@ -56,7 +56,7 @@ vcov!,
 shat!,
 VcovData,
 
-
+Model,
 @model
 
 ##############################################################################
@@ -66,6 +66,7 @@ VcovData,
 ##############################################################################
 include("utils/group.jl")
 include("utils/formula.jl")
+include("utils/model.jl")
 include("utils/lsmr.jl")
 include("utils/basecol.jl")
 include("utils/combinations.jl")
