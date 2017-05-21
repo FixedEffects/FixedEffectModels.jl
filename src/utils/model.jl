@@ -15,13 +15,14 @@ macro model(args...)
 end
 
 function model_helper(args...)
+    (args[1].head === :call && args[1].args[1] === :(~)) || throw("First argument of @model should be a formula")
+    f = Formula(args[1].args[2], args[1].args[3])
     dict = Dict{Symbol, Any}()
     for i in 2:length(args)
         isa(args[i], Expr) &&  args[i].head== :(=) || throw("All arguments of @model, except the first one, should be keyboard arguments")
         dict[args[i].args[1]] = args[i].args[2]
     end
-    (args[1].head === :call && args[1].args[1] === :(~)) || throw("First argument of @model should be a formula")
-    Model(Formula(args[1].args[2], args[1].args[3]), dict)
+    Model(f, dict)
 end
 
 
