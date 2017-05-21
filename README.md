@@ -83,8 +83,8 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 categorical = :StatePooled
-weight = :Pop
-reg(df, @model(Sales ~ NDI, fe = $(categorical), weights = $(weight), vcov = cluster($(categorical))))
+weights = :Pop
+reg(df, @model(Sales ~ NDI, fe = $(categorical), weights = $(weights), vcov = cluster($(categorical))))
 ```
 
 ## Output
