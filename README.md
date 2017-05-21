@@ -84,7 +84,7 @@ df = dataset("plm", "Cigar")
 df[:StatePooled] =  pool(df[:State])
 categorical = :StatePooled
 weights = :Pop
-reg(df, @model(Sales ~ NDI, fe = $(categorical), weights = $(weights), vcov = cluster($(categorical))))
+reg(df, @model(Sales ~ NDI, fe = $(categorical)))
 ```
 
 ## Output
