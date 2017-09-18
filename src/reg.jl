@@ -195,6 +195,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
     end
     Xexo .= Xexo .* sqrtw
+    norm_Xexo =  sum(abs2, Xexo, 1)
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
     
@@ -204,11 +205,14 @@ function reg(df::AbstractDataFrame, f::Formula;
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
+
+        norm_Xendo =  sum(abs2, Xendo, 1)
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
         
         mf = ModelFrame2(iv_terms, subdf, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
+        norm_Z =  sum(abs2, Z, 1)
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
     end
 
@@ -231,10 +235,12 @@ function reg(df::AbstractDataFrame, f::Formula;
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         # get linearly independent columns
-        baseall= basecol(Z, Xexo, Xendo; tol = tol)
-        basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))]
-        basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end]
-        Z = getcols(Z, baseall[1:size(Z, 2)])
+        # special case for variables demeaned by fixed effects
+        baseall= basecol(Z, Xexo, Xendo)
+        basecolZ = baseall[1:size(Z, 2)] .& vec(sum(abs2, Z, 1) .> tol * norm_Z)
+        basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))] .& vec(sum(abs2, Xexo, 1) .> tol * norm_Xexo)
+        basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end] .& vec(sum(abs2, Xendo, 1) .> tol * norm_Xendo)
+        Z = getcols(Z, basecolZ)
         Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
@@ -258,7 +264,9 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = nothing
     else
         # get linearly independent columns
-        basecolXexo = basecol(Xexo; tol = tol)
+        # special case for variables demeaned by fixed effects
+
+        basecolXexo = basecol(Xexo) .& vec(sum(abs2, Xexo, 1) .> tol * norm_Xexo)
         Xexo = getcols(Xexo, basecolXexo)
         Xhat = Xexo
         X = Xexo
