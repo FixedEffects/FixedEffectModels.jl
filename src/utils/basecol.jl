@@ -64,9 +64,9 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 ##############################################################################
 
 # rank(A) == rank(A'A)
-function basecol(X::Matrix{Float64}...)
+function basecol(X::Matrix{Float64}...; tol = 1e-8)
     chol = cholfact!(crossprod(X...), :U, Val{true})
-    ipermute!(diag(chol.factors) .> 0, chol.piv)
+    ipermute!(diag(chol.factors) .> tol, chol.piv)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})

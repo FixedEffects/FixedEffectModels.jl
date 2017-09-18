@@ -231,7 +231,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         # get linearly independent columns
-        baseall= basecol(Z, Xexo, Xendo)
+        baseall= basecol(Z, Xexo, Xendo; tol = tol)
         basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))]
         basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end]
         Z = getcols(Z, baseall[1:size(Z, 2)])
@@ -258,7 +258,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = nothing
     else
         # get linearly independent columns
-        basecolXexo = basecol(Xexo)
+        basecolXexo = basecol(Xexo; tol = tol)
         Xexo = getcols(Xexo, basecolXexo)
         Xhat = Xexo
         X = Xexo
