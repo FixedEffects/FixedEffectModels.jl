@@ -122,7 +122,11 @@ function show(io::IO, ct::CoefTable2)
     if length(rownms) == 0
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
-    rnwidth = max(4,maximum([length(nm) for nm in rownms]) + 1)
+    if nr > 0
+        rnwidth = max(4,maximum([length(nm) for nm in rownms]) + 1)
+    else
+        rnwidth = 4
+    end
     rownms = [rpad(nm,rnwidth) for nm in rownms]
     widths = [length(cn)::Int for cn in colnms]
     str = [sprint(showcompact,mat[i,j]) for i in 1:nr, j in 1:nc]

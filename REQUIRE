@@ -1,5 +1,0 @@
-julia 0.6.0-pre
-Distributions 0.4.6
-StatsBase 0.7.1
-DataArrays 0.3.4
-DataFrames 0.9
