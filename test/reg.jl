@@ -399,9 +399,9 @@ end
 ##############################################################################
 df = readtable(joinpath(dirname(@__FILE__), "..", "dataset", "nls.csv"))
 pool!(df, [:idcode, :year, :race])
-reg(df, @model(ln_wage ~ hours + race, fe = idcode))
+x = reg(df, @model(ln_wage ~ hours + race, fe = idcode))
 @test coef(x)[2] ≈ 0.0
-reg(df, @model(ln_wage ~ hours + race, fe = idcode + year))
+x = reg(df, @model(ln_wage ~ hours + race, fe = idcode + year))
 @test coef(x)[2] ≈ 0.0
 
 
