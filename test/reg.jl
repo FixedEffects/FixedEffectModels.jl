@@ -178,6 +178,12 @@ x = reg(df, m)
 @test_throws ErrorException reg(df, @model(y ~ x1, fe = x2 + pid1))
 
 
+
+#colinearity with fixed effect
+df[:dec] = pool(div(df[:id2], 10))
+m = @model y ~ dec fe = pid2
+x = reg(df, m)
+@test coef(x)[1] ≈ 0.0
 ##############################################################################
 ##
 ## std errors 
@@ -385,6 +391,13 @@ for method in [:cholesky, :qr, :lsmr]
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
 end
+
+##############################################################################
+##
+## NLS model
+##
+##############################################################################
+df = readtable(joinpath(dirname(@__FILE__), "..", "dataset", "NLS.csv"))
 
 
 
