@@ -59,11 +59,7 @@ function ranktest!(X::Matrix{Float64},
 
     # return statistics
     # why do I need to add Hermitian? (since 0.5)
-    if VERSION > v"0.5.0-dev+961"
-        vlab = cholfact!(Hermitian(A_mul_Bt(kronv * vhat, kronv)))
-    else
-        vlab = cholfact!(A_mul_Bt(kronv * vhat, kronv))
-    end
+    vlab = cholfact!(Hermitian(A_mul_Bt(kronv * vhat, kronv)))
     r_kp = lambda' * (vlab \ lambda)
     p_kp = ccdf(Chisq((L-K+1 )), r_kp[1])
     F_kp = r_kp[1] / size(Z, 2)
