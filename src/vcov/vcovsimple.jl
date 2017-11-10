@@ -1,10 +1,10 @@
 VcovFormula(::Type{Val{:simple}}) = VcovSimpleFormula()
 
-type VcovSimpleFormula <: AbstractVcovFormula end
+mutable struct VcovSimpleFormula <: AbstractVcovFormula end
 allvars(x::VcovSimpleFormula) = Symbol[]
 
 
-type VcovSimpleMethod <: AbstractVcovMethod end
+mutable struct VcovSimpleMethod <: AbstractVcovMethod end
 VcovMethod(::AbstractDataFrame, ::VcovSimpleFormula) = VcovSimpleMethod()
 
 function vcov!(::VcovSimpleMethod, x::VcovData)
