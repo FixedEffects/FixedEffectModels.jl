@@ -265,7 +265,6 @@ function reg(df::AbstractDataFrame, f::Formula;
     else
         # get linearly independent columns
         # special case for variables demeaned by fixed effects
-
         basecolXexo = basecol(Xexo) .& vec(sum(abs2, Xexo, 1) .> tol * norm_Xexo)
         Xexo = getcols(Xexo, basecolXexo)
         Xhat = Xexo
