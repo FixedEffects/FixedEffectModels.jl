@@ -1,12 +1,12 @@
 VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(Terms(Formula(nothing, x)).terms)
 
-type VcovClusterFormula <: AbstractVcovFormula
+mutable struct VcovClusterFormula <: AbstractVcovFormula
     _::Vector{Any}
 end
 allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
 
 
-type VcovClusterMethod <: AbstractVcovMethod
+mutable struct VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
     size::Dict{Symbol, Int}
 end
