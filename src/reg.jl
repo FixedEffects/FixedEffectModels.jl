@@ -323,10 +323,20 @@ function reg(df::AbstractDataFrame, f::Formula;
     df_absorb = 0
     if has_absorb 
         ## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
+        #for fe in fixedeffects
+        #    if typeof(vcovformula) == VcovClusterFormula && in(fe.factorname, vcov_vars)
+        #        df_absorb += 0
+        #    else
+        #        df_absorb += sum(fe.scale .!= zero(Float64))
+        #    end
+        #end
+        ## better adjustment of df for clustered errors + fe: adjust only if fe is not fully nested in a cluster variable:
         for fe in fixedeffects
-            if typeof(vcovformula) == VcovClusterFormula && in(fe.factorname, vcov_vars)
+            if typeof(vcovformula) == VcovClusterFormula && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in vcov_vars])
+                println("$(fe.factorname) is nested in one of the cluster variables")
                 df_absorb += 0
             else
+                println("$(fe.factorname) is not nested in one of the cluster variables")
                 df_absorb += sum(fe.scale .!= zero(Float64))
             end
         end
