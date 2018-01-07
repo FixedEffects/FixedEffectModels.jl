@@ -1,4 +1,3 @@
-
 using DataFrames, FixedEffectModels, Base.Test
 #df = readtable("/Users/Matthieu/Dropbox/Github/FixedEffectModels.jl/dataset/Cigar.csv.gz")
 df = readtable(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv.gz"))
@@ -15,7 +14,7 @@ df[:w] = df[:Pop]
 
 ##############################################################################
 ##
-## coefficients 
+## coefficients
 ##
 ##############################################################################
 
@@ -151,7 +150,7 @@ x = reg(df, m)
 ##
 ## collinearity
 ## add more tests
-## 
+##
 ##############################################################################
 # ols
 df[:x12] = df[:x1]
@@ -168,7 +167,7 @@ x = reg(df, m)
 df[:zz1] = df[:z1]
 m = @model y ~ zz1 + (x1 ~ x2 + z1)
 x = reg(df, m)
-@test coef(x)[2] != 0.0 
+@test coef(x)[2] != 0.0
 
 # catch when IV underidentified : re-try when 0.5
 #@test_throws ErrorException reg(df, @formula(y ~ x1 + (x2 + w = x2)))
@@ -186,7 +185,7 @@ x = reg(df, m)
 @test coef(x)[1] ≈ 0.0
 ##############################################################################
 ##
-## std errors 
+## std errors
 ##
 ##############################################################################
 
@@ -241,7 +240,8 @@ x = reg(df, m)
 # TO CHECK WITH STATA
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1&pid2)
 x = reg(df, m)
-@test stderr(x) ≈ [0.0108116] atol = 1e-4
+# 0.0110005 <- from "reghdfe sales price, absorb(state) vce(cluster state#year)"
+@test stderr(x) ≈ [0.0110005] atol = 1e-4
 
 
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
@@ -280,7 +280,7 @@ x = reg(df, m)
 m = @model y ~ (x1 ~ z1) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F  ≈ 39.67227 atol = 1e-4
-#  xtivreg2 
+#  xtivreg2
 m = @model y ~ (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test x.F  ≈ 422.46444 atol = 1e-4
@@ -288,7 +288,7 @@ x = reg(df, m)
 ##############################################################################
 ##
 ## F_kp r_kp statistics for IV. Difference degrees of freedom.
-## 
+##
 ##############################################################################
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
@@ -340,7 +340,7 @@ x = reg(df, m)
 ##############################################################################
 ##
 ## Test unbalanced panel
-## 
+##
 ## corresponds to abdata in Stata, for instance reghxe wage emp [w=indoutpt], a(id year)
 ##
 ##############################################################################
@@ -403,6 +403,3 @@ x = reg(df, @model(ln_wage ~ hours + race, fe = idcode))
 @test coef(x)[2] ≈ 0.0
 x = reg(df, @model(ln_wage ~ hours + race, fe = idcode + year))
 @test coef(x)[2] ≈ 0.0
-
-
-
