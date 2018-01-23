@@ -78,7 +78,7 @@ function coeftable(x::AbstractRegressionResult)
     end
     tt = cc ./ se
     CoefTable2(
-        hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
+        hcat(cc, se, tt, ccdf.(FDist(1, df_residual(x)), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
