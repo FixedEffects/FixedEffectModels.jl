@@ -20,8 +20,8 @@ To estimate a `@model`, specify  a formula with, eventually, a set of fixed effe
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-df[:YearPooled] =  pool(df[:Year])
+df[:StatePooled] =  categorical(df[:State])
+df[:YearPooled] =  categorical(df[:Year])
 reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov = cluster(StatePooled)))
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
@@ -42,13 +42,13 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov =
 - Fixed effect variables are indicated with the keyword argument `fe`. They must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
 
 	```julia
-	df[:StatePooled] =  pool(df[:State])
+	df[:StatePooled] =  categorical(df[:State])
 	# one high dimensional fixed effect
 	fe = StatePooled
 	```
 	You can add an arbitrary number of high dimensional fixed effects, separated with `+`
 	```julia
-	df[:YearPooled] =  pool(df[:Year])
+	df[:YearPooled] =  categorical(df[:Year])
 	fe = StatePooled + YearPooled
 	```
 	Interact multiple categorical variables using `&` 
