@@ -97,17 +97,13 @@ end
 
 
 #  remove observations with negative weights
-function isnaorneg(a::Vector{T}) where {T <: Real}
-	BitArray(a .> zero(eltype(a)))
-end
-function isnaorneg(a::DataVector{T}) where {T <: Real}
-	out = .!(a.na)
+
+function isnaorneg(a::Vector{T}) where {T}
+	out = BitArray(length(a))
 	@simd for i in 1:length(a)
-		if out[i]
-			@inbounds out[i] = a[i] > zero(Float64)
-		end
+		@inbounds out[i] = !ismissing(a[i]) && (a[i] > zero(T))
 	end
-	BitArray(out)
+	return out
 end
 
 # Directly from DataFrames.jl
@@ -132,21 +128,6 @@ allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
 allvars(::Any) = Array{Symbol}(0)
 
-# used when removing certain rows in a dataset
-# NA always removed
-function dropUnusedLevels!(f::PooledDataVector)
-	uu = unique(f.refs)
-	length(uu) == length(f.pool) && return f
-	sort!(uu)
-	T = reftype(length(uu))
-	dict = Dict{eltype(uu), T}(zip(uu, 1:convert(T, length(uu))))
-	@inbounds @simd  for i in 1:length(f.refs)
-		 f.refs[i] = dict[f.refs[i]]
-	end
-	f.pool = f.pool[uu]
-	return f
-end
 
-dropUnusedLevels!(f::DataVector) = f
 
 

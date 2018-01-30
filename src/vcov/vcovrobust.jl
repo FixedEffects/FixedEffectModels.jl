@@ -1,10 +1,10 @@
 VcovFormula(::Type{Val{:robust}}) = VcovRobustFormula()
 
-mutable struct VcovRobustFormula <: AbstractVcovFormula  end
+type VcovRobustFormula <: AbstractVcovFormula  end
 allvars(x::VcovRobustFormula) = Symbol[]
 
 
-mutable struct VcovRobustMethod <: AbstractVcovMethod end
+type VcovRobustMethod <: AbstractVcovMethod end
 
 VcovMethod(::AbstractDataFrame, ::VcovRobustFormula) = VcovRobustMethod()
 

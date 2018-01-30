@@ -1,11 +1,11 @@
-using DataFrames, FixedEffectModels, Base.Test
-#df = readtable("/Users/Matthieu/Dropbox/Github/FixedEffectModels.jl/dataset/Cigar.csv.gz")
-df = readtable(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv.gz"))
+
+using CSV, DataFrames, Base.Test
+df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv"))
 df[:id1] = df[:State]
 df[:id2] = df[:Year]
-df[:pid1] = pool(df[:id1])
-df[:ppid1] = pool(div(df[:id1], 10))
-df[:pid2] = pool(df[:id2])
+df[:pid1] = categorical(df[:id1])
+df[:ppid1] = categorical(div.(df[:id1], 10))
+df[:pid2] = categorical(df[:id2])
 df[:y] = df[:Sales]
 df[:x1] = df[:Price]
 df[:z1] = df[:Pimin]
@@ -14,7 +14,7 @@ df[:w] = df[:Pop]
 
 ##############################################################################
 ##
-## coefficients
+## coefficients 
 ##
 ##############################################################################
 
@@ -150,7 +150,7 @@ x = reg(df, m)
 ##
 ## collinearity
 ## add more tests
-##
+## 
 ##############################################################################
 # ols
 df[:x12] = df[:x1]
@@ -167,7 +167,7 @@ x = reg(df, m)
 df[:zz1] = df[:z1]
 m = @model y ~ zz1 + (x1 ~ x2 + z1)
 x = reg(df, m)
-@test coef(x)[2] != 0.0
+@test coef(x)[2] != 0.0 
 
 # catch when IV underidentified : re-try when 0.5
 #@test_throws ErrorException reg(df, @formula(y ~ x1 + (x2 + w = x2)))
@@ -177,15 +177,9 @@ x = reg(df, m)
 @test_throws ErrorException reg(df, @model(y ~ x1, fe = x2 + pid1))
 
 
-
-#colinearity with fixed effect
-df[:dec] = pool(div(df[:id2], 10))
-m = @model y ~ dec fe = pid2
-x = reg(df, m)
-@test coef(x)[1] ≈ 0.0
 ##############################################################################
 ##
-## std errors
+## std errors 
 ##
 ##############################################################################
 
@@ -240,8 +234,7 @@ x = reg(df, m)
 # TO CHECK WITH STATA
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1&pid2)
 x = reg(df, m)
-# 0.0110005 <- from "reghdfe sales price, absorb(state) vce(cluster state#year)"
-@test stderr(x) ≈ [0.0110005] atol = 1e-4
+@test stderr(x) ≈ [0.0108116] atol = 1e-4
 
 
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
@@ -280,7 +273,7 @@ x = reg(df, m)
 m = @model y ~ (x1 ~ z1) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F  ≈ 39.67227 atol = 1e-4
-#  xtivreg2
+#  xtivreg2 
 m = @model y ~ (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test x.F  ≈ 422.46444 atol = 1e-4
@@ -288,7 +281,7 @@ x = reg(df, m)
 ##############################################################################
 ##
 ## F_kp r_kp statistics for IV. Difference degrees of freedom.
-##
+## 
 ##############################################################################
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
@@ -340,15 +333,15 @@ x = reg(df, m)
 ##############################################################################
 ##
 ## Test unbalanced panel
-##
+## 
 ## corresponds to abdata in Stata, for instance reghxe wage emp [w=indoutpt], a(id year)
 ##
 ##############################################################################
-df = readtable(joinpath(dirname(@__FILE__), "..", "dataset", "EmplUK.csv.gz"))
+df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "EmplUK.csv"))
 df[:id1] = df[:Firm]
 df[:id2] = df[:Year]
-df[:pid1] = pool(df[:id1])
-df[:pid2] = pool(df[:id2])
+df[:pid1] = categorical(df[:id1])
+df[:pid2] = categorical(df[:id2])
 df[:y] = df[:Wage]
 df[:x1] = df[:Emp]
 df[:w] = df[:Output]
@@ -392,14 +385,6 @@ for method in [:cholesky, :qr, :lsmr]
 	@test x.iterations <= 50
 end
 
-##############################################################################
-##
-## NLS model
-##
-##############################################################################
-df = readtable(joinpath(dirname(@__FILE__), "..", "dataset", "nls.csv"))
-pool!(df, [:idcode, :year, :race])
-x = reg(df, @model(ln_wage ~ hours + race, fe = idcode))
-@test coef(x)[2] ≈ 0.0
-x = reg(df, @model(ln_wage ~ hours + race, fe = idcode + year))
-@test coef(x)[2] ≈ 0.0
+
+
+

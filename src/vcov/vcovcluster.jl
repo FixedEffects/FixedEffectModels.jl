@@ -1,12 +1,12 @@
 VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(Terms(Formula(nothing, x)).terms)
 
-mutable struct VcovClusterFormula <: AbstractVcovFormula
+type VcovClusterFormula <: AbstractVcovFormula
     _::Vector{Any}
 end
 allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
 
 
-mutable struct VcovClusterMethod <: AbstractVcovMethod
+type VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
     size::Dict{Symbol, Int}
 end
@@ -20,7 +20,7 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
         if isa(c, Symbol)
             cname = c
             p = df[c]
-            typeof(p) <: PooledDataVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a PooledDataVector.")
+            typeof(p) <: CategoricalVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a CategoricalVector.")
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
             cname = _name(factorvars)
@@ -71,7 +71,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, 1}) where {T}
     return S
 end
 
-function helper_cluster(Xu::Matrix{Float64}, f::PooledDataVector, fsize::Int)
+function helper_cluster(Xu::Matrix{Float64}, f::CategoricalVector, fsize::Int)
     if fsize == size(Xu, 1)
         # if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
         return At_mul_B(Xu, Xu)
@@ -119,7 +119,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, 2}) where {T}
 end
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_g (\sum_{i in g} X[i, k] res[i, l]) (\sum_{i in g} X[i, k'] res[i, l'])
-function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::PooledDataVector, fsize::Int)
+function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::CategoricalVector, fsize::Int)
     dim = size(X, 2) * size(res, 2)
     nobs = size(X, 1)
     S = fill(zero(Float64), (dim, dim))

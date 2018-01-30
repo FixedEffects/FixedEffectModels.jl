@@ -1,9 +1,9 @@
 
-using DataFrames, FixedEffectModels, Base.Test
+using DataFrames, Base.Test
 
-df = readtable(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv.gz"))
-df[:pState] = pool(df[:State])
-df[:pYear] = pool(df[:Year])
+df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
+df[:pState] = categorical(df[:State])
+df[:pYear] = categorical(df[:Year])
 
 
 for method in [:cholesky, :qr, :lsmr]
@@ -26,6 +26,6 @@ for method in [:cholesky, :qr, :lsmr]
 	model = @model Sales ~ Price fe = pState save = true subset = (State .<= 30) method = $(method)
 	result = reg(df, model)
 
-	@test isna(result.augmentdf[1380,:pState])
+	@test ismissing(result.augmentdf[1380,:pState])
 end
 	# add test with IV & weight

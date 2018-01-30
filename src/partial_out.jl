@@ -68,7 +68,9 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     subdf = df[esample, all_vars]
     all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
     for v in all_except_absorb_vars
-        dropUnusedLevels!(subdf[v])
+        if typeof(df[v]) <: CategoricalVector
+            droplevels!(subdf[v])
+        end
     end
 
     # Compute weight vector

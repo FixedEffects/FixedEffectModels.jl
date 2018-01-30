@@ -1,4 +1,3 @@
-__precompile__(true)
 
 module FixedEffectModels
 
@@ -10,16 +9,21 @@ module FixedEffectModels
 import Base.BLAS: axpy!
 import Base: A_mul_B!, Ac_mul_B!, size, copy!, getindex, length, fill!, norm, scale!, eltype, length, view, start, next, done
 import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
-import DataArrays: RefArray, PooledDataArray, PooledDataVector, DataArray, DataVector, compact, NAtype
-import DataFrames: DataFrame, AbstractDataFrame, ModelMatrix, ModelFrame, Terms, coefnames, Formula, completecases, names!, pool, @formula
+import Missings: Missing
+import DataArrays: DataArray
+import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categorical, CategoricalPool, levels, droplevels!
+import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing
+import StatsModels: ModelMatrix, ModelFrame, Terms, coefnames, Formula, completecases, names!,  @formula
+using Reexport
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderr, confint, fit, CoefTable, df_residual
+@reexport using StatsBase
 ##############################################################################
 ##
-## Exported methods and types
+## Exported methods and types 
 ##
 ##############################################################################
 
-export group,
+export group, 
 reg,
 partial_out,
 residualize!,
@@ -40,16 +44,16 @@ RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
 
-AbstractVcovFormula,
-VcovSimpleFormula,
-VcovRobustFormula,
+AbstractVcovFormula, 
+VcovSimpleFormula, 
+VcovRobustFormula, 
 VcovClusterFormula,
 VcovFormula,
 
-AbstractVcovMethod,
+AbstractVcovMethod, 
 VcovMethod,
-VcovSimpleMethod,
-VcovWhiteMethod,
+VcovSimpleMethod, 
+VcovWhiteMethod, 
 VcovClusterMethod,
 
 vcov!,
@@ -65,7 +69,6 @@ Model,
 ##
 ##############################################################################
 include("utils/group.jl")
-include("utils/factors.jl")
 include("utils/formula.jl")
 include("utils/model.jl")
 include("utils/lsmr.jl")

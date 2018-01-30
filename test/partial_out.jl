@@ -1,8 +1,8 @@
-using DataFrames, FixedEffectModels, GLM, Base.Test
+using DataFrames, GLM, Base.Test
 
-df = readtable(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv.gz"))
-df[:pState] = pool(df[:State])
-df[:pYear] = pool(df[:Year])
+df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
+df[:pState] = categorical(df[:State])
+df[:pYear] = categorical(df[:Year])
 
 
 function glm_helper(formula::Formula, df::DataFrame) 
@@ -45,10 +45,3 @@ answer = (
 for i in 1:12
     @test test[i] ≈ answer[i] atol = 1e-5
 end
-
-
-df[1, :Sales] = NA
-df[2, :Price]  = NA
-df[5, :Pop]  = NA
-df[6, :Pop]  = -1.0
-partial_out(df, @model(Sales + Price ~ 1, weights = Pop))

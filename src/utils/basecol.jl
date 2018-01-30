@@ -33,7 +33,7 @@ end
 
 ##############################################################################
 ##
-## Find Base
+## Crossprod computes [A B C ...]' [A B C ...] without forming it
 ## 
 ##############################################################################
 
@@ -57,13 +57,16 @@ end
 crossprod(A::Matrix{Float64}) = A'A
 crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 
+##############################################################################
+##
+## Returns base of [A B C ...]
+## 
+##############################################################################
 
-
-# Returns base of [A B C ...]
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...)
     chol = cholfact!(crossprod(X...), :U, Val{true})
-    ipermute!(diag(chol.factors) .> eps() , chol.piv)
+    ipermute!(diag(chol.factors) .> 0, chol.piv)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})

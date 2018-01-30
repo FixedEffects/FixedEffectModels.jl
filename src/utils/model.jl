@@ -1,4 +1,4 @@
-mutable struct Model
+type Model
     f::Formula
     dict::Dict{Symbol, Any}
 end

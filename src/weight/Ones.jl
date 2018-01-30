@@ -33,7 +33,7 @@ Base.collect(o::Ones{T}) where {T} = ones(T, length(o))
 
 # implement broadcast
 ## solve ambiguity
-for t in (BitArray, DataArray, PooledDataArray)
+for t in (BitArray, CategoricalArray)
 	@eval begin
 		function Base.broadcast!(op::Function, A::$t, o::Ones)
 			invoke(broadcast!, Tuple{Any,Any,Ones}, op, A, o)

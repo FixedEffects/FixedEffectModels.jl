@@ -3,7 +3,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 
 ### Arguments
 * `df` : AbstractDataFrame
-* `f` : Formula,
+* `f` : Formula, 
 * `fe` : Fixed effect formula.
 * `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
 * `weights`: Weights formula. Corresponds to analytical weights
@@ -22,7 +22,7 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 ```
 depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
 ```
-Categorical variable should be of type PooledDataArray.  Use the function `pool` to create PooledDataArray.
+Categorical variable should be of type CategoricalVector.  Use the function `categorical` to create CategoricalVector.
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
 ### Examples
@@ -50,18 +50,18 @@ function reg(df::AbstractDataFrame, m::Model)
     reg(df, m.f; m.dict...)
 end
 
-function reg(df::AbstractDataFrame, f::Formula;
-    fe::Union{Symbol, Expr, Void} = nothing,
-    vcov::Union{Symbol, Expr, Void} = :(simple()),
-    weights::Union{Symbol, Expr, Void} = nothing,
-    subset::Union{Symbol, Expr, Void} = nothing,
-    maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0,
+function reg(df::AbstractDataFrame, f::Formula; 
+    fe::Union{Symbol, Expr, Void} = nothing, 
+    vcov::Union{Symbol, Expr, Void} = :(simple()), 
+    weights::Union{Symbol, Expr, Void} = nothing, 
+    subset::Union{Symbol, Expr, Void} = nothing, 
+    maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
     save::Bool = false,
     method::Symbol = :lsmr)
     feformula = fe
     if isa(vcov, Symbol)
         vcovformula = VcovFormula(Val{vcov})
-    else
+    else 
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
@@ -76,14 +76,14 @@ function reg(df::AbstractDataFrame, f::Formula;
     rt = Terms(rf)
     has_absorb = feformula != nothing
     if has_absorb
-        # check depth 1 symbols in original formula are all PooledDataArray
+        # check depth 1 symbols in original formula are all CategoricalVector
         if isa(feformula, Symbol)
             x = feformula
-            !isa(df[x], PooledDataArray) && error("$x should be PooledDataArray")
+            !isa(df[x], CategoricalVector) && error("$x should be CategoricalVector")
         elseif feformula.args[1] == :+
             x = feformula.args
             for i in 2:length(x)
-                isa(x[i], Symbol) && !isa(df[x[i]], PooledDataArray) && error("$(x[i]) should be PooledDataArray")
+                isa(x[i], Symbol) && !isa(df[x[i]], CategoricalVector) && error("$(x[i]) should be CategoricalVector")
             end
         end
     end
@@ -129,8 +129,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
     for v in main_vars
         # in case subdataframe, don't construct subdf[v] if you dont need to do it
-        if typeof(df[v]) <: PooledDataArray
-            dropUnusedLevels!(subdf[v])
+        if typeof(df[v]) <: CategoricalVector
+            droplevels!(subdf[v])
         end
     end
 
@@ -139,7 +139,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     if has_absorb
         fixedeffects = FixedEffect(subdf, feformula, sqrtw)
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any([typeof(f.interaction) <: Ones for f in fixedeffects])
+        if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
             rt.intercept = false
             has_intercept = true
         end
@@ -187,7 +187,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     coef_names = coefnames(mf)
     if isempty(mf.terms.terms) && mf.terms.intercept == false
         Xexo = Matrix{Float64}(sum(mf.msng), 0)
-    else
+    else    
         Xexo = ModelMatrix(mf).m
         if size(Xexo, 2) == 1
             # See pull request #1017 in DataFrames Package
@@ -195,24 +195,20 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
     end
     Xexo .= Xexo .* sqrtw
-    norm_Xexo =  sum(abs2, Xexo, 1)
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
-
+    
     # Obtain Xendo and Z
     if has_iv
         mf = ModelFrame2(endo_terms, subdf, esample)
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
-
-        norm_Xendo =  sum(abs2, Xendo, 1)
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
-
+        
         mf = ModelFrame2(iv_terms, subdf, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
-        norm_Z =  sum(abs2, Z, 1)
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
     end
 
@@ -235,12 +231,10 @@ function reg(df::AbstractDataFrame, f::Formula;
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         # get linearly independent columns
-        # special case for variables demeaned by fixed effects
         baseall= basecol(Z, Xexo, Xendo)
-        basecolZ = baseall[1:size(Z, 2)] .& vec(sum(abs2, Z, 1) .> tol * norm_Z)
-        basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))] .& vec(sum(abs2, Xexo, 1) .> tol * norm_Xexo)
-        basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end] .& vec(sum(abs2, Xendo, 1) .> tol * norm_Xendo)
-        Z = getcols(Z, basecolZ)
+        basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))]
+        basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end]
+        Z = getcols(Z, baseall[1:size(Z, 2)])
         Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
@@ -264,8 +258,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = nothing
     else
         # get linearly independent columns
-        # special case for variables demeaned by fixed effects
-        basecolXexo = basecol(Xexo) .& vec(sum(abs2, Xexo, 1) .> tol * norm_Xexo)
+        basecolXexo = basecol(Xexo)
         Xexo = getcols(Xexo, basecolXexo)
         Xhat = Xexo
         X = Xexo
@@ -321,14 +314,12 @@ function reg(df::AbstractDataFrame, f::Formula;
         df_intercept = 1
     end
     df_absorb = 0
-    if has_absorb
-        # better adjustment of df for clustered errors + fe: adjust only if fe is not fully nested in a cluster variable:
+    if has_absorb 
+        ## poor man adjustement of df for clustedered errors + fe: only if fe name != cluster name
         for fe in fixedeffects
-            if typeof(vcovformula) == VcovClusterFormula && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
-                #println("$(fe.factorname) is nested in one of the cluster variables")
+            if typeof(vcovformula) == VcovClusterFormula && in(fe.factorname, vcov_vars)
                 df_absorb += 0
             else
-                #println("$(fe.factorname) is not nested in one of the cluster variables")
                 df_absorb += sum(fe.scale .!= zero(Float64))
             end
         end
@@ -340,11 +331,11 @@ function reg(df::AbstractDataFrame, f::Formula;
     ess = sum(abs2, residuals)
     if has_absorb
         tss = compute_tss(y, rt.intercept, sqrtw)
-        r2_within = 1 - ess / tss
+        r2_within = 1 - ess / tss 
     end
     tss = compute_tss(oldy, has_intercept, sqrtw)
-    r2 = 1 - ess / tss
-    r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual
+    r2 = 1 - ess / tss 
+    r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
 
     # Compute standard error
     vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
@@ -356,7 +347,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip,
+        (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip, 
                                   vcov_method_data, nvars, df_absorb)
     end
 
@@ -367,7 +358,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     ##############################################################################
 
     # add omitted variables
-    if !all(basecoef)
+    if !all(basecoef) 
         newcoef = fill(zero(Float64), length(basecoef))
         newmatrix_vcov = fill(NaN, (length(basecoef), length(basecoef)))
         newindex = [searchsortedfirst(cumsum(basecoef), i) for i in 1:length(coef)]
@@ -382,22 +373,22 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
 
     # return
-    if !has_iv && !has_absorb
-        return RegressionResult(coef, matrix_vcov, esample, augmentdf,
-                                coef_names, yname, f, nobs, df_residual,
+    if !has_iv && !has_absorb 
+        return RegressionResult(coef, matrix_vcov, esample, augmentdf, 
+                                coef_names, yname, f, nobs, df_residual, 
                                 r2, r2_a, F, p)
     elseif has_iv && !has_absorb
-        return RegressionResultIV(coef, matrix_vcov, esample, augmentdf,
-                                  coef_names, yname, f, nobs, df_residual,
+        return RegressionResultIV(coef, matrix_vcov, esample, augmentdf, 
+                                  coef_names, yname, f, nobs, df_residual, 
                                   r2, r2_a, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
-        return RegressionResultFE(coef, matrix_vcov, esample, augmentdf,
-                                  coef_names, yname, f, feformula, nobs, df_residual,
+        return RegressionResultFE(coef, matrix_vcov, esample, augmentdf, 
+                                  coef_names, yname, f, feformula, nobs, df_residual, 
                                   r2, r2_a, r2_within, F, p, iterations, converged)
-    elseif has_iv && has_absorb
-        return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf,
-                                   coef_names, yname, f, feformula, nobs, df_residual,
-                                   r2, r2_a, r2_within, F, p, F_kp, p_kp,
+    elseif has_iv && has_absorb 
+        return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, 
+                                   coef_names, yname, f, feformula, nobs, df_residual, 
+                                   r2, r2_a, r2_within, F, p, F_kp, p_kp, 
                                    iterations, converged)
     end
 end
@@ -414,8 +405,8 @@ end
 ##
 ##############################################################################
 
-function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
-    nobs::Int, hasintercept::Bool,
+function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
+    nobs::Int, hasintercept::Bool, 
     vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
     coefF = deepcopy(coef)
     # TODO: check I can't do better
@@ -473,3 +464,6 @@ function evaluate_subset(df, ex::Expr)
 end
 evaluate_subset(df, ex::Symbol) = df[ex]
 evaluate_subset(df, ex)  = ex
+
+
+

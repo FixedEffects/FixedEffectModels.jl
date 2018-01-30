@@ -78,7 +78,7 @@ function coeftable(x::AbstractRegressionResult)
     end
     tt = cc ./ se
     CoefTable2(
-        hcat(cc, se, tt, ccdf(FDist(1, df_residual(x)), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
+        hcat(cc, se, tt, ccdf.(FDist(1, df_residual(x)), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
@@ -122,11 +122,7 @@ function show(io::IO, ct::CoefTable2)
     if length(rownms) == 0
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
-    if nr > 0
-        rnwidth = max(4,maximum([length(nm) for nm in rownms]) + 1)
-    else
-        rnwidth = 4
-    end
+    rnwidth = max(4,maximum([length(nm) for nm in rownms]) + 1)
     rownms = [rpad(nm,rnwidth) for nm in rownms]
     widths = [length(cn)::Int for cn in colnms]
     str = [sprint(showcompact,mat[i,j]) for i in 1:nr, j in 1:nc]

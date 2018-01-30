@@ -5,7 +5,7 @@
 ##############################################################################
 
 struct FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}
-    refs::Vector{R}         # refs of the original PooledDataVector
+    refs::Vector{R}         # refs of the original CategoricalVector
     sqrtw::W                # weights
     scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
     interaction::I          # the continuous interaction 
@@ -46,7 +46,7 @@ end
 # Constructors from dataframe + symbol
 function _FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
     v = df[a]
-    if isa(v, PooledDataVector)
+    if isa(v, CategoricalVector)
         return FixedEffect(v.refs, length(v.pool), sqrtw, Ones{Float64}(length(v)), a, :none, a)
     else
         # x from x*id -> x + id + x&id
@@ -89,7 +89,7 @@ end
 function _split(df::AbstractDataFrame, ss::Vector{Symbol})
     catvars, contvars = Symbol[], Symbol[]
     for s in ss
-        isa(df[s], PooledDataVector) ? push!(catvars, s) : push!(contvars, s)
+        isa(df[s], CategoricalVector) ? push!(catvars, s) : push!(contvars, s)
     end
     return catvars, contvars
 end

@@ -86,7 +86,7 @@ function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esampl
         T = eltype(fes[j].refs)
         refs = fill(zero(T), len)
         refs[esample] = fes[j].refs
-        newdf[fes[j].id] = PooledDataArray(RefArray(refs), fev[j])
+        newdf[fes[j].id] = convert(DataArray{Float64}, CategoricalArray{Union{Missing,Float64}, 1}(refs, CategoricalPool(fev[j])))
     end
     return newdf
 end
