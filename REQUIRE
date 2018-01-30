@@ -3,4 +3,4 @@ Distributions 0.4.6
 StatsBase 0.7.1
 DataArrays 0.3.4
 CategoricalArrays
-DataFrames 0.9
+DataFrames 0.11
