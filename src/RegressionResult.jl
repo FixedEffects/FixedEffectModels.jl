@@ -275,10 +275,10 @@ struct RegressionResultFE <: AbstractRegressionResult
     converged::Bool         # Has the demeaning algorithm converged?
 end
 function predict(::RegressionResultFE, ::AbstractDataFrame)
-    error("predict is not defined by default for fixed effect models.  Run reg with the the option save = true")
+    error("predict is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
 end
 function residuals(::RegressionResultFE, ::AbstractDataFrame)
-    error("predict is not defined by default for fixed effect models.  Run reg with the the option save = true")
+    error("residuals is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
 end
 title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
@@ -320,10 +320,10 @@ struct RegressionResultFEIV <: AbstractRegressionResult
     converged::Bool         # Has the demeaning algorithm converged?
 end
 function predict(::RegressionResultFEIV, ::AbstractDataFrame)
-    error("predict is not defined for fixed effect models. Run reg with the the option savefe = true")
+    error("predict is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
 end
 function residuals(::RegressionResultFEIV, ::AbstractDataFrame)
-    error("residuals is not defined for fixed effect models. Use the function partial_out")
+    error("residuals is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
 end
 title(::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
