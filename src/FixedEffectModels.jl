@@ -83,7 +83,9 @@ include("weight/weight.jl")
 include("fixedeffect/FixedEffect.jl")
 include("fixedeffect/FixedEffectProblem.jl")
 include("fixedeffect/FixedEffectProblem_LSMR.jl")
-include("fixedeffect/FixedEffectProblem_Factorization.jl")
+if isdefined(Base.SparseArrays, :CHOLMOD)
+    include("fixedeffect/FixedEffectProblem_Factorization.jl")
+end
 
 include("RegressionResult.jl")
 
