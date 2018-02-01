@@ -346,8 +346,13 @@ df[:y] = df[:Wage]
 df[:x1] = df[:Emp]
 df[:w] = df[:Output]
 
+if isdefined(Base.SparseArrays, :CHOLMOD)
+	method_s = [:cholesky, :qr, :lsmr]
+else
+	method_s = [:lsmr]
+end
 
-for method in [:cholesky, :qr, :lsmr]
+for method in method_s
 	# absorb
 	m = @model y ~ x1 fe = pid1 method = $(method)
 	x = reg(df, m)

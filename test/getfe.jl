@@ -5,8 +5,13 @@ df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])
 df[:pYear] = categorical(df[:Year])
 
+if isdefined(Base.SparseArrays, :CHOLMOD)
+	method_s = [:cholesky, :qr, :lsmr]
+else
+	method_s = [:lsmr]
+end
 
-for method in [:cholesky, :qr, :lsmr]
+for method in method_s
 	model = @model Sales ~ Price fe = pYear save = true method = $(method)
 	result = reg(df, model)
 	@test result.augmentdf[1, :pYear] ≈ 164.77833189721005
