@@ -234,7 +234,7 @@ x = reg(df, m)
 # TO CHECK WITH STATA
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1&pid2)
 x = reg(df, m)
-@test stderr(x) ≈ [0.0108116] atol = 1e-4
+@test stderr(x) ≈ [0.0110005] atol = 1e-4
 
 
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))

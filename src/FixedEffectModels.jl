@@ -69,6 +69,7 @@ Model,
 ##
 ##############################################################################
 include("utils/group.jl")
+include("utils/isnested.jl")
 include("utils/formula.jl")
 include("utils/model.jl")
 include("utils/lsmr.jl")
