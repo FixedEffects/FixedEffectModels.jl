@@ -100,8 +100,8 @@ end
 
 function isnaorneg(a::Vector{T}) where {T}
 	out = BitArray(length(a))
-	@simd for i in 1:length(a)
-		@inbounds out[i] = !ismissing(a[i]) && (a[i] > zero(T))
+	for i in 1:length(a)
+		out[i] = !ismissing(a[i]) && (a[i] > zero(T))
 	end
 	return out
 end

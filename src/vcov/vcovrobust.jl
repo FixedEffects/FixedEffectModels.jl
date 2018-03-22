@@ -31,9 +31,9 @@ function shat!(::VcovRobustMethod, x::VcovData{T, 2}) where {T}
     S = fill(zero(Float64), (dim, dim))
     temp = fill(zero(Float64), nobs, dim)
     index = zero(Int)
-    @inbounds for k in 1:size(X, 2), l in 1:size(res, 2)
+    for k in 1:size(X, 2), l in 1:size(res, 2)
         index += 1
-        @simd for i in 1:nobs
+        for i in 1:nobs
             temp[i, index] = X[i, k]* res[i, l]
         end
     end

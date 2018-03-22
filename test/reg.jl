@@ -252,6 +252,10 @@ x2 = reg(df[df[:State] .<= 30, :], m)
 @test coef(x) ≈ coef(x2) atol = 1e-4
 @test vcov(x) ≈ vcov(x2) atol = 1e-4
 
+#Error reported by Erik
+m = @model y ~ z1 + CPI vcov = cluster(pid1) subset = (State .>= 30)
+x = reg(df, m) 
+@test diag(x.vcov) ≈ [130.7464887, 0.0257875, 0.0383939] atol = 1e-4
 ##############################################################################
 ##
 ## F Stat
@@ -321,13 +325,17 @@ x = reg(df, m)
 @test x.F_kp   ≈ 538.40393 atol = 1e-4
 m = @model y ~ CPI + (x1 ~ z1) vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test x.F_kp   ≈ 423.00342 atol = 1e-4
+@test x.F_kp   ≈ 423.06537084 atol = 1e-4
 m = @model y ~ (x1 ~ z1 + CPI) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F_kp      ≈ 4080.66081 atol = 1e-4
 m = @model y ~ (x1 ~ z1 + CPI) vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test x.F_kp     ≈ 2877.94477 atol = 1e-4
+@test x.F_kp  ≈ 2878.3553578 atol = 1e-4
+
+
+
+
 
 
 ##############################################################################

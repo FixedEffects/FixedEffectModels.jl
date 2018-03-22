@@ -43,13 +43,13 @@ function crossprod(c::Combination{N}) where {N}
     idx = 0
     for j in 1:size(c, 2)
         viewj = view(c, :, j)
-        @inbounds for i in j:size(c, 2)
+        for i in j:size(c, 2)
             idx += 1
             out[i, j] = dot(viewj, view(c, :, i))
         end
     end
     # make symmetric
-    @inbounds for j in 1:size(c, 2), i in 1:(j-1)
+    for j in 1:size(c, 2), i in 1:(j-1)
         out[i, j] = out[j, i]
     end
     return out

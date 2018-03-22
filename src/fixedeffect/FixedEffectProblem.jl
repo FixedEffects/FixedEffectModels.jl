@@ -106,7 +106,7 @@ function connectedcomponent(fes::AbstractVector{FixedEffect})
     visited = fill(false, nobs)
     components = Vector{Set{Int}}[]
     # start
-    @inbounds for i in 1:nobs
+    for i in 1:nobs
         if !visited[i]
             component = Set{Int}[Set{Int}() for fe in fes]
             connectedcomponent!(component, visited, i, refs, where)
@@ -121,7 +121,7 @@ function initialize_where(fes::AbstractVector{FixedEffect})
     for j in 1:length(fes)
         fe = fes[j]
         wherej = Set{Int}[Set{Int}() for fe in fe.scale]
-        @inbounds for i in 1:length(fe.refs)
+        for i in 1:length(fe.refs)
             push!(wherej[fe.refs[i]], i)
         end
         push!(where, wherej)
@@ -132,7 +132,7 @@ end
 function initialize_refs(fes::AbstractVector{FixedEffect})
     nobs = length(fes[1].refs)
     refs = fill(zero(Int), length(fes), nobs)
-    @inbounds for j in 1:length(fes)
+    for j in 1:length(fes)
         ref = fes[j].refs
         for i in 1:length(ref)
             refs[j, i] = ref[i]
@@ -148,7 +148,7 @@ function connectedcomponent!(component::Vector{Set{Int}},
     visited[i] = true
     tovisit = Set{Int}()
     # for each fixed effect
-    @inbounds for j in 1:size(refs, 1)
+    for j in 1:size(refs, 1)
         ref = refs[j, i]
         # if category has not been encountered
         if !(ref in component[j])
@@ -173,7 +173,7 @@ function rescale!(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem,
     fes = get_fes(fep)
     adj1 = zero(Float64)
     i1 = findintercept[1]
-    @inbounds for component in components
+    for component in components
         for i in reverse(findintercept)
             # demean all fixed effects except the first
             if i != 1

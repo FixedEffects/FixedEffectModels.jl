@@ -20,10 +20,10 @@ function FixedEffect(
     interaction::AbstractVector{Float64}, factorname::Symbol, 
     interactionname::Symbol, id::Symbol) where {R <: Integer}
     scale = zeros(Float64, l)
-    @inbounds @simd for i in 1:length(refs)
+    for i in 1:length(refs)
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
-    @inbounds @simd for i in 1:l
+    for i in 1:l
            scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
        end
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)

@@ -16,13 +16,14 @@ function group(x::AbstractVector)
 	else
 		T = Int
 	end
-	CategoricalArray{T, 1}(v.refs, CategoricalPool(collect(1:length(levels(v)))))
+	#need to factorize for cluster at least, otherwise Erik error
+	factorize!(v.refs)
 end
 
 
 
 function pool_combine!(x::Array{T, N}, dv::CategoricalVector, ngroups::Integer) where {T, N}
-	@inbounds for i in 1:length(x)
+	for i in 1:length(x)
 	    # if previous one is NA or this one is NA, set to NA
 	    x[i] = (dv.refs[i] == 0 || x[i] == zero(T)) ? zero(T) : x[i] + (dv.refs[i] - 1) * ngroups
 	end
@@ -36,7 +37,7 @@ function factorize!(refs::Vector{T}) where {T}
 	has_missing = uu[1] == 0
 	dict = Dict{T, Int}(zip(uu, (1-has_missing):(length(uu)-has_missing)))
 	newrefs = zeros(UInt32, length(refs))
-	@inbounds @simd for i in 1:length(refs)
+	for i in 1:length(refs)
 		 newrefs[i] = dict[refs[i]]
 	end
 	if has_missing
