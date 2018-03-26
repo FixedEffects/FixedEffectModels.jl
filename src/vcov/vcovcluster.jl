@@ -39,9 +39,7 @@ df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool) = minimum(values(v.size)) - 1
 function vcov!(v::VcovClusterMethod, x::VcovData)
     S = shat!(v, x)
     out = sandwich(x.crossmatrix, S)
-    # Cameron, Gelbach, & Miller (2011)
-    pinvertible(out)
-    return out
+    return pinvertible(out)
 end
 function shat!(v::VcovClusterMethod, x::VcovData{T, 1}) where {T}
     # Cameron, Gelbach, & Miller (2011).
@@ -121,14 +119,14 @@ end
 
 
 function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
-    SVD         = svdfact(A, thin=true)
-    Stype       = eltype(SVD.S)
-    small = SVD.S .<= tol
+    eigval, eigvect = eig(Symmetric(A))
+    Stype = eltype(A)
+    small = eigval .<= tol
     if any(small)
         warn("estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution.")
-        SVD.S[small] = 0
-        return  SVD.U * diagm(SVD.S) * SVD.Vt
+        eigval[small] = 0
+        return  eigvect' * diagm(eigval) * eigvect
     else
         return A
     end
