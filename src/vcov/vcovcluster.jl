@@ -120,7 +120,6 @@ end
 
 function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
     eigval, eigvect = eig(Symmetric(A))
-    Stype = eltype(A)
     small = eigval .<= tol
     if any(small)
         warn("estimated covariance matrix of moment conditions not of full rank.
