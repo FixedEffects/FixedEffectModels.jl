@@ -13,6 +13,7 @@ coefnames(x::AbstractRegressionResult) = x.coefnames
 vcov(x::AbstractRegressionResult) = x.vcov
 nobs(x::AbstractRegressionResult) = x.nobs
 df_residual(x::AbstractRegressionResult) = x.df_residual
+
 function confint(x::AbstractRegressionResult) 
     scale = quantile(TDist(x.df_residual), 1 - (1-0.95)/2)
     se = stderr(x)
@@ -274,12 +275,7 @@ struct RegressionResultFE <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-function predict(::RegressionResultFE, ::AbstractDataFrame)
-    error("predict is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
-end
-function residuals(::RegressionResultFE, ::AbstractDataFrame)
-    error("residuals is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
-end
+
 title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
             "Number of obs" sprint(showcompact, nobs(x));
@@ -319,12 +315,7 @@ struct RegressionResultFEIV <: AbstractRegressionResult
     iterations::Int         # Number of iterations        
     converged::Bool         # Has the demeaning algorithm converged?
 end
-function predict(::RegressionResultFEIV, ::AbstractDataFrame)
-    error("predict is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
-end
-function residuals(::RegressionResultFEIV, ::AbstractDataFrame)
-    error("residuals is not defined for fixed effect models.  To access the fixed effects, run reg with the the option save = true, and access the result as result.augmentdf")
-end
+
 title(::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(showcompact, nobs(x));
@@ -339,6 +330,23 @@ top(x::RegressionResultFEIV) = [
             "Converged" sprint(showcompact, x.converged)
             ]
 
+
+function predict(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame)
+    error("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
+end
+fes(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame) = fes(x)
+fes(x::Union{RegressionResultFEIV, RegressionResultFE}) = x.augmentdf[:, 2:size(x.augmentdf, 2)]
+
+function residuals(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame)
+    if size(x.augmentdf, 2) == 0
+        error("To access residuals in a fixed effect regression,  run `reg` with the option save = true, and access residuals with `residuals()`")
+    else
+        residuals(x)
+    end
+end
+function residuals(x::Union{RegressionResultFEIV, RegressionResultFE})
+        x.augmentdf[:residuals]
+end
 
 
 

@@ -30,6 +30,7 @@ residualize!,
 getfe!,
 decompose_iv!,
 allvars,
+fes,
 
 WeightFormula,
 Ones,
@@ -43,6 +44,7 @@ RegressionResult,
 RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
+
 
 AbstractVcovFormula, 
 VcovSimpleFormula, 
