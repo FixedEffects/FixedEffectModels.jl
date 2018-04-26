@@ -296,8 +296,6 @@ function reg(df::AbstractDataFrame, f::Formula;
             oldX .= oldX .* sqrtw
             BLAS.gemm!('N', 'N', -1.0, oldX, coef, 1.0, oldy)
             axpy!(-1.0, residuals, oldy)
-
-
             augmentdf = hcat(augmentdf, getfe!(pfe, oldy, esample; tol = tol, maxiter = maxiter))
         end
     end

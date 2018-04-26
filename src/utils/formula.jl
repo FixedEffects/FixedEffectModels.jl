@@ -40,8 +40,8 @@ function decompose_iv!(rf::Formula)
 		if has_iv
 			# case without exogeneous variables
 			has_iv = true
-			endo_formula = Formula(nothing, endos)
-			iv_formula = Formula(nothing, ivs)
+			endo_formula = @eval(@formula($nothing ~ $(endos)))
+			iv_formula = @eval(@formula($nothing ~ $(ivs)))
 			rf.rhs = :1
 		elseif (rf.rhs.head == :call) && (rf.rhs.args[1] == :(+))
 			# case with exogeneous variable(s)
@@ -49,8 +49,8 @@ function decompose_iv!(rf::Formula)
 			while !has_iv && i <= length(rf.rhs.args)
 				has_iv, endos, ivs = is_iv(rf.rhs.args[i])
 				if has_iv
-					endo_formula = Formula(nothing, endos)
-					iv_formula = Formula(nothing,  ivs)
+					endo_formula = @eval(@formula($nothing ~ $(endos)))
+					iv_formula = @eval(@formula($nothing ~  $(ivs)))
 					splice!(rf.rhs.args, i)
 				else
 					i += 1

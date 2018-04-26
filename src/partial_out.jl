@@ -53,7 +53,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     end
     rt = Terms(rf)
     has_weights = (weightvar != nothing)
-    xf = Formula(nothing, rf.rhs)
+    xf = @eval(@formula($nothing ~ $(rf.rhs)))
     xt = Terms(xf)
 
     # create a dataframe without missing values & negative weights
@@ -93,7 +93,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     end
 
     # Compute residualized Y
-    yf = Formula(nothing, rf.lhs)
+    yf = @eval(@formula($nothing ~ $(rf.lhs)))
     yt = Terms(yf)
     yt.intercept = false
     mfY = ModelFrame2(yt, subdf, esample)

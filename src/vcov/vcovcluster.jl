@@ -1,4 +1,4 @@
-VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(Terms(Formula(nothing, x)).terms)
+VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(Terms(@eval(@formula($nothing ~ $x))).terms)
 
 type VcovClusterFormula <: AbstractVcovFormula
     _::Vector{Any}

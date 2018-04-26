@@ -32,7 +32,7 @@ end
 # Constructors from dataframe + terms
 function FixedEffect(df::AbstractDataFrame, feformula, sqrtw::AbstractVector{Float64})
     out = FixedEffect[]
-    for term in Terms(Formula(nothing, feformula)).terms
+    for term in Terms(@eval(@formula(nothing ~ $(feformula)))).terms
         result = _FixedEffect(df, term, sqrtw)
         if isa(result, FixedEffect)
             push!(out, result)
