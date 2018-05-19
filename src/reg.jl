@@ -125,7 +125,11 @@ function reg(df::AbstractDataFrame, f::Formula;
     sqrtw = get_weights(df, esample, weights)
 
     # remove unusused levels
-    subdf = df[esample, all_vars]
+    if any(esample)
+        subdf = df[esample, all_vars]
+    else
+        subdf = df[all_vars]
+    end
     main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
     for v in main_vars
         # in case subdataframe, don't construct subdf[v] if you dont need to do it

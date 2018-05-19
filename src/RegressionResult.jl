@@ -16,7 +16,7 @@ df_residual(x::AbstractRegressionResult) = x.df_residual
 
 function confint(x::AbstractRegressionResult) 
     scale = quantile(TDist(x.df_residual), 1 - (1-0.95)/2)
-    se = stderr(x)
+    se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
 
@@ -66,7 +66,7 @@ function coeftable(x::AbstractRegressionResult)
     ctitle = title(x)
     ctop = top(x)
     cc = coef(x)
-    se = stderr(x)
+    se = stderror(x)
     coefnms = coefnames(x)
     conf_int = confint(x)
     # put (intercept) last

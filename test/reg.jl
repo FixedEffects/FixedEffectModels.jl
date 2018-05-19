@@ -186,55 +186,55 @@ x = reg(df, m)
 # Simple
 m = @model y ~ x1
 x = reg(df, m)
-@test stderr(x) ≈ [1.52126, 0.01889] atol = 1e-4
+@test stderror(x) ≈ [1.52126, 0.01889] atol = 1e-4
 # Stata ivreg
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
-@test stderr(x) ≈ [1.53661, 0.01915] atol = 1e-4
+@test stderror(x) ≈ [1.53661, 0.01915] atol = 1e-4
 # Stata areg
 m = @model y ~ x1 fe = pid1
 x = reg(df, m)
-@test stderr(x) ≈  [0.00980] atol = 1e-4
+@test stderror(x) ≈  [0.00980] atol = 1e-4
 
 # White
 # Stata reg
 m = @model y ~ x1 vcov = robust
 x = reg(df, m)
-@test stderr(x) ≈ [1.68679, 0.01670] atol = 1e-4
+@test stderror(x) ≈ [1.68679, 0.01670] atol = 1e-4
 # Stata ivreg
 m = @model y ~ (x1 ~ z1) vcov = robust
 x = reg(df, m)
-@test stderr(x) ≈ [1.63305, 0.01674] atol = 1e-4
+@test stderror(x) ≈ [1.63305, 0.01674] atol = 1e-4
 # Stata areg
 m = @model y ~ x1 fe = pid1 vcov = robust
 x = reg(df, m)
-@test stderr(x) ≈ [0.01100] atol = 1e-4
+@test stderror(x) ≈ [0.01100] atol = 1e-4
 
 # cluster
 m = @model y ~ x1 vcov = cluster(pid1)
 x = reg(df, m)
-@test stderr(x)[2] ≈ 0.03792 atol = 1e-4
+@test stderror(x)[2] ≈ 0.03792 atol = 1e-4
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid2)
 x = reg(df, m)
-@test stderr(x) ≈ [0.02205] atol = 1e-4
+@test stderror(x) ≈ [0.02205] atol = 1e-4
 # stata reghxe
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1)
 x = reg(df, m)
-@test stderr(x) ≈ [0.03573] atol = 1e-4
+@test stderror(x) ≈ [0.03573] atol = 1e-4
 
 # no reference
 m = @model y ~ x1 vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test stderr(x)[1] ≈ 6.17025 atol = 1e-4
+@test stderror(x)[1] ≈ 6.17025 atol = 1e-4
 # no reference
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test stderr(x)[1] ≈ 0.04037 atol = 1e-4
+@test stderror(x)[1] ≈ 0.04037 atol = 1e-4
 
 # TO CHECK WITH STATA
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1&pid2)
 x = reg(df, m)
-@test stderr(x) ≈ [0.0110005] atol = 1e-4
+@test stderror(x) ≈ [0.0110005] atol = 1e-4
 
 
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))

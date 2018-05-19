@@ -113,13 +113,13 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
     for (i, j) in zip(1:length(y), eachindex(y))
-        y[j] += α * x[fe.refs[i]] * cache[i]
+        @inbounds y[j] += α * x[fe.refs[i]] * cache[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
                 β::Number, y::AbstractVector{Float64})
     safe_scale!(y, β)
-    for i in 1:length(fev._)
+    Threads.@threads for i in 1:length(fev._)
         A_mul_B_helper!(α, fem._[i], fev._[i], y, fem.cache[i])
     end
     return y
@@ -129,14 +129,13 @@ end
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
     for (i, j) in zip(1:length(y), eachindex(y))
-        x[fe.refs[i]] += α * y[j] * cache[i]
+        @inbounds x[fe.refs[i]] += α * y[j] * cache[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
                 y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
-   safe_scale!(fev, β)
-    for i in 1:length(fev._)
-       # @code_warntype Ac_mul_B_helper!(α, fem._[i], y, fev._[i])
+    safe_scale!(fev, β)
+    Threads.@threads for i in 1:length(fev._)
         Ac_mul_B_helper!(α, fem._[i], y, fev._[i], fem.cache[i])
     end
     return fev
