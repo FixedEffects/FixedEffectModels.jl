@@ -247,7 +247,7 @@ top(x::RegressionResultIV) = [
             "F-Statistic" sprint(showcompact, x.F);
             "p-value" format_scientific(x.p);
             "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
-            "First State p-val (KP)" format_scientific(x.p_kp);
+            "First Stage p-val (KP)" format_scientific(x.p_kp);
             ]
 
 
@@ -325,7 +325,7 @@ top(x::RegressionResultFEIV) = [
             "F Statistic" sprint(showcompact, x.F);
             "p-value" format_scientific(x.p);
             "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
-            "First State p-val (KP)" format_scientific(x.p_kp);
+            "First Stage p-val (KP)" format_scientific(x.p_kp);
             "Iterations" sprint(showcompact, x.iterations);
             "Converged" sprint(showcompact, x.converged)
             ]
