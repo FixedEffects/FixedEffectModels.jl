@@ -8,7 +8,7 @@ module FixedEffectModels
 ##############################################################################
 import Base.BLAS: axpy!
 import Base: A_mul_B!, Ac_mul_B!, size, copy!, getindex, length, fill!, norm, scale!, eltype, length, view, start, next, done
-import Distributions: TDist, ccdf, FDist, Chisq, AliasTable, Categorical
+import Distributions: ccdf, TDist, FDist, Chisq
 import Missings: Missing
 import DataArrays: DataArray
 import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categorical, CategoricalPool, levels, droplevels!
