@@ -199,6 +199,9 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
     end
     Xexo .= Xexo .* sqrtw
+    if save & has_absorb
+        oldX = deepcopy(Xexo)
+    end
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
     
@@ -208,12 +211,17 @@ function reg(df::AbstractDataFrame, f::Formula;
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
+        if save & has_absorb
+            oldX = hcat(Xexo, Xendo)
+        end
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
         
         mf = ModelFrame2(iv_terms, subdf, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
+    else
+   
     end
 
     # iter and convergence
@@ -242,14 +250,13 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
-
         # Build
         X = hcat(Xexo, Xendo)
         newZ = hcat(Xexo, Z)
         crossz = cholfact!(At_mul_B(newZ, newZ))
         Pi = crossz \ At_mul_B(newZ, Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
-        X = hcat(Xexo, Xendo)
+
 
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
@@ -292,8 +299,6 @@ function reg(df::AbstractDataFrame, f::Formula;
             augmentdf[esample, :residuals] = residuals
         end
         if has_absorb
-            mf = ModelFrame2(rt, subdf, esample)
-            oldX = ModelMatrix(mf).m
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
             end

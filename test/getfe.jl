@@ -1,5 +1,5 @@
 
-using DataFrames, Base.Test
+using DataFrames, CSV, Base.Test, FixedEffectModels
 
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])
@@ -34,3 +34,19 @@ for method in method_s
 	@test ismissing(fes(result)[1380,:pState])
 end
 	# add test with IV & weight
+
+
+df[:Price2] = df[:Price]
+model = @model Sales ~ Price + Price2 fe = pYear save = true
+result = reg(df, model)
+@test fes(result)[1, :pYear] ≈ 164.77833189721005
+
+model = @model Sales ~ (State ~ Price) fe = pYear save = true
+result = reg(df, model)
+@test fes(result)[1, :pYear] ≈ -167.48093490413623
+
+
+model = @model Sales ~ (State ~ Price + Price2) fe = pYear save = true
+result = reg(df, model)
+@test fes(result)[1, :pYear] ≈ -167.48093490413623
+
