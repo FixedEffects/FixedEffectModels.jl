@@ -50,3 +50,16 @@ model = @model Sales ~ (State ~ Price + Price2) fe = pYear save = true
 result = reg(df, model)
 @test fes(result)[1, :pYear] ≈ -167.48093490413623
 
+# check does not change r2
+model1 = @model Sales ~ Price weights = Pop save = true
+result1 = reg(df, model1)
+model2 = @model Sales ~ Price weights = Pop 
+result2 = reg(df, model2)
+@test r2(result1) ≈ r2(result2)
+
+
+
+# check with weights
+model = @model Sales ~ Price weights = Pop fe = pYear save = true
+result = reg(df, model)
+@test fes(result)[2, :pYear] -  fes(result)[1, :pYear] ≈ -3.0347149502496222

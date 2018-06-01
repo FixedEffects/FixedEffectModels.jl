@@ -219,9 +219,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         mf = ModelFrame2(iv_terms, subdf, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
-        residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
-    else
-   
+        residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)   
     end
 
     # iter and convergence
@@ -291,21 +289,17 @@ function reg(df::AbstractDataFrame, f::Formula;
     # save residuals in a new dataframe
     augmentdf = DataFrame()
     if save
-        residuals .= residuals ./ sqrtw
         if all(esample)
-            augmentdf[:residuals] = residuals
+            augmentdf[:residuals] = residuals ./ sqrtw
         else
             augmentdf[:residuals] =  DataArray(Float64, length(esample))
-            augmentdf[esample, :residuals] = residuals
+            augmentdf[esample, :residuals] = residuals ./ sqrtw 
         end
         if has_absorb
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
             end
-            oldX .= oldX .* sqrtw
-            BLAS.gemm!('N', 'N', -1.0, oldX, coef, 1.0, oldy)
-            axpy!(-1.0, residuals, oldy)
-            augmentdf = hcat(augmentdf, getfe!(pfe, oldy, esample; tol = tol, maxiter = maxiter))
+            augmentdf = hcat(augmentdf, getfe!(pfe, oldy - oldX * coef, esample; tol = tol, maxiter = maxiter))
         end
     end
 

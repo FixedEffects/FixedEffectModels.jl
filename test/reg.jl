@@ -1,5 +1,5 @@
 
-using CSV, DataFrames, Base.Test
+using FixedEffectModels, CSV, DataFrames, Base.Test
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv"))
 df[:id1] = df[:State]
 df[:id2] = df[:Year]
@@ -256,6 +256,17 @@ x2 = reg(df[df[:State] .<= 30, :], m)
 m = @model y ~ z1 + CPI vcov = cluster(pid1) subset = (State .>= 30)
 x = reg(df, m) 
 @test diag(x.vcov) ≈ [130.7464887, 0.0257875, 0.0383939] atol = 1e-4
+
+##############################################################################
+##
+## R2
+##
+##############################################################################
+m = @model y ~ x1
+x = reg(df, m)
+@test r2(x) ≈ 0.0969 atol = 1e-4
+@test adjr2(x) ≈ 0.09622618 atol = 1e-4
+
 ##############################################################################
 ##
 ## F Stat

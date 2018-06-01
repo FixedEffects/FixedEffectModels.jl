@@ -13,6 +13,10 @@ coefnames(x::AbstractRegressionResult) = x.coefnames
 vcov(x::AbstractRegressionResult) = x.vcov
 nobs(x::AbstractRegressionResult) = x.nobs
 df_residual(x::AbstractRegressionResult) = x.df_residual
+r2(x::AbstractRegressionResult) = x.r2
+adjr2(x::AbstractRegressionResult) = x.r2_a
+
+
 
 function confint(x::AbstractRegressionResult) 
     scale = quantile(TDist(x.df_residual), 1 - (1-0.95)/2)
