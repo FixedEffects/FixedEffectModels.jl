@@ -13,10 +13,10 @@ import Missings: Missing
 import DataArrays: DataArray
 import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categorical, CategoricalPool, levels, droplevels!
 import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing
-import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames
 using Reexport
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, df_residual
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, df_residual, r2, r2adjr
 @reexport using StatsBase
+import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames
 ##############################################################################
 ##
 ## Exported methods and types 
