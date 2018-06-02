@@ -57,6 +57,9 @@ end
 crossprod(A::Matrix{Float64}) = A'A
 crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 
+
+mysize(X::Matrix{Float64}...) = size(X[1], 1)
+mysize(X::Matrix{Float64}) = size(X, 1)
 ##############################################################################
 ##
 ## Returns base of [A B C ...]
@@ -66,7 +69,7 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...)
     chol = cholfact!(crossprod(X...), :U, Val{true})
-    ipermute!(diag(chol.factors) .> 1e-5, chol.piv)
+    ipermute!(diag(chol.factors) .> 100 * mysize(X...)^2 * eps(chol.factors[1]), chol.piv)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
