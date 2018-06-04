@@ -119,7 +119,7 @@ end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
                 β::Number, y::AbstractVector{Float64})
     safe_scale!(y, β)
-    Threads.@threads for i in 1:length(fev._)
+    for i in 1:length(fev._)
         A_mul_B_helper!(α, fem._[i], fev._[i], y, fem.cache[i])
     end
     return y
@@ -135,7 +135,7 @@ end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
                 y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
     safe_scale!(fev, β)
-    Threads.@threads for i in 1:length(fev._)
+    for i in 1:length(fev._)
         Ac_mul_B_helper!(α, fem._[i], y, fev._[i], fem.cache[i])
     end
     return fev
