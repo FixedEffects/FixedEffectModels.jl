@@ -135,6 +135,8 @@ m = @model y ~ x2 + (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test coef(x)  ≈  [0.0011021722526916768,-0.3216374943695231] atol = 1e-4
 
+
+
 # non high dimensional factors
 m = @model y ~ x1 + pid2 fe = pid1
 x = reg(df, m)
@@ -145,6 +147,16 @@ x = reg(df, m)
 m = @model y ~ x2 + (x1 ~ z1) + pid2 fe = pid1
 x = reg(df, m)
 @test coef(x)[1] ≈ -0.00525 atol = 1e-4
+
+
+# * and & are supported
+#m = @model y ~ x1*pid2
+#x = reg(df, m)
+
+
+
+
+
 
 ##############################################################################
 ##
@@ -221,6 +233,16 @@ x = reg(df, m)
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1)
 x = reg(df, m)
 @test stderror(x) ≈ [0.03573] atol = 1e-4
+## compare the two bewlo with reghdfe
+m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1)
+x = reg(df, m)
+@test stderror(x) ≈ [0.00196972, 0.189271] atol = 1e-4
+m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
+x = reg(df, m)
+@test stderror(x) ≈ [0.000758703, 0.0708103] atol = 1e-4
+m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
+x = reg(df, m)
+
 
 # no reference
 m = @model y ~ x1 vcov = cluster(pid1 + pid2)
