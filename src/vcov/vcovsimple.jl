@@ -1,7 +1,6 @@
 VcovFormula(::Type{Val{:simple}}) = VcovSimpleFormula()
 
 type VcovSimpleFormula <: AbstractVcovFormula end
-allvars(x::VcovSimpleFormula) = Symbol[]
 
 
 type VcovSimpleMethod <: AbstractVcovMethod end

@@ -1,11 +1,9 @@
 VcovFormula(::Type{Val{:robust}}) = VcovRobustFormula()
 
 type VcovRobustFormula <: AbstractVcovFormula  end
-allvars(x::VcovRobustFormula) = Symbol[]
 
 
 type VcovRobustMethod <: AbstractVcovMethod end
-
 VcovMethod(::AbstractDataFrame, ::VcovRobustFormula) = VcovRobustMethod()
 
 function vcov!(v::VcovRobustMethod, x::VcovData) 
