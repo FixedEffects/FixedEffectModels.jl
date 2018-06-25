@@ -147,8 +147,7 @@ function connectedcomponent!(component::Vector{Set{Int}},
     where::Vector{Vector{Set{Int}}}) 
     tovisit = Set{Int}(i)
     while !isempty(tovisit)
-        i = first(tovisit)
-        delete!(tovisit, i)
+        i = pop!(tovisit)
         visited[i] = true
         # for each fixed effect
         for j in 1:size(refs, 1)
