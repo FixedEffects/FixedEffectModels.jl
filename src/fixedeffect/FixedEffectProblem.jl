@@ -145,24 +145,25 @@ end
 function connectedcomponent!(component::Vector{Set{Int}}, 
     visited::Vector{Bool}, i::Integer, refs::Matrix{Int}, 
     where::Vector{Vector{Set{Int}}}) 
-    visited[i] = true
-    tovisit = Set{Int}()
-    # for each fixed effect
-    for j in 1:size(refs, 1)
-        ref = refs[j, i]
-        # if category has not been encountered
-        if !(ref in component[j])
-            # mark category as encountered
-            push!(component[j], ref)
-            # add other observations with same component in list to visit
-            for k in where[j][ref]
-                push!(tovisit, k)
+    tovisit = Set{Int}(i)
+    while !isempty(tovisit)
+        i = first(tovisit)
+        delete!(tovisit, i)
+        visited[i] = true
+        # for each fixed effect
+        for j in 1:size(refs, 1)
+            ref = refs[j, i]
+            # if category has not been encountered
+            if !(ref in component[j])
+                # mark category as encountered
+                push!(component[j], ref)
+                # add other observations with same component in list to visit
+                for k in where[j][ref]
+                    if !visited[k]
+                        push!(tovisit, k)
+                    end
+                end
             end
-        end
-    end
-    for k in tovisit
-        if k != i
-            connectedcomponent!(component, visited, k, refs, where)
         end
     end
 end

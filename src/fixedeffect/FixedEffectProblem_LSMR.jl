@@ -113,7 +113,7 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
     for (i, j) in zip(1:length(y), eachindex(y))
-        @inbounds y[j] += α * x[fe.refs[i]] * cache[i]
+        y[j] += α * x[fe.refs[i]] * cache[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
@@ -129,7 +129,7 @@ end
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
     for (i, j) in zip(1:length(y), eachindex(y))
-        @inbounds x[fe.refs[i]] += α * y[j] * cache[i]
+        x[fe.refs[i]] += α * y[j] * cache[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
