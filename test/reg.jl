@@ -31,6 +31,8 @@ m = @model SalesInt ~ Price
 x = reg(df, m)
 @test coef(x) ≈ [139.72674,-0.2296683205] atol = 1e-4
 
+
+
 # absorb
 m = @model y ~ x1 fe = pid1
 x = reg(df, m)
@@ -80,6 +82,9 @@ m = @model y ~ z1 fe = (x1&x2)*pid1
 x = reg(df, m)
 @test coef(x) ≈   [ 0.421406] atol = 1e-4
 
+# only one intercept
+m = @model y ~ 1 fe = pid1 + pid2
+x = reg(df, m)
 
 # absorb + weights
 m = @model y ~ x1 fe = pid1 weights = w
