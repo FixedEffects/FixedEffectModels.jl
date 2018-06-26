@@ -116,7 +116,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D`
 
 ## Experimental
-The package has an experimental support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). It may be useful when the number of regressors is very high: in this case,  each regressor is demeaned in a diffferent processor/thread.
+The package has experimental support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). When the number of regressors is very high, each regressor is demeaned in a diffferent processor/thread.
 
 1. For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
 	```julia
@@ -124,11 +124,11 @@ The package has an experimental support for [parallel computing](https://docs.ju
 	@everywhere using DataFrames, FixedEffectModels
 	reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_parallel))
 	```
-2. For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads with
+2. For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads to `n` with
 	```
 	export JULIA_NUM_THREADS=n
 	```
-	Then, use the option `lsmr_threads`
+	Then, in Julia, use the option `lsmr_threads`
 	```julia
 	using DataFrames, FixedEffectModels
 	reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_threads))
