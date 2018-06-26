@@ -223,17 +223,6 @@ function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::L
         push!(iterationsv, result[j][2])
         push!(convergedv, result[j][3])
     end
-
-   # Alternatively, multi threading
-   #iterations_X = Vector{Int}(size(X, 2))
-   #converged_X = Vector{Bool}(size(X, 2))
-   #Threads.@threads for j in 1:size(X, 2)
-   #    r, iterations, converged = solve_residuals!(fep, view(X, :, j); kwargs...)
-   #    iterations_X[j] = iterations
-   #    converged_X[j] = converged
-   #end
-   #append!(iterationsv, iterations_X)
-   #append!(convergedv, converged_X)
 end
 
 function solve_residuals!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
@@ -248,6 +237,7 @@ end
 ##
 ## LSMR MultiThreaded
 ##
+## One needs to construct a new fe matrix / fe vectirs for each LHS/RHS
 ##
 ##############################################################################
 
