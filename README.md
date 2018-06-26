@@ -117,13 +117,14 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 
 ## Experimental
 The package has an experimental support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). It may be useful when the number of regressors is very high: in this case,  each regressor is demeaned in a diffferent processor/thread.
-For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
+
+1. For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
 ```julia
 addprocs(n)
 @everywhere using DataFrames, FixedEffectModels
 reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_parallel))
 ```
-For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads with
+2. For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads with
 ```
 export JULIA_NUM_THREADS=n
 ```
