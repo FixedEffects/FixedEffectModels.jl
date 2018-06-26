@@ -6,9 +6,9 @@ df[:pState] = categorical(df[:State])
 df[:pYear] = categorical(df[:Year])
 
 if isdefined(Base.SparseArrays, :CHOLMOD)
-	method_s = [:cholesky, :qr, :lsmr]
+	method_s = [:cholesky, :qr, :lsmr, :lsmr_parallel]
 else
-	method_s = [:lsmr]
+	method_s = [:lsmr, :lsmr_parallel]
 end
 
 for method in method_s

@@ -17,19 +17,12 @@ abstract type FixedEffectProblem end
 ##
 ##############################################################################
 
-function residualize!(r::AbstractVector{Float64}, fep::FixedEffectProblem, 
-                      iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
-                      kwargs...)
-    r, iterations, converged = solve_residuals!(fep, r; kwargs...)
-    push!(iterationsv, iterations)
-    push!(convergedv, converged)
-end
 
-function residualize!(X::Matrix{Float64}, fep::FixedEffectProblem, 
-                      iterationsv::Vector{Int}, convergedv::Vector{Bool}; 
-                      kwargs...)
+function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::FixedEffectProblem, iterationsv::Vector{Int}, convergedv::Vector{Bool}; kwargs...)
     for j in 1:size(X, 2)
-        residualize!(view(X, :, j), fep, iterationsv, convergedv; kwargs...)
+        r, iterations, converged = solve_residuals!(fep, view(X, :, j); kwargs...)
+        push!(iterationsv, iterations)
+        push!(convergedv, converged)
     end
 end
 

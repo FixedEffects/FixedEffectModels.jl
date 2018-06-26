@@ -393,9 +393,9 @@ df[:x1] = df[:Emp]
 df[:w] = df[:Output]
 
 if isdefined(Base.SparseArrays, :CHOLMOD)
-	method_s = [:cholesky, :qr, :lsmr]
+	method_s = [:cholesky, :qr, :lsmr, :lsmr_parallel, :lsmr_threads]
 else
-	method_s = [:lsmr]
+	method_s = [:lsmr, :lsmr_parallel, :lsmr_threads]
 end
 
 for method in method_s
