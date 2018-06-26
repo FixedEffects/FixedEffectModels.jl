@@ -99,7 +99,7 @@ reg(df, @model(Sales ~ NDI, weights = $(w)))
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
-You may use (https://github.com/jmboehm/RegressionTables.jl)[RegressionTables.jl] to get publication-quality regression tables.
+You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
 
 
 ## Solution Method
@@ -116,14 +116,14 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D`
 
 ## Experimental
-The package has an experimental support for (https://docs.julialang.org/en/latest/manual/parallel-computing/)[parallel computing] and (https://docs.julialang.org/en/latest/base/multi-threading/)[multi-threading]. It may be useful when the number of regressors is very high: in this case,  each regressor is demeaned in a diffferent processor/thread.
-For (https://docs.julialang.org/en/latest/manual/parallel-computing/)[parallel computing], the syntax is as follow:
+The package has an experimental support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). It may be useful when the number of regressors is very high: in this case,  each regressor is demeaned in a diffferent processor/thread.
+For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
 ```julia
 addprocs(n)
 @everywhere using DataFrames, FixedEffectModels
 reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_parallel))
 ```
-For (https://docs.julialang.org/en/latest/base/multi-threading/)[multi-threading],  before starting Julia, set the number of threads with
+For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads with
 ```
 export JULIA_NUM_THREADS=n
 ```
