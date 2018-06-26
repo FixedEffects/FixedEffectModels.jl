@@ -28,7 +28,7 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 
 
 # Benchmark Parallel
-df[:id3] = categorical(Int.(rand(30, N)))
+df[:id3] = categorical(Int.(rand(1:30, N)))
 df[:x3] =  cos.(id1) + sin.(id2) + randn(N)
 df[:x4] =  cos.(id1) + sin.(id2) + randn(N)
 df[:x5] =  cos.(id1) + sin.(id2) + randn(N)

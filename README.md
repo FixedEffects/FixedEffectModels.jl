@@ -115,6 +115,26 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D`
 
+## Experimental
+The package has an experimental support for (https://docs.julialang.org/en/latest/manual/parallel-computing/)[parallel computing] and (https://docs.julialang.org/en/latest/base/multi-threading/)[multi-threading]. It may be useful when the number of regressors is very high: in this case,  each regressor is demeaned in a diffferent processor/thread.
+For (https://docs.julialang.org/en/latest/manual/parallel-computing/)[parallel computing], the syntax is as follow:
+```julia
+addprocs(n)
+@everywhere using DataFrames, FixedEffectModels
+reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_parallel))
+```
+For (https://docs.julialang.org/en/latest/base/multi-threading/)[multi-threading],  before starting Julia, set the number of threads with
+```
+export JULIA_NUM_THREADS=n
+```
+Then, use the option `lsmr_threads`
+```julia
+using DataFrames, FixedEffectModels
+reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_threads))
+```
+
+
+
 
 
 # References
