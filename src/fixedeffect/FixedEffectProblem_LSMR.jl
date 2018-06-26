@@ -98,7 +98,7 @@ end
 
 function cache(fe::FixedEffect)
     out = zeros(Float64, length(fe.refs))
-    for i in 1:length(out)
+    @fastmath @inbounds @simd for i in 1:length(out)
         out[i] = fe.scale[fe.refs[i]] * fe.interaction[i] * fe.sqrtw[i]
     end
     return out
@@ -112,8 +112,8 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 # Define x -> A * x
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
-    for (i, j) in zip(1:length(y), eachindex(y))
-        y[j] += α * x[fe.refs[i]] * cache[i]
+    @fastmath @inbounds @simd for i in 1:length(y)
+        y[i] += α * x[fe.refs[i]] * cache[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
@@ -128,8 +128,8 @@ end
 # Define x -> A' * x
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
-    for (i, j) in zip(1:length(y), eachindex(y))
-        x[fe.refs[i]] += α * y[j] * cache[i]
+    @fastmath @inbounds @simd for i in 1:length(y)
+        x[fe.refs[i]] += α * y[i] * cache[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
@@ -192,7 +192,7 @@ end
 
 function solve_coefficients!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     iterations, converged = solve!(fep, r; kwargs...)
-    for i in 1:length(fep.x._)
+    @fastmath @inbounds @simd for i in 1:length(fep.x._)
         fep.x._[i] .= fep.x._[i] .* fep.m._[i].scale
     end
     return fep.x._, iterations, converged
