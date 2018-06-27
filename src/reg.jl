@@ -124,23 +124,10 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute weights
     sqrtw = get_weights(df, esample, weights)
 
-    # remove unusused levels
-    if any(esample)
-        subdf = df[esample, all_vars]
-    else
-        subdf = df[all_vars]
-    end
-    main_vars = unique(convert(Vector{Symbol}, vcat(vars, endo_vars, iv_vars)))
-    for v in main_vars
-        # in case subdataframe, don't construct subdf[v] if you dont need to do it
-        if typeof(df[v]) <: CategoricalVector
-            droplevels!(subdf[v])
-        end
-    end
-
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
+        subdf = df[esample, unique(convert(Vector{Symbol}, absorb_vars))]
         fixedeffects = FixedEffect(subdf, feformula, sqrtw)
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
@@ -154,8 +141,7 @@ function reg(df::AbstractDataFrame, f::Formula;
 
 
     # Compute data for std errors
-    vcov_method_data = VcovMethod(subdf, vcovformula)
-
+    vcov_method_data = VcovMethod(df[esample, unique(convert(Vector{Symbol}, vcov_vars))], vcovformula)
 
     ##############################################################################
     ##
@@ -167,7 +153,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     iterations = Int[]
     converged = Bool[]
 
-    mf = ModelFrame2(rt, subdf, esample)
+
+    mf = ModelFrame2(rt, df, esample)
 
     # Obtain y
     py = model_response(mf)[:]
@@ -207,7 +194,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     
     # Obtain Xendo and Z
     if has_iv
-        mf = ModelFrame2(endo_terms, subdf, esample)
+        mf = ModelFrame2(endo_terms, df, esample)
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
@@ -216,7 +203,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
         
-        mf = ModelFrame2(iv_terms, subdf, esample)
+        mf = ModelFrame2(iv_terms, df, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
         residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)   

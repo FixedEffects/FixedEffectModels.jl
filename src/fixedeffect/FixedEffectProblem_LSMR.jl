@@ -60,8 +60,8 @@ end
 
 function norm(fev::FixedEffectVector)
     out = zero(Float64)
-    for i in 1:length(fev._)
-        out += sum(abs2, fev._[i])
+    for fe in fev._
+        out += sum(abs2, fe)
     end
     return sqrt(out)
 end

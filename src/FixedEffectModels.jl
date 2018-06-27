@@ -16,7 +16,7 @@ import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissin
 using Reexport
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, df_residual, r2, adjr2
 @reexport using StatsBase
-import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames
+import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
 ##############################################################################
 ##
 ## Exported methods and types 
