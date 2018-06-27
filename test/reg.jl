@@ -279,6 +279,15 @@ x2 = reg(df[df[:State] .<= 30, :], m)
 @test coef(x) ≈ coef(x2) atol = 1e-4
 @test vcov(x) ≈ vcov(x2) atol = 1e-4
 
+# subet with fixed effects
+m = @model y ~ x1 fe = pid1 subset = (State .<= 30)
+x = reg(df, m)
+@test length(x.esample) == size(df, 1)
+m = @model y ~ x1 + pid1
+x2 = reg(df[df[:State] .<= 30, :], m)
+@test coef(x) ≈ [-0.2521] atol = 1e-3
+
+
 #Error reported by Erik
 m = @model y ~ z1 + CPI vcov = cluster(pid1) subset = (State .>= 30)
 x = reg(df, m) 
