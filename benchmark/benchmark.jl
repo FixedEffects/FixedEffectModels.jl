@@ -1,3 +1,4 @@
+addprocs(2)
 @everywhere using DataFrames, FixedEffectModels
 N = 10000000
 K = 100
@@ -27,17 +28,10 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 
 
 # Benchmark Parallel
-df[:id3] = categorical(Int.(rand(1:30, N)))
+df[:id3] = categorical(Int.(rand(1:15, N)))
 df[:x3] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x4] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x5] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x6] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x7] =  cos.(id1) + sin.(id2) + randn(N)
-@time reg(df, @model(y ~ x1 + x2 + x3 + x4, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_parallel))
 
-@time reg(df, @model(y ~ x1 + x2 + x3 + x4, fe = id1 + id2 + id2&x3, weights = w, method = lsmr))
-
-
-@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_parallel))
 
 @time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr))
+@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_parallel))
+@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_threads))

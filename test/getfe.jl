@@ -30,7 +30,7 @@ for method in method_s
 
 	model = @model Sales ~ Price fe = pState save = true subset = (State .<= 30) method = $(method)
 	result = reg(df, model)
-
+	@test fes(result)[1,:pState] ≈  124.913976 atol = 1e-1
 	@test ismissing(fes(result)[1380,:pState])
 end
 	# add test with IV & weight

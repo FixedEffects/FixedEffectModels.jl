@@ -127,6 +127,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
+        # slow in 0.6 due to any. Is it improved in 0.7?
         subdf = df[esample, unique(convert(Vector{Symbol}, absorb_vars))]
         fixedeffects = FixedEffect(subdf, feformula, sqrtw)
         # in case some FixedEffect does not have interaction, remove the intercept

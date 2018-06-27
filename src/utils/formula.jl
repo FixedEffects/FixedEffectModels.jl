@@ -91,16 +91,15 @@ end
 function ModelFrame2(trms::Terms, d::AbstractDataFrame, esample; contrasts::Dict = Dict())
 	subd = DataFrame(map(x -> d[x], trms.eterms), Symbol.(trms.eterms))
 	msng = esample
-	if all(esample)
-		df = subd
-	else
-		df = subd[esample, :]
+	df = subd
+	if !all(esample)
+		df = df[esample, :]
 	end
-	   names!(df, Symbol.(string.(trms.eterms)))
-	   evaledContrasts = evalcontrasts(df, contrasts)
-	   ## Check for non-redundant terms, modifying terms in place
-	   check_non_redundancy!(trms, df)
-	   ModelFrame(df, trms, msng, evaledContrasts)
+	names!(df, Symbol.(string.(trms.eterms)))
+	evaledContrasts = evalcontrasts(df, contrasts)
+	## Check for non-redundant terms, modifying terms in place
+	check_non_redundancy!(trms, df)
+	ModelFrame(df, trms, msng, evaledContrasts)
 end
 
 

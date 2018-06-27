@@ -14,6 +14,7 @@ struct FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVect
     id::Symbol              # Name of new variable if save = true
 end
 
+
 # Constructor
 function FixedEffect(
     refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
@@ -24,8 +25,8 @@ function FixedEffect(
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
     for i in 1:l
-           scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
-       end
+        scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
+    end
     FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
 end
 
@@ -109,6 +110,4 @@ function _multiply(df, ss::Vector{Symbol})
     end
     return out
 end
-
-
 

@@ -31,6 +31,23 @@ eltype(fem::FixedEffectVector) = Float64
 
 length(fev::FixedEffectVector) = reduce(+, map(length, fev._))
 
+function norm(fev::FixedEffectVector)
+    sqrt(reduce(+, map(fe -> sum(abs2, fe),  fev._)))
+end
+
+function fill!(fev::FixedEffectVector, x)
+    for fe in fev._
+        fill!(fe, x)
+    end
+end
+
+function scale!(fev::FixedEffectVector, α::Number)
+    for fe in fev._
+        scale!(fe, α)
+    end
+    return fev
+end
+
 function copy!(fev2::FixedEffectVector, fev1::FixedEffectVector)
     for i in 1:length(fev1._)
         copy!(fev2._[i], fev1._[i])
@@ -38,18 +55,6 @@ function copy!(fev2::FixedEffectVector, fev1::FixedEffectVector)
     return fev2
 end
 
-function fill!(fev::FixedEffectVector, x)
-    for i in 1:length(fev._)
-        fill!(fev._[i], x)
-    end
-end
-
-function scale!(fev::FixedEffectVector, α::Number)
-    for i in 1:length(fev._)
-        scale!(fev._[i], α)
-    end
-    return fev
-end
 
 function axpy!(α::Number, fev1::FixedEffectVector, fev2::FixedEffectVector)
     for i in 1:length(fev1._)
@@ -58,13 +63,7 @@ function axpy!(α::Number, fev1::FixedEffectVector, fev2::FixedEffectVector)
     return fev2
 end
 
-function norm(fev::FixedEffectVector)
-    out = zero(Float64)
-    for fe in fev._
-        out += sum(abs2, fe)
-    end
-    return sqrt(out)
-end
+
 
 ##############################################################################
 ## 
@@ -88,7 +87,7 @@ end
 
 function FixedEffectMatrix(fev::Vector{FixedEffect})
     m = length(fev[1].refs)
-    n = reduce(+, map(x -> length(x.scale),  fev))
+    n = reduce(+, map(fe -> length(fe.scale),  fev))
     caches = Vector{Float64}[]
     for i in 1:length(fev)
         push!(caches, cache(fev[i]))
@@ -113,7 +112,7 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
     @fastmath @inbounds @simd for i in 1:length(y)
-        y[i] += α * x[fe.refs[i]] * cache[i]
+        y[i] = y[i] + α * x[fe.refs[i]] * cache[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
@@ -129,7 +128,8 @@ end
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
     @fastmath @inbounds @simd for i in 1:length(y)
-        x[fe.refs[i]] += α * y[i] * cache[i]
+        j = fe.refs[i]
+        x[j] = x[j] + α * y[i] * cache[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
@@ -142,8 +142,8 @@ function Ac_mul_B!(α::Number, fem::FixedEffectMatrix,
 end
 
 function safe_scale!(x, β)
-    if β != 1
-        β == 0 ? fill!(x, zero(eltype(x))) : scale!(x, β)
+    if !(β ≈ 1.0)
+        β ≈ 0.0 ? fill!(x, zero(eltype(x))) : scale!(x, β)
     end
 end
 
@@ -226,7 +226,20 @@ function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::L
 end
 
 function solve_residuals!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
-    solve_residuals!(FixedEffectProblem(get_fes(fep), Val{:lsmr}), r; kwargs...)
+    #x0 = now()
+    newfep = FixedEffectProblem(get_fes(fep), Val{:lsmr})
+    #x1 = now()
+    #@show myid(), x1 - x0
+    result = solve_residuals!(newfep, r; kwargs...)
+    #x2 = now()
+    #@show myid(), x2 - x1
+    # parallel demeaning takes 2x 3x more times than serial.. Why?
+    # overheard of copying data (small)
+    # hyperthreading and turboboost in the serial case
+    # limitation by memory bandwith rather than CPU
+    # https://discourse.julialang.org/t/parallel-fft-not-that-much-faster/671/11?u=2lxtknuvtzof
+    # I obtain 350% CPU usage in serial case so not surprising multicore does not help
+    result
 end
 function solve_coefficients!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     solve_coefficients!(FixedEffectProblem(get_fes(fep), Val{:lsmr}), r; kwargs...)
@@ -253,16 +266,19 @@ function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::L
    iterations_X = Vector{Int}(size(X, 2))
    converged_X = Vector{Bool}(size(X, 2))
    Threads.@threads for j in 1:size(X, 2)
-       r, iterations, converged = solve_residuals!(fep, view(X, :, j); kwargs...)
-       iterations_X[j] = iterations
-       converged_X[j] = converged
+        r, iterations, converged = solve_residuals!(fep, view(X, :, j); kwargs...)
+        iterations_X[j] = iterations
+        converged_X[j] = converged
    end
    append!(iterationsv, iterations_X)
    append!(convergedv, converged_X)
 end
 
 function solve_residuals!(fep::LSMRThreadslFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
+    #x0 = now()
     solve_residuals!(FixedEffectProblem(get_fes(fep), Val{:lsmr}), r; kwargs...)
+    #@show Threads.threadid(), now() - x0
+
 end
 function solve_coefficients!(fep::LSMRThreadslFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     solve_coefficients!(FixedEffectProblem(get_fes(fep), Val{:lsmr}), r; kwargs...)
