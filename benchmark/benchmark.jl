@@ -29,6 +29,7 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 # Benchmark Parallel
 df[:id3] = categorical(Int.(rand(1:15, N)))
 df[:x3] =  cos.(id1) + sin.(id2) + randn(N)
+sort!(df, [:id1])
 @time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr))
 @time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_parallel))
 @time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_threads))
