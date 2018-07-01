@@ -115,8 +115,8 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D`
 
-## Experimental
-The package has experimental support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). When the number of regressors is very high, each regressor is demeaned in a diffferent processor/thread.
+## Parallel / multi-threading
+The package has support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/), which typically allows for a speedup between 10% and 60%. Each regressor is demeaned in a different processor/thread.
 
 1. For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
 	```julia

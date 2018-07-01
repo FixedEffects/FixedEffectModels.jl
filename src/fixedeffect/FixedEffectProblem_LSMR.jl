@@ -111,8 +111,8 @@ size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
 # Define x -> A * x
 function A_mul_B_helper!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
-    @fastmath @inbounds @simd for i in 1:length(y)
-        y[i] = y[i] + α * x[fe.refs[i]] * cache[i]
+    @inbounds @simd for i in 1:length(y)
+        y[i] += α * x[fe.refs[i]] * cache[i]
     end
 end
 function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
@@ -127,9 +127,8 @@ end
 # Define x -> A' * x
 function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
-    @fastmath @inbounds @simd for i in 1:length(y)
-        j = fe.refs[i]
-        x[j] = x[j] + α * y[i] * cache[i]
+    @inbounds @simd for i in 1:length(y)
+        x[fe.refs[i]] += α * y[i] * cache[i]
     end
 end
 function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
@@ -146,6 +145,8 @@ function safe_scale!(x, β)
         β ≈ 0.0 ? fill!(x, zero(eltype(x))) : scale!(x, β)
     end
 end
+
+
 
 ##############################################################################
 ##
