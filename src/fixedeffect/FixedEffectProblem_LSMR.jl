@@ -233,12 +233,10 @@ function solve_residuals!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector
     result = solve_residuals!(newfep, r; kwargs...)
     #x2 = now()
     #@show myid(), x2 - x1
-    # parallel demeaning takes 2x 3x more times than serial.. Why?
-    # overheard of copying data (small)
-    # hyperthreading and turboboost in the serial case
-    # limitation by memory bandwith rather than CPU
+    # parallel demeaning takes 2x 3x more times than serial...
+    # 1. overheard of copying data (small)
+    # 2. hyperthreading and turboboost in the serial case (350% CPU usage in serial case)
     # https://discourse.julialang.org/t/parallel-fft-not-that-much-faster/671/11?u=2lxtknuvtzof
-    # I obtain 350% CPU usage in serial case so not surprising multicore does not help
     result
 end
 function solve_coefficients!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
