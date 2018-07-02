@@ -105,7 +105,7 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # create a dataframe without missing values & negative weights
     all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
-    all_vars = unique(convert(Vector{Symbol}, all_vars))
+    all_vars = unique(Symbol.(all_vars))
 
 
     
@@ -135,7 +135,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     has_intercept = rt.intercept
     if has_absorb
         # slow in 0.6 due to any. Is it improved in 0.7?
-        subdf = df[esample, unique(convert(Vector{Symbol}, absorb_vars))]
+        subdf = df[esample, unique(Symbol.(absorb_vars))]
         fixedeffects = FixedEffect(subdf, feformula, sqrtw)
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
@@ -149,7 +149,7 @@ function reg(df::AbstractDataFrame, f::Formula;
 
 
     # Compute data for std errors
-    vcov_method_data = VcovMethod(df[esample, unique(convert(Vector{Symbol}, vcov_vars))], vcovformula)
+    vcov_method_data = VcovMethod(df[esample, unique(Symbol.(vcov_vars))], vcovformula)
 
     ##############################################################################
     ##
@@ -185,7 +185,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Obtain X
     coef_names = coefnames(mf)
     if isempty(mf.terms.terms) && mf.terms.intercept == false
-        Xexo = Matrix{Float64}(sum(mf.msng), 0)
+        Xexo = Matrix{Float64}(sum(nonmissing(mf)), 0)
     else    
         Xexo = ModelMatrix(mf).m
     end

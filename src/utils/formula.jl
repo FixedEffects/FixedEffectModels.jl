@@ -86,11 +86,17 @@ end
 ## build model
 ##
 ##############################################################################
+function nonmissing(df::ModelFrame)
+	if  :msng ∈ fieldnames(df)
+		df.msng
+	else
+		df.nonmissing
+	end
+end
 
 # copy ModelFrame but modify to have esample as argument
 function ModelFrame2(trms::Terms, d::AbstractDataFrame, esample; contrasts::Dict = Dict())
 	subd = DataFrame(map(x -> d[x], trms.eterms), Symbol.(trms.eterms))
-	msng = esample
 	df = subd
 	if !all(esample)
 		df = df[esample, :]
@@ -99,7 +105,7 @@ function ModelFrame2(trms::Terms, d::AbstractDataFrame, esample; contrasts::Dict
 	evaledContrasts = evalcontrasts(df, contrasts)
 	## Check for non-redundant terms, modifying terms in place
 	check_non_redundancy!(trms, df)
-	ModelFrame(df, trms, msng, evaledContrasts)
+	ModelFrame(df, trms, esample, evaledContrasts)
 end
 
 
