@@ -218,7 +218,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         iterations = maximum(iterations)
         converged = all(converged)
         if converged == false
-            error("convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol.")
+            warn("convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol.")
         end
     end
 

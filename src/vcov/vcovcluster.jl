@@ -8,32 +8,28 @@ allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
 
 type VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
-    size::Dict{Symbol, Int}
 end
 
 
 function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula) 
     clusters = vcovcluster._
     vclusters = DataFrame(Vector, size(df, 1), 0)
-    vsize = Dict{Symbol, Int}()
     for c in clusters
         if isa(c, Symbol)
+            typeof(df[c]) <: CategoricalVector || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
             cname = c
-            p = df[c]
-            typeof(p) <: CategoricalVector || error("Cluster variable $(c) is of type $(typeof(p)), but should be a CategoricalVector.")
+            p = group(df[c])
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
             cname = _name(factorvars)
             p = group(df, factorvars)
         end
         vclusters[cname] = p
-        # may be subset / NA
-        vsize[cname] = length(unique(p.refs))
     end
-    return VcovClusterMethod(vclusters, vsize)
+    return VcovClusterMethod(vclusters)
 end
 
-df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool) = minimum(values(v.size)) - 1
+df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool) = minimum((length(v.clusters[c].pool) for c in names(v.clusters))) - 1
 
 
 function vcov!(v::VcovClusterMethod, x::VcovData)

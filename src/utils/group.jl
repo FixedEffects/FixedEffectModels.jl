@@ -16,7 +16,7 @@ function group(x::AbstractVector)
 	else
 		T = Int
 	end
-	#need to factorize for cluster at least, otherwise Erik error
+	# need to factorize for cluster at least, otherwise Erik error
 	factorize!(v.refs)
 end
 
