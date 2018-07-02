@@ -1,8 +1,5 @@
-df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "EmplUK.csv"))
-df[:id1] = df[:Firm]
-df[:id2] = df[:Year]
-df[:pid1] = categorical(df[:id1])
-df[:pid2] = categorical(df[:id2])
-df[:y] = df[:Wage]
-df[:x1] = df[:Emp]
-df[:w] = df[:Output]
+df[:n] = max.(1:size(df, 1), 60)
+df[:pn] = categorical(df[:n])
+m = @model y ~ x1 fe = pn  vcov = cluster(pid1)
+x = reg(df, m)
+@test x.nobs == 60

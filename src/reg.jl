@@ -330,7 +330,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     df_residual = max(1, nobs - nvars - df_absorb - df_add)
 
     # Compute ess, tss, r2, r2 adjusted
-    ess = sumabs2_precision(residuals)
+    ess = sum(abs2, residuals)
     if has_absorb
         tss = compute_tss(y, rt.intercept, sqrtw)
         r2_within = convert(Float64, 1 - ess / tss)
@@ -421,37 +421,29 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
     return F, ccdf(dist, F)
 end
 
-
-function sumabs2_precision(y)
-    out = zero(BigFloat)
-    @inbounds @simd for i in 1:length(y)
-        out += abs2(convert(BigFloat, y[i]))
-    end
-    return out
-end
-
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
     if hasintercept
-        tss = zero(BigFloat)
-        m = convert(BigFloat, mean(y))
+        tss = zero(Float64)
+        m = mean(y)::Float64
         @inbounds @simd for i in 1:length(y)
-            tss += abs2(convert(BigFloat,y[i]) - m)
+            tss += abs2(y[i] - m)
         end
     else
-        tss = sumabs2_precision(y)
+        tss = sum(abs2, y)
     end
     return tss
 end
 
+
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
     if hasintercept
-        m = convert(BigFloat, (mean(y) / sum(sqrtw) * length(y)))
-        tss = zero(BigFloat)
+        m = (mean(y) / sum(sqrtw) * length(y))::Float64
+        tss = zero(Float64)
         @inbounds @simd for i in 1:length(y)
-            tss += abs2(convert(BigFloat, y[i]) - convert(BigFloat, sqrtw[i]) * m)
+            tss += abs2(y[i] - sqrtw[i] * m)
         end
     else
-        tss = sumabs2_precision(y)
+        tss = sum(abs2, y)
     end
     return tss
 end
