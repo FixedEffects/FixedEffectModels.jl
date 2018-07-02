@@ -106,6 +106,9 @@ function reg(df::AbstractDataFrame, f::Formula;
     # create a dataframe without missing values & negative weights
     all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
+
+
+    
     esample = completecases(df[all_vars])
 
     if has_weights
@@ -117,6 +120,10 @@ function reg(df::AbstractDataFrame, f::Formula;
             error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
         end
         esample .&= convert(BitArray, subset)
+    end
+    if has_absorb
+        # remove singletons
+        remove_singletons!(esample, df, feformula)
     end
     nobs = sum(esample)
     (nobs > 0) || error("sample is empty")
@@ -181,10 +188,6 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = Matrix{Float64}(sum(mf.msng), 0)
     else    
         Xexo = ModelMatrix(mf).m
-        if size(Xexo, 2) == 1
-            # See pull request #1017 in DataFrames Package
-            Xexo = deepcopy(Xexo)
-        end
     end
     Xexo .= Xexo .* sqrtw
     if save & has_absorb
@@ -214,12 +217,15 @@ function reg(df::AbstractDataFrame, f::Formula;
     if has_absorb
         iterations = maximum(iterations)
         converged = all(converged)
+        if converged == false
+            error("convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol.")
+        end
     end
 
 
     ##############################################################################
     ##
-    ## Regression
+    ## Get Linearly Independent Components of Matrix
     ##
     ##############################################################################
 
@@ -262,7 +268,13 @@ function reg(df::AbstractDataFrame, f::Formula;
         basecoef = basecolXexo
     end
 
-    # Compute coef and residuals
+
+    ##############################################################################
+    ##
+    ## Do the regression
+    ##
+    ##############################################################################
+
     crossx =  cholfact!(At_mul_B(Xhat, Xhat))
     coef = crossx \ At_mul_B(Xhat, y)
     residuals = y - X * coef
@@ -309,6 +321,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             if typeof(vcovformula) == VcovClusterFormula && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
                 df_absorb += 0
             else
+                #only count groups that exists
                 df_absorb += sum(fe.scale .!= zero(Float64))
             end
         end
@@ -317,14 +330,14 @@ function reg(df::AbstractDataFrame, f::Formula;
     df_residual = max(1, nobs - nvars - df_absorb - df_add)
 
     # Compute ess, tss, r2, r2 adjusted
-    ess = sum(abs2, residuals)
+    ess = sumabs2_precision(residuals)
     if has_absorb
         tss = compute_tss(y, rt.intercept, sqrtw)
-        r2_within = 1 - ess / tss 
+        r2_within = convert(Float64, 1 - ess / tss)
     end
     tss = compute_tss(oldy, has_intercept, sqrtw)
-    r2 = 1 - ess / tss 
-    r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual 
+    r2 = convert(Float64, 1 - ess / tss)
+    r2_a = convert(Float64, 1 - ess / tss * (nobs - has_intercept) / df_residual)
 
     # Compute standard error
     vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
@@ -386,8 +399,6 @@ end
 
 
 
-
-
 ##############################################################################
 ##
 ## Fstat
@@ -411,29 +422,36 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
 end
 
 
+function sumabs2_precision(y)
+    out = zero(BigFloat)
+    @inbounds @simd for i in 1:length(y)
+        out += abs2(convert(BigFloat, y[i]))
+    end
+    return out
+end
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
     if hasintercept
-        tss = zero(Float64)
-        m = mean(y)::Float64
-        for i in 1:length(y)
-            tss += abs2((y[i] - m))
+        tss = zero(BigFloat)
+        m = convert(BigFloat, mean(y))
+        @inbounds @simd for i in 1:length(y)
+            tss += abs2(convert(BigFloat,y[i]) - m)
         end
     else
-        tss = sum(abs2, y)
+        tss = sumabs2_precision(y)
     end
     return tss
 end
 
 function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
     if hasintercept
-        m = (mean(y) / sum(sqrtw) * length(y))::Float64
-        tss = zero(Float64)
-        for i in 1:length(y)
-            tss += abs2(y[i] - sqrtw[i] * m)
+        m = convert(BigFloat, (mean(y) / sum(sqrtw) * length(y)))
+        tss = zero(BigFloat)
+        @inbounds @simd for i in 1:length(y)
+            tss += abs2(convert(BigFloat, y[i]) - convert(BigFloat, sqrtw[i]) * m)
         end
     else
-        tss = sum(abs2, y)
+        tss = sumabs2_precision(y)
     end
     return tss
 end
@@ -453,6 +471,34 @@ function evaluate_subset(df, ex::Expr)
 end
 evaluate_subset(df, ex::Symbol) = df[ex]
 evaluate_subset(df, ex)  = ex
+
+
+##############################################################################
+##
+## Remove singletons
+##
+##############################################################################
+function remove_singletons!(esample, df, feformula)
+    for term in Terms(@eval(@formula(nothing ~ $(feformula)))).terms
+        if isa(term, Symbol) && isa(df[term], CategoricalVector)
+            remove_singletons!(esample, df[term])
+        end
+    end
+end
+
+function remove_singletons!(esample, v)
+    cache = zeros(Int, length(v.pool))
+    for i in 1:length(esample)
+        if esample[i]
+            cache[v.refs[i]] += 1
+        end
+    end
+    for i in 1:length(esample)
+        if esample[i] && cache[v.refs[i]] <= 1
+            esample[i] = false
+        end
+    end
+end
 
 
 

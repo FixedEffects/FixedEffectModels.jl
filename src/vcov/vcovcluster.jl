@@ -48,6 +48,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, 1}) where {T}
     S = fill(zero(Float64), (size(X, 2), size(X, 2)))
     for i in 1:length(clusternames)
         for c in combinations(clusternames, i)
+            #note that I only want the pools that are actually used, so group() returns a categorical arrays where all pools are used
             f = group(v.clusters[c])
             if rem(length(c), 2) == 1
                 S += helper_cluster(X, f)

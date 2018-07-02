@@ -2,6 +2,8 @@
 ##
 ## FixedEffect
 ##
+## The categoricalarray may have pools that are never referred. Note that the pool does not appear in FixedEffect anyway.
+##
 ##############################################################################
 
 struct FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVector{Float64}}

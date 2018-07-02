@@ -271,27 +271,46 @@ x = reg(df, m)
 ## subset
 ##
 ##############################################################################
-m = @model y ~ x1 + pid1 subset = (State .<= 30)
-x = reg(df, m)
-@test length(x.esample) == size(df, 1)
 m = @model y ~ x1 + pid1
-x2 = reg(df[df[:State] .<= 30, :], m)
-@test coef(x) ≈ coef(x2) atol = 1e-4
-@test vcov(x) ≈ vcov(x2) atol = 1e-4
+x0 = reg(df[df[:State] .<= 30, :], m)
 
-# subet with fixed effects
+# categorical variable as
+m = @model y ~ x1 + pid1 subset = (State .<= 30)
+x1 = reg(df, m)
+@test length(x1.esample) == size(df, 1)
+@test coef(x0) ≈ coef(x1) atol = 1e-4
+@test vcov(x0) ≈ vcov(x1) atol = 1e-4
+
+
+df[:id1_missing] = ifelse.(df[:id1] .<= 30, df[:id1], missing)
+df[:pid1_missing] = categorical(df[:id1_missing])
+m = @model y ~ x1 + pid1_missing
+x2 = reg(df, m)
+@test length(x2.esample) == size(df, 1)
+@test coef(x0) ≈ coef(x2) atol = 1e-4
+@test vcov(x0) ≈ vcov(x2) atol = 1e-2
+
+
+
+# categorical variable as fixed effects
 m = @model y ~ x1 fe = pid1 subset = (State .<= 30)
-x = reg(df, m)
-@test length(x.esample) == size(df, 1)
-m = @model y ~ x1 + pid1
-x2 = reg(df[df[:State] .<= 30, :], m)
-@test coef(x) ≈ [-0.2521] atol = 1e-3
+x3 = reg(df, m)
+@test length(x3.esample) == size(df, 1)
+@test coef(x0)[2] ≈ coef(x3)[1] atol = 1e-4
+
+m = @model y ~ x1 fe = pid1_missing
+x4 = reg(df, m)
+@test coef(x0)[2] ≈ coef(x4)[1] atol = 1e-4
+
+
 
 
 #Error reported by Erik
 m = @model y ~ z1 + CPI vcov = cluster(pid1) subset = (State .>= 30)
 x = reg(df, m) 
 @test diag(x.vcov) ≈ [130.7464887, 0.0257875, 0.0383939] atol = 1e-4
+
+
 
 ##############################################################################
 ##
@@ -382,8 +401,17 @@ x = reg(df, m)
 
 
 
-
-
+##############################################################################
+##
+## Test singleton
+## 
+##
+##############################################################################
+df[:n] = max.(1:size(df, 1), 60)
+df[:pn] = categorical(df[:n])
+m = @model y ~ x1 fe = pn  vcov = cluster(pid1)
+x = reg(df, m)
+@test x.nobs == 60
 
 ##############################################################################
 ##
