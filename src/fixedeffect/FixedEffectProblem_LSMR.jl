@@ -193,7 +193,7 @@ end
 
 function solve_coefficients!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     iterations, converged = solve!(fep, r; kwargs...)
-    @fastmath @inbounds @simd for i in 1:length(fep.x._)
+    for i in 1:length(fep.x._)
         fep.x._[i] .= fep.x._[i] .* fep.m._[i].scale
     end
     return fep.x._, iterations, converged
@@ -227,17 +227,8 @@ function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::L
 end
 
 function solve_residuals!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
-    #x0 = now()
     newfep = FixedEffectProblem(get_fes(fep), Val{:lsmr})
-    #x1 = now()
-    #@show myid(), x1 - x0
     result = solve_residuals!(newfep, r; kwargs...)
-    #x2 = now()
-    #@show myid(), x2 - x1
-    # parallel demeaning takes 2x 3x more times than serial...
-    # 1. overheard of copying data (small)
-    # 2. hyperthreading and turboboost in the serial case (350% CPU usage in serial case)
-    # https://discourse.julialang.org/t/parallel-fft-not-that-much-faster/671/11?u=2lxtknuvtzof
     result
 end
 function solve_coefficients!(fep::LSMRParallelFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
