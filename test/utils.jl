@@ -1,18 +1,18 @@
-using DataFrames, Base.Test, DataArrays
+using DataFrames, Base.Test, DataArrays, FixedEffectModels
 
 
 df = DataFrame(v1 = @data(["ok", missing, "ok", "first"]), v2 = @data([1, 2, 3, 1]), v3 = @data([missing, 1, 1, missing]))
 
-@test levels(group(df[[:v1]])) == [1, 2]
-@test group(df[[:v1]]).refs == [1, 0, 1, 2]
+@test levels(group(df[:v1])) == [1, 2]
+@test group(df[:v1]).refs == [1, 0, 1, 2]
 
-@test group(df[[:v2]]) == categorical(df[:v2])
+@test group(df[:v2]) == categorical(df[:v2])
 
-@test levels(group(df[[:v3]])) ==  [1]
-@test group(df[[:v3]]).refs ==  [0, 1, 1, 0]
+@test levels(group(df[:v3])) ==  [1]
+@test group(df[:v3]).refs ==  [0, 1, 1, 0]
 
-@test levels(group(df)) == [1]
-@test group(df).refs == [0, 0, 1, 0]
+@test levels(group(df, [:v1, :v2, :v3])) == [1]
+@test group(group(df, [:v1, :v2, :v3])).refs == [0, 0, 1, 0]
 
 
 # test different syntaxes

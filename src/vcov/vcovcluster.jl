@@ -43,7 +43,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     dim = size(x.regressors, 2) * size(x.residuals, 2)
     S = fill(zero(Float64), (dim, dim))
     for c in combinations(names(v.clusters))
-        f = group(v.clusters[c])
+        f = group(v.clusters, c)
         if rem(length(c), 2) == 1
             S += helper_cluster(x.regressors, x.residuals, f)
         else
