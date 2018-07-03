@@ -252,7 +252,7 @@ x = reg(df, m)
 # no reference
 m = @model y ~ x1 vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test stderror(x)[1] ≈ 6.17025 atol = 1e-4
+@test stderror(x)[1] ≈ 6.170255 atol = 1e-4
 # no reference
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1 + pid2)
 x = reg(df, m)
@@ -292,7 +292,6 @@ x2 = reg(df, m)
 
 
 
-# categorical variable as fixed effects
 m = @model y ~ x1 fe = pid1 subset = (State .<= 30)
 x3 = reg(df, m)
 @test length(x3.esample) == size(df, 1)
@@ -303,6 +302,10 @@ x4 = reg(df, m)
 @test coef(x0)[2] ≈ coef(x4)[1] atol = 1e-4
 
 
+
+# categorical variable as fixed effects
+m = @model y ~ x1 fe = pid1 subset = (State .>= 30)
+x5 = reg(df, m)
 
 
 #Error reported by Erik
@@ -391,13 +394,13 @@ x = reg(df, m)
 @test x.F_kp   ≈ 538.40393 atol = 1e-4
 m = @model y ~ CPI + (x1 ~ z1) vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test x.F_kp   ≈ 423.06537084 atol = 1e-4
+@test x.F_kp   ≈ 423.003425 atol = 1e-4
 m = @model y ~ (x1 ~ z1 + CPI) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F_kp      ≈ 4080.66081 atol = 1e-4
 m = @model y ~ (x1 ~ z1 + CPI) vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test x.F_kp  ≈ 2878.3553578 atol = 1e-4
+@test x.F_kp  ≈ 2877.9447778 atol = 1e-4
 
 
 

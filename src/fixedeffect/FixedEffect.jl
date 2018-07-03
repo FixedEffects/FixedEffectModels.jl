@@ -23,6 +23,8 @@ function FixedEffect(
     interaction::AbstractVector{Float64}, factorname::Symbol, 
     interactionname::Symbol, id::Symbol) where {R <: Integer}
     scale = zeros(Float64, l)
+    # check that every refs is lower than l by not using inbounds here (it should be the case but you never now)
+    # If this works, can use inbounds in the future.
     for i in 1:length(refs)
          scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end

@@ -37,81 +37,47 @@ function vcov!(v::VcovClusterMethod, x::VcovData)
     out = sandwich(x.crossmatrix, S)
     return pinvertible(out)
 end
-function shat!(v::VcovClusterMethod, x::VcovData{T, 1}) where {T}
-    # Cameron, Gelbach, & Miller (2011).
-    clusternames = names(v.clusters)
-    X = x.regressors .* x.residuals
-    S = fill(zero(Float64), (size(X, 2), size(X, 2)))
-    for i in 1:length(clusternames)
-        for c in combinations(clusternames, i)
-            #note that I only want the pools that are actually used, so group() returns a categorical arrays where all pools are used
-            f = group(v.clusters[c])
-            if rem(length(c), 2) == 1
-                S += helper_cluster(X, f)
-            else
-                S -= helper_cluster(X, f)
-            end
-        end
-    end
-    scale!(S, (size(X, 1) - 1) / x.df_residual)
-    return S
-end
 
-function helper_cluster(Xu::Matrix{Float64}, f::CategoricalVector)
-    if length(f.pool) == size(Xu, 1)
-        # if only one obs by pool, use White, as in Petersen (2009) & Thomson (2011)
-        return At_mul_B(Xu, Xu)
-    else
-        # otherwise
-        X2 = fill(zero(Float64), (length(f.pool), size(Xu, 2)))
-        for j in 1:size(Xu, 2)
-             for i in 1:size(Xu, 1)
-                X2[f.refs[i], j] += Xu[i, j]
-            end
-        end
-        out = At_mul_B(X2, X2)
-        scale!(out, length(f.pool) / (length(f.pool)- 1))
-        return out
-    end
-end
-
-function shat!(v::VcovClusterMethod, x::VcovData{T, 2}) where {T}
+function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     # Cameron, Gelbach, & Miller (2011).
-    clusternames = names(v.clusters)
-    X = x.regressors
-    res = x.residuals
-    dim = (size(X, 2) *size(res, 2))
+    dim = size(x.regressors, 2) * size(x.residuals, 2)
     S = fill(zero(Float64), (dim, dim))
-    for i in 1:length(clusternames)
-        for c in combinations(clusternames, i)
-            f = group(v.clusters[c])
-            if rem(length(c), 2) == 1
-                S += helper_cluster(X, res, f)
-            else
-                S -= helper_cluster(X, res, f)
-            end
+    for c in combinations(names(v.clusters))
+        f = group(v.clusters[c])
+        if rem(length(c), 2) == 1
+            S += helper_cluster(x.regressors, x.residuals, f)
+        else
+            S -= helper_cluster(x.regressors, x.residuals, f)
         end
     end
-    scale!(S, (size(X, 1) - 1) / x.df_residual)
+    scale!(S, (size(x.regressors, 1) - 1) / x.df_residual)
     return S
 end
 
-# S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_g (\sum_{i in g} X[i, k] res[i, l]) (\sum_{i in g} X[i, k'] res[i, l'])
-function helper_cluster(X::Matrix{Float64}, res::Matrix{Float64}, f::CategoricalVector)
+
+
+# Matrix version is used for IV
+function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{Float64}}, f::CategoricalVector)
     dim = size(X, 2) * size(res, 2)
-    nobs = size(X, 1)
-    S = fill(zero(Float64), (dim, dim))
-    temp = fill(zero(Float64), length(f.pool), dim)
+    X2 = fill(zero(Float64), length(f.pool), dim)
     index = 0
-    for l in 1:size(res, 2), k in 1:size(X, 2)
-        index += 1
-        for i in 1:nobs
-            temp[f.refs[i], index] += X[i, k] * res[i, l]
+    for k in 1:size(res, 2)
+        for j in 1:size(X, 2)
+            index += 1
+            @simd for i in 1:size(X, 1)
+                X2[f.refs[i], index] += X[i, j] * res[i, k]
+            end
         end
     end
-    S = At_mul_B(temp, temp)
-    scale!(S, length(f.pool) / (length(f.pool) - 1))
-    return S
+    S2 = At_mul_B(X2, X2)
+    if length(f.pool) == size(X, 1)
+        # if only one obs by pool, for instance cluster(year state)
+        # use White, as in Petersen (2009) & Thomson (2011) 
+        return S2
+    else
+        scale!(S2, length(f.pool) / (length(f.pool) - 1))
+    end
+    return S2
 end
 
 
