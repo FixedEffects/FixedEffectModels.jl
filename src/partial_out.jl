@@ -10,7 +10,7 @@ Partial out variables
 * `add_mean` : should intial mean added to the returned variable
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qrfact and :cholfact (factorization methods)
+* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
 
 ### Returns
 * `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -36,8 +36,8 @@ end
 
 
 function partial_out(df::AbstractDataFrame, f::Formula; 
-    fe::Union{Symbol, Expr, Void} = nothing, 
-    weights::Union{Symbol, Expr, Void} = nothing,
+    fe::Union{Symbol, Expr, Nothing} = nothing, 
+    weights::Union{Symbol, Expr, Nothing} = nothing,
     add_mean = false,
     maxiter::Integer = 10000, tol::Real = 1e-8,
     method::Symbol = :lsmr)
@@ -136,7 +136,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     j = 0
     for y in yvars
         j += 1
-        out[y] = DataArray(Float64, size(df, 1))
+        out[y] = Vector{Union{Float64, Missing}}(undef, size(df, 1))
         out[esample, y] = residuals[:, j]
     end
     return(out)

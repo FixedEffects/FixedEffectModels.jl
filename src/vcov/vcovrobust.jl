@@ -1,9 +1,9 @@
 VcovFormula(::Type{Val{:robust}}) = VcovRobustFormula()
 
-type VcovRobustFormula <: AbstractVcovFormula  end
+struct VcovRobustFormula <: AbstractVcovFormula  end
 
 
-type VcovRobustMethod <: AbstractVcovMethod end
+struct VcovRobustMethod <: AbstractVcovMethod end
 VcovMethod(::AbstractDataFrame, ::VcovRobustFormula) = VcovRobustMethod()
 
 function vcov!(v::VcovRobustMethod, x::VcovData) 
@@ -25,8 +25,8 @@ function shat!(::VcovRobustMethod, x::VcovData{T, N}) where {T, N}
             end
         end
     end
-    S2 = At_mul_B(X2, X2)
-    scale!(S2, size(x.regressors, 1) / x.df_residual)
+    S2 = X2' * X2
+    rmul!(S2, size(x.regressors, 1) / x.df_residual)
     return S2
 end
 

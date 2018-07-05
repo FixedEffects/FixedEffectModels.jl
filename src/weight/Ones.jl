@@ -24,7 +24,7 @@ Base.size(O::Ones) = (O.length,)
 Base.similar(o::Ones{T}) where {T} = Ones{T}(length(o))
 Base.copy(o::Ones{T}) where {T} = Ones{T}(length(o))
 Base.deepcopy(o::Ones{T}) where {T} = Ones{T}(length(o))
-Base.diagm(o::Ones{T}, args...) where {T} = eye(T, O.length, args...)
+Diagonal(o::Ones{T}) where {T} = Matrix{T}(I, O.length, O.length)
 
 Base.sum(O::Ones) = O.length
 Base.convert(::Type{Vector{T}}, o::Ones) where {T} = ones(T, length(o))

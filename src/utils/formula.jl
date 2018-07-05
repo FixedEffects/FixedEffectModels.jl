@@ -86,11 +86,11 @@ end
 ## build model
 ##
 ##############################################################################
-function nonmissing(df::ModelFrame)
-	if  :msng ∈ fieldnames(df)
-		df.msng
+function nonmissing(mf::ModelFrame)
+	if  :msng ∈ fieldnames(typeof(mf))
+		mf.msng
 	else
-		df.nonmissing
+		mf.nonmissing
 	end
 end
 
@@ -113,7 +113,7 @@ end
 #  remove observations with negative weights
 
 function isnaorneg(a::Vector{T}) where {T}
-	out = BitArray(length(a))
+	out = BitArray(undef, length(a))
 	for i in 1:length(a)
 		out[i] = !ismissing(a[i]) && (a[i] > zero(T))
 	end
@@ -140,7 +140,7 @@ function allvars(ex::Expr)
 end
 allvars(f::Formula) = unique(vcat(allvars(f.rhs), allvars(f.lhs)))
 allvars(sym::Symbol) = [sym]
-allvars(::Any) = Array{Symbol}(0)
+allvars(::Any) = Array{Symbol}(undef, 0)
 
 
 

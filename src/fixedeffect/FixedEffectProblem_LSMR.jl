@@ -11,7 +11,7 @@
 ## FixedEffectVector : vector x in A'Ax = A'b
 ##
 ## We define these methods used in lsmr! (duck typing): 
-## copy!, fill!, scale!, axpy!, norm
+## copyto!, fill!, rmul!, axpy!, norm
 ##
 ##############################################################################
 
@@ -41,16 +41,16 @@ function fill!(fev::FixedEffectVector, x)
     end
 end
 
-function scale!(fev::FixedEffectVector, α::Number)
+function rmul!(fev::FixedEffectVector, α::Number)
     for fe in fev._
-        scale!(fe, α)
+        rmul!(fe, α)
     end
     return fev
 end
 
-function copy!(fev2::FixedEffectVector, fev1::FixedEffectVector)
+function copyto!(fev2::FixedEffectVector, fev1::FixedEffectVector)
     for i in 1:length(fev1._)
-        copy!(fev2._[i], fev1._[i])
+        copyto!(fev2._[i], fev1._[i])
     end
     return fev2
 end
@@ -73,8 +73,8 @@ end
 ## normalized by diag(1/a1, ..., 1/aN) (Jacobi preconditoner)
 ##
 ## We define these methods used in lsmr! (duck typing):
-## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
-## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
+## gemm!('N', 'N', α, A, b, β, c) updates c -> α Ab + βc
+## gemm!('C', 'N', α, A, b, β, c) updates c -> α A'b + βc
 ##
 ##############################################################################
 
@@ -108,41 +108,45 @@ eltype(fem::FixedEffectMatrix) = Float64
 size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
                                             (dim == 2) ? fem.n : 1
 
+
+function gemm!(tA::Char, tB::Char, α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
+                β::Number, y::AbstractVector{Float64})
+    @assert (tA == 'N') & (tB == 'N' )
+    safe_rmul!(y, β)
+    for i in 1:length(fev._)
+        helperN!(α, fem._[i], fev._[i], y, fem.cache[i])
+    end
+    return y
+end
 # Define x -> A * x
-function A_mul_B_helper!(α::Number, fe::FixedEffect, 
+function helperN!(α::Number, fe::FixedEffect, 
                         x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
         y[i] += α * x[fe.refs[i]] * cache[i]
     end
 end
-function A_mul_B!(α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
-                β::Number, y::AbstractVector{Float64})
-    safe_scale!(y, β)
+
+function gemm!(tA::Char, tB::Char, α::Number, fem::FixedEffectMatrix, y::AbstractVector{Float64}, 
+                β::Number, fev::FixedEffectVector)
+    @assert (tA == 'C') & (tB == 'N' )
+    safe_rmul!(fev, β)
     for i in 1:length(fev._)
-        A_mul_B_helper!(α, fem._[i], fev._[i], y, fem.cache[i])
+        helperC!(α, fem._[i], y, fev._[i], fem.cache[i])
     end
-    return y
+    return fev
 end
 
 # Define x -> A' * x
-function Ac_mul_B_helper!(α::Number, fe::FixedEffect, 
+function helperC!(α::Number, fe::FixedEffect, 
                         y::AbstractVector{Float64}, x::Vector{Float64}, cache::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
         x[fe.refs[i]] += α * y[i] * cache[i]
     end
 end
-function Ac_mul_B!(α::Number, fem::FixedEffectMatrix, 
-                y::AbstractVector{Float64}, β::Number, fev::FixedEffectVector)
-    safe_scale!(fev, β)
-    for i in 1:length(fev._)
-        Ac_mul_B_helper!(α, fem._[i], y, fev._[i], fem.cache[i])
-    end
-    return fev
-end
 
-function safe_scale!(x, β)
+function safe_rmul!(x, β)
     if !(β ≈ 1.0)
-        β ≈ 0.0 ? fill!(x, zero(eltype(x))) : scale!(x, β)
+        β ≈ 0.0 ? fill!(x, zero(eltype(x))) : rmul!(x, β)
     end
 end
 
@@ -170,7 +174,7 @@ function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:lsmr}})
     v = FixedEffectVector(fes)
     h = FixedEffectVector(fes)
     hbar = FixedEffectVector(fes)
-    u = Array{Float64}(size(m, 1))
+    u = Array{Float64}(undef, size(m, 1))
     return LSMRFixedEffectProblem(m, x, v, h, hbar, u)
 end
 
@@ -179,7 +183,7 @@ get_fes(fep::LSMRFixedEffectProblem) = fep.m._
 function solve!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; 
     tol::Real = 1e-8, maxiter::Integer = 100_000)
     fill!(fep.x, zero(Float64))
-    copy!(fep.u, r)
+    copyto!(fep.u, r)
     x, ch = lsmr!(fep.x, fep.m, fep.u, fep.v, fep.h, fep.hbar; 
         atol = tol, btol = tol, conlim = 1e8, maxiter = maxiter)
     return div(ch.mvps, 2), ch.isconverged
@@ -187,7 +191,7 @@ end
 
 function solve_residuals!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     iterations, converged = solve!(fep, r; kwargs...)
-    A_mul_B!(-1.0, fep.m, fep.x, 1.0, r)
+    gemm!('N', 'N', -1.0, fep.m, fep.x, 1.0, r)
     return r, iterations, converged
 end
 

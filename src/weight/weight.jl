@@ -9,5 +9,5 @@ function get_weights(df::AbstractDataFrame, esample::AbstractVector, weights::Sy
     map!(sqrt, out, out)
     return out
 end
-get_weights(df::AbstractDataFrame, esample::AbstractVector, ::Void) = Ones{Float64}(sum(esample))
+get_weights(df::AbstractDataFrame, esample::AbstractVector, ::Nothing) = Ones{Float64}(sum(esample))
 

@@ -1,11 +1,11 @@
 
-using DataFrames, CSV, Base.Test, FixedEffectModels
+using DataFrames, CSV, Test, FixedEffectModels
 
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])
 df[:pYear] = categorical(df[:Year])
 
-if isdefined(Base.SparseArrays, :CHOLMOD)
+if Base.USE_GPL_LIBS
 	method_s = [:cholesky, :qr, :lsmr, :lsmr_parallel, :lsmr_threads]
 else
 	method_s = [:lsmr, :lsmr_parallel, :lsmr_threads]

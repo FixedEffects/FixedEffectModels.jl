@@ -1,4 +1,4 @@
-using DataFrames, Base.Test, DataArrays, FixedEffectModels
+using DataFrames, Test, FixedEffectModels
 
 
 df = DataFrame(v1 = @data(["ok", missing, "ok", "first"]), v2 = @data([1, 2, 3, 1]), v3 = @data([missing, 1, 1, missing]))

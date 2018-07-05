@@ -19,35 +19,35 @@ function ranktest!(X::Matrix{Float64},
     K = size(X, 2) 
     L = size(Z, 2) 
 
-    crossz = cholfact!(At_mul_B(Z, Z), :U)
-    crossx = cholfact!(At_mul_B(X, X), :U)
+    crossz = cholesky!(Symmetric(Z' * Z))
+    crossx = cholesky!(Symmetric(X' * X))
 
-    Fmatrix = crossz[:U]
-    Gmatrix = crossx[:U]
+    Fmatrix = crossz.U
+    Gmatrix = crossx.U
     theta = Fmatrix * (Gmatrix' \ Pi')'
 
-    svddecomposition = svdfact(theta, thin = false) 
+    svddecomposition = svd(theta, full = true) 
     u = svddecomposition.U
     vt = svddecomposition.Vt
 
     # compute lambda
     if K == 1
-        a_qq = sqrtm(A_mul_Bt(u, u))
-        b_qq = sqrtm(A_mul_Bt(vt, vt)) 
+        a_qq = sqrt(u * u')
+        b_qq = sqrt(vt * vt') 
     else
         u_12 = u[1:(K-1),(K:L)]
         v_12 = vt[1:(K-1),K]
         u_22 = u[(K:L),(K:L)]
         v_22 = vt[K,K]
-        a_qq = vcat(u_12, u_22) * (u_22 \ sqrtm(A_mul_Bt(u_22, u_22)))
-        b_qq = sqrtm(A_mul_Bt(v_22, v_22)) * (v_22' \ vcat(v_12, v_22)')
+        a_qq = vcat(u_12, u_22) * (u_22 \ sqrt(u_22 * u_22'))
+        b_qq = sqrt(v_22 * v_22') * (v_22' \ vcat(v_12, v_22)')
     end
     kronv = kron(b_qq, a_qq')
     lambda = kronv * vec(theta)
 
     # compute vhat
     if typeof(vcov_method) == VcovSimpleMethod
-        vhat= eye(L * K) / size(X, 1)
+        vhat= Matrix(I/size(X, 1), L * K, L * K)
     else
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
         temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
@@ -59,11 +59,7 @@ function ranktest!(X::Matrix{Float64},
 
     # return statistics
     # why do I need to add Hermitian? (since 0.5)
-    if VERSION > v"0.5.0-dev+961"
-        vlab = cholfact!(Hermitian(A_mul_Bt(kronv * vhat, kronv)))
-    else
-        vlab = cholfact!(A_mul_Bt(kronv * vhat, kronv))
-    end
+    vlab = cholesky!(Hermitian(kronv * vhat * kronv'))
     r_kp = lambda' * (vlab \ lambda)
     p_kp = ccdf(Chisq((L-K+1 )), r_kp[1])
     F_kp = r_kp[1] / size(Z, 2)

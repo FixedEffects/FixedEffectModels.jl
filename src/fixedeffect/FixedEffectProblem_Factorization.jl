@@ -4,22 +4,22 @@
 ##
 ##############################################################################
 
-struct CholfactFixedEffectProblem <: FixedEffectProblem
+struct CholeskyFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
-    chol::Base.SparseArrays.CHOLMOD.Factor{Float64}
+    chol::Factor{Float64}
     x::Vector{Float64}
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholesky}})
     m = sparse(fes)
-    chol = cholfact(At_mul_B(m, m))
+    chol = cholesky!(Symmetric(m' * m))
     total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
-    CholfactFixedEffectProblem(fes, m, chol, Array{Float64}(total_len))
+    CholeskyFixedEffectProblem(fes, m, chol, Array{Float64}(undef, total_len))
 end
 
-function solve!(fep::CholfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
-    fep.chol \ At_mul_B!(fep.x, fep.m, r)
+function solve!(fep::CholeskyFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
+    fep.chol \ mul!(fep.x, fep.m', r)
 end
 
 ##############################################################################
@@ -28,21 +28,21 @@ end
 ##
 ##############################################################################
 
-struct QRfactFixedEffectProblem <: FixedEffectProblem
+struct QRFixedEffectProblem <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
-    qr::Base.SparseArrays.SPQR.Factorization{Float64}
+    qr::QRSparse{Float64, Int}
     b::Vector{Float64}
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
     m = sparse(fes)
-    qr = qrfact(m)
-    b = Array{Float64}(length(fes[1].refs))
-    QRfactFixedEffectProblem(fes, m, qr, b)
+    qr = qr(m)
+    b = Array{Float64}(undef, length(fes[1].refs))
+    QRFixedEffectProblem(fes, m, qr, b)
 end
 
-function solve!(fep::QRfactFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
+function solve!(fep::QRFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
     # since \ needs a vector
     copy!(fep.b, r)
     fep.qr \ fep.b
@@ -55,13 +55,13 @@ end
 ##############################################################################
 
 # construct the sparse matrix of fixed effects A in  A'Ax = A'r
-function Base.sparse(fes::Vector{FixedEffect})
+function sparse(fes::Vector{FixedEffect})
     # construct model matrix A constituted by fixed effects
     nobs = length(fes[1].refs)
     N = length(fes) * nobs
-    I = Array{Int}(N)
+    I = Array{Int}(undef, N)
     J = similar(I)
-    V = Array{Float64}(N)
+    V = Array{Float64}(undef, N)
     start = 0
     idx = 0
     for fe in fes
@@ -77,16 +77,16 @@ function Base.sparse(fes::Vector{FixedEffect})
 end
 
 # updates r as the residual of the projection of r on A
-function solve_residuals!(fep::Union{CholfactFixedEffectProblem, QRfactFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
+function solve_residuals!(fep::Union{CholeskyFixedEffectProblem, QRFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
     x = solve!(fep, r; kwargs...)
-    A_mul_B!(-1.0, fep.m, x, 1.0, r)
+    gemm!('N', 'N', -1.0, fep.m, x, 1.0, r)
     return r, 1, true
 end
 
 # solves A'Ax = A'r
 # transform x from Vector{Float64} (stacked vector of coefficients) 
 # to Vector{Vector{Float64}} (vector of coefficients for each categorical variable)
-function solve_coefficients!(fep::Union{CholfactFixedEffectProblem, QRfactFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
+function solve_coefficients!(fep::Union{CholeskyFixedEffectProblem, QRFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
     x = solve!(fep, r; kwargs...)
     out = Vector{Float64}[]
     iend = 0
@@ -98,5 +98,5 @@ function solve_coefficients!(fep::Union{CholfactFixedEffectProblem, QRfactFixedE
     return out, 1, true
 end
 
-get_fes(fep::Union{CholfactFixedEffectProblem, QRfactFixedEffectProblem}) = fep.fes
+get_fes(fep::Union{CholeskyFixedEffectProblem, QRFixedEffectProblem}) = fep.fes
 

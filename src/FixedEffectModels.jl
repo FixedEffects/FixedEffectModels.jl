@@ -6,11 +6,18 @@ module FixedEffectModels
 ## Dependencies
 ##
 ##############################################################################
-import Base.BLAS: axpy!
-import Base: A_mul_B!, Ac_mul_B!, size, copy!, getindex, length, fill!, norm, scale!, eltype, length, view, start, next, done
+import Base: size, copyto!, getindex, length, fill!, eltype, length, view
+import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I
+import LinearAlgebra.BLAS: gemm!
+import Statistics: mean, quantile
+import Distributed: pmap
+import Printf: @sprintf
+if Base.USE_GPL_LIBS
+    import SuiteSparse.SPQR: QRSparse
+    import SparseArrays: SparseMatrixCSC, sparse
+    import SuiteSparse.CHOLMOD: Factor
+end
 import Distributions: ccdf, TDist, FDist, Chisq
-import Missings: Missing
-import DataArrays: DataArray
 import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categorical, CategoricalPool, levels, droplevels!
 import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing
 import Combinatorics: combinations
@@ -86,7 +93,7 @@ include("weight/weight.jl")
 include("fixedeffect/FixedEffect.jl")
 include("fixedeffect/FixedEffectProblem.jl")
 include("fixedeffect/FixedEffectProblem_LSMR.jl")
-if isdefined(Base.SparseArrays, :CHOLMOD)
+if Base.USE_GPL_LIBS
     include("fixedeffect/FixedEffectProblem_Factorization.jl")
 end
 

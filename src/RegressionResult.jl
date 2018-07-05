@@ -34,7 +34,7 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     mf = ModelFrame(newTerms, df)
     newX = ModelMatrix(mf).m
 
-    out = DataArray(Float64, size(df, 1))
+    out = Vector{Union{Float64, Missing}}(undef, size(df, 1))
     out[nonmissing(mf)] = newX * x.coef
 end
 
@@ -121,7 +121,7 @@ function format_scientific(pv::Number)
 end
 
 
-function show(io::IO, ct::CoefTable2)
+function Base.show(io::IO, ct::CoefTable2)
     mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; 
     pvc = ct.pvalcol; title = ct.title;   top = ct.top
     if length(rownms) == 0
@@ -135,7 +135,7 @@ function show(io::IO, ct::CoefTable2)
     end
     rownms = [rpad(nm,rnwidth) for nm in rownms]
     widths = [length(cn)::Int for cn in colnms]
-    str = [sprint(showcompact,mat[i,j]) for i in 1:nr, j in 1:nc]
+    str = [sprint(show, mat[i,j]; context=:compact => true) for i in 1:nr, j in 1:nc]
     if pvc != 0                         # format the p-values column
         for i in 1:nr
             str[i, pvc] = format_scientific(mat[i, pvc])
@@ -215,11 +215,11 @@ struct RegressionResult <: AbstractRegressionResult
 end
 title(::RegressionResult) =  "Linear Model"
 top(x::RegressionResult) = [
-            "Number of obs" sprint(showcompact, nobs(x));
-            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Number of obs" sprint(show, nobs(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
-            "F Statistic" sprint(showcompact, x.F);
+            "F Statistic" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
             ]
 
@@ -249,13 +249,13 @@ end
 
 title(::RegressionResultIV) = "IV Model"
 top(x::RegressionResultIV) = [
-            "Number of obs" sprint(showcompact, nobs(x));
-            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Number of obs" sprint(show, nobs(x), contect = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), contect = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
-            "F-Statistic" sprint(showcompact, x.F);
+            "F-Statistic" sprint(show, x.F, contect = :compact => true);
             "p-value" format_scientific(x.p);
-            "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
+            "First Stage F-stat (KP)" sprint(show, x.F_kp, contect = :compact => true);
             "First Stage p-val (KP)" format_scientific(x.p_kp);
             ]
 
@@ -287,14 +287,14 @@ end
 
 title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
-            "Number of obs" sprint(showcompact, nobs(x));
-            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Number of obs" sprint(show, nobs(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 within" format_scientific(x.r2_within);
-            "F-Statistic" sprint(showcompact, x.F);
+            "F-Statistic" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
-            "Iterations" sprint(showcompact, x.iterations);
-            "Converged" sprint(showcompact, x.converged)
+            "Iterations" sprint(show, x.iterations, context = :compact => true);
+            "Converged" sprint(show, x.converged, context = :compact => true)
             ]
 
 struct RegressionResultFEIV <: AbstractRegressionResult
@@ -327,16 +327,16 @@ end
 
 title(::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
-            "Number of obs" sprint(showcompact, nobs(x));
-            "Degrees of freedom" sprint(showcompact, nobs(x) - df_residual(x));
+            "Number of obs" sprint(show, nobs(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 within" format_scientific(x.r2_within);
-            "F Statistic" sprint(showcompact, x.F);
+            "F Statistic" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
-            "First Stage F-stat (KP)" sprint(showcompact, x.F_kp);
+            "First Stage F-stat (KP)" sprint(show, x.F_kp, context = :compact => true);
             "First Stage p-val (KP)" format_scientific(x.p_kp);
-            "Iterations" sprint(showcompact, x.iterations);
-            "Converged" sprint(showcompact, x.converged)
+            "Iterations" sprint(show, x.iterations, context = :compact => true);
+            "Converged" sprint(show, x.converged, context = :compact => true)
             ]
 
 

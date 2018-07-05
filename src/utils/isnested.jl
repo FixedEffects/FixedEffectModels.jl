@@ -1,4 +1,4 @@
-function isnested{R <: Integer, T <: Integer}(arefs::Vector{R}, brefs::Vector{T})
+function isnested(arefs::Vector{R}, brefs::Vector{T}) where {R <: Integer, T <: Integer}
     # check size
     if length(arefs) != length(brefs)
         error("isnested(): column vectors need to be of the same size")

@@ -22,24 +22,24 @@ end
 ## http://web.stanford.edu/group/SOL/software/lsmr/
 ##
 ## A is a StridedVecOrMat or anything that implements 
-## A_mul_B!(α, A, b, β, c) updates c -> α Ab + βc
-## Ac_mul_B!(α, A, b, β, c) updates c -> α A'b + βc
+## gemm!('N', 'N', α, A, b, β, c) updates c -> α Ab + βc
+## gemm!('C', 'N', α, A, b, β, c) updates c -> α A'b + βc
 ## eltype(A)
 ## size(A)
 ## (this includes SparseMatrixCSC)
 ## x, v, h, hbar are AbstractVectors or anything that implements
 ## norm(x)
-## copy!(x1, x2)
-## scale!(x, α)
+## copyto!(x1, x2)
+## rmul!(x, α)
 ## axpy!(α, x1, x2)
 ## similar(x, T)
 ## length(x)
 ## b is an AbstractVector or anything that implements
 ## eltype(b)
 ## norm(b)
-## copy!(x1, x2)
+## copyto!(x1, x2)
 ## fill!(b, α)
-## scale!(b, α)
+## rmul!(b, α)
 ## similar(b, T)
 ## length(b)
 
@@ -70,12 +70,12 @@ function lsmr!(x, A, b, v, h, hbar;
     normArs = Tr[]
     conlim > 0 ? ctol = convert(Tr, inv(conlim)) : ctol = zero(Tr)
     # form the first vectors u and v (satisfy  β*u = b,  α*v = A'u)
-    u = A_mul_B!(-1, A, x, 1, b)
+    u = gemm!('N', 'N', -1, A, x, 1, b)
     β = norm(u)
-    β > 0 && scale!(u, inv(β))
-    Ac_mul_B!(1, A, u, 0, v)
+    β > 0 && rmul!(u, inv(β))
+    gemm!('C', 'N', 1, A, u, 0, v)
     α = norm(v)
-    α > 0 && scale!(v, inv(α))
+    α > 0 && rmul!(v, inv(α))
 
     # Initialize variables for 1st iteration.
     ζbar = α * β
@@ -85,7 +85,7 @@ function lsmr!(x, A, b, v, h, hbar;
     cbar = one(Tr)
     sbar = zero(Tr)
 
-    copy!(h, v)
+    copyto!(h, v)
     fill!(hbar, zero(Tr))
 
     # Initialize variables for estimation of ||r||.
@@ -114,13 +114,13 @@ function lsmr!(x, A, b, v, h, hbar;
     if normAr != 0 
         while iter < maxiter
             iter += 1
-            A_mul_B!(1, A, v, -α, u)
+            gemm!('N', 'N', 1, A, v, -α, u)
             β = norm(u)
             if β > 0
-                scale!(u, inv(β))
-                Ac_mul_B!(1, A, u, -β, v)
+                rmul!(u, inv(β))
+                gemm!('C', 'N', 1, A, u, -β, v)
                 α = norm(v)
-                α > 0 && scale!(v, inv(α))
+                α > 0 && rmul!(v, inv(α))
             end
         
             # Construct rotation Qhat_{k,2k+1}.
@@ -148,10 +148,10 @@ function lsmr!(x, A, b, v, h, hbar;
             ζbar = - sbar * ζbar
         
             # Update h, h_hat, x.
-            scale!(hbar, - θbar * ρ / (ρold * ρbarold))
+            rmul!(hbar, - θbar * ρ / (ρold * ρbarold))
             axpy!(1, h, hbar)
             axpy!(ζ / (ρ * ρbar), hbar, x)
-            scale!(h, - θnew / ρ)
+            rmul!(h, - θnew / ρ)
             axpy!(1, v, h)
         
             ##############################################################################

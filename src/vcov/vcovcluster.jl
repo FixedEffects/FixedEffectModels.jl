@@ -1,12 +1,12 @@
 VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(Terms(@eval(@formula($nothing ~ $x))).terms)
 
-type VcovClusterFormula <: AbstractVcovFormula
+struct VcovClusterFormula <: AbstractVcovFormula
     _::Vector{Any}
 end
 allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
 
 
-type VcovClusterMethod <: AbstractVcovMethod
+struct VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
 end
 
@@ -50,7 +50,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
             S -= helper_cluster(x.regressors, x.residuals, f)
         end
     end
-    scale!(S, (size(x.regressors, 1) - 1) / x.df_residual)
+    rmul!(S, (size(x.regressors, 1) - 1) / x.df_residual)
     return S
 end
 
@@ -69,26 +69,26 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
             end
         end
     end
-    S2 = At_mul_B(X2, X2)
+    S2 = X2' * X2
     if length(f.pool) == size(X, 1)
         # if only one obs by pool, for instance cluster(year state)
         # use White, as in Petersen (2009) & Thomson (2011) 
         return S2
     else
-        scale!(S2, length(f.pool) / (length(f.pool) - 1))
+        rmul!(S2, length(f.pool) / (length(f.pool) - 1))
     end
     return S2
 end
 
 
 function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
-    eigval, eigvect = eig(Symmetric(A))
+    eigval, eigvect = eigen(Symmetric(A))
     small = eigval .<= tol
     if any(small)
         warn("estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution.")
         eigval[small] = 0
-        return  eigvect' * diagm(eigval) * eigvect
+        return  eigvect' * Diagonal(eigval) * eigvect
     else
         return A
     end

@@ -39,7 +39,7 @@ end
 
 # Construct [A B C]'[A B C] without generating [A B C]
 function crossprod(c::Combination{N}) where {N}
-    out = Array{Float64}(size(c, 2), size(c, 2))
+    out = Array{Float64}(undef, size(c, 2), size(c, 2))
     idx = 0
     for j in 1:size(c, 2)
         viewj = view(c, :, j)
@@ -66,9 +66,9 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...)
-    chol = cholfact!(crossprod(X...), :U, Val{true}, tol = -1.0)
-    ipermute!(1:size(chol, 1) .<= rank(chol), chol.piv)
-    # ipermute!(diag(chol.factors) .> 100 * mysize(X...)^2 * eps(chol.factors[1]), chol.piv)
+    chol = cholesky!(Symmetric(crossprod(X...)), Val(true), tol = -1.0)
+    invpermute!(1:size(chol, 1) .<= rank(chol), chol.piv)
+    #invpermute!(diag(chol.factors) .> 100 * mysize(X...)^2 * eps(chol.factors[1]), chol.piv)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})

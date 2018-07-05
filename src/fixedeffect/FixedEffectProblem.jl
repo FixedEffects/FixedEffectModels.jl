@@ -26,7 +26,7 @@ function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::F
     end
 end
 
-function residualize!(::Array, ::Void, 
+function residualize!(::Array, ::Nothing, 
                       ::Vector{Int}, ::Vector{Bool}; 
                       kwargs...)
     nothing
@@ -60,7 +60,7 @@ function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
     end
 
     # The solution is generally not unique. Find connected components and scale accordingly
-    findintercept = find(fe -> isa(fe.interaction, Ones), get_fes(fep))
+    findintercept = findall(fe -> isa(fe.interaction, Ones), get_fes(fep))
     if length(findintercept) >= 2
         components = connectedcomponent(view(get_fes(fep), findintercept))
         rescale!(x, fep, findintercept, components)
@@ -79,7 +79,7 @@ function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esampl
         T = eltype(fes[j].refs)
         refs = fill(zero(T), len)
         refs[esample] = fes[j].refs
-        newdf[fes[j].id] = convert(DataArray{Float64}, CategoricalArray{Union{Missing,Float64}, 1}(refs, CategoricalPool(fev[j])))
+        newdf[fes[j].id] = convert(Vector{Union{Float64, Missing}}, CategoricalArray{Union{Missing,Float64}, 1}(refs, CategoricalPool(fev[j])))
     end
     return newdf
 end

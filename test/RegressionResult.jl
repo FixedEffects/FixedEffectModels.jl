@@ -1,4 +1,4 @@
-using DataFrames, Base.Test
+using DataFrames, Test
 
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])

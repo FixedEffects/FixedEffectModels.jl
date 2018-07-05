@@ -13,7 +13,6 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `tol` : tolerance
 * `method` : Default is lsmr (akin to conjugate gradient descent). Other choices are qr and cholesky (factorization methods)
 
-
 ### Returns
 * `::AbstractRegressionResult` : a regression results
 
@@ -42,19 +41,15 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled)))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled + YearPooled)))
 ```
 """
-
-
-
-# TODO: minimize memory
 function reg(df::AbstractDataFrame, m::Model)
     reg(df, m.f; m.dict...)
 end
 
 function reg(df::AbstractDataFrame, f::Formula; 
-    fe::Union{Symbol, Expr, Void} = nothing, 
-    vcov::Union{Symbol, Expr, Void} = :(simple()), 
-    weights::Union{Symbol, Expr, Void} = nothing, 
-    subset::Union{Symbol, Expr, Void} = nothing, 
+    fe::Union{Symbol, Expr, Nothing} = nothing, 
+    vcov::Union{Symbol, Expr, Nothing} = :(simple()), 
+    weights::Union{Symbol, Expr, Nothing} = nothing, 
+    subset::Union{Symbol, Expr, Nothing} = nothing, 
     maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
     save::Bool = false,
     method::Symbol = :lsmr)
@@ -185,7 +180,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Obtain X
     coef_names = coefnames(mf)
     if isempty(mf.terms.terms) && mf.terms.intercept == false
-        Xexo = Matrix{Float64}(sum(nonmissing(mf)), 0)
+        Xexo = Matrix{Float64}(undef, sum(nonmissing(mf)), 0)
     else    
         Xexo = ModelMatrix(mf).m
     end
@@ -245,17 +240,17 @@ function reg(df::AbstractDataFrame, f::Formula;
         # Build
         X = hcat(Xexo, Xendo)
         newZ = hcat(Xexo, Z)
-        crossz = cholfact!(At_mul_B(newZ, newZ))
-        Pi = crossz \ At_mul_B(newZ, Xendo)
+        crossz = cholesky!(Symmetric(newZ' * newZ))
+        Pi = crossz \ (newZ' * Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
 
 
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
-        Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
+        Xendo_res = gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
         ## partial out Z in place wrt Xexo
-        Pi2 = cholfact!(At_mul_B(Xexo, Xexo)) \ At_mul_B(Xexo, Z)
-        Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
+        Pi2 = cholesky!(Symmetric(Xexo' * Xexo)) \ (Xexo' * Z)
+        Z_res = gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
 
         # free memory (not sure it helps)
         Xexo = nothing
@@ -275,8 +270,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     ##
     ##############################################################################
 
-    crossx =  cholfact!(At_mul_B(Xhat, Xhat))
-    coef = crossx \ At_mul_B(Xhat, y)
+    crossx =  cholesky!(Symmetric(Xhat' * Xhat))
+    coef = crossx \ (Xhat' * y)
     residuals = y - X * coef
 
 
@@ -292,7 +287,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         if all(esample)
             augmentdf[:residuals] = residuals ./ sqrtw
         else
-            augmentdf[:residuals] =  DataArray(Float64, length(esample))
+            augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(undef, length(esample))
             augmentdf[esample, :residuals] = residuals ./ sqrtw 
         end
         if has_absorb
@@ -415,7 +410,7 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
         coefF = coefF[2:end]
         matrix_vcov = matrix_vcov[2:end, 2:end]
     end
-    F = (diagm(coefF)' * (matrix_vcov \ diagm(coefF)))[1]
+    F = (Diagonal(coefF)' * (matrix_vcov \ Diagonal(coefF)))[1]
     df_ans = df_FStat(vcov_method_data, vcov_data, hasintercept)
     dist = FDist(nobs - hasintercept, max(df_ans, 1))
     return F, ccdf(dist, F)

@@ -1,5 +1,5 @@
 
-using FixedEffectModels, CSV, DataFrames, Base.Test
+using FixedEffectModels, CSV, DataFrames, Test
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv"))
 df[:id1] = df[:State]
 df[:id2] = df[:Year]
@@ -432,7 +432,7 @@ df[:y] = df[:Wage]
 df[:x1] = df[:Emp]
 df[:w] = df[:Output]
 
-if isdefined(Base.SparseArrays, :CHOLMOD)
+if Base.USE_GPL_LIBS
 	method_s = [:cholesky, :qr, :lsmr, :lsmr_parallel, :lsmr_threads]
 else
 	method_s = [:lsmr, :lsmr_parallel, :lsmr_threads]
