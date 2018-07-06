@@ -34,7 +34,7 @@ function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
     mf = ModelFrame(newTerms, df)
     newX = ModelMatrix(mf).m
 
-    out = Vector{Union{Float64, Missing}}(undef, size(df, 1))
+    out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
     out[nonmissing(mf)] = newX * x.coef
 end
 
@@ -44,7 +44,7 @@ function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
 
     mf = ModelFrame(Terms(rf), df)
     newX = ModelMatrix(mf).m 
-    out = DataArray(Float64, size(df, 1))
+    out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
     out[nonmissing(mf)] = model_response(mf) -  newX * x.coef
 end
 

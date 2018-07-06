@@ -136,7 +136,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     j = 0
     for y in yvars
         j += 1
-        out[y] = Vector{Union{Float64, Missing}}(undef, size(df, 1))
+        out[y] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
         out[esample, y] = residuals[:, j]
     end
     return(out)

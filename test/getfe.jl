@@ -12,24 +12,24 @@ else
 end
 
 for method in method_s
-	model = @model Sales ~ Price fe = pYear save = true method = $(method)
-	result = reg(df, model)
+	global model = @model Sales ~ Price fe = pYear save = true method = $(method)
+	global result = reg(df, model)
 	@test fes(result)[1, :pYear] ≈ 164.77833189721005
 
-	model = @model Sales ~ Price fe = pYear + pState save = true method = $(method)
-	result = reg(df, model)
+	global model = @model Sales ~ Price fe = pYear + pState save = true method = $(method)
+	global result = reg(df, model)
 	@test fes(result)[1, :pYear] + fes(result)[1, :pState] ≈ 140.6852 atol = 1e-3
 
-	model = @model Sales ~ Price fe = Year&pState save = true method = $(method)
-	result = reg(df, model)
+	global model = @model Sales ~ Price fe = Year&pState save = true method = $(method)
+	global result = reg(df, model)
 	@test fes(result)[1, :YearxpState] ≈ 1.742779  atol = 1e-3
 
-	model = @model Sales ~ Price fe = pState + Year&pState save = true method = $(method)
-	result = reg(df, model)
+	global model = @model Sales ~ Price fe = pState + Year&pState save = true method = $(method)
+	global result = reg(df, model)
 	@test fes(result)[1, :pState] ≈ -91.690635 atol = 1e-1
 
-	model = @model Sales ~ Price fe = pState save = true subset = (State .<= 30) method = $(method)
-	result = reg(df, model)
+	global model = @model Sales ~ Price fe = pState save = true subset = (State .<= 30) method = $(method)
+	global result = reg(df, model)
 	@test fes(result)[1,:pState] ≈  124.913976 atol = 1e-1
 	@test ismissing(fes(result)[1380,:pState])
 end

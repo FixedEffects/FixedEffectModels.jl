@@ -7,15 +7,14 @@ module FixedEffectModels
 ##
 ##############################################################################
 import Base: size, copyto!, getindex, length, fill!, eltype, length, view, adjoint
-import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I, Adjoint
+import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I, Adjoint, diag, qr
 import LinearAlgebra.BLAS: gemm!
+#to suppress
 import Statistics: mean, quantile
 import Distributed: pmap
 import Printf: @sprintf
 if Base.USE_GPL_LIBS
-    import SuiteSparse.SPQR: QRSparse
     import SparseArrays: SparseMatrixCSC, sparse
-    import SuiteSparse.CHOLMOD: Factor
 end
 import Distributions: ccdf, TDist, FDist, Chisq
 import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categorical, CategoricalPool, levels, droplevels!

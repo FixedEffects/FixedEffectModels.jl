@@ -86,7 +86,7 @@ function _name(s::Vector{Symbol})
     if isempty(s)
         out = :none
     else
-        out = convert(Symbol, reduce((x1, x2) -> string(x1)*"x"*string(x2), s))
+        out = Symbol(reduce((x1, x2) -> string(x1)*"x"*string(x2), s))
     end
     return out
 end

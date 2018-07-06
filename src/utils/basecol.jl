@@ -40,11 +40,9 @@ end
 # Construct [A B C]'[A B C] without generating [A B C]
 function crossprod(c::Combination{N}) where {N}
     out = Array{Float64}(undef, size(c, 2), size(c, 2))
-    idx = 0
     for j in 1:size(c, 2)
         viewj = view(c, :, j)
         for i in j:size(c, 2)
-            idx += 1
             out[i, j] = dot(viewj, view(c, :, i))
         end
     end
@@ -62,13 +60,17 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 ## 
 ## TODO: You could protect against roundoff error by using a controlled sum algorithm (similar to sum_kbn) to compute elements of X'X, then converting to BigFloat before factoring.
 ##
+## ipermute!(diag(chol.factors) .> 100 * mysize(X...)^2 * eps(chol.factors[1]), chol.piv)
+##
 ##############################################################################
+
+
+
 
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...)
-    chol = cholesky!(Symmetric(crossprod(X...)), Val(true), tol = -1.0)
-    invpermute!(1:size(chol, 1) .<= rank(chol), chol.piv)
-    #invpermute!(diag(chol.factors) .> 100 * mysize(X...)^2 * eps(chol.factors[1]), chol.piv)
+    cholm = cholesky!(crossprod(X...), Val(true); tol = -1.0, check = false)
+    invpermute!(1:size(cholm, 1) .<= rank(cholm), cholm.piv)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})

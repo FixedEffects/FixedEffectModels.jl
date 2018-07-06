@@ -1,5 +1,5 @@
 
-using FixedEffectModels, CSV, DataFrames, Test
+using FixedEffectModels, CSV, DataFrames, LinearAlgebra, Test
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv"))
 df[:id1] = df[:State]
 df[:id2] = df[:Year]
@@ -143,6 +143,10 @@ x = reg(df, m)
 
 
 # non high dimensional factors
+m = @model y ~ x1 + pid2
+x = reg(df, m)
+m = @model y ~  pid2 fe = pid1
+x = reg(df, m)
 m = @model y ~ x1 + pid2 fe = pid1
 x = reg(df, m)
 @test coef(x)[1] ≈ -1.08471 atol = 1e-4
@@ -440,38 +444,38 @@ end
 
 for method in method_s
 	# absorb
-	m = @model y ~ x1 fe = pid1 method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1 method = $(method)
+	global x = reg(df, m)
 	@test coef(x) ≈ [- 0.11981270017206136] atol = 1e-4
-	m = @model y ~ x1 fe = pid1&id2 method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1&id2 method = $(method)
+	global x = reg(df, m)
 	@test coef(x)  ≈ [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
-	m = @model y ~ x1 fe = id2&pid1 method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = id2&pid1 method = $(method)
+	global x = reg(df, m)
 	@test coef(x) ≈  [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
-	m = @model y ~ 1 fe = id2&pid1 method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ 1 fe = id2&pid1 method = $(method)
+	global x = reg(df, m)
 	@test coef(x) ≈  [- 356.40430526316396] atol = 1e-4
-	m = @model y ~ x1 fe = pid1 weights = w method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1 weights = w method = $(method)
+	global x = reg(df, m)
 	@test coef(x) ≈ [- 0.11514363590574725] atol = 1e-4
 
 	# absorb + weights
-	m = @model y ~ x1 fe = pid1 + pid2 method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1 + pid2 method = $(method)
+	global x = reg(df, m)
 	@test coef(x)  ≈  [- 0.04683333721137311] atol = 1e-4
-	m = @model y ~ x1 fe = pid1 + pid2 weights = w method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1 + pid2 weights = w method = $(method)
+	global x = reg(df, m)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
 	## the last two ones test an ill conditioned model matrix
-	m = @model y ~ x1 fe = pid1 + pid1&id2 method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1 + pid1&id2 method = $(method)
+	global x = reg(df, m)
 	@test coef(x)  ≈   [- 0.122354] atol = 1e-4
 	@test x.iterations <= 30
 
-	m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w method = $(method)
-	x = reg(df, m)
+	global m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w method = $(method)
+	global x = reg(df, m)
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
 end

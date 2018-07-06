@@ -1,7 +1,7 @@
 using DataFrames, Test, FixedEffectModels
 
 
-df = DataFrame(v1 = @data(["ok", missing, "ok", "first"]), v2 = @data([1, 2, 3, 1]), v3 = @data([missing, 1, 1, missing]))
+df = DataFrame(v1 = ["ok", missing, "ok", "first"], v2 = [1, 2, 3, 1], v3 = [missing, 1, 1, missing])
 
 @test levels(group(df[:v1])) == [1, 2]
 @test group(df[:v1]).refs == [1, 0, 1, 2]

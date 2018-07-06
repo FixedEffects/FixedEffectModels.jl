@@ -4,22 +4,23 @@
 ##
 ##############################################################################
 
-struct CholeskyFixedEffectProblem <: FixedEffectProblem
+struct CholeskyFixedEffectProblem{T} <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
-    chol::Factor{Float64}
+    cholm::T
     x::Vector{Float64}
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholesky}})
     m = sparse(fes)
-    chol = cholesky!(Symmetric(m' * m))
+    # do not use cholesky(Symmetric()) or cholesky!() cause neither does work with sparse matrices
+    cholm = cholesky(m' * m)
     total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
-    CholeskyFixedEffectProblem(fes, m, chol, Array{Float64}(undef, total_len))
+    CholeskyFixedEffectProblem(fes, m, cholm, Array{Float64}(undef, total_len))
 end
 
-function solve!(fep::CholeskyFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
-    fep.chol \ mul!(fep.x, fep.m', r)
+function solve!(fep::CholeskyFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...)
+    fep.cholm \ mul!(fep.x, fep.m', r)
 end
 
 ##############################################################################
@@ -28,24 +29,24 @@ end
 ##
 ##############################################################################
 
-struct QRFixedEffectProblem <: FixedEffectProblem
+struct QRFixedEffectProblem{T} <: FixedEffectProblem
     fes::Vector{FixedEffect}
     m::SparseMatrixCSC{Float64,Int}
-    qr::QRSparse{Float64, Int}
+    qrm::T
     b::Vector{Float64}
 end
 
 function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
     m = sparse(fes)
-    qr = qr(m)
+    qrm = qr(m)
     b = Array{Float64}(undef, length(fes[1].refs))
-    QRFixedEffectProblem(fes, m, qr, b)
+    QRFixedEffectProblem(fes, m, qrm, b)
 end
 
 function solve!(fep::QRFixedEffectProblem, r::AbstractVector{Float64} ; kwargs...) 
     # since \ needs a vector
-    copy!(fep.b, r)
-    fep.qr \ fep.b
+    copyto!(fep.b, r)
+    fep.qrm \ fep.b
 end
 
 ##############################################################################
@@ -79,7 +80,7 @@ end
 # updates r as the residual of the projection of r on A
 function solve_residuals!(fep::Union{CholeskyFixedEffectProblem, QRFixedEffectProblem}, r::AbstractVector{Float64}; kwargs...)
     x = solve!(fep, r; kwargs...)
-    gemm!('N', 'N', -1.0, fep.m, x, 1.0, r)
+    mul!(r, fep.m, x, -1.0, 1.0)
     return r, 1, true
 end
 

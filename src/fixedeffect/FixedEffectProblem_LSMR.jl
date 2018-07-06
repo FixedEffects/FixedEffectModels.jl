@@ -253,8 +253,8 @@ get_fes(fep::LSMRThreadslFixedEffectProblem) = fep.fes
 
 
 function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::LSMRThreadslFixedEffectProblem, iterationsv::Vector{Int}, convergedv::Vector{Bool}; kwargs...)
-   iterations_X = Vector{Int}(size(X, 2))
-   converged_X = Vector{Bool}(size(X, 2))
+   iterations_X = Vector{Int}(undef, size(X, 2))
+   converged_X = Vector{Bool}(undef, size(X, 2))
    Threads.@threads for j in 1:size(X, 2)
         r, iterations, converged = solve_residuals!(fep, view(X, :, j); kwargs...)
         iterations_X[j] = iterations
