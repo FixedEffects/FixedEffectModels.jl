@@ -1,17 +1,6 @@
 # decompose formula into normal vs iv part
 function is_iv(ex::Expr)
-	if (ex.head == :(=))
-		# expression with =
-		Base.depwarn("The iv formula syntax (lhs = rhs) is deprecated. Use (lhs ~ rhs) instead",  :(=))
-		length(ex.args) == 2 || error("malformed expression in formula")
-		has_iv = true
-		endos = ex.args[1]
-		if isa(ex.args[2], Expr) && ex.args[2].head == :block
-			ivs =  ex.args[2].args[2]
-		else
-			ivs = ex.args[2]
-		end
-	elseif (ex.head == :macrocall && ex.args[1] == Symbol("@~")) || (ex.head == :call && ex.args[1] == :(~)) 
+	if (ex.head == :macrocall && ex.args[1] == Symbol("@~")) || (ex.head == :call && ex.args[1] == :(~)) 
 		# expression with ~
 		length(ex.args) == 3 || error("malformed expression in formula")
 		has_iv = true

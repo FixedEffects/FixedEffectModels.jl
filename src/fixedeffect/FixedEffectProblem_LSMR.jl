@@ -73,8 +73,7 @@ end
 ## normalized by diag(1/a1, ..., 1/aN) (Jacobi preconditoner)
 ##
 ## We define these methods used in lsmr! (duck typing):
-## gemm!('N', 'N', α, A, b, β, c) updates c -> α Ab + βc
-## gemm!('C', 'N', α, A, b, β, c) updates c -> α A'b + βc
+## mul!
 ##
 ##############################################################################
 
@@ -107,11 +106,9 @@ eltype(fem::FixedEffectMatrix) = Float64
 
 size(fem::FixedEffectMatrix, dim::Integer) = (dim == 1) ? fem.m :
                                             (dim == 2) ? fem.n : 1
+Base.adjoint(fem) = Adjoint(fem)
 
-
-function gemm!(tA::Char, tB::Char, α::Number, fem::FixedEffectMatrix, fev::FixedEffectVector, 
-                β::Number, y::AbstractVector{Float64})
-    @assert (tA == 'N') & (tB == 'N' )
+function mul!(y::AbstractVector{Float64}, fem::FixedEffectMatrix, fev::FixedEffectVector, α::Number, β::Number)
     safe_rmul!(y, β)
     for i in 1:length(fev._)
         helperN!(α, fem._[i], fev._[i], y, fem.cache[i])
@@ -120,15 +117,14 @@ function gemm!(tA::Char, tB::Char, α::Number, fem::FixedEffectMatrix, fev::Fixe
 end
 # Define x -> A * x
 function helperN!(α::Number, fe::FixedEffect, 
-                        x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
+    x::Vector{Float64}, y::AbstractVector{Float64}, cache::Vector{Float64})
     @inbounds @simd for i in 1:length(y)
         y[i] += α * x[fe.refs[i]] * cache[i]
     end
 end
 
-function gemm!(tA::Char, tB::Char, α::Number, fem::FixedEffectMatrix, y::AbstractVector{Float64}, 
-                β::Number, fev::FixedEffectVector)
-    @assert (tA == 'C') & (tB == 'N' )
+function mul!(fev::FixedEffectVector, Cfem::Adjoint{T, FixedEffectMatrix}, y::AbstractVector{Float64}, α::Number, β::Number) where {T}
+    fem = adjoint(Cfem)
     safe_rmul!(fev, β)
     for i in 1:length(fev._)
         helperC!(α, fem._[i], y, fev._[i], fem.cache[i])
@@ -191,7 +187,7 @@ end
 
 function solve_residuals!(fep::LSMRFixedEffectProblem, r::AbstractVector{Float64}; kwargs...)
     iterations, converged = solve!(fep, r; kwargs...)
-    gemm!('N', 'N', -1.0, fep.m, fep.x, 1.0, r)
+    mul!(r, fep.m, fep.x, -1.0, 1.0)
     return r, iterations, converged
 end
 

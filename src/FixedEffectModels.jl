@@ -6,8 +6,8 @@ module FixedEffectModels
 ## Dependencies
 ##
 ##############################################################################
-import Base: size, copyto!, getindex, length, fill!, eltype, length, view
-import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I
+import Base: size, copyto!, getindex, length, fill!, eltype, length, view, adjoint
+import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I, Adjoint
 import LinearAlgebra.BLAS: gemm!
 import Statistics: mean, quantile
 import Distributed: pmap

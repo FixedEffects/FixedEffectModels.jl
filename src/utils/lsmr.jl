@@ -13,6 +13,8 @@ struct ConvergenceHistory{T, R}
     residuals::R
 end
 
+
+
 ##############################################################################
 ## LSMR
 ##
@@ -22,8 +24,7 @@ end
 ## http://web.stanford.edu/group/SOL/software/lsmr/
 ##
 ## A is a StridedVecOrMat or anything that implements 
-## gemm!('N', 'N', α, A, b, β, c) updates c -> α Ab + βc
-## gemm!('C', 'N', α, A, b, β, c) updates c -> α A'b + βc
+## mul!
 ## eltype(A)
 ## size(A)
 ## (this includes SparseMatrixCSC)
@@ -70,10 +71,10 @@ function lsmr!(x, A, b, v, h, hbar;
     normArs = Tr[]
     conlim > 0 ? ctol = convert(Tr, inv(conlim)) : ctol = zero(Tr)
     # form the first vectors u and v (satisfy  β*u = b,  α*v = A'u)
-    u = gemm!('N', 'N', -1, A, x, 1, b)
+    u = mul!(b, A, x, -1, 1)
     β = norm(u)
     β > 0 && rmul!(u, inv(β))
-    gemm!('C', 'N', 1, A, u, 0, v)
+    mul!(v, A', u, 1, 0)
     α = norm(v)
     α > 0 && rmul!(v, inv(α))
 
@@ -114,11 +115,11 @@ function lsmr!(x, A, b, v, h, hbar;
     if normAr != 0 
         while iter < maxiter
             iter += 1
-            gemm!('N', 'N', 1, A, v, -α, u)
+            mul!(u, A, v, 1, -α)
             β = norm(u)
             if β > 0
                 rmul!(u, inv(β))
-                gemm!('C', 'N', 1, A, u, -β, v)
+                mul!(v, A', u, 1, -β)
                 α = norm(v)
                 α > 0 && rmul!(v, inv(α))
             end

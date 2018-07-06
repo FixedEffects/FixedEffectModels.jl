@@ -24,8 +24,3 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 # 1.1 seconds (20.00 M allocations: 1.010 GB, 18.82% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2, weights = w))
 # 2.353851 seconds (202.01 k allocations: 550.882 MiB, 15.65% gc time)
-
-@time reg(df, @model(y ~ (x1 ~ x2), fe = id1, weights = w))
-
-@time reg(df, @model(y ~ (x1 ~ x2), fe = id1, weights = w, save = true))
-
