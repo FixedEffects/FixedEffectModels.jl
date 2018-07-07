@@ -313,7 +313,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     if has_absorb 
         # better adjustment of df for clustered errors + fe: adjust only if fe is not fully nested in a cluster variable:
         for fe in fixedeffects
-            if typeof(vcovformula) == VcovClusterFormula && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
+            if isa(vcovformula, VcovClusterFormula) && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
                 df_absorb += 0
             else
                 #only count groups that exists
