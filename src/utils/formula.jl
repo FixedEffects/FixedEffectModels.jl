@@ -85,11 +85,8 @@ end
 
 # copy ModelFrame but modify to have esample as argument
 function ModelFrame2(trms::Terms, d::AbstractDataFrame, esample; contrasts::Dict = Dict())
-	subd = DataFrame(map(x -> d[x], trms.eterms), Symbol.(trms.eterms))
-	df = subd
-	if !all(esample)
-		df = df[esample, :]
-	end
+	df = DataFrame(map(x -> d[x], trms.eterms), Symbol.(trms.eterms))
+	df = df[esample, :]
 	names!(df, Symbol.(string.(trms.eterms)))
 	evaledContrasts = evalcontrasts(df, contrasts)
 	## Check for non-redundant terms, modifying terms in place
@@ -104,7 +101,7 @@ end
 function isnaorneg(a::Vector{T}) where {T}
 	out = BitArray(undef, length(a))
 	for i in 1:length(a)
-		out[i] = !ismissing(a[i]) && (a[i] > zero(T))
+		out[i] = !ismissing(a[i]) & (a[i] > zero(T))
 	end
 	return out
 end

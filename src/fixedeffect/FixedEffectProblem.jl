@@ -65,24 +65,20 @@ function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
         components = connectedcomponent(view(get_fes(fep), findintercept))
         rescale!(x, fep, findintercept, components)
     end
-
     return x
 end
 
 # Convert estimates to dataframes 
 function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esample)
     fes = get_fes(fep)
-    newdf = DataFrame()
-    len = length(esample)
+    df = DataFrame()
     for j in 1:length(fes)
-        name = fes[j].id
-        T = eltype(fes[j].refs)
-        refs = fill(zero(T), len)
-        refs[esample] = fes[j].refs
-        newdf[fes[j].id] = convert(Vector{Union{Float64, Missing}}, CategoricalArray{Union{Missing,Float64}, 1}(refs, CategoricalPool(fev[j])))
+        df[fes[j].id] = Vector{Union{Float64, Missing}}(missing, length(esample))
+        df[esample, fes[j].id] = fev[j][fes[j].refs]
     end
-    return newdf
+    return df
 end
+
 
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64},esample;
                 tol::Real = 1e-8, maxiter::Integer = 100_000)
