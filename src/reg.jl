@@ -111,10 +111,12 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
         esample .&= convert(BitArray, subset)
     end
+
+
     if has_absorb
-        # remove singletons
         remove_singletons!(esample, df, feformula)
     end
+
     nobs = sum(esample)
     (nobs > 0) || error("sample is empty")
 
@@ -462,21 +464,23 @@ evaluate_subset(df, ex)  = ex
 ##############################################################################
 function remove_singletons!(esample, df, feformula)
     for term in Terms(@eval(@formula(nothing ~ $(feformula)))).terms
-        if isa(term, Symbol) && isa(df[term], CategoricalVector)
-            remove_singletons!(esample, df[term])
+        result = _FixedEffect(df, term)
+        if result !== nothing
+            refs, l, interaction, factorname, interadtionname, id = result
+            remove_singletons!(esample, refs, l)
         end
     end
 end
 
-function remove_singletons!(esample, v)
-    cache = zeros(Int, length(v.pool))
+function remove_singletons!(esample, refs::Vector, l::Int)
+    cache = zeros(Int, l)
     for i in 1:length(esample)
         if esample[i]
-            cache[v.refs[i]] += 1
+            cache[refs[i]] += 1
         end
     end
     for i in 1:length(esample)
-        if esample[i] && cache[v.refs[i]] <= 1
+        if esample[i] && cache[refs[i]] <= 1
             esample[i] = false
         end
     end

@@ -18,15 +18,14 @@ end
 
 
 # Constructor
-function FixedEffect(
-    refs::Vector{R}, l::Integer, sqrtw::AbstractVector{Float64}, 
-    interaction::AbstractVector{Float64}, factorname::Symbol, 
-    interactionname::Symbol, id::Symbol) where {R <: Integer}
+FixedEffect(x::Nothing, sqrtw::AbstractVector{Float64}) = nothing
+function FixedEffect(x, sqrtw::AbstractVector{Float64})
+    refs, l, interaction, factorname, interactionname, id = x
     scale = zeros(Float64, l)
     # check that every refs is lower than l by not using inbounds here (it should be the case but you never now)
     # If this works, can use inbounds in the future.
     for i in 1:length(refs)
-         scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
+        scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
     end
     for i in 1:l
         scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
@@ -38,7 +37,7 @@ end
 function FixedEffect(df::AbstractDataFrame, feformula, sqrtw::AbstractVector{Float64})
     out = FixedEffect[]
     for term in Terms(@eval(@formula(nothing ~ $(feformula)))).terms
-        result = _FixedEffect(df, term, sqrtw)
+        result = FixedEffect(_FixedEffect(df, term), sqrtw)
         if isa(result, FixedEffect)
             push!(out, result)
         elseif isa(result, Vector{FixedEffect})
@@ -49,18 +48,16 @@ function FixedEffect(df::AbstractDataFrame, feformula, sqrtw::AbstractVector{Flo
 end
 
 # Constructors from dataframe + symbol
-function _FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
+function _FixedEffect(df::AbstractDataFrame, a::Symbol)
     v = df[a]
     if isa(v, CategoricalVector)
-        return FixedEffect(v.refs, length(v.pool), sqrtw, Ones{Float64}(length(v)), a, :none, a)
-    else
         # x from x*id -> x + id + x&id
-        return nothing
+        return v.refs, length(v.pool), Ones{Float64}(length(v)), a, :none, a
     end
 end
 
 # Constructors from dataframe + expression
-function _FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
+function _FixedEffect(df::AbstractDataFrame, a::Expr)
     _check(a) || throw("Expression $a should only contain & and variable names")
     factorvars, interactionvars = _split(df, allvars(a))
     if isempty(factorvars)
@@ -72,8 +69,7 @@ function _FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Floa
     factorname = _name(factorvars)
     interactionname = _name(interactionvars)
     id = _name(allvars(a))
-    l = length(z.pool)
-    return FixedEffect(z.refs, l, sqrtw, interaction, factorname, interactionname, id)
+    return z.refs, length(z.pool), interaction, factorname, interactionname, id
 end
 
 

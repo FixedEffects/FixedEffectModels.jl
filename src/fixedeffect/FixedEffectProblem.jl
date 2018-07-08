@@ -114,10 +114,7 @@ function initialize_refs(fes::AbstractVector{FixedEffect})
     nobs = length(fes[1].refs)
     refs = fill(zero(Int), length(fes), nobs)
     for j in 1:length(fes)
-        ref = fes[j].refs
-        for i in 1:length(ref)
-            refs[j, i] = ref[i]
-        end
+        refs[j, :] = fes[j].refs
     end
     return refs
 end
