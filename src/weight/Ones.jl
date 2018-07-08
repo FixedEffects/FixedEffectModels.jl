@@ -15,6 +15,7 @@ Ones(v::AbstractVector{T}) where {T} = Ones{T}(length(v))
 
 #indexing
 Base.IndexStyle(::Type{Ones}) = Base.LinearFast()
+Base.getindex(::Ones{T}, idx::BitVector) where {T} = Ones{T}(sum(idx))
 @inline Base.getindex(::Ones{T}, i::Int...) where {T} = one(T)
 @inline Base.unsafe_getindex(::Ones{T}, i::Int...) where {T} = one(T)
 Base.eltype(o::Ones{T}) where {T} = T

@@ -12,64 +12,48 @@ struct FixedEffect{R <: Integer, W <: AbstractVector{Float64}, I <: AbstractVect
     scale::Vector{Float64}  # 1/(∑ sqrt(w) * interaction) within each group
     interaction::I          # the continuous interaction 
     factorname::Symbol      # Name of factor variable 
-    interactionname::Symbol # Name of continuous variable in the original dataframe
+    interactionname::Union{Symbol, Nothing} # Name of continuous variable in the original dataframe
     id::Symbol              # Name of new variable if save = true
 end
 
 
 # Constructor
 FixedEffect(x::Nothing, sqrtw::AbstractVector{Float64}) = nothing
-function FixedEffect(x, sqrtw::AbstractVector{Float64})
-    refs, l, interaction, factorname, interactionname, id = x
-    scale = zeros(Float64, l)
-    # check that every refs is lower than l by not using inbounds here (it should be the case but you never now)
-    # If this works, can use inbounds in the future.
-    for i in 1:length(refs)
-        scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
-    end
-    for i in 1:l
-        scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
-    end
-    FixedEffect(refs, sqrtw, scale, interaction, factorname, interactionname, id)
-end
 
 # Constructors from dataframe + terms
 function FixedEffect(df::AbstractDataFrame, feformula, sqrtw::AbstractVector{Float64})
     out = FixedEffect[]
-    for term in Terms(@eval(@formula(nothing ~ $(feformula)))).terms
-        result = FixedEffect(_FixedEffect(df, term), sqrtw)
-        if isa(result, FixedEffect)
-            push!(out, result)
-        elseif isa(result, Vector{FixedEffect})
-            append!(out, result)
+    for term in feformula.terms
+        result = FixedEffect(df, term, sqrtw)
+        if result != nothing
+            push!(out,  result)
         end
     end
     return out
 end
 
 # Constructors from dataframe + symbol
-function _FixedEffect(df::AbstractDataFrame, a::Symbol)
+function FixedEffect(df::AbstractDataFrame, a::Symbol, sqrtw::AbstractVector{Float64})
     v = df[a]
     if isa(v, CategoricalVector)
         # x from x*id -> x + id + x&id
-        return v.refs, length(v.pool), Ones{Float64}(length(v)), a, :none, a
+        return FixedEffect(v.refs, sqrtw, zeros(length(v.pool)), Ones{Float64}(length(v)), a, nothing, a)
     end
 end
 
 # Constructors from dataframe + expression
-function _FixedEffect(df::AbstractDataFrame, a::Expr)
+function FixedEffect(df::AbstractDataFrame, a::Expr, sqrtw::AbstractVector{Float64})
     _check(a) || throw("Expression $a should only contain & and variable names")
     factorvars, interactionvars = _split(df, allvars(a))
-    if isempty(factorvars)
+    if !isempty(factorvars)
         # x1&x2 from (x1&x2)*id
-        return nothing
+        z = group(df, factorvars)
+        interaction = _multiply(df, interactionvars)
+        factorname = _name(factorvars)
+        interactionname = _name(interactionvars)
+        id = _name(allvars(a))
+        return FixedEffect(z.refs, sqrtw, zeros(length(z.pool)), interaction, factorname, interactionname, id)
     end
-    z = group(df, factorvars)
-    interaction = _multiply(df, interactionvars)
-    factorname = _name(factorvars)
-    interactionname = _name(interactionvars)
-    id = _name(allvars(a))
-    return z.refs, length(z.pool), interaction, factorname, interactionname, id
 end
 
 
@@ -80,7 +64,7 @@ check(a::Symbol) = true
 
 function _name(s::Vector{Symbol})
     if isempty(s)
-        out = :none
+        out = nothing
     else
         out = Symbol(reduce((x1, x2) -> string(x1)*"x"*string(x2), s))
     end
@@ -99,15 +83,46 @@ function _multiply(df, ss::Vector{Symbol})
     if isempty(ss)
         out = Ones(size(df, 1))
     else
-        if isa(df[ss[1]], Vector{Float64})
-            out = deepcopy(df[ss[1]])
-        else
-            out = convert(Vector{Float64}, df[ss[1]])
-        end
-        for i in 2:length(ss)
-            out .= out .* df[ss[i]]
+        out = ones(size(df, 1))
+        for j in 1:length(ss)
+            _multiply!(out, df[ss[j]])
         end
     end
     return out
 end
+
+function _multiply!(out, v)
+    for i in 1:length(out)
+        if v[i] === missing
+            # may be missing when I remove singletons
+            out[i] = 0.0
+        else
+            out[i] = out[i] * v[i]
+        end
+    end
+end
+
+##############################################################################
+##
+## Subset FixedEffect for esample
+##
+##############################################################################
+
+
+function getindex(x::FixedEffect, idx)
+    refs = x.refs[idx]
+    sqrtw = x.sqrtw[idx]
+    interaction = x.interaction[idx]
+
+    scale = copy(x.scale)
+    for i in 1:length(refs)
+        scale[refs[i]] += abs2(interaction[i] * sqrtw[i])
+    end
+    for i in 1:length(scale)
+        scale[i] = scale[i] > 0 ? (1.0 / sqrt(scale[i])) : 0.
+    end
+    FixedEffect(refs, sqrtw, scale, interaction, x.factorname, x.interactionname, x.id)
+end
+
+
 

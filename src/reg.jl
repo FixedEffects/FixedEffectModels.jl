@@ -114,7 +114,10 @@ function reg(df::AbstractDataFrame, f::Formula;
 
 
     if has_absorb
-        remove_singletons!(esample, df, feformula)
+        sqrtw = get_weights(df, trues(length(esample)), weights)
+        # slow in 0.6 due to any. Is it improved in 0.7?
+        fixedeffects = FixedEffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))), sqrtw)
+        remove_singletons!(esample, fixedeffects)
     end
 
     nobs = sum(esample)
@@ -126,11 +129,9 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
-        # slow in 0.6 due to any. Is it improved in 0.7?
-        subdf = df[esample, unique(Symbol.(absorb_vars))]
-        fixedeffects = FixedEffect(subdf, feformula, sqrtw)
+        fixedeffects = FixedEffect[x[esample] for x in fixedeffects]
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
+        if any([typeof(f.interactionname) <: Nothing for f in fixedeffects]) 
             rt.intercept = false
             has_intercept = true
         end
@@ -167,7 +168,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     y .= y .* sqrtw
     # old y will be used if fixed effects
     if has_absorb
-        oldy = deepcopy(y)
+        oldy = copy(y)
     else
         oldy = y
     end
@@ -183,7 +184,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
     Xexo .= Xexo .* sqrtw
     if save & has_absorb
-        oldX = deepcopy(Xexo)
+        oldX = copy(Xexo)
     end
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
@@ -400,7 +401,7 @@ end
 function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
     nobs::Int, hasintercept::Bool, 
     vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
-    coefF = deepcopy(coef)
+    coefF = copy(coef)
     # TODO: check I can't do better
     length(coef) == hasintercept && return NaN, NaN
     if hasintercept && length(coef) > 1
@@ -462,18 +463,13 @@ evaluate_subset(df, ex)  = ex
 ## Remove singletons
 ##
 ##############################################################################
-function remove_singletons!(esample, df, feformula)
-    for term in Terms(@eval(@formula(nothing ~ $(feformula)))).terms
-        result = _FixedEffect(df, term)
-        if result !== nothing
-            refs, l, interaction, factorname, interadtionname, id = result
-            remove_singletons!(esample, refs, l)
-        end
+function remove_singletons!(esample, fixedeffects::Vector{FixedEffect})
+    for f in fixedeffects
+        remove_singletons!(esample, f.refs, zeros(Int, length(f.scale)))
     end
 end
 
-function remove_singletons!(esample, refs::Vector, l::Int)
-    cache = zeros(Int, l)
+function remove_singletons!(esample, refs::Vector, cache::Vector{Int})
     for i in 1:length(esample)
         if esample[i]
             cache[refs[i]] += 1
