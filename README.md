@@ -20,9 +20,9 @@ To estimate a `@model`, specify  a formula with, eventually, a set of fixed effe
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:StatePooled] =  categorical(df[:State])
-df[:YearPooled] =  categorical(df[:Year])
-reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov = cluster(StatePooled)))
+df[:StateCategorical] =  categorical(df[:State])
+df[:YearCategorical] =  categorical(df[:Year])
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, weights = Pop, vcov = cluster(StateCategorical)))
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139
@@ -39,37 +39,37 @@ reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, weights = Pop, vcov =
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables)
 	```
 
-- Fixed effect variables are indicated with the keyword argument `fe`. They must be of type PooledDataArray (use `pool` to convert a variable to a `PooledDataArray`).
+- Fixed effect variables are indicated with the keyword argument `fe`. They must be of type CategoricalArray (use `categorical` to convert a variable to a `CategoricalArray`).
 
 	```julia
-	df[:StatePooled] =  categorical(df[:State])
+	df[:StateCategorical] =  categorical(df[:State])
 	# one high dimensional fixed effect
-	fe = StatePooled
+	fe = StateCategorical
 	```
 	You can add an arbitrary number of high dimensional fixed effects, separated with `+`
 	```julia
-	df[:YearPooled] =  categorical(df[:Year])
-	fe = StatePooled + YearPooled
+	df[:YearCategorical] =  categorical(df[:Year])
+	fe = StateCategorical + YearCategorical
 	```
 	Interact multiple categorical variables using `&` 
 	```julia
-	fe = StatePooled&DecPooled
+	fe = StateCategorical&DecPooled
 	```
 	Interact a categorical variable with a continuous variable using `&`
 	```julia
-	fe = StatePooled + StatePooled&Year
+	fe = StateCategorical + StateCategorical&Year
 	```
 	Alternative, use `*` to add a categorical variable and its interaction with a continuous variable
 	```julia
-	fe = StatePooled*Year
-	# equivalent to fe = StatePooled + StatePooled&year
+	fe = StateCategorical*Year
+	# equivalent to fe = StateCategorical + StateCategorical&year
 	```
 
 - Standard errors are indicated with the keyword argument `vcov`.
 	```julia
 	vcov = robust
-	vcov = cluster(StatePooled)
-	vcov = cluster(StatePooled + YearPooled)
+	vcov = cluster(StateCategorical)
+	vcov = cluster(StateCategorical + YearCategorical)
 	```
 
 - weights are indicated with the keyword argument `weights`
@@ -106,10 +106,10 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
 1. `y, X`  are regressed on `D` by one of these methods
-  - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = lsmr` (with a diagonal preconditioner).
-  - sparse factorization with `method = cholesky` or `method = qr` (using the SuiteSparse library)
+  - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
+  - sparse factorization with `method = :cholesky` or `method = :qr` (using the SuiteSparse library)
 
-  The default method`lsmr`, should be the fastest in most cases. If the method does not converge, frist please get in touch, I'd be interested to hear about your problem.  Second use the `method = cholesky`, which should do the trick.
+  The default method`lsmr`, should be the fastest in most cases. If the method does not converge, frist please get in touch, I'd be interested to hear about your problem.  Second use the `method = :cholesky`, which should do the trick.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
@@ -120,9 +120,10 @@ The package has support for [parallel computing](https://docs.julialang.org/en/l
 
 1. For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
 	```julia
+	using Distributed
 	addprocs(n)
 	@everywhere using DataFrames, FixedEffectModels
-	reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_parallel))
+	reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_parallel)
 	```
 2. For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads to `n` with
 	```
@@ -131,7 +132,7 @@ The package has support for [parallel computing](https://docs.julialang.org/en/l
 	Then, in Julia, use the option `lsmr_threads`
 	```julia
 	using DataFrames, FixedEffectModels
-	reg(df, @model(Sales ~ NDI, fe = StatePooled + YearPooled, method = lsmr_threads))
+	reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_threads)
 	```
 
 

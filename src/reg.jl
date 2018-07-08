@@ -3,15 +3,11 @@ Estimate a linear model with high dimensional categorical variables / instrument
 
 ### Arguments
 * `df` : AbstractDataFrame
-* `f` : Formula, 
-* `fe` : Fixed effect formula.
-* `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
-* `weights`: Weights formula. Corresponds to analytical weights
-* `subset` : Expression of the form State .>= 30
+* `model` : A Model created using `@model`. See `@model`.
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
-* `method` : Default is lsmr (akin to conjugate gradient descent). Other choices are qr and cholesky (factorization methods)
+* `method` : Default is `:lsmr` (akin to conjugate gradient descent).  WIth parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
 
 ### Returns
 * `::AbstractRegressionResult` : a regression results
@@ -21,28 +17,27 @@ A typical formula is composed of one dependent variable, exogeneous variables, e
 ```
 depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
 ```
-Categorical variable should be of type CategoricalVector.  Use the function `categorical` to create CategoricalVector.
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
 ### Examples
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:StatePooled] =  pool(df[:State])
-df[:YearPooled] =  pool(df[:Year])
-reg(df, @model(Sales ~ Price, fe = StatePooled + YearPooled))
-reg(df, @model(Sales ~ NDI, fe = StatePooled + StatePooled&Year))
-reg(df, @model(Sales ~ NDI, fe = StatePooled*Year))
+df[:StateCategorical] =  categorical(df[:State])
+df[:YearCategorical] =  categorical(df[:Year])
+reg(df, @model(Sales ~ Price, fe = StateCategorical + YearCategorical))
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + StateCategorical&Year))
+reg(df, @model(Sales ~ NDI, fe = StateCategorical*Year))
 reg(df, @model(Sales ~ (Price ~ Pimin)))
 reg(df, @model(Sales ~ Price, weights = Pop))
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust))
-reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled)))
-reg(df, @model(Sales ~ NDI, vcov = cluster(StatePooled + YearPooled)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(StateCategorical)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(StateCategorical + YearCategorical)))
 ```
 """
-function reg(df::AbstractDataFrame, m::Model)
-    reg(df, m.f; m.dict...)
+function reg(df::AbstractDataFrame, m::Model; kwargs...)
+    reg(df, m.f; m.dict..., kwargs...)
 end
 
 function reg(df::AbstractDataFrame, f::Formula; 
@@ -51,8 +46,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     weights::Union{Symbol, Expr, Nothing} = nothing, 
     subset::Union{Symbol, Expr, Nothing} = nothing, 
     maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
-    save::Bool = false,
-    method::Symbol = :lsmr)
+    save::Bool = false,  method::Symbol = :lsmr
+   )
     feformula = fe
     if isa(vcov, Symbol)
         vcovformula = VcovFormula(Val{vcov})

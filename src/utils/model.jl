@@ -10,6 +10,31 @@ function Base.show(io::IO, m::Model)
     end
 end
 
+"""
+Capture and parse a set of expressions to generate a Model
+## Arguments
+* `ex`: an expression parsed as a Formula struct
+* `fe` : Fixed effect expression.   You can add an arbitrary number of high dimensional fixed effects, separated with `+`.  Interact multiple categorical variables using `&` .     Interact a categorical variable with a continuous variable using `&`.   Alternative, use `*` to add a categorical variable and its interaction with a continuous variable. Variables must be of type CategoricalArray (use `categorical` to convert a variable to a `CategoricalArray`).
+* `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
+* `weights`: Weight variable. Corresponds to analytical weights
+* `subset` : Expression of the form State .>= 30
+
+### Returns
+* `::Model` : a Model struct
+
+
+### Examples
+```julia
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+df[:StateCategorical] =  categorical(df[:State])
+df[:YearCategorical] =  categorical(df[:Year])
+reg(df, @model(Sales ~ NDI, weights = Pop))
+@model(Sales ~ NDI, fe = StateCategorical, vcov = robust)
+@model(Sales ~ NDI, fe = StateCategorical + YearCategorical, weights = Pop, vcov = cluster(StateCategorical)
+
+```
+"""
 macro model(args...)
     Expr(:call, :model_helper, (esc(Base.Meta.quot(a)) for a in args)...)
 end
