@@ -50,26 +50,9 @@ end
 ##
 ##############################################################################
 
-
-function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
-    
-    # solve Ax = b
-    x, iterations, converged = solve_coefficients!(fep, b; kwargs...)
-    if !converged 
-       warn("getfe did not converge")
-    end
-
-    # The solution is generally not unique. Find connected components and scale accordingly
-    findintercept = findall(fe -> isa(fe.interaction, Ones), get_fes(fep))
-    if length(findintercept) >= 2
-        components = connectedcomponent(view(get_fes(fep), findintercept))
-        rescale!(x, fep, findintercept, components)
-    end
-    return x
-end
-
-# Convert estimates to dataframes 
-function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esample)
+function getfe!(fep::FixedEffectProblem, b::Vector{Float64}, esample;
+                tol::Real = 1e-8, maxiter::Integer = 100_000)
+    fev = getfe!(fep, b; tol = tol, maxiter = maxiter)
     fes = get_fes(fep)
     df = DataFrame()
     for j in 1:length(fes)
@@ -80,10 +63,19 @@ function DataFrame(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, esampl
 end
 
 
-function getfe!(fep::FixedEffectProblem, b::Vector{Float64},esample;
-                tol::Real = 1e-8, maxiter::Integer = 100_000)
-    fev = getfe!(fep, b; tol = tol, maxiter = maxiter)
-    return DataFrame(fev, fep, esample)
+function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
+    # solve Ax = b
+    x, iterations, converged = solve_coefficients!(fep, b; kwargs...)
+    if !converged 
+       warn("getfe did not converge")
+    end
+    # The solution is generally not unique. Find connected components and scale accordingly
+    findintercept = findall(fe -> isa(fe.interaction, Ones), get_fes(fep))
+    if length(findintercept) >= 2
+        components = connectedcomponent(view(get_fes(fep), findintercept))
+        rescale!(x, fep, findintercept, components)
+    end
+    return x
 end
 
 
