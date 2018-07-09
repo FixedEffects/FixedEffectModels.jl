@@ -125,4 +125,27 @@ function getindex(x::FixedEffect, idx)
 end
 
 
+##############################################################################
+##
+## Remove singletons
+##
+##############################################################################
+function remove_singletons!(esample, fixedeffects::Vector{FixedEffect})
+    for f in fixedeffects
+        remove_singletons!(esample, f.refs, zeros(Int, length(f.scale)))
+    end
+end
+
+function remove_singletons!(esample, refs::Vector, cache::Vector{Int})
+    for i in 1:length(esample)
+        if esample[i]
+            cache[refs[i]] += 1
+        end
+    end
+    for i in 1:length(esample)
+        if esample[i] && cache[refs[i]] <= 1
+            esample[i] = false
+        end
+    end
+end
 

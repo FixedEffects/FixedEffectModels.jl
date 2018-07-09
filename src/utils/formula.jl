@@ -96,18 +96,9 @@ end
 
 
 
-#  remove observations with negative weights
 
-function isnaorneg(a::Vector{T}) where {T}
-	out = BitArray(undef, length(a))
-	for i in 1:length(a)
-		out[i] = !ismissing(a[i]) & (a[i] > zero(T))
-	end
-	return out
-end
 
 # Directly from DataFrames.jl
-
 function dropresponse(trms::Terms)
     if trms.response
         ckeep = 2:size(trms.factors, 2)

@@ -326,11 +326,11 @@ function reg(df::AbstractDataFrame, f::Formula;
     ess = sum(abs2, residuals)
     if has_absorb
         tss = compute_tss(y, rt.intercept, sqrtw)
-        r2_within = convert(Float64, 1 - ess / tss)
+        r2_within = 1 - ess / tss
     end
     tss = compute_tss(oldy, has_intercept, sqrtw)
-    r2 = convert(Float64, 1 - ess / tss)
-    r2_a = convert(Float64, 1 - ess / tss * (nobs - has_intercept) / df_residual)
+    r2 = 1 - ess / tss
+    r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual
 
     # Compute standard error
     vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
@@ -458,29 +458,6 @@ evaluate_subset(df, ex::Symbol) = df[ex]
 evaluate_subset(df, ex)  = ex
 
 
-##############################################################################
-##
-## Remove singletons
-##
-##############################################################################
-function remove_singletons!(esample, fixedeffects::Vector{FixedEffect})
-    for f in fixedeffects
-        remove_singletons!(esample, f.refs, zeros(Int, length(f.scale)))
-    end
-end
-
-function remove_singletons!(esample, refs::Vector, cache::Vector{Int})
-    for i in 1:length(esample)
-        if esample[i]
-            cache[refs[i]] += 1
-        end
-    end
-    for i in 1:length(esample)
-        if esample[i] && cache[refs[i]] <= 1
-            esample[i] = false
-        end
-    end
-end
 
 
 
