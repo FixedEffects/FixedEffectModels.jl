@@ -9,85 +9,271 @@
      stroke-width="0.3"
      font-size="3.88"
 >
-<g class="plotroot yscalable" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-1">
-  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-2">
-    <text x="100.82" y="115.39" text-anchor="middle" dy="0.6em">Model</text>
-  </g>
-  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-3">
-    <text x="35.87" y="108.72" text-anchor="middle" dy="0.6em">simple</text>
-    <text x="68.34" y="108.72" text-anchor="middle" dy="0.6em">cluster</text>
-    <text x="100.82" y="108.72" text-anchor="middle" dy="0.6em">1 hd fe</text>
-    <text x="133.29" y="108.72" text-anchor="middle" dy="0.6em">1 hd fe + cluster</text>
-    <text x="165.77" y="108.72" text-anchor="middle" dy="0.6em">2 hd fe</text>
-  </g>
-  <g class="guide colorkey" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-4">
-    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-5">
-      <text x="185.82" y="54.54" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-6" class="color_Julia">Julia</text>
-      <text x="185.82" y="58.17" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-7" class="color_R">R</text>
-      <text x="185.82" y="61.8" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-8" class="color_Stata">Stata</text>
-    </g>
-    <g stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-9">
-      <rect x="183" y="53.64" width="1.81" height="1.81" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-10" class="color_Julia" fill="#00BFFF"/>
-      <rect x="183" y="57.26" width="1.81" height="1.81" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-11" class="color_R" fill="#D4CA3A"/>
-      <rect x="183" y="60.89" width="1.81" height="1.81" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-12" class="color_Stata" fill="#FF5EA0"/>
-    </g>
-    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-13">
-      <text x="183" y="50.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-14">Language</text>
+<g class="plotroot yscalable" id="img-19c97d59-1">
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="img-19c97d59-2">
+    <g transform="translate(100.82,115.39)">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.6em">Model</text>
+      </g>
     </g>
   </g>
-  <g clip-path="url(#fig-fa136079e66a4bf8941ce0769ac0c493-element-16)" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-15">
-    <g pointer-events="visible" opacity="1" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-17">
-      <rect x="19.63" y="5" width="162.37" height="102.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-18"/>
+  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="img-19c97d59-3">
+    <g transform="translate(35.87,108.72)">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.6em">simple</text>
+      </g>
     </g>
-    <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-19">
-      <path fill="none" d="M19.63,105.71 L 182 105.71" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-20"/>
-      <path fill="none" d="M19.63,81.04 L 182 81.04" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-21"/>
-      <path fill="none" d="M19.63,56.36 L 182 56.36" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-22"/>
-      <path fill="none" d="M19.63,31.68 L 182 31.68" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-23"/>
-      <path fill="none" d="M19.63,7 L 182 7" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-24"/>
+    <g transform="translate(68.34,108.72)">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.6em">cluster</text>
+      </g>
     </g>
-    <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-25">
-      <path fill="none" d="M52.11,5 L 52.11 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-26"/>
-      <path fill="none" d="M84.58,5 L 84.58 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-27"/>
-      <path fill="none" d="M117.05,5 L 117.05 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-28"/>
-      <path fill="none" d="M149.53,5 L 149.53 107.72" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-29"/>
+    <g transform="translate(100.82,108.72)">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.6em">1 hd fe</text>
+      </g>
     </g>
-    <g class="plotpanel" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-30">
-      <g class="geometry" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-31">
-        <g stroke-width="0.3" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-32">
-          <circle cx="35.87" cy="104.72" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-33" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
-          <circle cx="68.34" cy="104.36" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-34" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
-          <circle cx="100.82" cy="104.51" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-35" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
-          <circle cx="133.29" cy="104.22" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-36" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
-          <circle cx="165.77" cy="103" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-37" class="color_Julia" fill="#00BFFF" stroke="#FFFFFF"/>
-          <circle cx="35.87" cy="92.11" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-38" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
-          <circle cx="68.34" cy="92.14" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-39" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
-          <circle cx="100.82" cy="84.15" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-40" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
-          <circle cx="133.29" cy="71.52" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-41" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
-          <circle cx="165.77" cy="79.44" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-42" class="color_R" fill="#D4CA3A" stroke="#FFFFFF"/>
-          <circle cx="35.87" cy="104.53" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-43" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
-          <circle cx="68.34" cy="94.71" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-44" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
-          <circle cx="100.82" cy="90.4" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-45" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
-          <circle cx="133.29" cy="53.38" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-46" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
-          <circle cx="165.77" cy="23.54" r="1" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-47" class="color_Stata" fill="#FF5EA0" stroke="#FFFFFF"/>
+    <g transform="translate(133.29,108.72)">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.6em">1 hd fe + cluster</text>
+      </g>
+    </g>
+    <g transform="translate(165.77,108.72)">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.6em">2 hd fe</text>
+      </g>
+    </g>
+  </g>
+  <g class="guide colorkey" id="img-19c97d59-4">
+    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="img-19c97d59-5">
+      <g transform="translate(185.82,54.54)" id="img-19c97d59-6" class="color_Julia">
+        <g class="primitive">
+          <text dy="0.35em">Julia</text>
+        </g>
+      </g>
+      <g transform="translate(185.82,58.17)" id="img-19c97d59-7" class="color_R">
+        <g class="primitive">
+          <text dy="0.35em">R</text>
+        </g>
+      </g>
+      <g transform="translate(185.82,61.8)" id="img-19c97d59-8" class="color_Stata">
+        <g class="primitive">
+          <text dy="0.35em">Stata</text>
+        </g>
+      </g>
+    </g>
+    <g stroke="#000000" stroke-opacity="0.000" id="img-19c97d59-9">
+      <g transform="translate(183.91,54.54)" id="img-19c97d59-10" class="color_Julia" fill="#00BFFF">
+        <path d="M-0.91,-0.91 L 0.91 -0.91 0.91 0.91 -0.91 0.91 z" class="primitive"/>
+      </g>
+      <g transform="translate(183.91,58.17)" id="img-19c97d59-11" class="color_R" fill="#D4CA3A">
+        <path d="M-0.91,-0.91 L 0.91 -0.91 0.91 0.91 -0.91 0.91 z" class="primitive"/>
+      </g>
+      <g transform="translate(183.91,61.8)" id="img-19c97d59-12" class="color_Stata" fill="#FF6DAE">
+        <path d="M-0.91,-0.91 L 0.91 -0.91 0.91 0.91 -0.91 0.91 z" class="primitive"/>
+      </g>
+    </g>
+    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="img-19c97d59-13">
+      <g transform="translate(183,50.72)" id="img-19c97d59-14">
+        <g class="primitive">
+          <text>Language</text>
         </g>
       </g>
     </g>
   </g>
-  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-48">
-    <text x="18.63" y="105.71" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-49">0</text>
-    <text x="18.63" y="81.04" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-50">25</text>
-    <text x="18.63" y="56.36" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-51">50</text>
-    <text x="18.63" y="31.68" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-52">75</text>
-    <text x="18.63" y="7" text-anchor="end" dy="0.35em" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-53">100</text>
+  <g clip-path="url(#img-19c97d59-15)">
+    <g id="img-19c97d59-16">
+      <g pointer-events="visible" opacity="1" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="img-19c97d59-17">
+        <g transform="translate(100.82,56.36)" id="img-19c97d59-18">
+          <path d="M-81.19,-51.36 L 81.19 -51.36 81.19 51.36 -81.19 51.36 z" class="primitive"/>
+        </g>
+      </g>
+      <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="img-19c97d59-19">
+        <g transform="translate(100.82,105.71)" id="img-19c97d59-20">
+          <path fill="none" d="M-81.19,0 L 81.19 0" class="primitive"/>
+        </g>
+        <g transform="translate(100.82,81.04)" id="img-19c97d59-21">
+          <path fill="none" d="M-81.19,0 L 81.19 0" class="primitive"/>
+        </g>
+        <g transform="translate(100.82,56.36)" id="img-19c97d59-22">
+          <path fill="none" d="M-81.19,0 L 81.19 0" class="primitive"/>
+        </g>
+        <g transform="translate(100.82,31.68)" id="img-19c97d59-23">
+          <path fill="none" d="M-81.19,0 L 81.19 0" class="primitive"/>
+        </g>
+        <g transform="translate(100.82,7)" id="img-19c97d59-24">
+          <path fill="none" d="M-81.19,0 L 81.19 0" class="primitive"/>
+        </g>
+      </g>
+      <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="img-19c97d59-25">
+        <g transform="translate(52.11,56.36)" id="img-19c97d59-26">
+          <path fill="none" d="M0,-51.36 L 0 51.36" class="primitive"/>
+        </g>
+        <g transform="translate(84.58,56.36)" id="img-19c97d59-27">
+          <path fill="none" d="M0,-51.36 L 0 51.36" class="primitive"/>
+        </g>
+        <g transform="translate(117.05,56.36)" id="img-19c97d59-28">
+          <path fill="none" d="M0,-51.36 L 0 51.36" class="primitive"/>
+        </g>
+        <g transform="translate(149.53,56.36)" id="img-19c97d59-29">
+          <path fill="none" d="M0,-51.36 L 0 51.36" class="primitive"/>
+        </g>
+      </g>
+      <g class="plotpanel" id="img-19c97d59-30">
+        <metadata>
+          <boundingbox value="19.63166666666669mm 5.0mm 162.37083333333334mm 102.715mm"/>
+          <unitbox value="0.5 102.02603454388897 5.0 -104.05206908777795"/>
+        </metadata>
+        <g class="geometry" id="img-19c97d59-31">
+          <g stroke-width="0.3" id="img-19c97d59-32">
+            <g class="color_Stata" stroke="#FFFFFF" fill="#FF6DAE" id="img-19c97d59-33">
+              <g class="marker" id="img-19c97d59-34">
+                <g transform="translate(165.77,23.54)" id="img-19c97d59-35">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Stata" stroke="#FFFFFF" fill="#FF6DAE" id="img-19c97d59-36">
+              <g class="marker" id="img-19c97d59-37">
+                <g transform="translate(133.29,53.38)" id="img-19c97d59-38">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Stata" stroke="#FFFFFF" fill="#FF6DAE" id="img-19c97d59-39">
+              <g class="marker" id="img-19c97d59-40">
+                <g transform="translate(100.82,90.4)" id="img-19c97d59-41">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Stata" stroke="#FFFFFF" fill="#FF6DAE" id="img-19c97d59-42">
+              <g class="marker" id="img-19c97d59-43">
+                <g transform="translate(68.34,94.71)" id="img-19c97d59-44">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Stata" stroke="#FFFFFF" fill="#FF6DAE" id="img-19c97d59-45">
+              <g class="marker" id="img-19c97d59-46">
+                <g transform="translate(35.87,104.53)" id="img-19c97d59-47">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_R" stroke="#FFFFFF" fill="#D4CA3A" id="img-19c97d59-48">
+              <g class="marker" id="img-19c97d59-49">
+                <g transform="translate(165.77,94.71)" id="img-19c97d59-50">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_R" stroke="#FFFFFF" fill="#D4CA3A" id="img-19c97d59-51">
+              <g class="marker" id="img-19c97d59-52">
+                <g transform="translate(133.29,84.79)" id="img-19c97d59-53">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_R" stroke="#FFFFFF" fill="#D4CA3A" id="img-19c97d59-54">
+              <g class="marker" id="img-19c97d59-55">
+                <g transform="translate(100.82,90.41)" id="img-19c97d59-56">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_R" stroke="#FFFFFF" fill="#D4CA3A" id="img-19c97d59-57">
+              <g class="marker" id="img-19c97d59-58">
+                <g transform="translate(68.34,102.23)" id="img-19c97d59-59">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_R" stroke="#FFFFFF" fill="#D4CA3A" id="img-19c97d59-60">
+              <g class="marker" id="img-19c97d59-61">
+                <g transform="translate(35.87,102.23)" id="img-19c97d59-62">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Julia" stroke="#FFFFFF" fill="#00BFFF" id="img-19c97d59-63">
+              <g class="marker" id="img-19c97d59-64">
+                <g transform="translate(165.77,103)" id="img-19c97d59-65">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Julia" stroke="#FFFFFF" fill="#00BFFF" id="img-19c97d59-66">
+              <g class="marker" id="img-19c97d59-67">
+                <g transform="translate(133.29,104.22)" id="img-19c97d59-68">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Julia" stroke="#FFFFFF" fill="#00BFFF" id="img-19c97d59-69">
+              <g class="marker" id="img-19c97d59-70">
+                <g transform="translate(100.82,104.51)" id="img-19c97d59-71">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Julia" stroke="#FFFFFF" fill="#00BFFF" id="img-19c97d59-72">
+              <g class="marker" id="img-19c97d59-73">
+                <g transform="translate(68.34,104.36)" id="img-19c97d59-74">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+            <g class="color_Julia" stroke="#FFFFFF" fill="#00BFFF" id="img-19c97d59-75">
+              <g class="marker" id="img-19c97d59-76">
+                <g transform="translate(35.87,104.72)" id="img-19c97d59-77">
+                  <circle cx="0" cy="0" r="0.9" class="primitive"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
   </g>
-  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-54">
-    <text x="8.81" y="54.36" text-anchor="middle" dy="0.35em" transform="rotate(-90, 8.81, 56.36)" id="fig-fa136079e66a4bf8941ce0769ac0c493-element-55">Time (seconds)</text>
+  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="img-19c97d59-78">
+    <g transform="translate(18.63,105.71)" id="img-19c97d59-79">
+      <g class="primitive">
+        <text text-anchor="end" dy="0.35em">0</text>
+      </g>
+    </g>
+    <g transform="translate(18.63,81.04)" id="img-19c97d59-80">
+      <g class="primitive">
+        <text text-anchor="end" dy="0.35em">25</text>
+      </g>
+    </g>
+    <g transform="translate(18.63,56.36)" id="img-19c97d59-81">
+      <g class="primitive">
+        <text text-anchor="end" dy="0.35em">50</text>
+      </g>
+    </g>
+    <g transform="translate(18.63,31.68)" id="img-19c97d59-82">
+      <g class="primitive">
+        <text text-anchor="end" dy="0.35em">75</text>
+      </g>
+    </g>
+    <g transform="translate(18.63,7)" id="img-19c97d59-83">
+      <g class="primitive">
+        <text text-anchor="end" dy="0.35em">100</text>
+      </g>
+    </g>
+  </g>
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="img-19c97d59-84">
+    <g transform="translate(8.81,54.36)" id="img-19c97d59-85">
+      <g class="primitive">
+        <text text-anchor="middle" dy="0.35em" transform="rotate(-90,0, 2)">Time (seconds)</text>
+      </g>
+    </g>
   </g>
 </g>
 <defs>
-<clipPath id="fig-fa136079e66a4bf8941ce0769ac0c493-element-16">
-  <path d="M19.63,5 L 182 5 182 107.72 19.63 107.72" />
-</clipPath
-></defs>
+  <clipPath id="img-19c97d59-15">
+    <path d="M19.63,5 L 182 5 182 107.72 19.63 107.72" />
+  </clipPath>
+</defs>
 </svg>

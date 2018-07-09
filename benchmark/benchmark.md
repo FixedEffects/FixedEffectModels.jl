@@ -52,20 +52,20 @@ Code to reproduce this graph:
     x2 =  runif(N)
   )
   system.time(felm(y ~ x1 + x2, df))
-  #>    user  system elapsed 
-  #>  12.660   1.227  13.779 
+  #>   user  system elapsed
+  #>    3.529   0.597   4.144 
   system.time(felm(y ~ x1 + x2|0|0|id2, df))
-  #>    user  system elapsed 
-  #>  12.530   1.289  13.751 
+  #> user  system elapsed 
+  #> 3.529   0.597   4.144 
   system.time(felm(y ~ x1 + x2|id1, df))
   #>    user  system elapsed 
-  #>  20.750   1.516  21.847 
+  #> 15.507   0.980  16.462 
   system.time(felm(y ~ x1 + x2|id1|0|id1, df)) 
-  #>    user  system elapsed 
-  #>  33.163   2.025  34.639
+  #>  user  system elapsed 
+  #> 21.197   1.163  22.327 
   system.time(felm(y ~ x1 + x2|(id1 + id2), df))
-  #>    user  system elapsed 
-  #>  26.603   1.954  26.614
+  #>  user  system elapsed 
+  #> 11.144   1.321  11.031 
   ```
 
 
