@@ -43,7 +43,12 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     dim = size(x.regressors, 2) * size(x.residuals, 2)
     S = fill(zero(Float64), (dim, dim))
     for c in combinations(names(v.clusters))
-        f = group(v.clusters, c)
+        if length(c) == 1
+            # no need for group
+            f = v.clusters[c[1]]
+        else
+            f = group(v.clusters, c)
+        end
         if rem(length(c), 2) == 1
             S += helper_cluster(x.regressors, x.residuals, f)
         else
@@ -64,17 +69,15 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
     for k in 1:size(res, 2)
         for j in 1:size(X, 2)
             index += 1
-            @simd for i in 1:size(X, 1)
+            @inbounds @simd for i in 1:size(X, 1)
                 X2[f.refs[i], index] += X[i, j] * res[i, k]
             end
         end
     end
     S2 = X2' * X2
-    if length(f.pool) == size(X, 1)
+    if length(f.pool) < size(X, 1)
         # if only one obs by pool, for instance cluster(year state)
         # use White, as in Petersen (2009) & Thomson (2011) 
-        return S2
-    else
         rmul!(S2, length(f.pool) / (length(f.pool) - 1))
     end
     return S2

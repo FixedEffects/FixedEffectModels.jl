@@ -12,23 +12,20 @@ Code to reproduce this graph:
   id2 = rand(1:K, N)
   x1 =  randn(N)
   x2 =  randn(N)
-  w = cos(id1)
+  w = cos.(id1)
   y= 3 .* x1 .+ 2 .* x2 .+ sin.(id1) .+ cos.(id2).^2 .+ randn(N)
-  df = DataFrame(id1 = pool(id1), id2 = pool(id2), x1 = x1, x2 = x2, w = w, y = y)
-  @time reg(y ~ x1 + x2, df)
-  # 0.601445 seconds (756 allocations: 1004.986 MB, 32.06% gc time)
-  @time reg(y ~ x1 + x2, df, VcovCluster(:id2))
-  # 1.213357  seconds (886 allocations: 1.070 GB, 29.14% gc time)
-  @time reg(y ~ x1 + x2 |> id1, df)
-  # 1.476390 seconds (1.11 k allocations: 1.101 GB, 17.80% gc time)
-  @time reg(y ~ x1 + x2 |> id1, df, VcovCluster(:id1))
-  # 2.847599 seconds (1.27 k allocations: 1.181 GB, 17.65% gc time)
-  @time reg(y ~ x1 + x2 |> id1 + id2, df)
-  # 3.329693 seconds (1.25 k allocations: 1.189 GB, 10.25% gc time)
-  @time reg(y ~ x1 + x2 |> id1, df, weight = :w)
-  # 3.125495 seconds (40.01 M allocations: 1.233 GB, 14.61% gc time)
-  @time reg(y ~ x1 + x2 |> id1 + id2, df, weight = :w)
-  # 3.883503 seconds (40.01 M allocations: 1.278 GB, 10.48% gc time)
+  df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2, w = w, y = y)
+  @time reg(df, @model(y ~ x1 + x2))
+  #0.601445 seconds (1.05 k allocations: 535.311 MiB, 31.95% gc time)
+  @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id2)))
+  #  1.213357 seconds (2.01 k allocations: 878.712 MiB, 16.65% gc time)
+  @time reg(df, @model(y ~ x1 + x2, fe = id1))
+  # 1.476390 seconds (890 allocations: 1.175 GB, 20.15% gc time)
+  @time reg(df, @model(y ~ x1 + x2, fe = id1, vcov = cluster(id1)))
+  # 2.448953 seconds (500.21 k allocations: 1.052 GiB, 17.36% gc time)
+  @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2))
+  # 3.639817 seconds (1.84 k allocations: 999.675 MiB, 11.25% gc time)
+  @
   ````
 
   Additionally, `FixedEffectModels` can use a sparse matrix factorization
@@ -66,10 +63,11 @@ Code to reproduce this graph:
   #> 21.197   1.163  22.327 
   system.time(felm(y ~ x1 + x2|(id1 + id2), df))
   #>  user  system elapsed 
-  #> 11.144   1.321  11.031 
+  #> 11.144   1.321  11.031
+  system.time(getfe(felm(y ~ x1 + x2|(id1 + id2), df)))
+  #>  user  system elapsed 
+  #>  14.330   1.444  14.202 
   ```
-
-
 
   Stata
   ```
@@ -79,22 +77,24 @@ Code to reproduce this graph:
   set obs `N'
   gen  id1 =  floor(runiform() * (`N'+1)/`K')
   gen  id2 =  floor(runiform() * (`K'+1))
-  gen   y =  runiform()
   gen   x1 =  runiform()
   gen   x2 =  runiform()
+  gen   y =  3 * x1 + 2 * x2 + sin(id1) + cos(id2) + runiform()
   timer clear
 
   set rmsg on
   reg y x1 x2
-  #> r; t=1.20 12:32:46
+  #> r; t=1.20
   reg y x1 x2, cl(id2)
   #> r; t=11.15 12:32:57
   areg y x1 x2, a(id1)
-  #>r; t=15.51 12:33:13
+  #>r; t=15.51
   areg y x1 x2, a(id1) cl(id1)
-  #> r; t=53.02 12:34:06
-  reghdfe y x1 x2, a(id1 id2) fast keepsingletons
-  #> r; t=100.50 12:35:47
+  #> r; t=53.02
+  reghdfe y x1 x2, a(id1 id2) fast
+  #> r; t=88.98 
+  reghdfe y x1 x2, a(fe1 = id1 fe2 = id2)
+  #> r; t=108.47 12:35:47
   ````
 
 

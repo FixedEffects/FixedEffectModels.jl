@@ -17,13 +17,10 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 @time reg(df, @model(y ~ x1 + x2, fe = id1))
 # 1.476390 seconds (890 allocations: 1.175 GB, 20.15% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1, vcov = cluster(id1)))
-# 2.847599 seconds (702.12 k allocations: 1011.550 MiB, 17.50% gc time)
+# 2.448953 seconds (500.21 k allocations: 1.052 GiB, 17.36% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2))
-#  3.329693 seconds (201.97 k allocations: 778.576 MiB, 11.40% gc time)
-@time reg(df, @model(y ~ x1 + x2, fe = id1, weights = w))
-# 1.1 seconds (20.00 M allocations: 1.010 GB, 18.82% gc time)
-@time reg(df, @model(y ~ x1 + x2, fe = id1 + id2, weights = w))
-# 2.353851 seconds (202.01 k allocations: 550.882 MiB, 15.65% gc time)
+#  3.639817 seconds (1.84 k allocations: 999.675 MiB, 11.25% gc time)
+
 
 
 
