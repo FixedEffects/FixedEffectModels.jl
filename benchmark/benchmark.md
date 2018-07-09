@@ -13,18 +13,18 @@ Code to reproduce this graph:
   x1 =  randn(N)
   x2 =  randn(N)
   w = cos(id1)
-  y= 3 .* x1 .+ 5 .* x2 .+ cos(id1) .+ cos(id2).^2 .+ randn(N)
+  y= 3 .* x1 .+ 2 .* x2 .+ sin.(id1) .+ cos.(id2).^2 .+ randn(N)
   df = DataFrame(id1 = pool(id1), id2 = pool(id2), x1 = x1, x2 = x2, w = w, y = y)
   @time reg(y ~ x1 + x2, df)
-  # 1.151388 seconds (756 allocations: 1004.986 MB, 32.06% gc time)
+  # 0.601445 seconds (756 allocations: 1004.986 MB, 32.06% gc time)
   @time reg(y ~ x1 + x2, df, VcovCluster(:id2))
-  # 1.482705 seconds (886 allocations: 1.070 GB, 29.14% gc time)
+  # 1.213357  seconds (886 allocations: 1.070 GB, 29.14% gc time)
   @time reg(y ~ x1 + x2 |> id1, df)
-  # 1.981072 seconds (1.11 k allocations: 1.101 GB, 17.80% gc time)
+  # 1.476390 seconds (1.11 k allocations: 1.101 GB, 17.80% gc time)
   @time reg(y ~ x1 + x2 |> id1, df, VcovCluster(:id1))
-  # 2.531778 seconds (1.27 k allocations: 1.181 GB, 17.65% gc time)
+  # 2.847599 seconds (1.27 k allocations: 1.181 GB, 17.65% gc time)
   @time reg(y ~ x1 + x2 |> id1 + id2, df)
-  # 4.611742 seconds (1.25 k allocations: 1.189 GB, 10.25% gc time)
+  # 3.329693 seconds (1.25 k allocations: 1.189 GB, 10.25% gc time)
   @time reg(y ~ x1 + x2 |> id1, df, weight = :w)
   # 3.125495 seconds (40.01 M allocations: 1.233 GB, 14.61% gc time)
   @time reg(y ~ x1 + x2 |> id1 + id2, df, weight = :w)
@@ -47,10 +47,11 @@ Code to reproduce this graph:
   df = data.frame(
     id1 =  as.factor(sample(N/K, N, replace = TRUE)),
     id2 =  as.factor(sample(K, N, replace = TRUE)),
-    y =  runif(N),
     x1 =  runif(N),
     x2 =  runif(N)
   )
+  df[, "y"] =  3 * df[, "x1"] + 2 * df[, "x2"] + sin(as.numeric(df[, "id1"])) + cos(as.numeric(df[, "id2"])) + runif(N)
+
   system.time(felm(y ~ x1 + x2, df))
   #>   user  system elapsed
   #>    3.529   0.597   4.144 
