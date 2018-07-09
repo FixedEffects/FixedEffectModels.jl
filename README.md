@@ -6,7 +6,7 @@ This package estimates linear models with high dimensional categorical variables
 
 Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package is usually much faster than these two options. The package implements a novel algorithm, which combines projection methods with the conjugate gradient descent.
 
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
+![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c512151/benchmark/result.svg)
 
 To install the package, 
 
