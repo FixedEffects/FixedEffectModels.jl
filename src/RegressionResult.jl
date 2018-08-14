@@ -249,13 +249,13 @@ end
 
 title(::RegressionResultIV) = "IV Model"
 top(x::RegressionResultIV) = [
-            "Number of obs" sprint(show, nobs(x), contect = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), contect = :compact => true);
+            "Number of obs" sprint(show, nobs(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
-            "F-Statistic" sprint(show, x.F, contect = :compact => true);
+            "F-Statistic" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
-            "First Stage F-stat (KP)" sprint(show, x.F_kp, contect = :compact => true);
+            "First Stage F-stat (KP)" sprint(show, x.F_kp, context = :compact => true);
             "First Stage p-val (KP)" format_scientific(x.p_kp);
             ]
 
