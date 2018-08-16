@@ -21,7 +21,7 @@ import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categor
 import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing
 import Combinatorics: combinations
 using Reexport
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, df_residual, r2, adjr2
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, df_residual, dof_residual, r2, adjr2
 @reexport using StatsBase
 import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
 ##############################################################################
