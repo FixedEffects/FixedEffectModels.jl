@@ -113,7 +113,6 @@ function getindex(x::FixedEffect, idx)
     refs = x.refs[idx]
     sqrtw = x.sqrtw[idx]
     interaction = x.interaction[idx]
-
     scale = copy(x.scale)
     for i in 1:length(refs)
         scale[refs[i]] += abs2(interaction[i] * sqrtw[i])

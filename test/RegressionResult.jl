@@ -15,6 +15,7 @@ residuals(result, df)
 
 model = @model Sales ~ CPI + (Price ~ Pimin)
 result = reg(df, model)
+show(result)
 predict(result, df)
 residuals(result, df)
 model_response(result, df)
