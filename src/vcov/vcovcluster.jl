@@ -55,7 +55,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
             S -= helper_cluster(x.regressors, x.residuals, f)
         end
     end
-    rmul!(S, (size(x.regressors, 1) - 1) / x.df_residual)
+    rmul!(S, (size(x.regressors, 1) - 1) / x.dof_residual)
     return S
 end
 

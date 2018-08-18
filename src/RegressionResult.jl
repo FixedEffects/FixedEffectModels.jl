@@ -12,14 +12,18 @@ coef(x::AbstractRegressionResult) = x.coef
 coefnames(x::AbstractRegressionResult) = x.coefnames
 vcov(x::AbstractRegressionResult) = x.vcov
 nobs(x::AbstractRegressionResult) = x.nobs
-df_residual(x::AbstractRegressionResult) = x.df_residual
+dof_residual(x::AbstractRegressionResult) = x.dof_residual
+function df_residual(x::AbstractRegressionResult)
+    Base.depwarn("df_residual is deprecated. Use dof_residual", :Source)
+    dof_residual(x)
+end
 r2(x::AbstractRegressionResult) = x.r2
 adjr2(x::AbstractRegressionResult) = x.r2_a
 
 
 
 function confint(x::AbstractRegressionResult) 
-    scale = quantile(TDist(x.df_residual), 1 - (1-0.95)/2)
+    scale = quantile(TDist(x.dof_residual), 1 - (1-0.95)/2)
     se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
@@ -83,7 +87,7 @@ function coeftable(x::AbstractRegressionResult)
     end
     tt = cc ./ se
     CoefTable2(
-        hcat(cc, se, tt, ccdf.(Ref(FDist(1, df_residual(x))), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
+        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
@@ -206,7 +210,7 @@ struct RegressionResult <: AbstractRegressionResult
     formula::Formula        # Original formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degrees of freedoms
+    dof_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -216,7 +220,7 @@ end
 title(::RegressionResult) =  "Linear Model"
 top(x::RegressionResult) = [
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
             "F Statistic" sprint(show, x.F, context = :compact => true);
@@ -236,7 +240,7 @@ struct RegressionResultIV <: AbstractRegressionResult
     formula::Formula        # Original formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degrees of freedoms
+    dof_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -250,7 +254,7 @@ end
 title(::RegressionResultIV) = "IV Model"
 top(x::RegressionResultIV) = [
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.r2_a);
             "F-Statistic" sprint(show, x.F, context = :compact => true);
@@ -273,7 +277,7 @@ struct RegressionResultFE <: AbstractRegressionResult
     feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degrees of freedoms
+    dof_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -288,7 +292,7 @@ end
 title(::RegressionResultFE) = "Fixed Effect Model"
 top(x::RegressionResultFE) = [ 
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 within" format_scientific(x.r2_within);
             "F-Statistic" sprint(show, x.F, context = :compact => true);
@@ -310,7 +314,7 @@ struct RegressionResultFEIV <: AbstractRegressionResult
     feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations
-    df_residual::Int64      # degrees of freedoms
+    dof_residual::Int64      # degrees of freedoms
 
     r2::Float64             # R squared
     r2_a::Float64           # R squared adjusted
@@ -328,7 +332,7 @@ end
 title(::RegressionResultFEIV) = "Fixed effect IV Model"
 top(x::RegressionResultFEIV) = [
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(x) - df_residual(x), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 within" format_scientific(x.r2_within);
             "F Statistic" sprint(show, x.F, context = :compact => true);

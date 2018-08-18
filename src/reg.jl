@@ -320,7 +320,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
     end
     nvars = size(X, 2)
-    df_residual = max(1, nobs - nvars - df_absorb - df_add)
+    dof_residual = max(1, nobs - nvars - df_absorb - df_add)
 
     # Compute ess, tss, r2, r2 adjusted
     ess = sum(abs2, residuals)
@@ -330,10 +330,10 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
     tss = compute_tss(oldy, has_intercept, sqrtw)
     r2 = 1 - ess / tss
-    r2_a = 1 - ess / tss * (nobs - has_intercept) / df_residual
+    r2_a = 1 - ess / tss * (nobs - has_intercept) / dof_residual
 
     # Compute standard error
-    vcov_data = VcovData(Xhat, crossx, residuals, df_residual)
+    vcov_data = VcovData(Xhat, crossx, residuals, dof_residual)
     matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
     # Compute Fstat
@@ -370,19 +370,19 @@ function reg(df::AbstractDataFrame, f::Formula;
     # return
     if !has_iv && !has_absorb 
         return RegressionResult(coef, matrix_vcov, esample, augmentdf, 
-                                coef_names, yname, f, nobs, df_residual, 
+                                coef_names, yname, f, nobs, dof_residual, 
                                 r2, r2_a, F, p)
     elseif has_iv && !has_absorb
         return RegressionResultIV(coef, matrix_vcov, esample, augmentdf, 
-                                  coef_names, yname, f, nobs, df_residual, 
+                                  coef_names, yname, f, nobs, dof_residual, 
                                   r2, r2_a, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
         return RegressionResultFE(coef, matrix_vcov, esample, augmentdf, 
-                                  coef_names, yname, f, feformula, nobs, df_residual, 
+                                  coef_names, yname, f, feformula, nobs, dof_residual, 
                                   r2, r2_a, r2_within, F, p, iterations, converged)
     elseif has_iv && has_absorb 
         return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, 
-                                   coef_names, yname, f, feformula, nobs, df_residual, 
+                                   coef_names, yname, f, feformula, nobs, dof_residual, 
                                    r2, r2_a, r2_within, F, p, F_kp, p_kp, 
                                    iterations, converged)
     end
