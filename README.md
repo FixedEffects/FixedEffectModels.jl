@@ -10,6 +10,7 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 To install the package, 
 
 ```julia
+using Pkg
 Pkg.add("FixedEffectModels")
 ```
 

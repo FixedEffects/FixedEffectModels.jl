@@ -18,7 +18,7 @@ result = reg(df, model)
 show(result)
 predict(result, df)
 residuals(result, df)
-model_response(result, df)
+response(result, df)
 @test  nobs(result) == 1380
 @test vcov(result)[1] ≈ 3.5384578251636785
 

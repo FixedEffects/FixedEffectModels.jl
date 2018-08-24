@@ -6,21 +6,19 @@
 
 abstract type AbstractRegressionResult <: RegressionModel end
 
-
+# Check API at  https://github.com/JuliaStats/StatsBase.jl/blob/11a44398bdc16a00060bc6c2fb65522e4547f159/src/statmodels.jl
 # fields
 coef(x::AbstractRegressionResult) = x.coef
 coefnames(x::AbstractRegressionResult) = x.coefnames
 vcov(x::AbstractRegressionResult) = x.vcov
 nobs(x::AbstractRegressionResult) = x.nobs
 dof_residual(x::AbstractRegressionResult) = x.dof_residual
-function df_residual(x::AbstractRegressionResult)
-    Base.depwarn("df_residual is deprecated. Use dof_residual", :Source)
-    dof_residual(x)
-end
 r2(x::AbstractRegressionResult) = x.r2
-adjr2(x::AbstractRegressionResult) = x.r2_a
-
-
+adjr2(x::AbstractRegressionResult) = x.adjr2
+islinear(x::AbstractRegressionResult) = true
+deviance(x::AbstractRegressionResult) = x.tss
+rss(x::AbstractRegressionResult) = x.rss
+mss(x::AbstractRegressionResult) = deviance(x) - rss(x)
 
 function confint(x::AbstractRegressionResult) 
     scale = quantile(TDist(x.dof_residual), 1 - (1-0.95)/2)
@@ -52,13 +50,30 @@ function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
     out[nonmissing(mf)] = model_response(mf) -  newX * x.coef
 end
 
-function model_response(x::AbstractRegressionResult, df::AbstractDataFrame)
+function response(x::AbstractRegressionResult, df::AbstractDataFrame)
     rf = deepcopy(x.formula)
     secondstage!(rf)
     mf = ModelFrame(Terms(rf), df)
     model_response(mf)
 end
 
+function modelmatrix(x::AbstractRegressionResult, df::AbstractDataFrame)
+    rf = deepcopy(x.formula)
+    secondstage!(rf)
+    mf = ModelFrame(Terms(rf), df)
+    ModelMatrix(mf)
+end
+
+# depreciations
+function df_residual(x::AbstractRegressionResult)
+    Base.depwarn("df_residual is deprecated. Use dof_residual", :Source)
+    dof_residual(x)
+end
+
+function model_response(x::AbstractRegressionResult, df::AbstractDataFrame)
+    Base.depwarn("model_response is deprecated. Use response", :Source)
+    response(x, df)
+end
 
 
 # Display Results
@@ -212,8 +227,10 @@ struct RegressionResult <: AbstractRegressionResult
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
 
+    rss::Float64            # Sum of squared residuals
+    tss::Float64            # Total sum of squares
     r2::Float64             # R squared
-    r2_a::Float64           # R squared adjusted
+    adjr2::Float64          # R squared adjusted
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
 end
@@ -222,7 +239,7 @@ top(x::RegressionResult) = [
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
             "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.r2_a);
+            "R2 Adjusted" format_scientific(x.adjr2);
             "F Statistic" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
             ]
@@ -242,8 +259,10 @@ struct RegressionResultIV <: AbstractRegressionResult
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
 
+    rss::Float64            # Sum of squared residuals
+    tss::Float64            # Total sum of squares
     r2::Float64             # R squared
-    r2_a::Float64           # R squared adjusted
+    adjr2::Float64           # R squared adjusted
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
 
@@ -256,7 +275,7 @@ top(x::RegressionResultIV) = [
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
             "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.r2_a);
+            "R2 Adjusted" format_scientific(x.adjr2);
             "F-Statistic" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
             "First Stage F-stat (KP)" sprint(show, x.F_kp, context = :compact => true);
@@ -279,8 +298,10 @@ struct RegressionResultFE <: AbstractRegressionResult
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
 
+    rss::Float64            # Sum of squared residuals
+    tss::Float64            # Total sum of squares
     r2::Float64             # R squared
-    r2_a::Float64           # R squared adjusted
+    adjr2::Float64           # R squared adjusted
     r2_within::Float64
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
@@ -316,9 +337,12 @@ struct RegressionResultFEIV <: AbstractRegressionResult
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
 
+    rss::Float64            # Sum of squared residuals
+    tss::Float64            # Total sum of squares
     r2::Float64             # R squared
-    r2_a::Float64           # R squared adjusted
+    adjr2::Float64           # R squared adjusted
     r2_within::Float64
+
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
     

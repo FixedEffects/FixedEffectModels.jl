@@ -55,7 +55,6 @@ function reg(df::AbstractDataFrame, f::Formula;
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
-
     ##############################################################################
     ##
     ## Parse formula
@@ -322,15 +321,15 @@ function reg(df::AbstractDataFrame, f::Formula;
     nvars = size(X, 2)
     dof_residual = max(1, nobs - nvars - df_absorb - df_add)
 
-    # Compute ess, tss, r2, r2 adjusted
-    ess = sum(abs2, residuals)
-    if has_absorb
-        tss = compute_tss(y, rt.intercept, sqrtw)
-        r2_within = 1 - ess / tss
-    end
+    # Compute rss, tss, r2, r2 adjusted
+    rss = sum(abs2, residuals)
     tss = compute_tss(oldy, has_intercept, sqrtw)
-    r2 = 1 - ess / tss
-    r2_a = 1 - ess / tss * (nobs - has_intercept) / dof_residual
+    mss = tss - rss
+    r2 = 1 - rss / tss
+    adjr2 = 1 - rss / tss * (nobs - has_intercept) / dof_residual
+    if has_absorb
+        r2_within = 1 - rss / compute_tss(y, rt.intercept, sqrtw)
+    end
 
     # Compute standard error
     vcov_data = VcovData(Xhat, crossx, residuals, dof_residual)
@@ -371,19 +370,19 @@ function reg(df::AbstractDataFrame, f::Formula;
     if !has_iv && !has_absorb 
         return RegressionResult(coef, matrix_vcov, esample, augmentdf, 
                                 coef_names, yname, f, nobs, dof_residual, 
-                                r2, r2_a, F, p)
+                                rss, tss, r2, adjr2, F, p)
     elseif has_iv && !has_absorb
         return RegressionResultIV(coef, matrix_vcov, esample, augmentdf, 
-                                  coef_names, yname, f, nobs, dof_residual, 
-                                  r2, r2_a, F, p, F_kp, p_kp)
+                                  coef_names, yname, f, nobs, dof_residual,
+                                  rss, tss,  r2, adjr2, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
         return RegressionResultFE(coef, matrix_vcov, esample, augmentdf, 
                                   coef_names, yname, f, feformula, nobs, dof_residual, 
-                                  r2, r2_a, r2_within, F, p, iterations, converged)
+                                  rss, tss, r2, adjr2, r2_within, F, p, iterations, converged)
     elseif has_iv && has_absorb 
         return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, 
                                    coef_names, yname, f, feformula, nobs, dof_residual, 
-                                   r2, r2_a, r2_within, F, p, F_kp, p_kp, 
+                                   rss, tss, r2, adjr2, r2_within, F, p, F_kp, p_kp, 
                                    iterations, converged)
     end
 end
