@@ -9,7 +9,6 @@ module FixedEffectModels
 import Base: size, copyto!, getindex, length, fill!, eltype, length, view, adjoint
 import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I, Adjoint, diag, qr
 import LinearAlgebra.BLAS: gemm!
-#to suppress
 import Statistics: mean, quantile
 import Distributed: pmap
 import Printf: @sprintf

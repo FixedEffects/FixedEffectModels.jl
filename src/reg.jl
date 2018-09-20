@@ -284,7 +284,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         if all(esample)
             augmentdf[:residuals] = residuals ./ sqrtw
         else
-            augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(undef, length(esample))
+            augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
             augmentdf[esample, :residuals] = residuals ./ sqrtw 
         end
         if has_absorb

@@ -65,16 +65,13 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     if has_weights
         esample .&= isnaorneg(df[weightvar])
     end
-    subdf = df[esample, all_vars]
-    all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
-    for v in all_except_absorb_vars
-        if typeof(df[v]) <: CategoricalVector
-            droplevels!(subdf[v])
-        end
-    end
+    #all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
+    #for v in all_except_absorb_vars
+    #    if typeof(df[v]) <: CategoricalVector
+    #        droplevels!(subdf[v])
+    #    end
+    #end
 
-    # Compute weight vector
-    sqrtw = get_weights(df, esample, weightvar)
 
     # initialize iterations & converged
     iterations = Int[]
@@ -82,9 +79,17 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
-        fixedeffects = FixedEffect(subdf, feformula, sqrtw)
+        sqrtw = get_weights(df, trues(length(esample)), weights)
+        fixedeffects = FixedEffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))), sqrtw)
+    end
+    nobs = sum(esample)
+    (nobs > 0) || error("sample is empty")
+    # Compute weight vector
+    sqrtw = get_weights(df, esample, weightvar)
+    if has_absorb
+        fixedeffects = FixedEffect[x[esample] for x in fixedeffects]
         # in case there is any intercept fe, remove the intercept
-        if any([typeof(f.interaction) <: Ones for f in fixedeffects]) 
+        if any([typeof(f.interactionname) <: Nothing for f in fixedeffects]) 
             xt.intercept = false
         end
         pfe = FixedEffectProblem(fixedeffects, Val{method})
@@ -96,11 +101,11 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     yf = @eval(@formula($nothing ~ $(rf.lhs)))
     yt = Terms(yf)
     yt.intercept = false
-    mfY = ModelFrame2(yt, subdf, esample)
+    mfY = ModelFrame2(yt, df, esample)
     Y = ModelMatrix(mfY).m
     Y .= Y .* sqrtw
     if add_mean
-        m = mean(Y, 1)
+        m = mean(Y, dims = 1)
     end
     residualize!(Y, pfe, iterations, converged, maxiter = maxiter, tol = tol)
 
@@ -108,10 +113,10 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     xvars = allvars(xf)
     if length(xvars) > 0 || xt.intercept
         if length(xvars) > 0 
-            mf = ModelFrame2(xt, subdf, esample)
+            mf = ModelFrame2(xt, df, esample)
             X = ModelMatrix(mf).m
         else
-            X = fill(one(Float64), (size(subdf, 1), 1))
+            X = fill(one(Float64), (length(esample), 1))
         end     
         X .= X .* sqrtw
         residualize!(X, pfe, iterations, converged, maxiter = maxiter, tol = tol)
@@ -131,7 +136,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     end
 
     # Return a dataframe
-    yvars = convert(Vector{Symbol}, map(string, yt.eterms))
+    yvars = convert(Vector{Symbol}, Symbol.(yt.eterms))
     out = DataFrame()
     j = 0
     for y in yvars

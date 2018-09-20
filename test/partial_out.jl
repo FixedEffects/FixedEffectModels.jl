@@ -1,4 +1,4 @@
-using DataFrames, GLM, Test
+using DataFrames, Statistics, GLM, Test
 
 df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])
@@ -17,10 +17,10 @@ test = (
     convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState))),
     convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState))),
     convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1))),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, add_mean = true))), 1),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))), 1),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))), 1),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))), 1),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, add_mean = true))), dims = 1),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))), dims = 1),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))), dims = 1),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))), dims = 1),
     convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, weights = Pop))),
     convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, weights = Pop))),
     convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, weights = Pop))),
