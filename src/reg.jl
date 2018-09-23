@@ -291,7 +291,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             augmentdf[esample, :residuals] = residuals ./ sqrtw 
         end
     end
-    if save
+    if save || savefe
         if has_absorb
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
