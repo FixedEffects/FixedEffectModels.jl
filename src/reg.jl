@@ -5,6 +5,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `df` : AbstractDataFrame
 * `model` : A Model created using `@model`. See `@model`.
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
+* `saveresid` : Should residuals be saved in a dataframe?
+* `savefe`: Should estimated fixed effects be saved in a dataframe?
 * `maxiter` : Maximum number of iterations
 * `tol` : tolerance
 * `method` : Default is `:lsmr` (akin to conjugate gradient descent).  WIth parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
@@ -46,7 +48,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     weights::Union{Symbol, Expr, Nothing} = nothing, 
     subset::Union{Symbol, Expr, Nothing} = nothing, 
     maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
-    save::Bool = false,  method::Symbol = :lsmr
+    save::Bool = false, saveresid::Bool = false, 
+    savefe::Bool = false,  method::Symbol = :lsmr
    )
     feformula = fe
     if isa(vcov, Symbol)
@@ -280,13 +283,15 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # save residuals in a new dataframe
     augmentdf = DataFrame()
-    if save
+    if save || saveresid
         if all(esample)
             augmentdf[:residuals] = residuals ./ sqrtw
         else
             augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
             augmentdf[esample, :residuals] = residuals ./ sqrtw 
         end
+    end
+    if save
         if has_absorb
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
