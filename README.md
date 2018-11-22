@@ -109,7 +109,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
   - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
   - sparse factorization with `method = :cholesky` or `method = :qr` (using the SuiteSparse library)
 
-  The default method`lsmr`, should be the fastest in most cases. If the method does not converge, frist please get in touch, I'd be interested to hear about your problem.  Second use the `method = :cholesky`, which should do the trick.
+  The default method`lsmr`, should be the fastest in most cases. If the method does not converge, first please get in touch, I'd be interested to hear about your problem.  Second use the `method = :cholesky`, which should do the trick.
 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 
