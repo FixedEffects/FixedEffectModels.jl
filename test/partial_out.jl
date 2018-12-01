@@ -13,18 +13,18 @@ function glm_helper(formula::Formula, df::DataFrame, wts::Symbol)
 end
 
 test = (
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI))),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState))),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState))),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1))),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, add_mean = true))), dims = 1),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))), dims = 1),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))), dims = 1),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))), dims = 1),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, weights = Pop))),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, weights = Pop))),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, weights = Pop))),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, weights = Pop))),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI))[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState))[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState))[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1))[1]),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, add_mean = true))[1]), dims = 1[1]),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))[1]), dims = 1[1]),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))[1]), dims = 1[1]),
+    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))[1]), dims = 1[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, weights = Pop))[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, weights = Pop))[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, weights = Pop))[1]),
+    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, weights = Pop))[1]),
     )
 
 answer = (
@@ -45,3 +45,12 @@ answer = (
 for i in 1:12
     @test test[i] ≈ answer[i] atol = 1e-5
 end
+
+
+
+# test matrix version
+using  DataFrames, FixedEffectModels
+p1 = categorical(repeat(1:5, inner = 2))
+p2 = categorical(repeat(1:5, outer = 2))
+X = rand(10, 5)
+partial_out!(X, [FixedEffect(p1), FixedEffect(p2)])

@@ -11,11 +11,10 @@ struct CholeskyFixedEffectProblem{T} <: FixedEffectProblem
     x::Vector{Float64}
 end
 
-function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:cholesky}})
-    m = sparse(fes)
-    # do not use cholesky(Symmetric()) or cholesky!() cause neither does work with sparse matrices
-    cholm = cholesky(m' * m)
-    total_len = reduce(+, map(fe -> sum(fe.scale .!= 0), fes))
+function FixedEffectProblem(fes::Vector{FixedEffect}, sqrtw::AbstractVector, ::Type{Val{:cholesky}})
+    m = sparse(fes, sqrtw)
+    cholm = cholesky(Symmetric(m' * m))
+    total_len = sum(length(unique(fe.refs)) for fe in fes)
     CholeskyFixedEffectProblem(fes, m, cholm, Array{Float64}(undef, total_len))
 end
 
@@ -36,8 +35,8 @@ struct QRFixedEffectProblem{T} <: FixedEffectProblem
     b::Vector{Float64}
 end
 
-function FixedEffectProblem(fes::Vector{FixedEffect}, ::Type{Val{:qr}})
-    m = sparse(fes)
+function FixedEffectProblem(fes::Vector{FixedEffect}, sqrtw::AbstractVector, ::Type{Val{:qr}})
+    m = sparse(fes, sqrtw)
     qrm = qr(m)
     b = Array{Float64}(undef, length(fes[1].refs))
     QRFixedEffectProblem(fes, m, qrm, b)
@@ -56,7 +55,7 @@ end
 ##############################################################################
 
 # construct the sparse matrix of fixed effects A in  A'Ax = A'r
-function sparse(fes::Vector{FixedEffect})
+function sparse(fes::Vector{FixedEffect}, sqrtw::AbstractVector)
     # construct model matrix A constituted by fixed effects
     nobs = length(fes[1].refs)
     N = length(fes) * nobs
@@ -70,9 +69,9 @@ function sparse(fes::Vector{FixedEffect})
            idx += 1
            I[idx] = i
            J[idx] = start + fe.refs[i]
-           V[idx] = fe.interaction[i] * fe.sqrtw[i]
+           V[idx] = fe.interaction[i] * sqrtw[i]
        end
-       start += sum(fe.scale .!= 0)
+       start += length(unique(fe.refs))
     end
     sparse(I, J, V)
 end
@@ -91,9 +90,9 @@ function solve_coefficients!(fep::Union{CholeskyFixedEffectProblem, QRFixedEffec
     x = solve!(fep, r; kwargs...)
     out = Vector{Float64}[]
     iend = 0
-    for fe in get_fes(fep)
+    for fe in fep.fes
         istart = iend + 1
-        iend = istart + sum(fe.scale .!= 0) - 1
+        iend = istart + length(unique(fe.refs)) - 1
         push!(out, x[istart:iend])
     end
     return out, 1, true

@@ -113,10 +113,11 @@ function reg(df::AbstractDataFrame, f::Formula;
 
 
     if has_absorb
-        sqrtw = get_weights(df, trues(length(esample)), weights)
         # slow in 0.6 due to any. Is it improved in 0.7?
-        fixedeffects = FixedEffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))), sqrtw)
-        remove_singletons!(esample, fixedeffects)
+        fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
+        for fe in fes
+            remove_singletons!(esample, fe)
+        end
     end
 
     nobs = sum(esample)
@@ -128,13 +129,13 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute pfe, a FixedEffectProblem
     has_intercept = rt.intercept
     if has_absorb
-        fixedeffects = FixedEffect[x[esample] for x in fixedeffects]
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any([typeof(f.interactionname) <: Nothing for f in fixedeffects]) 
+        if any([isa(x.interaction, Ones) for x in fes]) 
             rt.intercept = false
             has_intercept = true
         end
-        pfe = FixedEffectProblem(fixedeffects, Val{method})
+        fes = FixedEffect[x[esample] for x in fes]
+        pfe = FixedEffectProblem(fes, sqrtw, Val{method})
     else
         pfe = nothing
     end
@@ -210,7 +211,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         iterations = maximum(iterations)
         converged = all(converged)
         if converged == false
-            warn("convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol.")
+            @warn "convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
         end
     end
 
@@ -291,7 +292,11 @@ function reg(df::AbstractDataFrame, f::Formula;
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
             end
-            augmentdf = hcat(augmentdf, getfe!(pfe, oldy - oldX * coef, esample; tol = tol, maxiter = maxiter))
+            fev = getfe!(pfe, oldy - oldX * coef; tol = tol, maxiter = maxiter)
+            for j in 1:length(fes)
+                augmentdf[ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
+                augmentdf[esample, ids[j]] = fev[j][fes[j].refs]
+            end
         end
     end
 
@@ -309,12 +314,12 @@ function reg(df::AbstractDataFrame, f::Formula;
     df_absorb = 0
     if has_absorb 
         # better adjustment of df for clustered errors + fe: adjust only if fe is not fully nested in a cluster variable:
-        for fe in fixedeffects
+        for fe in fes
             if isa(vcovformula, VcovClusterFormula) && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
                 df_absorb += 0
             else
                 #only count groups that exists
-                df_absorb += sum(fe.scale .!= zero(Float64))
+                df_absorb += length(unique(fe.refs))
             end
         end
     end

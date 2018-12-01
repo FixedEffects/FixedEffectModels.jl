@@ -32,16 +32,13 @@ import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefname
 export group, 
 reg,
 partial_out,
-residualize!,
-getfe!,
-decompose_iv!,
+partial_out!,
 allvars,
 fes,
 
 WeightFormula,
 Ones,
 FixedEffect,
-FixedEffectProblem,
 
 AbstractRegressionResult,
 title,
@@ -76,15 +73,20 @@ Model,
 ## Load files
 ##
 ##############################################################################
-include("utils/group.jl")
-include("utils/isnested.jl")
-include("utils/formula.jl")
-include("utils/model.jl")
-include("utils/lsmr.jl")
-include("utils/basecol.jl")
-
 include("weight/Ones.jl")
 include("weight/weight.jl")
+include("utils/group.jl")
+include("utils/isnested.jl")
+include("utils/lsmr.jl")
+include("utils/basecol.jl")
+include("utils/model.jl")
+
+
+
+include("formula/formula_iv.jl")
+include("formula/formula_fe.jl")
+
+
 
 
 

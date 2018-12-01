@@ -1,6 +1,57 @@
+"""
+Partial out a vector or a matrix
+
+### Arguments
+* `X` : a `AbstractVector{Float64}` or an `AbstractMatrix{Float64}`
+* `fes`: A Vector of `FixedEffect`
+* w: A Vector of weights
+* `add_mean`. If true,  the mean of the initial variable is added to the residuals.
+* `maxiter` : Maximum number of iterations
+* `tol` : tolerance
+* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
+
+
+### Returns
+* `X` : a residualized version of `X` 
+* `iterations`: a vector of iterations for each column
+* `converged`: a vector of success for each column
+
+### Examples
+```julia
+using  CategoricalArrays, FixedEffectModels
+p1 = categorical(repeat(1:5, inner = 2))
+p2 = categorical(repeat(1:5, outer = 2))
+X = rand(10, 5)
+partial_out!(X, [FixedEffect(p1), FixedEffect(p2)])
+```
+"""
+function partial_out!(Y::Union{AbstractVector{Float64}, Matrix{Float64}}, fes::Vector{<: FixedEffect}; w = Ones{Float64}(size(Y, 1)), add_mean::Bool = false, maxiter::Integer = 10000, tol::Real = 1e-8, method::Symbol = :lsmr)
+
+    sqrtw = sqrt.(w)
+    fep = FixedEffectProblem(fes, sqrtw, Val{method})
+
+    Y .= Y .* sqrtw
+    if add_mean
+        m = mean(Y, dims = 1)
+    end
+
+    iterations = Int[]
+    converged = Bool[]
+    residualize!(Y, fep, iterations, converged; maxiter = maxiter, tol = tol)
+
+    if add_mean
+        Y .= Y .+ m
+    end
+    Y .= Y ./ sqrtw
+
+    return Y, iterations, converged
+end
+
+
+
 
 """
-Partial out variables
+Partial out variables in a dataframe
 
 ### Arguments
 * `df` : AbstractDataFrame
@@ -14,6 +65,8 @@ Partial out variables
 
 ### Returns
 * `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+* `iterations`: a vector of iterations for each column
+* `converged`: a vector of success for each column
 
 ### Details
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -23,7 +76,8 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
-result = @partial_out df SepalWidth + SepalLength ~ 1 fe = Species add_mean = true
+df[:SpeciesCategorical] =  categorical(df[:Species])
+result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesCategorical, add_mean = true))
 plot(
    layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
@@ -65,13 +119,6 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     if has_weights
         esample .&= isnaorneg(df[weightvar])
     end
-    #all_except_absorb_vars = unique(convert(Vector{Symbol}, vars))
-    #for v in all_except_absorb_vars
-    #    if typeof(df[v]) <: CategoricalVector
-    #        droplevels!(subdf[v])
-    #    end
-    #end
-
 
     # initialize iterations & converged
     iterations = Int[]
@@ -79,20 +126,19 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
-        sqrtw = get_weights(df, trues(length(esample)), weights)
-        fixedeffects = FixedEffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))), sqrtw)
+        fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
     end
     nobs = sum(esample)
     (nobs > 0) || error("sample is empty")
     # Compute weight vector
     sqrtw = get_weights(df, esample, weightvar)
     if has_absorb
-        fixedeffects = FixedEffect[x[esample] for x in fixedeffects]
         # in case there is any intercept fe, remove the intercept
-        if any([typeof(f.interactionname) <: Nothing for f in fixedeffects]) 
+        if any([isa(x.interaction, Ones) for x in fes]) 
             xt.intercept = false
         end
-        pfe = FixedEffectProblem(fixedeffects, Val{method})
+        fes = FixedEffect[x[esample] for x in fes]
+        pfe = FixedEffectProblem(fes, sqrtw, Val{method})
     else
         pfe = nothing
     end
@@ -130,10 +176,10 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     end
 
     # rescale residuals
-    residuals .= residuals ./ sqrtw
     if add_mean
         residuals .= residuals .+ m
     end
+    residuals .= residuals ./ sqrtw
 
     # Return a dataframe
     yvars = convert(Vector{Symbol}, Symbol.(yt.eterms))
@@ -144,6 +190,11 @@ function partial_out(df::AbstractDataFrame, f::Formula;
         out[y] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
         out[esample, y] = residuals[:, j]
     end
-    return(out)
+    return out, iterations, converged
 end
+
+
+
+
+
 

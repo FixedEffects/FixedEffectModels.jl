@@ -6,7 +6,6 @@ abstract type FixedEffectProblem end
 ##
 ## solve_residuals! 
 ## solve_coefficients!
-## get_fes (accessor)
 ## 
 ##############################################################################
 
@@ -18,7 +17,7 @@ abstract type FixedEffectProblem end
 ##############################################################################
 
 
-function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::FixedEffectProblem, iterationsv::Vector{Int}, convergedv::Vector{Bool}; kwargs...)
+function residualize!(X::Union{AbstractVector{Float64}, AbstractMatrix{Float64}}, fep::FixedEffectProblem, iterationsv::Vector{Int}, convergedv::Vector{Bool}; kwargs...)
     for j in 1:size(X, 2)
         r, iterations, converged = solve_residuals!(fep, view(X, :, j); kwargs...)
         push!(iterationsv, iterations)
@@ -49,19 +48,6 @@ end
 ## A component is an array of set (length is number of values taken)
 ##
 ##############################################################################
-
-function getfe!(fep::FixedEffectProblem, b::Vector{Float64}, esample;
-                tol::Real = 1e-8, maxiter::Integer = 100_000)
-    fev = getfe!(fep, b; tol = tol, maxiter = maxiter)
-    fes = get_fes(fep)
-    df = DataFrame()
-    for j in 1:length(fes)
-        df[fes[j].id] = Vector{Union{Float64, Missing}}(missing, length(esample))
-        df[esample, fes[j].id] = fev[j][fes[j].refs]
-    end
-    return df
-end
-
 
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
     # solve Ax = b
@@ -101,7 +87,7 @@ function initialize_where(fes::AbstractVector{FixedEffect})
     where = Vector{Set{Int}}[]
     for j in 1:length(fes)
         fe = fes[j]
-        wherej = Set{Int}[Set{Int}() for fe in fe.scale]
+        wherej = Set{Int}[Set{Int}() for i in 1:fe.n]
         for i in 1:length(fe.refs)
             push!(wherej[fe.refs[i]], i)
         end

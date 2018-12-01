@@ -102,7 +102,7 @@ function coeftable(x::AbstractRegressionResult)
     end
     tt = cc ./ se
     CoefTable2(
-        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1], conf_int[:, 2]),
+        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1:2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
@@ -372,7 +372,7 @@ function predict(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractD
     error("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
 end
 fes(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame) = fes(x)
-fes(x::Union{RegressionResultFEIV, RegressionResultFE}) = x.augmentdf[:, 2:size(x.augmentdf, 2)]
+fes(x::Union{RegressionResultFEIV, RegressionResultFE}) = x.augmentdf[2:size(x.augmentdf, 2)]
 
 function residuals(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame)
     if size(x.augmentdf, 2) == 0
