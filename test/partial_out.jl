@@ -46,11 +46,3 @@ for i in 1:12
     @test test[i] ≈ answer[i] atol = 1e-5
 end
 
-
-
-# test matrix version
-using  DataFrames, FixedEffectModels
-p1 = categorical(repeat(1:5, inner = 2))
-p2 = categorical(repeat(1:5, outer = 2))
-X = rand(10, 5)
-partial_out!(X, [FixedEffect(p1), FixedEffect(p2)])

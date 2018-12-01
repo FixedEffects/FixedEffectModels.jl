@@ -1,56 +1,4 @@
 """
-Partial out a vector or a matrix
-
-### Arguments
-* `X` : a `AbstractVector{Float64}` or an `AbstractMatrix{Float64}`
-* `fes`: A Vector of `FixedEffect`
-* w: A Vector of weights
-* `add_mean`. If true,  the mean of the initial variable is added to the residuals.
-* `maxiter` : Maximum number of iterations
-* `tol` : tolerance
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
-
-
-### Returns
-* `X` : a residualized version of `X` 
-* `iterations`: a vector of iterations for each column
-* `converged`: a vector of success for each column
-
-### Examples
-```julia
-using  CategoricalArrays, FixedEffectModels
-p1 = categorical(repeat(1:5, inner = 2))
-p2 = categorical(repeat(1:5, outer = 2))
-X = rand(10, 5)
-partial_out!(X, [FixedEffect(p1), FixedEffect(p2)])
-```
-"""
-function partial_out!(Y::Union{AbstractVector{Float64}, Matrix{Float64}}, fes::Vector{<: FixedEffect}; w = Ones{Float64}(size(Y, 1)), add_mean::Bool = false, maxiter::Integer = 10000, tol::Real = 1e-8, method::Symbol = :lsmr)
-
-    sqrtw = sqrt.(w)
-    fep = FixedEffectProblem(fes, sqrtw, Val{method})
-
-    Y .= Y .* sqrtw
-    if add_mean
-        m = mean(Y, dims = 1)
-    end
-
-    iterations = Int[]
-    converged = Bool[]
-    residualize!(Y, fep, iterations, converged; maxiter = maxiter, tol = tol)
-
-    if add_mean
-        Y .= Y .+ m
-    end
-    Y .= Y ./ sqrtw
-
-    return Y, iterations, converged
-end
-
-
-
-
-"""
 Partial out variables in a dataframe
 
 ### Arguments
@@ -122,7 +70,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     # initialize iterations & converged
     iterations = Int[]
-    converged = Bool[]
+    convergeds = Bool[]
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
@@ -153,7 +101,11 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     if add_mean
         m = mean(Y, dims = 1)
     end
-    residualize!(Y, pfe, iterations, converged, maxiter = maxiter, tol = tol)
+    if has_absorb
+        Y, b, c = solve_residuals!(Y, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+    end
 
     # Compute residualized X
     xvars = allvars(xf)
@@ -165,7 +117,11 @@ function partial_out(df::AbstractDataFrame, f::Formula;
             X = fill(one(Float64), (length(esample), 1))
         end     
         X .= X .* sqrtw
-        residualize!(X, pfe, iterations, converged, maxiter = maxiter, tol = tol)
+        if has_absorb
+            X, b, c = solve_residuals!(X, pfe; maxiter = maxiter, tol = tol)
+            append!(iterations, b)
+            append!(convergeds, c)
+        end
     end
     
     # Compute residuals
@@ -190,7 +146,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
         out[y] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
         out[esample, y] = residuals[:, j]
     end
-    return out, iterations, converged
+    return out, iterations, convergeds
 end
 
 

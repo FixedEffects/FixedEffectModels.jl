@@ -22,7 +22,7 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
             cname = _name(factorvars)
-            p = group(df, factorvars)
+            p = group((df[v] for v in factorvars)...)
         end
         vclusters[cname] = p
     end
@@ -47,7 +47,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
             # no need for group
             f = v.clusters[c[1]]
         else
-            f = group(v.clusters, c)
+            f = group((v.clusters[var] for var in c)...)
         end
         if rem(length(c), 2) == 1
             S += helper_cluster(x.regressors, x.residuals, f)

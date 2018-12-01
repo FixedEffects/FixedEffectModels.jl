@@ -152,7 +152,7 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # initialize iterations and converged
     iterations = Int[]
-    converged = Bool[]
+    convergeds = Bool[]
 
 
     mf = ModelFrame2(rt, df, esample)
@@ -172,7 +172,11 @@ function reg(df::AbstractDataFrame, f::Formula;
     else
         oldy = y
     end
-    residualize!(y, pfe, iterations, converged; maxiter = maxiter, tol = tol)
+    if has_absorb
+        y, b, c = solve_residuals!(y, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+    end
 
 
     # Obtain X
@@ -186,8 +190,11 @@ function reg(df::AbstractDataFrame, f::Formula;
     if save & has_absorb
         oldX = copy(Xexo)
     end
-    residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
-
+    if has_absorb
+        Xexo, b, c = solve_residuals!(Xexo, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+    end
     
     # Obtain Xendo and Z
     if has_iv
@@ -198,18 +205,27 @@ function reg(df::AbstractDataFrame, f::Formula;
         if save & has_absorb
             oldX = hcat(Xexo, Xendo)
         end
-        residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
-        
+        if has_absorb
+            Xendo, b, c = solve_residuals!(Xendo, pfe; maxiter = maxiter, tol = tol)
+            append!(iterations, b)
+            append!(convergeds, c)        
+        end
+
         mf = ModelFrame2(iv_terms, df, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
-        residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)   
+
+        if has_absorb
+            Z, b, c = solve_residuals!(Z, pfe; maxiter = maxiter, tol = tol)
+            append!(iterations, b)
+            append!(convergeds, c)
+        end
     end
 
     # iter and convergence
     if has_absorb
         iterations = maximum(iterations)
-        converged = all(converged)
+        converged = all(convergeds)
         if converged == false
             @warn "convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
         end
@@ -292,10 +308,10 @@ function reg(df::AbstractDataFrame, f::Formula;
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
             end
-            fev = getfe!(pfe, oldy - oldX * coef; tol = tol, maxiter = maxiter)
+            newfes, b, c = solve_coefficients!(oldy - oldX * coef, pfe; tol = tol, maxiter = maxiter)
             for j in 1:length(fes)
                 augmentdf[ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
-                augmentdf[esample, ids[j]] = fev[j][fes[j].refs]
+                augmentdf[esample, ids[j]] = newfes[j]
             end
         end
     end
@@ -445,6 +461,27 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float
     return tss
 end
 
+##############################################################################
+##
+## Remove Singletons
+##
+##############################################################################
+
+function remove_singletons!(esample, x::FixedEffect)
+    cache = zeros(Int, x.n)
+    for i in 1:length(esample)
+        if esample[i]
+            cache[x.refs[i]] += 1
+        end
+    end
+    for i in 1:length(esample)
+        if esample[i] && cache[x.refs[i]] <= 1
+            esample[i] = false
+        end
+    end
+end
+
+
 
 ##############################################################################
 ##
@@ -460,8 +497,6 @@ function evaluate_subset(df, ex::Expr)
 end
 evaluate_subset(df, ex::Symbol) = df[ex]
 evaluate_subset(df, ex)  = ex
-
-
 
 
 

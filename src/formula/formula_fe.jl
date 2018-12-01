@@ -38,7 +38,7 @@ function parse_fixedeffect(df::AbstractDataFrame, a::Expr)
     factorvars, interactionvars = _split(df, allvars(a))
     if !isempty(factorvars)
         # x1&x2 from (x1&x2)*id
-        z = group(df, factorvars)
+        z = group((df[v] for v in factorvars)...)
         interaction = _multiply(df, interactionvars)
         id = _name(allvars(a))
         return FixedEffect(z, interaction), id

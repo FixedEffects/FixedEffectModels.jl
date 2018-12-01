@@ -10,18 +10,16 @@ import Base: size, copyto!, getindex, length, fill!, eltype, length, view, adjoi
 import LinearAlgebra: mul!, rmul!, norm, Matrix, Diagonal, cholesky, cholesky!, Symmetric, Hermitian, rank, dot, eigen, axpy!, svd, I, Adjoint, diag, qr
 import LinearAlgebra.BLAS: gemm!
 import Statistics: mean, quantile
-import Distributed: pmap
 import Printf: @sprintf
-if Base.USE_GPL_LIBS
-    import SparseArrays: SparseMatrixCSC, sparse
-end
 import Distributions: ccdf, TDist, FDist, Chisq
-import CategoricalArrays: CategoricalArray, CategoricalVector, compress, categorical, CategoricalPool, levels, droplevels!
 import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing
 import Combinatorics: combinations
+using CategoricalArrays
 using Reexport
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual,  df_residual, r2, adjr2, deviance, mss, rss, islinear, response
 @reexport using StatsBase
+@reexport using FixedEffects
+
 import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
 ##############################################################################
 ##
@@ -29,16 +27,11 @@ import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefname
 ##
 ##############################################################################
 
-export group, 
-reg,
+export reg,
 partial_out,
-partial_out!,
 allvars,
 fes,
-
 WeightFormula,
-Ones,
-FixedEffect,
 
 AbstractRegressionResult,
 title,
@@ -47,7 +40,6 @@ RegressionResult,
 RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
-
 
 AbstractVcovFormula, 
 VcovSimpleFormula, 
@@ -73,11 +65,8 @@ Model,
 ## Load files
 ##
 ##############################################################################
-include("weight/Ones.jl")
-include("weight/weight.jl")
-include("utils/group.jl")
+include("utils/weight.jl")
 include("utils/isnested.jl")
-include("utils/lsmr.jl")
 include("utils/basecol.jl")
 include("utils/model.jl")
 
@@ -86,16 +75,6 @@ include("utils/model.jl")
 include("formula/formula_iv.jl")
 include("formula/formula_fe.jl")
 
-
-
-
-
-include("fixedeffect/FixedEffect.jl")
-include("fixedeffect/FixedEffectProblem.jl")
-include("fixedeffect/FixedEffectProblem_LSMR.jl")
-if Base.USE_GPL_LIBS
-    include("fixedeffect/FixedEffectProblem_Factorization.jl")
-end
 
 include("RegressionResult.jl")
 
