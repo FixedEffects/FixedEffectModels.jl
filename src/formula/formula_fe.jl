@@ -5,8 +5,6 @@
 ##
 ##############################################################################
 
-
-
 function parse_fixedeffect(df::AbstractDataFrame, feformula)
     fe = FixedEffect[]
     id = Symbol[]
@@ -38,10 +36,9 @@ function parse_fixedeffect(df::AbstractDataFrame, a::Expr)
     factorvars, interactionvars = _split(df, allvars(a))
     if !isempty(factorvars)
         # x1&x2 from (x1&x2)*id
-        z = group((df[v] for v in factorvars)...)
-        interaction = _multiply(df, interactionvars)
+        fe = FixedEffect((df[v] for v in factorvars)...; interaction = _multiply(df, interactionvars))
         id = _name(allvars(a))
-        return FixedEffect(z, interaction), id
+        return fe, id
     end
 end
 
@@ -51,14 +48,6 @@ function _check(a::Expr)
 end
 check(a::Symbol) = true
 
-function _name(s::Vector{Symbol})
-    if isempty(s)
-        out = nothing
-    else
-        out = Symbol(reduce((x1, x2) -> string(x1)*"x"*string(x2), s))
-    end
-    return out
-end
 
 function _split(df::AbstractDataFrame, ss::Vector{Symbol})
     catvars, contvars = Symbol[], Symbol[]
@@ -91,6 +80,14 @@ function _multiply!(out, v)
     end
 end
 
+function _name(s::Vector{Symbol})
+    if isempty(s)
+        out = nothing
+    else
+        out = Symbol(reduce((x1, x2) -> string(x1)*"x"*string(x2), s))
+    end
+    return out
+end
 
 
 

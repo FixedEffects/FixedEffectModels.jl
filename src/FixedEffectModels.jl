@@ -66,7 +66,7 @@ Model,
 ##
 ##############################################################################
 include("utils/weight.jl")
-include("utils/isnested.jl")
+include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/model.jl")
 

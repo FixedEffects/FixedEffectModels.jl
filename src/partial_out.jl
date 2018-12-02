@@ -82,10 +82,10 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     sqrtw = get_weights(df, esample, weightvar)
     if has_absorb
         # in case there is any intercept fe, remove the intercept
-        if any([isa(x.interaction, Ones) for x in fes]) 
+        if any([isa(fe.interaction, Ones) for fe in fes]) 
             xt.intercept = false
         end
-        fes = FixedEffect[x[esample] for x in fes]
+        fes = FixedEffect[_subset(fe, esample) for fe in fes]
         pfe = FixedEffectProblem(fes, sqrtw, Val{method})
     else
         pfe = nothing

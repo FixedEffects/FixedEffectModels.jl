@@ -130,11 +130,11 @@ function reg(df::AbstractDataFrame, f::Formula;
     has_intercept = rt.intercept
     if has_absorb
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any([isa(x.interaction, Ones) for x in fes]) 
+        if any([isa(fe.interaction, Ones) for fe in fes]) 
             rt.intercept = false
             has_intercept = true
         end
-        fes = FixedEffect[x[esample] for x in fes]
+        fes = FixedEffect[_subset(fe, esample) for fe in fes]
         pfe = FixedEffectProblem(fes, sqrtw, Val{method})
     else
         pfe = nothing
@@ -461,25 +461,6 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float
     return tss
 end
 
-##############################################################################
-##
-## Remove Singletons
-##
-##############################################################################
-
-function remove_singletons!(esample, x::FixedEffect)
-    cache = zeros(Int, x.n)
-    for i in 1:length(esample)
-        if esample[i]
-            cache[x.refs[i]] += 1
-        end
-    end
-    for i in 1:length(esample)
-        if esample[i] && cache[x.refs[i]] <= 1
-            esample[i] = false
-        end
-    end
-end
 
 
 
