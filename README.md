@@ -105,15 +105,9 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 ## Solution Method
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` by one of these methods
-  - [MINRES on the normal equation](http://web.stanford.edu/group/SOL/software/lsmr/) with `method = :lsmr` (with a diagonal preconditioner).
-  - sparse factorization with `method = :cholesky` or `method = :qr` (using the SuiteSparse library)
-
-  The default method`lsmr`, should be the fastest in most cases. If the method does not converge, first please get in touch, I'd be interested to hear about your problem.  Second use the `method = :cholesky`, which should do the trick.
-
+1. `y, X`  are regressed on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
-
-3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D`
+3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
 
 ## Parallel / multi-threading
 The package has support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). In this case, each regressor is demeaned in a different processor/thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
