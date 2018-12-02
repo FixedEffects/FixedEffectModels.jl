@@ -131,8 +131,6 @@ The package has support for [parallel computing](https://docs.julialang.org/en/l
 
 
 
-
-
 # References
 
 Baum, C. and Schaffer, M. (2013) *AVAR: Stata module to perform asymptotic covariance estimation for iid and non-iid data robust to heteroskedasticity, autocorrelation, 1- and 2-way clustering, and common cross-panel autocorrelated disturbances*. Statistical Software Components, Boston College Department of Economics.

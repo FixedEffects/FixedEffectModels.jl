@@ -1,5 +1,5 @@
 julia 0.7
-FixedEffects 0.1.0
+FixedEffects
 Distributions 0.4.6
 StatsBase 0.22.0
 StatsModels 0.2.4
