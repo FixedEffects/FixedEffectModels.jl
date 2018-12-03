@@ -126,7 +126,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute weights
     sqrtw = get_weights(df, esample, weights)
 
-    # Compute pfe, a FixedEffectProblem
+    # Compute pfe, a FixedEffectMatrix
     has_intercept = rt.intercept
     if has_absorb
         # in case some FixedEffect does not have interaction, remove the intercept
@@ -135,7 +135,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             has_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        pfe = FixedEffectProblem(fes, sqrtw, Val{method})
+        pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
     else
         pfe = nothing
     end

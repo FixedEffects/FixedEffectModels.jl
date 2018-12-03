@@ -481,5 +481,5 @@ for method in method_s
 end
 
 
-
+# add tests with missing interaction. add tests with missing fixed effects
 

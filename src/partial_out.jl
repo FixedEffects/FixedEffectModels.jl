@@ -86,7 +86,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
             xt.intercept = false
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        pfe = FixedEffectProblem(fes, sqrtw, Val{method})
+        pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
     else
         pfe = nothing
     end
