@@ -1,15 +1,13 @@
 """
-Partial out variables in a dataframe
+Partial out variables in a Dataframe
 
 ### Arguments
-* `df` : AbstractDataFrame
-* `f` : Formula,
-* `fe` : Fixed effect formula. Default to fe()
-* `weights`: Weight formula. Corresponds to analytical weights 
-* `add_mean` : should intial mean added to the returned variable
-* `maxiter` : Maximum number of iterations
-* `tol` : tolerance
+* `df` : `AbstractDataFrame`
+* `model` : A `Model` created using `@model`. See `@model`.
+* `add_mean` : Should the initial mean added to the returned variable?
 * `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
+* `maxiter` : Maximum number of iterations
+* `tol` : Tolerance
 
 ### Returns
 * `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -25,15 +23,15 @@ The regression model is estimated on only the rows where *none* of the dependent
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
 df[:SpeciesCategorical] =  categorical(df[:Species])
-result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesCategorical, add_mean = true))
+result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesCategorical), add_mean = true)
 plot(
    layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
    layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
 )
 ```
 """
-function partial_out(df::AbstractDataFrame, m::Model)
-    partial_out(df, m.f; m.dict...)
+function partial_out(df::AbstractDataFrame, m::Model; kwargs...)
+    partial_out(df, m.f; m.dict..., kwargs...)
 end
 
 

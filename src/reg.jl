@@ -2,12 +2,12 @@
 Estimate a linear model with high dimensional categorical variables / instrumental variables
 
 ### Arguments
-* `df` : AbstractDataFrame
-* `model` : A Model created using `@model`. See `@model`.
+* `df` : `AbstractDataFrame`
+* `model` : A `Model` created using `@model`. See `@model`.
 * `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
+* `method` : Default is `:lsmr` (akin to conjugate gradient descent).  With parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
 * `maxiter` : Maximum number of iterations
-* `tol` : tolerance
-* `method` : Default is `:lsmr` (akin to conjugate gradient descent).  WIth parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
+* `tol` : Tolerance
 
 ### Returns
 * `::AbstractRegressionResult` : a regression results
