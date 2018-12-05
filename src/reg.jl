@@ -2,38 +2,31 @@
 Estimate a linear model with high dimensional categorical variables / instrumental variables
 
 ### Arguments
-* `df` : `AbstractDataFrame`
-* `model` : A `Model` created using `@model`. See `@model`.
-* `save` : Should residuals and eventual estimated fixed effects saved in a dataframe?
-* `method` : Default is `:lsmr` (akin to conjugate gradient descent).  With parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
-* `maxiter` : Maximum number of iterations
-* `tol` : Tolerance
-
-### Returns
-* `::AbstractRegressionResult` : a regression results
+* `df::AbstractDataFrame`
+* `model::Model`: A model created using `@model`. See `@model`.
+* `save::Bool`: Should residuals and eventual estimated fixed effects saved in a dataframe?
+* `method::Symbol`: Default is `:lsmr` (akin to conjugate gradient descent).  With parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
+* `maxiter::Integer`: Maximum number of iterations
+* `tol::Real`: Tolerance
 
 ### Details
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instruments
-```
-depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
-```
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
 ### Examples
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:StateCategorical] =  categorical(df[:State])
-df[:YearCategorical] =  categorical(df[:Year])
-reg(df, @model(Sales ~ Price, fe = StateCategorical + YearCategorical))
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + StateCategorical&Year))
-reg(df, @model(Sales ~ NDI, fe = StateCategorical*Year))
+df[:StateC] =  categorical(df[:State])
+df[:YearC] =  categorical(df[:Year])
+reg(df, @model(Sales ~ Price, fe = StateC + YearC))
+reg(df, @model(Sales ~ NDI, fe = StateC + StateC&Year))
+reg(df, @model(Sales ~ NDI, fe = StateC*Year))
 reg(df, @model(Sales ~ (Price ~ Pimin)))
 reg(df, @model(Sales ~ Price, weights = Pop))
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust))
-reg(df, @model(Sales ~ NDI, vcov = cluster(StateCategorical)))
-reg(df, @model(Sales ~ NDI, vcov = cluster(StateCategorical + YearCategorical)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(StateC)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
 ```
 """
 function reg(df::AbstractDataFrame, m::Model; kwargs...)

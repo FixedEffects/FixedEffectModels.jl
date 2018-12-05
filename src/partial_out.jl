@@ -2,17 +2,17 @@
 Partial out variables in a Dataframe
 
 ### Arguments
-* `df` : `AbstractDataFrame`
-* `model` : A `Model` created using `@model`. See `@model`.
-* `add_mean` : Should the initial mean added to the returned variable?
-* `method` : A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
-* `maxiter` : Maximum number of iterations
-* `tol` : Tolerance
+* `df::AbstractDataFrame`
+* `model::Model`: A `Model` created using `@model`. See `@model`.
+* `add_mean::Bool`: Should the initial mean added to the returned variable?
+* `method::Symbol`: A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :qr and :cholesky (factorization methods)
+* `maxiter::Integer`: Maximum number of iterations
+* `tol::Real`: Tolerance
 
 ### Returns
-* `::DataFrame` : a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-* `iterations`: a vector of iterations for each column
-* `converged`: a vector of success for each column
+* `::DataFrame`: a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
+* `::Vector{Int}`: a vector of iterations for each column
+* `::Vector{Bool}`: a vector of success for each column
 
 ### Details
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -22,13 +22,8 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
-df[:SpeciesCategorical] =  categorical(df[:Species])
-result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesCategorical), add_mean = true)
-plot(
-   layer(result, x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
-   layer(result, x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm))
-)
-```
+df[:SpeciesC] =  categorical(df[:Species])
+result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesC), add_mean = true)
 """
 function partial_out(df::AbstractDataFrame, m::Model; kwargs...)
     partial_out(df, m.f; m.dict..., kwargs...)

@@ -13,25 +13,30 @@ end
 """
 Capture and parse a set of expressions to generate a Model
 ## Arguments
-* `ex`: an expression parsed as a Formula struct
-* `fe` : Fixed effect expression.   You can add an arbitrary number of high dimensional fixed effects, separated with `+`.  Interact multiple categorical variables using `&` .     Interact a categorical variable with a continuous variable using `&`.   Alternative, use `*` to add a categorical variable and its interaction with a continuous variable. Variables must be of type CategoricalArray (use `categorical` to convert a variable to a `CategoricalArray`).
-* `vcov` : Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
-* `weights`: Weight variable. Corresponds to analytical weights
-* `subset` : Expression of the form State .>= 30
+* `ex::Expr`: an expression parsed as a `Formula`
+* `fe::Expr`: Fixed effect expression.   You can add an arbitrary number of high dimensional fixed effects, separated with `+`.  Interact multiple categorical variables using `&` .     Interact a categorical variable with a continuous variable using `&`.   Alternative, use `*` to add a categorical variable and its interaction with a continuous variable. Variables must be of type CategoricalArray (use `categorical` to convert a variable to a `CategoricalArray`).
+* `vcov::Expr`: Vcov formula. Default to `simple`. `robust` and `cluster()` are also implemented
+* `weights::Expr`: Weight variable. Corresponds to analytical weights
+* `subset::Expr`: Expression of the form State .>= 30
 
 ### Returns
-* `::Model` : a Model struct
+* `::Model`: a `Model` struct
 
+## Detail
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instruments
+```
+depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
+```
 
 ### Examples
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:StateCategorical] =  categorical(df[:State])
-df[:YearCategorical] =  categorical(df[:Year])
+df[:StateC] =  categorical(df[:State])
+df[:YearC] =  categorical(df[:Year])
 reg(df, @model(Sales ~ NDI, weights = Pop))
-@model(Sales ~ NDI, fe = StateCategorical, vcov = robust)
-@model(Sales ~ NDI, fe = StateCategorical + YearCategorical, weights = Pop, vcov = cluster(StateCategorical)
+@model(Sales ~ NDI, fe = StateC, vcov = robust)
+@model(Sales ~ NDI, fe = StateC + YearC, weights = Pop, vcov = cluster(StateC)
 
 ```
 """
