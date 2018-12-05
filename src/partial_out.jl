@@ -24,6 +24,9 @@ using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
 df[:SpeciesC] =  categorical(df[:Species])
 result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesC), add_mean = true)
+plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
+   layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
+```
 """
 function partial_out(df::AbstractDataFrame, m::Model; kwargs...)
     partial_out(df, m.f; m.dict..., kwargs...)

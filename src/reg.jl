@@ -4,7 +4,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Arguments
 * `df::AbstractDataFrame`
 * `model::Model`: A model created using `@model`. See `@model`.
-* `save::Bool`: Should residuals and eventual estimated fixed effects saved in a dataframe?
+* `save::Union{Bool, Symbol}`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
 * `method::Symbol`: Default is `:lsmr` (akin to conjugate gradient descent).  With parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
 * `maxiter::Integer`: Maximum number of iterations
 * `tol::Real`: Tolerance
@@ -39,7 +39,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     weights::Union{Symbol, Expr, Nothing} = nothing, 
     subset::Union{Symbol, Expr, Nothing} = nothing, 
     maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
-    save::Bool = false,  method::Symbol = :lsmr
+    save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr
    )
     feformula = fe
     if isa(vcov, Symbol)
@@ -47,6 +47,14 @@ function reg(df::AbstractDataFrame, f::Formula;
     else 
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
+
+    if !isa(save, Bool)
+        if save ∉ (:residuals, :fe)
+            error("the save keyword argument must be a Bool or a Symbol equal to :residuals or :fe")
+        end
+    end
+    save_residuals = (save == :residuals) | (save == true)
+    save_fe = (save == :fe) | (save == true)
 
     ##############################################################################
     ##
@@ -180,7 +188,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = ModelMatrix(mf).m
     end
     Xexo .= Xexo .* sqrtw
-    if save & has_absorb
+    if save_fe
         oldX = copy(Xexo)
     end
     if has_absorb
@@ -195,7 +203,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
-        if save & has_absorb
+        if save_fe
             oldX = hcat(Xexo, Xendo)
         end
         if has_absorb
@@ -290,13 +298,15 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # save residuals in a new dataframe
     augmentdf = DataFrame()
-    if save
+    if save_residuals
         if all(esample)
             augmentdf[:residuals] = residuals ./ sqrtw
         else
             augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
             augmentdf[esample, :residuals] = residuals ./ sqrtw 
         end
+    end
+    if save_fe
         if has_absorb
             if !all(basecoef)
                 oldX = oldX[:, basecoef]
