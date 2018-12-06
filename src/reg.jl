@@ -48,13 +48,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
-    if !isa(save, Bool)
-        if save ∉ (:residuals, :fe)
-            error("the save keyword argument must be a Bool or a Symbol equal to :residuals or :fe")
-        end
-    end
-    save_residuals = (save == :residuals) | (save == true)
-    save_fe = (save == :fe) | (save == true)
+
 
     ##############################################################################
     ##
@@ -78,6 +72,19 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
     end
     has_weights = (weights != nothing)
+
+    ##############################################################################
+    ##
+    ## Save keyword argument
+    ##
+    ##############################################################################
+    if !isa(save, Bool)
+        if save ∉ (:residuals, :fe)
+            error("the save keyword argument must be a Bool or a Symbol equal to :residuals or :fe")
+        end
+    end
+    save_residuals = (save == :residuals) | (save == true)
+    save_fe = (save == :fe) | ((save == true) & has_absorb)
 
 
     ##############################################################################
@@ -156,75 +163,64 @@ function reg(df::AbstractDataFrame, f::Formula;
     convergeds = Bool[]
 
 
-    mf = ModelFrame2(rt, df, esample)
+   @time mf = ModelFrame2(rt, df, esample)
 
     # Obtain y
-    py = model_response(mf)[:]
-    if eltype(py) != Float64
-        y = convert(Vector{Float64}, py)
-    else
-        y = py
-    end
+    # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
+    y = convert(Vector{Float64}, model_response(mf)[:])
     yname = rt.eterms[1]
     y .= y .* sqrtw
-    # old y will be used if fixed effects
-    if has_absorb
-        oldy = copy(y)
-    else
-        oldy = y
-    end
-    if has_absorb
-        y, b, c = solve_residuals!(y, pfe; maxiter = maxiter, tol = tol)
-        append!(iterations, b)
-        append!(convergeds, c)
-    end
-
 
     # Obtain X
     coef_names = coefnames(mf)
-    if isempty(mf.terms.terms) && mf.terms.intercept == false
-        Xexo = Matrix{Float64}(undef, sum(nonmissing(mf)), 0)
-    else    
+    has_exo = !isempty(mf.terms.terms) | mf.terms.intercept
+    if has_exo
         Xexo = ModelMatrix(mf).m
+        Xexo .= Xexo .* sqrtw
+    else
+        Xexo = Matrix{Float64}(undef, nobs, 0)
     end
-    Xexo .= Xexo .* sqrtw
-    if save_fe
-        oldX = copy(Xexo)
-    end
-    if has_absorb
-        Xexo, b, c = solve_residuals!(Xexo, pfe; maxiter = maxiter, tol = tol)
-        append!(iterations, b)
-        append!(convergeds, c)
-    end
-    
-    # Obtain Xendo and Z
+
     if has_iv
         mf = ModelFrame2(endo_terms, df, esample)
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
-        if save_fe
-            oldX = hcat(Xexo, Xendo)
-        end
-        if has_absorb
-            Xendo, b, c = solve_residuals!(Xendo, pfe; maxiter = maxiter, tol = tol)
-            append!(iterations, b)
-            append!(convergeds, c)        
-        end
 
         mf = ModelFrame2(iv_terms, df, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
-
-        if has_absorb
-            Z, b, c = solve_residuals!(Z, pfe; maxiter = maxiter, tol = tol)
-            append!(iterations, b)
-            append!(convergeds, c)
-        end
+    else
+        Xendo = Matrix{Float64}(undef, nobs, 0)
+        Z = Matrix{Float64}(undef, nobs, 0)
     end
 
-    # iter and convergence
+    # compute tss now before potentially demeaning y
+    tss = compute_tss(y, has_intercept, sqrtw)
+
     if has_absorb
+        # used to compute tss even without save_fe
+        if save_fe
+            oldy = deepcopy(y)
+            oldX = hcat(Xexo, Xendo)
+        end
+
+        y, b, c = solve_residuals!(y, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+
+        Xexo, b, c = solve_residuals!(Xexo, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+
+        Xendo, b, c = solve_residuals!(Xendo, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+
+        Z, b, c = solve_residuals!(Z, pfe; maxiter = maxiter, tol = tol)
+        append!(iterations, b)
+        append!(convergeds, c)
+
         iterations = maximum(iterations)
         converged = all(convergeds)
         if converged == false
@@ -239,12 +235,13 @@ function reg(df::AbstractDataFrame, f::Formula;
     ##
     ##############################################################################
 
-    # Compute Xhat
+    # Compute linearly independent columns + create the Xhat matrix
     if has_iv
         if size(Z, 2) < size(Xendo, 2)
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
         # get linearly independent columns
+        # note that I do it after residualizing
         baseall = basecol(Z, Xexo, Xendo)
         basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))]
         basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end]
@@ -267,8 +264,6 @@ function reg(df::AbstractDataFrame, f::Formula;
         Pi2 = cholesky!(Symmetric(Xexo' * Xexo)) \ (Xexo' * Z)
         Z_res = gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
 
-        # free memory (not sure it helps)
-        Xexo = nothing
     else
         # get linearly independent columns
         basecolXexo = basecol(Xexo)
@@ -289,7 +284,6 @@ function reg(df::AbstractDataFrame, f::Formula;
     coef = crossx \ (Xhat' * y)
     residuals = y - X * coef
 
-
     ##############################################################################
     ##
     ## Optionally save some vectors in a new dataframe
@@ -299,23 +293,17 @@ function reg(df::AbstractDataFrame, f::Formula;
     # save residuals in a new dataframe
     augmentdf = DataFrame()
     if save_residuals
-        if all(esample)
-            augmentdf[:residuals] = residuals ./ sqrtw
-        else
-            augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
-            augmentdf[esample, :residuals] = residuals ./ sqrtw 
-        end
+        augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
+        augmentdf[esample, :residuals] = residuals ./ sqrtw 
     end
     if save_fe
-        if has_absorb
-            if !all(basecoef)
-                oldX = oldX[:, basecoef]
-            end
-            newfes, b, c = solve_coefficients!(oldy - oldX * coef, pfe; tol = tol, maxiter = maxiter)
-            for j in 1:length(fes)
-                augmentdf[ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
-                augmentdf[esample, ids[j]] = newfes[j]
-            end
+        if !all(basecoef)
+            oldX = oldX[:, basecoef]
+        end
+        newfes, b, c = solve_coefficients!(oldy - oldX * coef, pfe; tol = tol, maxiter = maxiter)
+        for j in 1:length(fes)
+            augmentdf[ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
+            augmentdf[esample, ids[j]] = newfes[j]
         end
     end
 
@@ -332,14 +320,15 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
     df_absorb = 0
     if has_absorb 
-        # better adjustment of df for clustered errors + fe: adjust only if fe is not fully nested in a cluster variable:
         for fe in fes
-            if isa(vcovformula, VcovClusterFormula) && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
-                df_absorb += 0
-            else
-                #only count groups that exists
-                df_absorb += length(unique(fe.refs))
+            # adjust degree of freedom only if fe is not fully nested in a cluster variable:
+            if isa(vcovformula, VcovClusterFormula)
+                if any(isnested(fe, vcov_method_data.clusters[v]) for v in names(vcov_method_data.clusters))
+                    break
+                end
             end
+            #only count groups that exists
+            df_absorb += length(Set(fe.refs))
         end
     end
     nvars = size(X, 2)
@@ -347,7 +336,6 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # Compute rss, tss, r2, r2 adjusted
     rss = sum(abs2, residuals)
-    tss = compute_tss(oldy, has_intercept, sqrtw)
     mss = tss - rss
     r2 = 1 - rss / tss
     adjr2 = 1 - rss / tss * (nobs - has_intercept) / dof_residual
@@ -463,9 +451,6 @@ function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float
     end
     return tss
 end
-
-
-
 
 ##############################################################################
 ##

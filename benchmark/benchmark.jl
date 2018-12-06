@@ -11,17 +11,25 @@ x2 =  cos.(id1) +  sin.(id2) + randn(N)
 y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2, w = w, y = y)
 @time reg(df, @model(y ~ x1 + x2))
-#0.601445 seconds (1.05 k allocations: 535.311 MiB, 31.95% gc time)
+# 0.582029 seconds (852 allocations: 535.311 MiB, 18.28% gc time)
 @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id2)))
-#  1.213357 seconds (2.01 k allocations: 878.712 MiB, 16.65% gc time)
+# 0.809652 seconds (1.55 k allocations: 649.821 MiB, 14.40% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1))
-# 1.476390 seconds (890 allocations: 1.175 GB, 20.15% gc time)
+# 1.715362 seconds (1.21 k allocations: 734.349 MiB, 16.31% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1, vcov = cluster(id1)))
-# 2.448953 seconds (500.21 k allocations: 1.052 GiB, 17.36% gc time)
+# 2.175254 seconds (499.66 k allocations: 846.518 MiB, 17.76% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2))
-#  3.639817 seconds (1.84 k allocations: 999.675 MiB, 11.25% gc time)
+# 3.715898 seconds (1.37 k allocations: 1005.097 MiB, 10.19% gc time)
 
 
+# more regressors
+df[:x3] =  cos.(id1) + sin.(id2) + randn(N)
+df[:x4] =  cos.(id1) + sin.(id2) + randn(N)
+df[:x5] =  cos.(id1) + sin.(id2) + randn(N)
+df[:x6] =  cos.(id1) + sin.(id2) + randn(N)
+df[:x7] =  cos.(id1) + sin.(id2) + randn(N)
+@time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1 + id2, subset = x3 .>= 0.5))
+#   4.811433 seconds (7.41 k allocations: 1.663 GiB, 12.34% gc time)
 
 
 # Benchmark Parallel

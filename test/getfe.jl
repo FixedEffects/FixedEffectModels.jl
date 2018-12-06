@@ -63,3 +63,6 @@ result2 = reg(df, model2)
 model = @model Sales ~ Price weights = Pop fe = pYear save = true
 result = reg(df, model)
 @test fes(result)[2, :pYear] -  fes(result)[1, :pYear] ≈ -3.0347149502496222
+
+
+# I should check with IV and cehck with Weights an check with both

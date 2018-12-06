@@ -6,17 +6,15 @@
 ##############################################################################
 
 
-function isnested(arefs::AbstractVector{<:Integer}, brefs::AbstractVector{<:Integer}) 
-    # check size
-    if length(arefs) != length(brefs)
-        error("isnested(): column vectors need to be of the same size")
-    end
-    entries_in_b = zeros(eltype(brefs), length(arefs), 1)
-    for aind = 1:length(arefs)
-        if entries_in_b[arefs[aind]] == 0
+function isnested(fe::FixedEffect, p::CategoricalVector) 
+    entries_in_p = Dict{eltype(fe.refs), eltype(p.refs)}()
+    sizehint!(entries_in_p, fe.n)
+    for (feref, pref) in zip(fe.refs, p.refs)
+        x = get(entries_in_p, feref, 0)
+        if x == 0
             # it's a new level, create entry
-            entries_in_b[arefs[aind]] = brefs[aind]
-        elseif entries_in_b[arefs[aind]] != brefs[aind]
+            entries_in_p[feref] = pref
+        elseif x != pref
             # not nested: for the same level in a, two different levels in b
             return false
         end
