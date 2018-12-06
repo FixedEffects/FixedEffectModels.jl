@@ -163,7 +163,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     convergeds = Bool[]
 
 
-   @time mf = ModelFrame2(rt, df, esample)
+    mf = ModelFrame2(rt, df, esample)
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
