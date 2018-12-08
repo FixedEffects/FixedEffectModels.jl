@@ -5,7 +5,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `df::AbstractDataFrame`
 * `model::Model`: A model created using [`@model`](@ref)
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
-* `method::Symbol=:lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  With parallel use `:lsmr_parallel`. To use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
+* `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  With parallel use `:lsmr_parallel`. To use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `tol::Real =1e-8`: Tolerance
@@ -29,8 +29,7 @@ reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC)))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
-reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 1980)))
-
+reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
 function reg(df::AbstractDataFrame, m::Model; kwargs...)

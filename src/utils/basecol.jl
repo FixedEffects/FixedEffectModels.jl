@@ -52,7 +52,9 @@ function crossprod(c::Combination{N}) where {N}
     end
     return out
 end
-crossprod(A::Matrix{Float64}) = A'A
+function crossprod(A::Matrix{Float64})
+    A'A
+end
 crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 ##############################################################################
 ##
@@ -60,7 +62,6 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 ## 
 ## TODO: You could protect against roundoff error by using a controlled sum algorithm (similar to sum_kbn) to compute elements of X'X, then converting to BigFloat before factoring.
 ##
-## ipermute!(diag(chol.factors) .> 100 * mysize(X...)^2 * eps(chol.factors[1]), chol.piv)
 ##
 ##############################################################################
 
@@ -68,9 +69,16 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 
 
 # rank(A) == rank(A'A)
-function basecol(X::Matrix{Float64}...)
-    cholm = cholesky!(crossprod(X...), Val(true); tol = -1.0, check = false)
-    invpermute!(1:size(cholm, 1) .<= rank(cholm), cholm.piv)
+function basecol(X::Matrix{Float64}...; factorization = :Cholesky)
+    cholm = cholesky!(Symmetric(crossprod(X...)), Val(true); tol = -1, check = false)
+    r = rank(cholm)
+    if size(cholm, 1) > 1
+        r = sum(diag(cholm.factors) .> size(X[1],1)^2 * eps(cholm.factors[1]))
+    end
+    invpermute!(1:size(cholm, 1) .<= r, cholm.piv)
+    # used to be 
+    # r = rank(cholm) but does not work wiht very high regressors 
+    # if does not work, switch to QR RANK
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})

@@ -3,7 +3,9 @@ using FixedEffectModels
 tests = ["reg.jl", 
 		 "RegressionResult.jl", 
 		 "partial_out.jl",
-		 "getfe.jl"
+		 "getfe.jl",
+		 "instabilities.jl"
+
 		 ]
 
 println("Running tests:")
