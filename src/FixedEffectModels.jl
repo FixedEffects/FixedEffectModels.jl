@@ -18,9 +18,10 @@ using CategoricalArrays
 using Reexport
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual,  df_residual, r2, adjr2, deviance, mss, rss, islinear, response
 @reexport using StatsBase
+import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
+@reexport using StatsModels
 @reexport using FixedEffects
 
-import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
 ##############################################################################
 ##
 ## Exported methods and types 

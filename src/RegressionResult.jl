@@ -15,6 +15,7 @@ nobs(x::AbstractRegressionResult) = x.nobs
 dof_residual(x::AbstractRegressionResult) = x.dof_residual
 r2(x::AbstractRegressionResult) = x.r2
 adjr2(x::AbstractRegressionResult) = x.adjr2
+
 islinear(x::AbstractRegressionResult) = true
 deviance(x::AbstractRegressionResult) = x.tss
 rss(x::AbstractRegressionResult) = x.rss

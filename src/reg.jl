@@ -3,11 +3,13 @@ Estimate a linear model with high dimensional categorical variables / instrument
 
 ### Arguments
 * `df::AbstractDataFrame`
-* `model::Model`: A model created using `@model`. See `@model`.
-* `save::Union{Bool, Symbol}`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
-* `method::Symbol`: Default is `:lsmr` (akin to conjugate gradient descent).  With parallel use `:lsmr_parallel`. TO use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
-* `maxiter::Integer`: Maximum number of iterations
-* `tol::Real`: Tolerance
+* `model::Model`: A model created using [`@model`](@ref)
+* `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
+* `method::Symbol=:lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  With parallel use `:lsmr_parallel`. To use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
+* `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
+* `maxiter::Integer = 10000`: Maximum number of iterations
+* `tol::Real =1e-8`: Tolerance
+
 
 ### Details
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
@@ -27,6 +29,8 @@ reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC)))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
+reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 1980)))
+
 ```
 """
 function reg(df::AbstractDataFrame, m::Model; kwargs...)
@@ -38,7 +42,8 @@ function reg(df::AbstractDataFrame, f::Formula;
     vcov::Union{Symbol, Expr, Nothing} = :(simple()), 
     weights::Union{Symbol, Expr, Nothing} = nothing, 
     subset::Union{Symbol, Expr, Nothing} = nothing, 
-    maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
+    maxiter::Integer = 10000, contrasts::Dict = Dict(), 
+    tol::Real= 1e-8, df_add::Integer = 0, 
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr
    )
     feformula = fe
@@ -163,7 +168,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     convergeds = Bool[]
 
 
-    mf = ModelFrame2(rt, df, esample)
+    mf = ModelFrame2(rt, df, esample; contrasts = contrasts)
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
