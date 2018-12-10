@@ -12,29 +12,20 @@ Code to reproduce this graph:
   id2 = rand(1:K, N)
   x1 =  randn(N)
   x2 =  randn(N)
-  w = cos.(id1)
   y= 3 .* x1 .+ 2 .* x2 .+ sin.(id1) .+ cos.(id2).^2 .+ randn(N)
   df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2, w = w, y = y)
   @time reg(df, @model(y ~ x1 + x2))
   #0.601445 seconds (1.05 k allocations: 535.311 MiB, 31.95% gc time)
-  @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id2)))
-  #  1.213357 seconds (2.01 k allocations: 878.712 MiB, 16.65% gc time)
   @time reg(df, @model(y ~ x1 + x2, fe = id1))
-  # 1.476390 seconds (890 allocations: 1.175 GB, 20.15% gc time)
-  @time reg(df, @model(y ~ x1 + x2, fe = id1, vcov = cluster(id1)))
-  # 2.448953 seconds (500.21 k allocations: 1.052 GiB, 17.36% gc time)
+  #  1.624446 seconds (1.21 k allocations: 734.353 MiB, 17.27% gc time)
   @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2))
   # 3.639817 seconds (1.84 k allocations: 999.675 MiB, 11.25% gc time)
-  @
+  @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id1)))
+  # 1.462648 seconds (499.30 k allocations: 690.102 MiB, 15.92% gc time)
+  @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id1 + id2)))
+  #  7.187382 seconds (7.02 M allocations: 2.753 GiB, 24.19% gc time)
   ````
 
-  Additionally, `FixedEffectModels` can use a sparse matrix factorization
-  ```julia
-  @time reg(y ~ x1 + x2 |> id1 + id2, df, method = :cholfact)
-  # 21.603901 seconds (200.51 M allocations: 7.460 GB, 6.16% gc time)
-  @time reg(y ~ x1 + x2 |> id1 + id2, df, method = :qrfact)
-  # 120.274748 seconds (199.94 M allocations: 23.713 GB, 1.35% gc time)
-  ```
 
   R (lfe package)
   ```R
@@ -51,25 +42,22 @@ Code to reproduce this graph:
 
   system.time(felm(y ~ x1 + x2, df))
   #>   user  system elapsed
-  #>    3.529   0.597   4.144 
-  system.time(felm(y ~ x1 + x2|0|0|id2, df))
-  #> user  system elapsed 
-  #> 3.529   0.597   4.144 
+  #>   1.843   0.476   2.323 
   system.time(felm(y ~ x1 + x2|id1, df))
   #>    user  system elapsed 
-  #> 15.507   0.980  16.462 
-  system.time(felm(y ~ x1 + x2|id1|0|id1, df)) 
+  #> 14.831   1.342  15.993 
+  system.time(felm(y ~ x1 + x2|id1 + id2, df))
   #>  user  system elapsed 
-  #> 21.197   1.163  22.327 
-  system.time(felm(y ~ x1 + x2|(id1 + id2), df))
+  #>  10.626   1.358  10.336
+  system.time(felm(y ~ x1 + x2|0|0|id1, df))
+  #> user  system elapsed 
+  #> 9.255   0.843  10.110
+  system.time(felm(y ~ x1 + x2|0|0|id1 + id2, df)) 
   #>  user  system elapsed 
-  #> 11.144   1.321  11.031
-  system.time(getfe(felm(y ~ x1 + x2|(id1 + id2), df)))
-  #>  user  system elapsed 
-  #>  14.330   1.444  14.202 
+  #> 96.958   1.474  99.113 
   ```
 
-  Stata
+  Stata (reghdfe  version 5.2.9 06aug2018)
   ```
   clear all
   local N = 10000000
@@ -85,19 +73,12 @@ Code to reproduce this graph:
   set rmsg on
   reg y x1 x2
   #> r; t=1.20
-  reg y x1 x2, cl(id2)
-  #> r; t=11.15 12:32:57
   areg y x1 x2, a(id1)
   #>r; t=15.51
-  areg y x1 x2, a(id1) cl(id1)
-  #> r; t=53.02
-  reghdfe y x1 x2, a(id1 id2) fast
-  #> r; t=88.98 
-  reghdfe y x1 x2, a(fe1 = id1 fe2 = id2)
-  #> r; t=108.47 12:35:47
+  reghdfe y x1 x2, a(id1 id2)
+  #> r; t=49.38
+  reg y x1 x2, cl(id1)
+  #> r; t=11.15
+  ivreg2 y x1 x2, cluster(id1 id2)
+  #> r; t=118.67 
   ````
-
-
-
-
-Note: `reg` is fast mainly because Julia allows to write faster code.  On these examples,  `reg`, `reghdfe` and `lfe` require the same number of iterations to converge.

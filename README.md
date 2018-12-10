@@ -3,16 +3,10 @@
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
 
-Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package is usually much faster than these two options. The package implements a novel algorithm, which combines projection methods with the conjugate gradient descent.
+Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package is usually much faster than these two options.
 
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c512151/benchmark/result.svg)
+![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark)
 
-To install the package, 
-
-```julia
-using Pkg
-Pkg.add("FixedEffectModels")
-```
 
 ## Estimate a model
 To estimate a `@model`, specify  a formula with, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
