@@ -11,10 +11,10 @@ function get_weights(df::AbstractDataFrame, esample::AbstractVector, weights::Sy
 end
 get_weights(df::AbstractDataFrame, esample::AbstractVector, ::Nothing) = Ones{Float64}(sum(esample))
 
-#  remove observations with negative weights
+#  remove observations with missing or negative weights
 function isnaorneg(a::Vector{T}) where {T}
     out = BitArray(undef, length(a))
-    for i in 1:length(a)
+    @inbounds @simd for i in 1:length(a)
         out[i] = !ismissing(a[i]) & (a[i] > zero(T))
     end
     return out

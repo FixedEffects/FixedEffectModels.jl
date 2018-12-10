@@ -15,11 +15,11 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id2)))
 # 0.809652 seconds (1.55 k allocations: 649.821 MiB, 14.40% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1))
-# 1.715362 seconds (1.21 k allocations: 734.349 MiB, 16.31% gc time)
+# 1.655732 seconds (1.21 k allocations: 734.353 MiB, 16.88% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1, vcov = cluster(id1)))
-# 2.175254 seconds (499.66 k allocations: 846.518 MiB, 17.76% gc time)
+#  2.113248 seconds (499.66 k allocations: 811.751 MiB, 15.08% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2))
-# 3.715898 seconds (1.37 k allocations: 1005.097 MiB, 10.19% gc time)
+# 3.553678 seconds (1.36 k allocations: 1005.101 MiB, 10.55% gc time))
 
 
 # more regressors

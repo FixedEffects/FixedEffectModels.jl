@@ -125,7 +125,6 @@ function reg(df::AbstractDataFrame, f::Formula;
 
 
     if has_absorb
-        # slow in 0.6 due to any. Is it improved in 0.7?
         fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
         for fe in fes
             remove_singletons!(esample, fe)
@@ -148,10 +147,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
-    else
-        pfe = nothing
     end
-
 
     # Compute data for std errors
     vcov_method_data = VcovMethod(df[esample, unique(Symbol.(vcov_vars))], vcovformula)
@@ -161,11 +157,6 @@ function reg(df::AbstractDataFrame, f::Formula;
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-
-    # initialize iterations and converged
-    iterations = Int[]
-    convergeds = Bool[]
-
 
     mf = ModelFrame2(rt, df, esample; contrasts = contrasts)
 
@@ -209,6 +200,10 @@ function reg(df::AbstractDataFrame, f::Formula;
             oldX = hcat(Xexo, Xendo)
         end
 
+        # initialize iterations and converged
+        iterations = Int[]
+        convergeds = Bool[]
+
         y, b, c = solve_residuals!(y, pfe; maxiter = maxiter, tol = tol)
         append!(iterations, b)
         append!(convergeds, c)
@@ -232,7 +227,6 @@ function reg(df::AbstractDataFrame, f::Formula;
         end
     end
 
-
     ##############################################################################
     ##
     ## Get Linearly Independent Components of Matrix
@@ -253,13 +247,13 @@ function reg(df::AbstractDataFrame, f::Formula;
         Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
+
         # Build
         X = hcat(Xexo, Xendo)
         newZ = hcat(Xexo, Z)
         crossz = cholesky!(Symmetric(newZ' * newZ))
         Pi = crossz \ (newZ' * Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
-
 
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
@@ -290,20 +284,17 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     ##############################################################################
     ##
-    ## Optionally save some vectors in a new dataframe
+    ## Optionally save objects in a new dataframe
     ##
     ##############################################################################
 
-    # save residuals in a new dataframe
     augmentdf = DataFrame()
     if save_residuals
         augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
         augmentdf[esample, :residuals] = residuals ./ sqrtw 
     end
     if save_fe
-        if !all(basecoef)
-            oldX = oldX[:, basecoef]
-        end
+        oldX = getcols(oldX, basecoef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, pfe; tol = tol, maxiter = maxiter)
         for j in 1:length(fes)
             augmentdf[ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
@@ -335,8 +326,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             df_absorb += length(Set(fe.refs))
         end
     end
-    nvars = size(X, 2)
-    dof_residual = max(1, nobs - nvars - df_absorb - df_add)
+    dof_residual = max(1, nobs - size(X, 2) - df_absorb - df_add)
 
     # Compute rss, tss, r2, r2 adjusted
     rss = sum(abs2, residuals)
@@ -358,7 +348,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip, 
-                                  vcov_method_data, nvars, df_absorb)
+                                  vcov_method_data, size(X, 2), df_absorb)
     end
 
     ##############################################################################
@@ -403,10 +393,6 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
 end
 
-
-
-
-
 ##############################################################################
 ##
 ## Fstat
@@ -419,34 +405,20 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
     coefF = copy(coef)
     # TODO: check I can't do better
     length(coef) == hasintercept && return NaN, NaN
-    if hasintercept && length(coef) > 1
+    if hasintercept
         coefF = coefF[2:end]
         matrix_vcov = matrix_vcov[2:end, 2:end]
     end
-    F = (Diagonal(coefF)' * (matrix_vcov \ Diagonal(coefF)))[1]
+    F = (Diagonal(coefF) * (matrix_vcov \ Diagonal(coefF)))[1]
     df_ans = df_FStat(vcov_method_data, vcov_data, hasintercept)
     dist = FDist(nobs - hasintercept, max(df_ans, 1))
     return F, ccdf(dist, F)
 end
 
-function compute_tss(y::Vector{Float64}, hasintercept::Bool, ::Ones)
+function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::AbstractVector)
     if hasintercept
         tss = zero(Float64)
-        m = mean(y)::Float64
-        @inbounds @simd for i in 1:length(y)
-            tss += abs2(y[i] - m)
-        end
-    else
-        tss = sum(abs2, y)
-    end
-    return tss
-end
-
-
-function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::Vector{Float64})
-    if hasintercept
         m = (mean(y) / sum(sqrtw) * length(y))::Float64
-        tss = zero(Float64)
         @inbounds @simd for i in 1:length(y)
             tss += abs2(y[i] - sqrtw[i] * m)
         end
