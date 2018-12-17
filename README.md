@@ -27,7 +27,7 @@ reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, weights = P
 # NDI  -0.00526264 0.00144043 -3.65351    0.000 -0.00808837 -0.00243691
 # =====================================================================
 ```
-- A typical formula is  composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
+- A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 	```julia
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables)
 	```
