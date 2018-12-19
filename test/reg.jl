@@ -251,7 +251,7 @@ x = reg(df, m)
 @test stderror(x) ≈ [0.000759, 0.070836] atol = 1e-6
 m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
 x = reg(df, m)
-
+@test stderror(x) ≈ [0.0337439] atol = 1e-7
 
 # TO CHECK WITH STATA
 m = @model y ~ x1 vcov = cluster(pid1 + pid2)
