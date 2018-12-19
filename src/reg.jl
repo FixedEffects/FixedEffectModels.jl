@@ -43,7 +43,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     subset::Union{Symbol, Expr, Nothing} = nothing, 
     maxiter::Integer = 10000, contrasts::Dict = Dict(), 
     tol::Real= 1e-8, df_add::Integer = 0, 
-    save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr
+    save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true
    )
     feformula = fe
     if isa(vcov, Symbol)
@@ -123,11 +123,14 @@ function reg(df::AbstractDataFrame, f::Formula;
         esample .&= convert(BitArray, subset)
     end
 
-
     if has_absorb
         fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
-        for fe in fes
-            remove_singletons!(esample, fe)
+        if drop_singletons
+            for fe in fes
+                @show sum(esample)
+                remove_singletons!(esample, fe)
+                @show sum(esample)
+            end
         end
     end
 

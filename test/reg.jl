@@ -420,6 +420,11 @@ m = @model y ~ x1 fe = pn  vcov = cluster(pid1)
 x = reg(df, m)
 @test x.nobs == 60
 
+
+m = @model y ~ x1 fe = pn  vcov = cluster(pid1)
+x = reg(df, m, drop_singletons = false)
+@test x.nobs == 1380
+
 ##############################################################################
 ##
 ## Test unbalanced panel

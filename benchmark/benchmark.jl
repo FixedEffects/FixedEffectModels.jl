@@ -29,7 +29,7 @@ df[:x5] =  cos.(id1) + sin.(id2) + randn(N)
 df[:x6] =  cos.(id1) + sin.(id2) + randn(N)
 df[:x7] =  cos.(id1) + sin.(id2) + randn(N)
 @time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1 + id2, subset = x3 .>= 0.5))
-#   4.811433 seconds (7.41 k allocations: 1.663 GiB, 12.34% gc time)
+#  4.064132 seconds (2.24 k allocations: 965.500 MiB, 12.50% gc time)
 
 
 # Benchmark Parallel

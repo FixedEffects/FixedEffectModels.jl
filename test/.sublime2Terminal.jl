@@ -1,5 +1,2 @@
-model = @model Sales ~ Price fe = pState
-result = reg(df, model, save = :fe)
-@test :residuals ∉ names(result.augmentdf)
-@test :pState ∈ names(result.augmentdf)
-
+m = @model y ~ x1 fe = pn  vcov = cluster(pid1)
+x = reg(df, m, drop_singletons = false)

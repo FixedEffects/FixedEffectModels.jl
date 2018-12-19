@@ -66,3 +66,5 @@ result = reg(df, model)
 
 
 # I should check with IV and cehck with Weights an check with both
+
+
