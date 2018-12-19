@@ -14,7 +14,7 @@ df[:w] = df[:Pop]
 
 ##############################################################################
 ##
-## coefficients 
+## coefficients
 ##
 ##############################################################################
 
@@ -171,7 +171,7 @@ x = reg(df, m)
 ##
 ## collinearity
 ## add more tests
-## 
+##
 ##############################################################################
 # ols
 df[:x12] = df[:x1]
@@ -188,7 +188,7 @@ x = reg(df, m)
 df[:zz1] = df[:z1]
 m = @model y ~ zz1 + (x1 ~ x2 + z1)
 x = reg(df, m)
-@test coef(x)[2] != 0.0 
+@test coef(x)[2] != 0.0
 
 # catch when IV underidentified : re-try when 0.5
 #@test_throws ErrorException reg(df, @formula(y ~ x1 + (x2 + w = x2)))
@@ -200,7 +200,7 @@ x = reg(df, m)
 
 ##############################################################################
 ##
-## std errors 
+## std errors
 ##
 ##############################################################################
 
@@ -241,14 +241,14 @@ x = reg(df, m)
 # stata reghxe
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1)
 x = reg(df, m)
-@test stderror(x) ≈ [0.03573] atol = 1e-4
+@test stderror(x) ≈ [0.0357498] atol = 1e-7
 ## compare the two bewlo with reghdfe
 m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1)
 x = reg(df, m)
-@test stderror(x) ≈ [0.00196972, 0.189271] atol = 1e-4
+@test stderror(x) ≈ [0.0019704, 0.1893396] atol = 1e-7
 m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
 x = reg(df, m)
-@test stderror(x) ≈ [0.000758703, 0.0708103] atol = 1e-4
+@test stderror(x) ≈ [0.000759, 0.070836] atol = 1e-6
 m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
 x = reg(df, m)
 
@@ -314,7 +314,7 @@ x5 = reg(df, m)
 
 #Error reported by Erik
 m = @model y ~ z1 + CPI vcov = cluster(pid1) subset = (State .>= 30)
-x = reg(df, m) 
+x = reg(df, m)
 @test diag(x.vcov) ≈ [130.7464887, 0.0257875, 0.0383939] atol = 1e-4
 
 
@@ -350,7 +350,7 @@ x = reg(df, m)
 m = @model y ~ (x1 ~ z1) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F  ≈ 39.67227 atol = 1e-4
-#  xtivreg2 
+#  xtivreg2
 m = @model y ~ (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test x.F  ≈ 422.46444 atol = 1e-4
@@ -358,7 +358,7 @@ x = reg(df, m)
 ##############################################################################
 ##
 ## F_kp r_kp statistics for IV. Difference degrees of freedom.
-## 
+##
 ##############################################################################
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
@@ -411,7 +411,7 @@ x = reg(df, m)
 ##############################################################################
 ##
 ## Test singleton
-## 
+##
 ##
 ##############################################################################
 df[:n] = max.(1:size(df, 1), 60)
@@ -428,7 +428,7 @@ x = reg(df, m, drop_singletons = false)
 ##############################################################################
 ##
 ## Test unbalanced panel
-## 
+##
 ## corresponds to abdata in Stata, for instance reghxe wage emp [w=indoutpt], a(id year)
 ##
 ##############################################################################
@@ -487,4 +487,3 @@ end
 
 
 # add tests with missing interaction. add tests with missing fixed effects
-
