@@ -252,21 +252,23 @@ x = reg(df, m)
 m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
 x = reg(df, m)
 @test stderror(x) ≈ [0.0337439] atol = 1e-7
-
+### Tests below are modified to match reghdfe. Clean up before PR.
 # TO CHECK WITH STATA
 m = @model y ~ x1 vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test stderror(x)[1] ≈ 6.170255 atol = 1e-4
+@test stderror(x) ≈ [6.196362, 0.0403469] atol = 1e-6
 # TO CHECK WITH STATA
 m = @model y ~ x1 fe = pid1 vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test stderror(x)[1] ≈ 0.04037 atol = 1e-4
+@test stderror(x) ≈ [0.0405335] atol = 1e-7
 
 # TO CHECK WITH STATA
-m = @model y ~ x1 fe = pid1 vcov = cluster(pid1&pid2)
+m = @model y ~ x1 fe = pid1 vcov = cluster(pid2&pid1)
 x = reg(df, m)
-@test stderror(x) ≈ [0.0110005] atol = 1e-4
+@test stderror(x) ≈ [0.0110005] atol = 1e-7
 
+m=@model y ~ x1 + pid1 vcov=cluster(pid1&pid2)
+x = reg(df, m, df_add=1)
 
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
 
