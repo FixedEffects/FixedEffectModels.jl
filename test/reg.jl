@@ -401,22 +401,28 @@ x = reg(df, m)
 
 
 
-# like in ivreg2 but += 5 difference. there is a degrees of freedom difference. not sure where.
+# like in ivreg2 but += 5 difference. combination iv difference, degrees of freedom difference?
+# iv + cluster - F_kp varies from ivreg2 about 7e-4 (SEs off by more than 2 df)
 m = @model y ~ (x1 ~ z1) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F_kp     ≈ 7249.88606 atol = 1e-4
+# iv + cluster - F_kp varies from ivreg2 about 5e-6 (SEs off by more than 2 df)
 m = @model y ~ CPI + (x1 ~ z1) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F_kp   ≈ 538.40393 atol = 1e-4
+# Modified test values below after multiway clustering update
+# iv + 2way clustering - F_kp matches ivreg2 (SEs match with df_add=-2)
 m = @model y ~ CPI + (x1 ~ z1) vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test x.F_kp   ≈ 423.003425 atol = 1e-4
+@test x.F_kp   ≈ 421.9651 atol = 1e-4
+# multivariate iv + clustering - F_kp varies from ivreg2 about 3 (SEs off by more than 2 df)
 m = @model y ~ (x1 ~ z1 + CPI) vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F_kp      ≈ 4080.66081 atol = 1e-4
+# multivariate iv + multiway clustering - F_kp varies from ivreg2 about 2 (SEs off by more than 2 df)
 m = @model y ~ (x1 ~ z1 + CPI) vcov = cluster(pid1 + pid2)
 x = reg(df, m)
-@test x.F_kp  ≈ 2877.9447778 atol = 1e-4
+@test x.F_kp  ≈ 2873.1405 atol = 1e-4
 
 
 
