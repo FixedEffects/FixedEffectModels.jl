@@ -98,6 +98,8 @@ x = reg(df, m)
 @test coef(x) ≈ [- 0.461085492] atol = 1e-4
 
 # iv
+# Stata consistency: coefficient estimates match ivreg2/ivreghdfe
+# Standard error estimates do not match for iv models. See lines 213, 227
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
 @test coef(x) ≈ [138.19479,- 0.20733] atol = 1e-4
@@ -204,72 +206,80 @@ x = reg(df, m)
 ##
 ##############################################################################
 
-# Simple
+# Simple - matches stata
 m = @model y ~ x1
 x = reg(df, m)
-@test stderror(x) ≈ [1.52126, 0.01889] atol = 1e-4
-# Stata ivreg
+@test stderror(x) ≈ [1.521269, 0.0188963] atol = 1e-6
+# Stata ivreg - ivreg2 discrepancy - matches with df_add=-2
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
 @test stderror(x) ≈ [1.53661, 0.01915] atol = 1e-4
 # Stata areg
 m = @model y ~ x1 fe = pid1
 x = reg(df, m)
-@test stderror(x) ≈  [0.00980] atol = 1e-4
+@test stderror(x) ≈  [0.0098003] atol = 1e-7
 
 # White
-# Stata reg
+# Stata reg - matches stata
 m = @model y ~ x1 vcov = robust
 x = reg(df, m)
-@test stderror(x) ≈ [1.68679, 0.01670] atol = 1e-4
-# Stata ivreg
+@test stderror(x) ≈ [1.686791, 0.0167042] atol = 1e-6
+# Stata ivreg - ivreg2 discrepancy - matches with df_add=-2
 m = @model y ~ (x1 ~ z1) vcov = robust
 x = reg(df, m)
 @test stderror(x) ≈ [1.63305, 0.01674] atol = 1e-4
-# Stata areg
+# Stata areg - matches areg
 m = @model y ~ x1 fe = pid1 vcov = robust
-x = reg(df, m)
-@test stderror(x) ≈ [0.01100] atol = 1e-4
-
-# cluster
-m = @model y ~ x1 vcov = cluster(pid1)
-x = reg(df, m)
-@test stderror(x)[2] ≈ 0.03792 atol = 1e-4
-m = @model y ~ x1 fe = pid1 vcov = cluster(pid2)
-x = reg(df, m)
-@test stderror(x) ≈ [0.02205] atol = 1e-4
-# stata reghxe
-m = @model y ~ x1 fe = pid1 vcov = cluster(pid1)
-x = reg(df, m)
-@test stderror(x) ≈ [0.0357498] atol = 1e-7
-## compare the two bewlo with reghdfe
-m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1)
-x = reg(df, m)
-@test stderror(x) ≈ [0.0019704, 0.1893396] atol = 1e-7
-m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
-x = reg(df, m)
-@test stderror(x) ≈ [0.000759, 0.070836] atol = 1e-6
-m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
-x = reg(df, m)
-@test stderror(x) ≈ [0.0337439] atol = 1e-7
-### Tests below are modified to match reghdfe. Clean up before PR.
-# TO CHECK WITH STATA
-m = @model y ~ x1 vcov = cluster(pid1 + pid2)
-x = reg(df, m)
-@test stderror(x) ≈ [6.196362, 0.0403469] atol = 1e-6
-# TO CHECK WITH STATA
-m = @model y ~ x1 fe = pid1 vcov = cluster(pid1 + pid2)
-x = reg(df, m)
-@test stderror(x) ≈ [0.0405335] atol = 1e-7
-
-# TO CHECK WITH STATA
-m = @model y ~ x1 fe = pid1 vcov = cluster(pid2&pid1)
 x = reg(df, m)
 @test stderror(x) ≈ [0.0110005] atol = 1e-7
 
+# Clustering models
+# cluster - matches stata
+m = @model y ~ x1 vcov = cluster(pid1)
+x = reg(df, m)
+@test stderror(x)[2] ≈ 0.0379228 atol = 1e-7
+# cluster with fe - matches areg & reghdfe
+m = @model y ~ x1 fe = pid1 vcov = cluster(pid2)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0220563] atol = 1e-7
+# stata reghxe - matches reghdfe (not areg)
+m = @model y ~ x1 fe = pid1 vcov = cluster(pid1)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0357498] atol = 1e-7
+# iv + fe + cluster - matches ivreghdfe
+m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0019704, 0.1893396] atol = 1e-7
+# iv + fe + cluster + weights - matches ivreghdfe
+m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
+x = reg(df, m)
+@test stderror(x) ≈ [0.000759, 0.070836] atol = 1e-6
+# iv + fe + cluster + weights - matches ivreghdfe
+m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
+x = reg(df, m)
+@test stderror(x) ≈ [0.0337439] atol = 1e-7
+# multiway clustering - matches reghdfe
+m = @model y ~ x1 vcov = cluster(pid1 + pid2)
+x = reg(df, m)
+@test stderror(x) ≈ [6.196362, 0.0403469] atol = 1e-6
+# fe + multiway clustering - matches reghdfe
+m = @model y ~ x1 fe = pid1 vcov = cluster(pid1 + pid2)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0405335] atol = 1e-7
+# fe + clustering on interactions - matches reghdfe
+m = @model y ~ x1 fe = pid1 vcov = cluster(pid1&pid2)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0110005] atol = 1e-7
+# fe partially nested in interaction clusters - matches reghdfe
+m=@model y ~ x1 fe = pid1 vcov=cluster(pid1&pid2)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0110005] atol = 1e-7
+# regressor partially nested in interaction clusters - matches reghdfe
 m=@model y ~ x1 + pid1 vcov=cluster(pid1&pid2)
-x = reg(df, m, df_add=1)
+x = reg(df, m)
+@test stderror(x)[1:2] ≈ [3.032187, 0.0110005] atol=1e-5
 
+# catch continuous variable in cluster
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
 
 ##############################################################################
