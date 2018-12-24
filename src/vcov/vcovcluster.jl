@@ -42,7 +42,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     # Cameron, Gelbach, & Miller (2011): section 2.3
     dim = size(x.regressors, 2) * size(x.residuals, 2)
     S = fill(zero(Float64), (dim, dim))
-    iter=1; G=0
+    iter=1; G=typemax(Int64)
     for c in combinations(names(v.clusters))
         if length(c) == 1
             # no need for group
@@ -51,12 +51,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
             f = group((v.clusters[var] for var in c)...)
         end
         # capture length of smallest dimension of multiway clustering in G
-        if iter==1
-            G = length(f.pool)
-            iter +=1
-        elseif length(f.pool) < G
-            G = length(f.pool)
-        end
+        G = min(G, length(f.pool))
         if rem(length(c), 2) == 1
             S += helper_cluster(x.regressors, x.residuals, f)
         else
