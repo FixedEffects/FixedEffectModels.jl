@@ -11,7 +11,7 @@ struct VcovClusterMethod <: AbstractVcovMethod
 end
 
 
-function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula) 
+function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     clusters = vcovcluster._
     vclusters = DataFrame(Vector, size(df, 1), 0)
     for c in clusters
@@ -39,9 +39,10 @@ function vcov!(v::VcovClusterMethod, x::VcovData)
 end
 
 function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
-    # Cameron, Gelbach, & Miller (2011).
+    # Cameron, Gelbach, & Miller (2011): section 2.3
     dim = size(x.regressors, 2) * size(x.residuals, 2)
     S = fill(zero(Float64), (dim, dim))
+    iter=1; G=typemax(Int64)
     for c in combinations(names(v.clusters))
         if length(c) == 1
             # no need for group
@@ -49,13 +50,16 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
         else
             f = group((v.clusters[var] for var in c)...)
         end
+        # capture length of smallest dimension of multiway clustering in G
+        G = min(G, length(f.pool))
         if rem(length(c), 2) == 1
             S += helper_cluster(x.regressors, x.residuals, f)
         else
             S -= helper_cluster(x.regressors, x.residuals, f)
         end
     end
-    rmul!(S, (size(x.regressors, 1) - 1) / x.dof_residual)
+    # scale total vcov estimate by ((N-1)/(N-K)) * (G/(G-1))
+    rmul!(S, ( (size(x.regressors, 1) - 1) / x.dof_residual ) * ( G / (G - 1) ) )
     return S
 end
 
@@ -75,11 +79,9 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
         end
     end
     S2 = X2' * X2
-    if length(f.pool) < size(X, 1)
-        # if only one obs by pool, for instance cluster(year state)
-        # use White, as in Petersen (2009) & Thomson (2011) 
-        rmul!(S2, length(f.pool) / (length(f.pool) - 1))
-    end
+    # Dec2018 removed intermediate vcov component adjustments that were here
+    # instead now adjusting total variance estimate, following reghdfe
+    # See Cameron, Gelbach and Miller (2011), section 2.3 for both methods
     return S2
 end
 
