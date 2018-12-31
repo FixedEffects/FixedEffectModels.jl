@@ -127,9 +127,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
         if drop_singletons
             for fe in fes
-                @show sum(esample)
                 remove_singletons!(esample, fe)
-                @show sum(esample)
             end
         end
     end

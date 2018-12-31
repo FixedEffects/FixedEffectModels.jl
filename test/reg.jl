@@ -98,8 +98,6 @@ x = reg(df, m)
 @test coef(x) ≈ [- 0.461085492] atol = 1e-4
 
 # iv
-# Stata consistency: coefficient estimates match ivreg2/ivreghdfe
-# Standard error estimates do not match for iv models. See lines 213, 227
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
 @test coef(x) ≈ [138.19479,- 0.20733] atol = 1e-4
@@ -121,12 +119,10 @@ m = @model y ~ x2 + (x1&pid2 ~ z1&pid2)
 x = reg(df, m)
 @test coef(x) ≈ result atol = 1e-4
 
-
 # iv + weight
 m = @model y ~ (x1 ~ z1) weights = w
 x = reg(df, m)
 @test coef(x) ≈ [137.03637,- 0.22802] atol = 1e-4
-
 
 # iv + weight + absorb
 m = @model y ~ (x1 ~ z1) fe = pid1
@@ -141,8 +137,6 @@ x = reg(df, m)
 m = @model y ~ x2 + (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test coef(x)  ≈  [0.0011021722526916768,-0.3216374943695231] atol = 1e-4
-
-
 
 # non high dimensional factors
 m = @model y ~ x1 + pid2
@@ -199,6 +193,15 @@ x = reg(df, m)
 @test_throws ErrorException reg(df, @model(y ~ x1, fe = x2))
 @test_throws ErrorException reg(df, @model(y ~ x1, fe = x2 + pid1))
 
+
+
+# Make sure all coefficients are estimated
+using Random
+Random.seed!(0)
+df_r = DataFrame(x1 = randn(10000) * 100)
+df_r[:x2] = df_r[:x1].^4
+result = reg(df_r, @model(x1 ~ x2 ))
+@test sum(abs.(coef(result)) .> 0)  == 2
 
 ##############################################################################
 ##
@@ -467,38 +470,38 @@ end
 
 for method in method_s
 	# absorb
-	global m = @model y ~ x1 fe = pid1 method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1 method = $(method)
+	x = reg(df, m)
 	@test coef(x) ≈ [- 0.11981270017206136] atol = 1e-4
-	global m = @model y ~ x1 fe = pid1&id2 method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1&id2 method = $(method)
+	x = reg(df, m)
 	@test coef(x)  ≈ [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
-	global m = @model y ~ x1 fe = id2&pid1 method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = id2&pid1 method = $(method)
+	x = reg(df, m)
 	@test coef(x) ≈  [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
-	global m = @model y ~ 1 fe = id2&pid1 method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ 1 fe = id2&pid1 method = $(method)
+	x = reg(df, m)
 	@test coef(x) ≈  [- 356.40430526316396] atol = 1e-4
-	global m = @model y ~ x1 fe = pid1 weights = w method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1 weights = w method = $(method)
+	x = reg(df, m)
 	@test coef(x) ≈ [- 0.11514363590574725] atol = 1e-4
 
 	# absorb + weights
-	global m = @model y ~ x1 fe = pid1 + pid2 method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1 + pid2 method = $(method)
+	x = reg(df, m)
 	@test coef(x)  ≈  [- 0.04683333721137311] atol = 1e-4
-	global m = @model y ~ x1 fe = pid1 + pid2 weights = w method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1 + pid2 weights = w method = $(method)
+	x = reg(df, m)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
 	## the last two ones test an ill conditioned model matrix
-	global m = @model y ~ x1 fe = pid1 + pid1&id2 method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1 + pid1&id2 method = $(method)
+	x = reg(df, m)
 	@test coef(x)  ≈   [- 0.122354] atol = 1e-4
 	@test x.iterations <= 30
 
-	global m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w method = $(method)
-	global x = reg(df, m)
+	m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w method = $(method)
+	x = reg(df, m)
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
 end

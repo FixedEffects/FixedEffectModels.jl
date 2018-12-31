@@ -5,70 +5,56 @@ struct VcovClusterFormula <: AbstractVcovFormula
 end
 allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
 
-
 struct VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
 end
-
 
 function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     clusters = vcovcluster._
     vclusters = DataFrame(Vector, size(df, 1), 0)
     for c in clusters
         if isa(c, Symbol)
-            typeof(df[c]) <: CategoricalVector || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
-            cname = c
-            p = group(df[c])
+            isa(df[c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
+            vclusters[c] = group(df[c])
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
-            cname = _name(factorvars)
-            p = group((df[v] for v in factorvars)...)
+            vclusters[_name(factorvars)] = group((df[v] for v in factorvars)...)
         end
-        vclusters[cname] = p
     end
     return VcovClusterMethod(vclusters)
 end
 
-df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool) = minimum((length(v.clusters[c].pool) for c in names(v.clusters))) - 1
-
+function df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool)
+    minimum((length(v.clusters[c].pool) for c in names(v.clusters))) - 1
+end
 
 function vcov!(v::VcovClusterMethod, x::VcovData)
     S = shat!(v, x)
-    out = sandwich(x.crossmatrix, S)
-    return pinvertible(out)
+    return pinvertible(sandwich(x.crossmatrix, S))
 end
 
 function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     # Cameron, Gelbach, & Miller (2011): section 2.3
     dim = size(x.regressors, 2) * size(x.residuals, 2)
-    S = fill(zero(Float64), (dim, dim))
-    iter=1; G=typemax(Int64)
+    S = zeros(dim, dim)
+    G = typemax(Int)
     for c in combinations(names(v.clusters))
-        if length(c) == 1
-            # no need for group
-            f = v.clusters[c[1]]
-        else
-            f = group((v.clusters[var] for var in c)...)
-        end
+        # no need for group in case of one fixed effect, since was already done in VcovMethod
+        f = (length(c) == 1) ? v.clusters[c[1]] : group((v.clusters[var] for var in c)...)
         # capture length of smallest dimension of multiway clustering in G
         G = min(G, length(f.pool))
-        if rem(length(c), 2) == 1
-            S += helper_cluster(x.regressors, x.residuals, f)
-        else
-            S -= helper_cluster(x.regressors, x.residuals, f)
-        end
+        S += (-1)^(length(c) - 1) * helper_cluster(x.regressors, x.residuals, f)
     end
     # scale total vcov estimate by ((N-1)/(N-K)) * (G/(G-1))
-    rmul!(S, ( (size(x.regressors, 1) - 1) / x.dof_residual ) * ( G / (G - 1) ) )
-    return S
+    # another option would be to adjust each matrix given by helper_cluster by number of its categories
+    # both methods are presented in Cameron, Gelbach and Miller (2011), section 2.3
+    # I choose the first option following reghdfe
+    rmul!(S, (size(x.regressors, 1) - 1) / x.dof_residual * G / (G - 1))
 end
-
-
 
 # Matrix version is used for IV
 function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{Float64}}, f::CategoricalVector)
-    dim = size(X, 2) * size(res, 2)
-    X2 = fill(zero(Float64), length(f.pool), dim)
+    X2 = fill(zero(Float64), length(f.pool), size(X, 2) * size(res, 2))
     index = 0
     for k in 1:size(res, 2)
         for j in 1:size(X, 2)
@@ -78,13 +64,8 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
             end
         end
     end
-    S2 = X2' * X2
-    # Dec2018 removed intermediate vcov component adjustments that were here
-    # instead now adjusting total variance estimate, following reghdfe
-    # See Cameron, Gelbach and Miller (2011), section 2.3 for both methods
-    return S2
+    return X2' * X2
 end
-
 
 function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
     eigval, eigvect = eigen(Symmetric(A))
@@ -93,7 +74,7 @@ function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
         warn("estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution.")
         eigval[small] = 0
-        return  eigvect' * Diagonal(eigval) * eigvect
+        return eigvect' * Diagonal(eigval) * eigvect
     else
         return A
     end
