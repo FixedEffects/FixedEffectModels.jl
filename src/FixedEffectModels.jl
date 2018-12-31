@@ -67,12 +67,11 @@ Model,
 ## Load files
 ##
 ##############################################################################
-include("utils/weight.jl")
+include("utils/model.jl")
+include("utils/weights.jl")
 include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
-include("utils/model.jl")
-
-
+include("utils/tss.jl")
 
 include("formula/formula_iv.jl")
 include("formula/formula_fe.jl")
@@ -84,7 +83,7 @@ include("vcov/types.jl")
 include("vcov/vcovsimple.jl")
 include("vcov/vcovrobust.jl")
 include("vcov/vcovcluster.jl")
-include("vcov/ranktest.jl")
+include("vcov/utils.jl")
 
 include("reg.jl")
 include("partial_out.jl")
