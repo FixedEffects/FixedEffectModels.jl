@@ -52,8 +52,6 @@ function reg(df::AbstractDataFrame, f::Formula;
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
-
-
     ##############################################################################
     ##
     ## Parse formula
@@ -127,9 +125,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
         if drop_singletons
             for fe in fes
-                @show sum(esample)
-                remove_singletons!(esample, fe)
-                @show sum(esample)
+                drop_singletons!(esample, fe)
             end
         end
     end
@@ -397,40 +393,6 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
 end
 
-##############################################################################
-##
-## Fstat
-##
-##############################################################################
-
-function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
-    nobs::Int, hasintercept::Bool,
-    vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
-    coefF = copy(coef)
-    # TODO: check I can't do better
-    length(coef) == hasintercept && return NaN, NaN
-    if hasintercept
-        coefF = coefF[2:end]
-        matrix_vcov = matrix_vcov[2:end, 2:end]
-    end
-    F = (Diagonal(coefF) * (matrix_vcov \ Diagonal(coefF)))[1]
-    df_ans = df_FStat(vcov_method_data, vcov_data, hasintercept)
-    dist = FDist(nobs - hasintercept, max(df_ans, 1))
-    return F, ccdf(dist, F)
-end
-
-function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::AbstractVector)
-    if hasintercept
-        tss = zero(Float64)
-        m = (mean(y) / sum(sqrtw) * length(y))::Float64
-        @inbounds @simd for i in 1:length(y)
-            tss += abs2(y[i] - sqrtw[i] * m)
-        end
-    else
-        tss = sum(abs2, y)
-    end
-    return tss
-end
 
 ##############################################################################
 ##

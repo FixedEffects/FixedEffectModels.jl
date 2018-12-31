@@ -5,7 +5,6 @@
 ##
 ##############################################################################
 
-
 function isnested(fe::FixedEffect, p::CategoricalVector) 
     entries_in_p = Dict{eltype(fe.refs), eltype(p.refs)}()
     sizehint!(entries_in_p, fe.n)
@@ -22,15 +21,13 @@ function isnested(fe::FixedEffect, p::CategoricalVector)
     return true
 end
 
-
-
 ##############################################################################
 ##
-## Remove Singletons
+## Drop Singletons
 ##
 ##############################################################################
 
-function remove_singletons!(esample, fe::FixedEffect)
+function drop_singletons!(esample, fe::FixedEffect)
     cache = zeros(Int, fe.n)
     for i in 1:length(esample)
         if esample[i]
@@ -43,7 +40,6 @@ function remove_singletons!(esample, fe::FixedEffect)
         end
     end
 end
-
 
 ##############################################################################
 ##

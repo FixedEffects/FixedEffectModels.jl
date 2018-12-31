@@ -10,8 +10,7 @@ struct Combination{N}
 end
 
 function Combination(A::Matrix{Float64}...)
-    cumlength = cumsum([size(x, 2) for x in A])
-    Combination(A, cumlength)
+    Combination(A, cumsum([size(x, 2) for x in A]))
 end
 
 function size(c::Combination, i)
@@ -52,10 +51,9 @@ function crossprod(c::Combination{N}) where {N}
     end
     return out
 end
-function crossprod(A::Matrix{Float64})
-    A'A
-end
+crossprod(A::Matrix{Float64}) = A'A
 crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
+
 ##############################################################################
 ##
 ## Returns base of [A B C ...]
@@ -64,9 +62,6 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 ##
 ##
 ##############################################################################
-
-
-
 
 # rank(A) == rank(A'A)
 function basecol(X::Matrix{Float64}...; factorization = :Cholesky)
@@ -80,9 +75,5 @@ function basecol(X::Matrix{Float64}...; factorization = :Cholesky)
 end
 
 function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
-    if sum(basecolX) == size(X, 2)
-        return X
-    else
-        return X[:, basecolX]
-    end
+    sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
 end

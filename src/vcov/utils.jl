@@ -1,4 +1,22 @@
 
+
+function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
+    nobs::Int, hasintercept::Bool,
+    vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
+    coefF = copy(coef)
+    # TODO: check I can't do better
+    length(coef) == hasintercept && return NaN, NaN
+    if hasintercept
+        coefF = coefF[2:end]
+        matrix_vcov = matrix_vcov[2:end, 2:end]
+    end
+    F = (Diagonal(coefF) * (matrix_vcov \ Diagonal(coefF)))[1]
+    df_ans = df_FStat(vcov_method_data, vcov_data, hasintercept)
+    dist = FDist(nobs - hasintercept, max(df_ans, 1))
+    return F, ccdf(dist, F)
+end
+
+
 ##############################################################################
 ##
 ## The following function follows the command ranktest (called by ivreg2)
