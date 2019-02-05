@@ -1,6 +1,6 @@
 using FixedEffectModels, DataFrames, CSV, Test
 
-df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
+df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])
 df[:pYear] = categorical(df[:Year])
 

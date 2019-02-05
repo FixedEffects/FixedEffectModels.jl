@@ -1,6 +1,6 @@
-using DataFrames, Statistics, GLM, Test
+using FixedEffectModels, DataFrames, Statistics, GLM, CSV, Test
 
-df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset/Cigar.csv"))
+df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
 df[:pState] = categorical(df[:State])
 df[:pYear] = categorical(df[:Year])
 
@@ -9,22 +9,22 @@ function glm_helper(formula::Formula, df::DataFrame)
     model_response(ModelFrame(formula, df)) - predict(glm(formula, df, Normal(), IdentityLink()))
 end
 function glm_helper(formula::Formula, df::DataFrame, wts::Symbol) 
-    model_response(ModelFrame(formula, df)) - predict(glm(formula, df, Normal(), IdentityLink(), wts = convert(Array{Float64}, df[wts])))
+    model_response(ModelFrame(formula, df)) - predict(glm(formula, df, Normal(), IdentityLink(), wts = convert(Vector{Float64}, df[wts])))
 end
 
 test = (
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI))[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState))[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState))[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1))[1]),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, add_mean = true))[1]), dims = 1[1]),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))[1]), dims = 1[1]),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))[1]), dims = 1[1]),
-    mean(convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))[1]), dims = 1[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, weights = Pop))[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, weights = Pop))[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, weights = Pop))[1]),
-    convert(Array{Float64}, partial_out(df, @model(Sales + Price ~ 1, weights = Pop))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1))[1]),
+    mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, add_mean = true))[1]), dims = 1[1]),
+    mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))[1]), dims = 1[1]),
+    mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))[1]), dims = 1[1]),
+    mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))[1]), dims = 1[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, weights = Pop))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, weights = Pop))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, weights = Pop))[1]),
+    convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, weights = Pop))[1]),
     )
 
 answer = (

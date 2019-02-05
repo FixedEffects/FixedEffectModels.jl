@@ -1,6 +1,6 @@
 
 using FixedEffectModels, CSV, DataFrames, LinearAlgebra, Test
-df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "Cigar.csv"))
+df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
 df[:id1] = df[:State]
 df[:id2] = df[:Year]
 df[:pid1] = categorical(df[:id1])
@@ -453,7 +453,7 @@ x = reg(df, m, drop_singletons = false)
 ## corresponds to abdata in Stata, for instance reghxe wage emp [w=indoutpt], a(id year)
 ##
 ##############################################################################
-df = CSV.read(joinpath(dirname(@__FILE__), "..", "dataset", "EmplUK.csv"))
+df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/EmplUK.csv"))
 df[:id1] = df[:Firm]
 df[:id2] = df[:Year]
 df[:pid1] = categorical(df[:id1])

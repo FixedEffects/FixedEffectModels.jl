@@ -5,10 +5,10 @@
 ##
 ##############################################################################
 
-function isnested(fe::FixedEffect, p::CategoricalVector) 
-    entries_in_p = Dict{eltype(fe.refs), eltype(p.refs)}()
+function isnested(fe::FixedEffect, prefs) 
+    entries_in_p = Dict{eltype(fe.refs), eltype(prefs)}()
     sizehint!(entries_in_p, fe.n)
-    for (feref, pref) in zip(fe.refs, p.refs)
+    for (feref, pref) in zip(fe.refs, prefs)
         x = get(entries_in_p, feref, 0)
         if x == 0
             # it's a new level, create entry

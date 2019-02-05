@@ -12,11 +12,11 @@ import LinearAlgebra.BLAS: gemm!
 import Statistics: mean, quantile
 import Printf: @sprintf
 import Distributions: ccdf, TDist, FDist, Chisq
-import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing
+import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing, groupby, groupindices
 import Combinatorics: combinations
 using CategoricalArrays
 using FillArrays
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual,  df_residual, r2, adjr2, deviance, mss, rss, islinear, response
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response
 import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
 using Reexport
 @reexport using StatsBase
