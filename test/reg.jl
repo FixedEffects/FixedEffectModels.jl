@@ -507,25 +507,24 @@ for method in method_s
 end
 
 
-# add tests with missing interaction. add tests with missing fixed effects
-df[:id1_missing] = ifelse.(df[:id1] .<= 30, df[:id1], missing)
+# add tests with missing fixed effects
+df[:id1_missing] = ifelse.(df[:id1] .<= 30, missing, df[:id1])
 df[:pid1_missing] = categorical(df[:id1_missing])
 
-  ## test with missing fixed effects
-    m = @model y ~ x1 fe = pid1_missing
-    x2 = reg(df, m)
-	@test coef(x) ≈ [- 0.1053171] atol = 1e-4
-	@test stderror(x) ≈  [0.0332446] atol = 1e-7
-	@test r2(x) ≈ [0.867] atol = 1e-2
-	@test adjr2(x) ≈ [0.8484]
-	@test x2.F ≈ [10.04] atol = 1e-2
-	@test x.nobs == 821
+## test with missing fixed effects
+m = @model y ~ x1 fe = pid1_missing
+x = reg(df, m)
+@test coef(x) ≈ [-.1093657] atol = 1e-4
+@test stderror(x) ≈  [.032949 ] atol = 1e-4
+@test r2(x) ≈ 0.8703 atol = 1e-2
+@test adjr2(x) ≈ 0.8502 atol = 1e-2
+@test x.nobs == 821
 
-	## test with missing interaction
-
-	## TODO do we need to keep singletons for this to work?
-	m = @model y ~ x1 fe = pid1_missing&pid1_missing&pid2
-	x2 = reg(df, m, drop_singletons = false)
-	@test coef(x) ≈ [-0.1151436] atol = 1e-4
-	@test x2.F ≈ [13.48] atol = 1e-2
-	@test x.nobs == 821
+## test with missing interaction
+df[:id3] = df[:id2] .>= 1980
+df[:pid3] = categorical(df[:id3])
+m = @model y ~ x1 fe = pid1_missing & pid3
+x = reg(df, m)
+@test coef(x) ≈ [-0.100863] atol = 1e-4
+@test stderror(x) ≈  [0.04149] atol = 1e-4
+@test x.nobs == 821
