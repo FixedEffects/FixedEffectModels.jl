@@ -51,6 +51,3 @@ end
 function _subset(fe::FixedEffect, esample)
     FixedEffect{typeof(fe.refs), Vector{Float64}}(fe.refs[esample], convert(Vector{Float64}, view(fe.interaction, esample)), fe.n)
 end
-
-
-

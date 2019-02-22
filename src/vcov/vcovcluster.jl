@@ -15,10 +15,10 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     for c in clusters
         if isa(c, Symbol)
             isa(df[c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
-            vclusters[c] = factorize(group(df[c]))
+            vclusters[c] = group(df[c])
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
-            vclusters[_name(factorvars)] = factorize(group((df[v] for v in factorvars)...))
+            vclusters[_name(factorvars)] = group((df[v] for v in factorvars)...)
         end
     end
     return VcovClusterMethod(vclusters)
@@ -39,8 +39,8 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     S = zeros(dim, dim)
     G = typemax(Int)
     for c in combinations(names(v.clusters))
-        # no need for factorize in case of one fixed effect, since was already done in VcovMethod
-        f = (length(c) == 1) ? v.clusters[c[1]] : factorize(group((v.clusters[var] for var in c)...))
+        # no need for group in case of one fixed effect, since was already done in VcovMethod
+        f = (length(c) == 1) ? v.clusters[c[1]] : group((v.clusters[var] for var in c)...)
         # capture length of smallest dimension of multiway clustering in G
         G = min(G, length(f.pool))
         S += (-1)^(length(c) - 1) * helper_cluster(x.regressors, x.residuals, f)
@@ -78,18 +78,4 @@ function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
     else
         return A
     end
-end
-
-
-#  drop unused levels
-function factorize(x::CategoricalVector)
-    uu = sort!(unique(x.refs))
-    has_missing = uu[1] == 0
-    dict = Dict{eltype(uu), Int}(zip(uu, (1-has_missing):(length(uu)-has_missing)))
-    newrefs = zeros(UInt32, length(x.refs))
-    for i in 1:length(x.refs)
-         newrefs[i] = dict[x.refs[i]]
-    end
-    Tout = has_missing ? Union{Int, Missing} : Int
-    CategoricalArray{Tout, 1}(newrefs, CategoricalPool(collect(1:(length(uu)-has_missing))))
 end
