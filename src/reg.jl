@@ -317,7 +317,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if isa(vcovformula, VcovClusterFormula)
-                if any(isnested(fe, vcov_method_data.clusters[v]) for v in names(vcov_method_data.clusters))
+                if any(isnested(fe, c.refs) for c in columns(vcov_method_data.clusters))
                     df_absorb = 1 # if fe is nested you still lose 1 degree of freedom 
                     break
                 end
