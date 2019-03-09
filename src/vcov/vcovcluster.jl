@@ -73,7 +73,7 @@ function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
     if any(small)
         @warn "estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution."
-        eigval[small] = 0
+        eigval[small] .= 0
         return eigvect' * Diagonal(eigval) * eigvect
     else
         return A

@@ -17,3 +17,7 @@ for test in tests
 	 	rethrow(e)
 	 end
 end
+
+
+using Test
+@test FixedEffectModels.pinvertible([1.0 1.0; 1.0 1.0]) ≈ [1.0 1.0; 1.0 1.0]
