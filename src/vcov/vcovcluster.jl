@@ -11,7 +11,7 @@ end
 
 function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     clusters = vcovcluster._
-    vclusters = DataFrame(Vector, size(df, 1), 0)
+    vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
     for c in clusters
         if isa(c, Symbol)
             isa(df[c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
