@@ -358,7 +358,9 @@ x = reg(df, m)
 m = @model y ~ (x1 ~ z1)
 x = reg(df, m)
 @test x.F  ≈ 117.17329 atol = 1e-4
-
+m = @model y ~ x1 + w
+x = reg(df, m)
+@test x.F ≈ 79.091576 atol = 1e-4
 m = @model y ~ x1 vcov = cluster(pid1)
 x = reg(df, m)
 @test x.F    ≈ 36.70275 atol = 1e-4
@@ -370,6 +372,13 @@ m = @model y ~ (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test x.F  ≈ 422.46444 atol = 1e-4
 
+# p value
+m = @model w ~ z1
+x = reg(df, m)
+@test x.p ≈ 0.003998718283554043 atol = 1e-4
+m = @model w ~ z1 + x1
+x = reg(df, m)
+@test x.p ≈ 3.369423076033613e-14 atol = 1e-4
 ##############################################################################
 ##
 ## F_kp r_kp statistics for IV. Difference degrees of freedom.
