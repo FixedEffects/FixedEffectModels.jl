@@ -10,9 +10,9 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
         coefF = coefF[2:end]
         matrix_vcov = matrix_vcov[2:end, 2:end]
     end
-    F = (Diagonal(coefF) * (matrix_vcov \ Diagonal(coefF)))[1]
+    F = (coefF' * (matrix_vcov \ coefF)) / length(coefF)
     df_ans = df_FStat(vcov_method_data, vcov_data, hasintercept)
-    dist = FDist(nobs - hasintercept, max(df_ans, 1))
+    dist = FDist(length(coefF), df_ans)
     return F, ccdf(dist, F)
 end
 
