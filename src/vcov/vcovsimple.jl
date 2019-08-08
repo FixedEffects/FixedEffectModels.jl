@@ -7,8 +7,8 @@ struct VcovSimpleMethod <: AbstractVcovMethod end
 VcovMethod(::AbstractDataFrame, ::VcovSimpleFormula) = VcovSimpleMethod()
 
 function vcov!(::VcovSimpleMethod, x::VcovData)
-    invcrossmatrix = inv(x.crossmatrix)
+    invcrossmatrix = Matrix(inv(x.crossmatrix))
     rmul!(invcrossmatrix, sum(abs2, x.residuals) /  x.dof_residual)
-    return invcrossmatrix
+    return Symmetric(invcrossmatrix)
 end
 shat!(::VcovSimpleMethod, x::VcovData) = scale(x.crossmatrix, sumabs2(x.residuals))
