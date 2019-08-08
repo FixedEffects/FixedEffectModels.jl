@@ -30,7 +30,8 @@ end
 
 function vcov!(v::VcovClusterMethod, x::VcovData)
     S = shat!(v, x)
-    return pinvertible(sandwich(x.crossmatrix, S))
+    invcrossmatrix = inv(x.crossmatrix)
+    return pinvertible(Symmetric(invcrossmatrix * S * invcrossmatrix))
 end
 
 function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
@@ -64,17 +65,17 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
             end
         end
     end
-    return X2' * X2
+    return Symmetric(X2' * X2)
 end
 
-function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
-    eigval, eigvect = eigen(Symmetric(A))
+function pinvertible(A::Symmetric, tol = eps(real(float(one(eltype(A))))))
+    eigval, eigvect = eigen(A)
     small = eigval .<= tol
     if any(small)
         @warn "estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution."
         eigval[small] .= 0
-        return eigvect' * Diagonal(eigval) * eigvect
+        return Symmetric(eigvect' * Diagonal(eigval) * eigvect)
     else
         return A
     end

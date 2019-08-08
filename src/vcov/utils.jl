@@ -1,6 +1,6 @@
 
 
-function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
+function compute_Fstat(coef::Vector{Float64}, matrix_vcov::AbstractMatrix{Float64},
     nobs::Int, hasintercept::Bool,
     vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
     coefF = copy(coef)
