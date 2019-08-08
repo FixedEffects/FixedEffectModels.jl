@@ -85,7 +85,7 @@ end
 
 # copy ModelFrame but modify to have esample as argument
 function ModelFrame2(trms::Terms, d::AbstractDataFrame, esample; contrasts::Dict = Dict())
-	df = DataFrame(map(x -> d[x], trms.eterms), Symbol.(string.(trms.eterms)))
+	df = DataFrame(map(x -> d[!, x], trms.eterms), Symbol.(string.(trms.eterms)))
 	if !all(esample)
 		# doing view takes more time and memory for some reason (both in in ModelFrame2 and in evalConstrasts)
 		# df = view(df, esample, names(df))

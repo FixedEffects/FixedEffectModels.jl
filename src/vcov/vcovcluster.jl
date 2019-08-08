@@ -14,18 +14,18 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
     for c in clusters
         if isa(c, Symbol)
-            isa(df[c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
-            vclusters[c] = group(df[c])
+            isa(df[!, c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[!, c])), but should be a CategoricalVector.")
+            vclusters[!, c] = group(df[!, c])
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
-            vclusters[_name(factorvars)] = group((df[v] for v in factorvars)...)
+            vclusters[!, _name(factorvars)] = group((df[!, v] for v in factorvars)...)
         end
     end
     return VcovClusterMethod(vclusters)
 end
 
 function df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool)
-    minimum((length(v.clusters[c].pool) for c in names(v.clusters))) - 1
+    minimum((length(v.clusters[!, c].pool) for c in names(v.clusters))) - 1
 end
 
 function vcov!(v::VcovClusterMethod, x::VcovData)
@@ -40,7 +40,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     G = typemax(Int)
     for c in combinations(names(v.clusters))
         # no need for group in case of one fixed effect, since was already done in VcovMethod
-        f = (length(c) == 1) ? v.clusters[c[1]] : group((v.clusters[var] for var in c)...)
+        f = (length(c) == 1) ? v.clusters[!, c[1]] : group((v.clusters[!, var] for var in c)...)
         # capture length of smallest dimension of multiway clustering in G
         G = min(G, length(f.pool))
         S += (-1)^(length(c) - 1) * helper_cluster(x.regressors, x.residuals, f)

@@ -23,7 +23,7 @@ parse_fixedeffect(x::Nothing) = nothing
 
 # Constructors from dataframe + symbol
 function parse_fixedeffect(df::AbstractDataFrame, a::Symbol)
-    v = df[a]
+    v = df[!, a]
     if isa(v, CategoricalVector)
         # x from x*id -> x + id + x&id
         return FixedEffect(v), a
@@ -36,7 +36,7 @@ function parse_fixedeffect(df::AbstractDataFrame, a::Expr)
     factorvars, interactionvars = _split(df, allvars(a))
     if !isempty(factorvars)
         # x1&x2 from (x1&x2)*id
-        fe = FixedEffect((df[v] for v in factorvars)...; interaction = _multiply(df, interactionvars))
+        fe = FixedEffect((df[!, v] for v in factorvars)...; interaction = _multiply(df, interactionvars))
         id = _name(allvars(a))
         return fe, id
     end
@@ -52,7 +52,7 @@ check(a::Symbol) = true
 function _split(df::AbstractDataFrame, ss::Vector{Symbol})
     catvars, contvars = Symbol[], Symbol[]
     for s in ss
-        isa(df[s], CategoricalVector) ? push!(catvars, s) : push!(contvars, s)
+        isa(df[!, s], CategoricalVector) ? push!(catvars, s) : push!(contvars, s)
     end
     return catvars, contvars
 end
@@ -63,7 +63,7 @@ function _multiply(df, ss::Vector{Symbol})
     else
         out = ones(size(df, 1))
         for j in 1:length(ss)
-            _multiply!(out, df[ss[j]])
+            _multiply!(out, df[!, ss[j]])
         end
     end
     return out

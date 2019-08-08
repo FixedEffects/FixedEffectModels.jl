@@ -18,8 +18,8 @@ Models with instruments variables are estimated using 2SLS. `reg` tests for weak
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df[:StateC] =  categorical(df[:State])
-df[:YearC] =  categorical(df[:Year])
+df.StateC =  categorical(df.State)
+df.YearC =  categorical(df.Year)
 reg(df, @model(Sales ~ Price, fe = StateC + YearC))
 reg(df, @model(Sales ~ NDI, fe = StateC + StateC&Year))
 reg(df, @model(Sales ~ NDI, fe = StateC*Year))
@@ -65,11 +65,11 @@ function reg(df::AbstractDataFrame, f::Formula;
         # check depth 1 symbols in original formula are all CategoricalVector
         if isa(feformula, Symbol)
             x = feformula
-            !isa(df[x], CategoricalVector) && error("$x should be CategoricalVector")
+            !isa(df[!, x], CategoricalVector) && error("$x should be CategoricalVector")
         elseif feformula.args[1] == :+
             x = feformula.args
             for i in 2:length(x)
-                isa(x[i], Symbol) && !isa(df[x[i]], CategoricalVector) && error("$(x[i]) should be CategoricalVector")
+                isa(x[i], Symbol) && !isa(df[!, x[i]], CategoricalVector) && error("$(x[i]) should be CategoricalVector")
             end
         end
     end
@@ -108,10 +108,10 @@ function reg(df::AbstractDataFrame, f::Formula;
 
 
 
-    esample = completecases(df[all_vars])
+    esample = completecases(df[!, all_vars])
 
     if has_weights
-        esample .&= isnaorneg(df[weights])
+        esample .&= isnaorneg(df[!, weights])
     end
     if subset != nothing
         subset = eval(evaluate_subset(df, subset))
@@ -289,14 +289,14 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     augmentdf = DataFrame()
     if save_residuals
-        augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
+        augmentdf.residuals =  Vector{Union{Missing, Float64}}(missing, length(esample))
         augmentdf[esample, :residuals] = residuals ./ sqrtw
     end
     if save_fe
         oldX = getcols(oldX, basecoef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, pfe; tol = tol, maxiter = maxiter)
         for j in 1:length(fes)
-            augmentdf[ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
+            augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
             augmentdf[esample, ids[j]] = newfes[j]
         end
     end
@@ -406,5 +406,5 @@ function evaluate_subset(df, ex::Expr)
         return Expr(ex.head, (evaluate_subset(df, ex.args[i]) for i in 1:length(ex.args))...)
     end
 end
-evaluate_subset(df, ex::Symbol) = df[ex]
+evaluate_subset(df, ex::Symbol) = df[!, ex]
 evaluate_subset(df, ex)  = ex
