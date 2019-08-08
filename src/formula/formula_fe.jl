@@ -8,7 +8,7 @@
 function parse_fixedeffect(df::AbstractDataFrame, feformula)
     fe = FixedEffect[]
     id = Symbol[]
-    for term in feformula.terms
+    for term in feformula
         result = parse_fixedeffect(df, term)
         if result != nothing
             push!(fe, result[1])

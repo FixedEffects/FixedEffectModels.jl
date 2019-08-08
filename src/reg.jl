@@ -36,12 +36,12 @@ function reg(df::AbstractDataFrame, m::Model; kwargs...)
     reg(df, m.f; m.dict..., kwargs...)
 end
 
-function reg(df::AbstractDataFrame, f::Formula;
+function reg(df::AbstractDataFrame, f::FormulaTerm;
     fe::Union{Symbol, Expr, Nothing} = nothing,
     vcov::Union{Symbol, Expr, Nothing} = :(simple()),
     weights::Union{Symbol, Expr, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
-    maxiter::Integer = 10000, contrasts::Dict = Dict(),
+    maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     tol::Real= 1e-8, df_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true
    )
@@ -57,9 +57,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     ## Parse formula
     ##
     ##############################################################################
-    rf = deepcopy(f)
-    (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
-    rt = Terms(rf)
+    rf, has_iv, endo_terms, iv_terms = decompose_iv(f)
     has_absorb = feformula != nothing
     if has_absorb
         # check depth 1 symbols in original formula are all CategoricalVector
@@ -97,8 +95,8 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # create a dataframe without missing values & negative weights
     vars = allvars(rf)
-    iv_vars = allvars(iv_formula)
-    endo_vars = allvars(endo_formula)
+    iv_vars = allvars(iv_terms)
+    endo_vars = allvars(endo_terms)
     absorb_vars = allvars(feformula)
     vcov_vars = allvars(vcovformula)
 
@@ -122,7 +120,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
 
     if has_absorb
-        fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
+        fes, ids = parse_fixedeffect(df, @eval(@formula(nothing ~ $(feformula))).rhs)
         if drop_singletons
             for fe in fes
                 drop_singletons!(esample, fe)
@@ -136,13 +134,19 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute weights
     sqrtw = get_weights(df, esample, weights)
 
+    has_intercept = true
+    if isa(rf.rhs, Term)
+        has_intercept = (rf.rhs != ConstantTerm(0))
+    else 
+        has_intercept = ConstantTerm(0) ∉ rf.rhs
+    end
+
     # Compute pfe, a FixedEffectMatrix
-    has_intercept = rt.intercept
     if has_absorb
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([isa(fe.interaction, Ones) for fe in fes])
-            rt.intercept = false
-            has_intercept = true
+            rf = FormulaTerm(rf.lhs, tuple(ConstantTerm(0), (t for t in rf.rhs)...))
+            has_intercept = false
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
@@ -157,12 +161,12 @@ function reg(df::AbstractDataFrame, f::Formula;
     ##
     ##############################################################################
 
-    mf = ModelFrame2(rt, df, esample; contrasts = contrasts)
+    mf = ModelFrame(rf, view(df, esample, :); contrasts = contrasts)
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, model_response(mf)[:])
-    yname = rt.eterms[1]
+    y = convert(Vector{Float64}, response(mf))
+    yname = rf.lhs.sym
     y .= y .* sqrtw
 
     # Obtain X
@@ -176,12 +180,12 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
 
     if has_iv
-        mf = ModelFrame2(endo_terms, df, esample)
+        mf = ModelFrame(endo_terms, view(df, esample, :))
         coef_names = vcat(coef_names, coefnames(mf))
         Xendo = ModelMatrix(mf).m
         Xendo .= Xendo .* sqrtw
 
-        mf = ModelFrame2(iv_terms, df, esample)
+        mf = ModelFrame(iv_terms, view(df, esample, :))
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
     else
@@ -309,7 +313,7 @@ function reg(df::AbstractDataFrame, f::Formula;
 
     # Compute degrees of freedom
     df_intercept = 0
-    if has_absorb || rt.intercept
+    if has_absorb || has_intercept
         df_intercept = 1
     end
     df_absorb = 0
@@ -334,7 +338,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     r2 = 1 - rss / tss
     adjr2 = 1 - rss / tss * (nobs - has_intercept) / dof_residual
     if has_absorb
-        r2_within = 1 - rss / compute_tss(y, rt.intercept, sqrtw)
+        r2_within = 1 - rss / compute_tss(y, has_intercept, sqrtw)
     end
 
     # Compute standard error
@@ -342,7 +346,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
     # Compute Fstat
-    (F, p) = compute_Fstat(coef, matrix_vcov, nobs, rt.intercept, vcov_method_data, vcov_data)
+    (F, p) = compute_Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method_data, vcov_data)
 
     # Compute Fstat of First Stage
     if has_iv

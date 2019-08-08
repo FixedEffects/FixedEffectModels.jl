@@ -30,21 +30,16 @@ end
 
 # predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = deepcopy(x.formula)
-    secondstage!(rf)
-
-    newTerms = dropresponse(Terms(rf))
-    mf = ModelFrame(newTerms, df)
-    newX = ModelMatrix(mf).m
-
+    rf = secondstage(x.formula)
+    newX = modelmatrix(rf.rhs, df)
+    # TODO: Ccehck no 0 in it
+    newX = hcat(ones(size(newX, 1)), newX)
     out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
     out[nonmissing(mf)] = newX * x.coef
 end
 
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = deepcopy(x.formula)
-    secondstage!(rf)
-
+    rf = secondstage(x.formula)
     mf = ModelFrame(Terms(rf), df)
     newX = ModelMatrix(mf).m 
     out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
@@ -223,7 +218,7 @@ struct RegressionResult <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::Formula        # Original formula 
+    formula::FormulaTerm        # Original formula 
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
@@ -255,7 +250,7 @@ struct RegressionResultIV <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::Formula        # Original formula 
+    formula::FormulaTerm        # Original formula 
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
@@ -293,7 +288,7 @@ struct RegressionResultFE <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::Formula        # Original formula 
+    formula::FormulaTerm        # Original formula 
     feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations
@@ -332,7 +327,7 @@ struct RegressionResultFEIV <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::Formula        # Original formula 
+    formula::FormulaTerm        # Original formula 
     feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations

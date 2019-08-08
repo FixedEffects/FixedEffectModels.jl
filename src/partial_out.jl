@@ -33,7 +33,7 @@ function partial_out(df::AbstractDataFrame, m::Model; kwargs...)
 end
 
 
-function partial_out(df::AbstractDataFrame, f::Formula; 
+function partial_out(df::AbstractDataFrame, f::FormulaTerm; 
     fe::Union{Symbol, Expr, Nothing} = nothing, 
     weights::Union{Symbol, Expr, Nothing} = nothing,
     add_mean = false,
@@ -43,8 +43,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     weightvar = weights
 
 
-    rf = deepcopy(f)
-    (has_iv, iv_formula, iv_terms, endo_formula, endo_terms) = decompose_iv!(rf)
+    rf, has_iv, endo_terms, iv_terms = decompose_iv(f)
     has_absorb = feformula != nothing
     if has_iv
         error("partial_out does not support instrumental variables")
@@ -70,7 +69,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     # Build fixedeffects, an array of AbtractFixedEffects
     if has_absorb
-        fes, ids = parse_fixedeffect(df, Terms(@eval(@formula(nothing ~ $(feformula)))))
+        fes, ids = parse_fixedeffect(df, @eval(@formula(nothing ~ $(feformula))))
     end
     nobs = sum(esample)
     (nobs > 0) || error("sample is empty")
@@ -89,9 +88,9 @@ function partial_out(df::AbstractDataFrame, f::Formula;
 
     # Compute residualized Y
     yf = @eval(@formula($nothing ~ $(rf.lhs)))
-    yt = Terms(yf)
+    yt = terms(yf)
     yt.intercept = false
-    mfY = ModelFrame2(yt, df, esample)
+    mfY = ModelFrame(yt, view(df, esample, :))
     Y = ModelMatrix(mfY).m
     Y .= Y .* sqrtw
     if add_mean
@@ -107,7 +106,7 @@ function partial_out(df::AbstractDataFrame, f::Formula;
     xvars = allvars(xf)
     if length(xvars) > 0 || xt.intercept
         if length(xvars) > 0 
-            mf = ModelFrame2(xt, df, esample)
+            mf = ModelFrame(xt, view(df, esample, :))
             X = ModelMatrix(mf).m
         else
             X = fill(one(Float64), (length(esample), 1))
