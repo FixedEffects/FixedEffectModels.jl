@@ -1,6 +1,6 @@
 name = "FixedEffectModels"
 uuid = "9d5cd8c9-2029-5cab-9928-427838db53e3"
-version = "0.7.4"
+version = "0.7.5"
 
 [deps]
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
@@ -21,7 +21,7 @@ DataFrames = "≥ 0.19.1"
 Distributions = "≥ 0.4.6"
 FixedEffects = "≥ 0.1.1"
 StatsBase = "≥ 0.22.0"
-julia = "≥ 0.7.0"
+julia = "≥ 1.1.0"
 
 [extras]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
