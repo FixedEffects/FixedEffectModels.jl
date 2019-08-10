@@ -5,10 +5,10 @@
 ##
 ##############################################################################
 
-function parse_fixedeffect(df::AbstractDataFrame, feformula)
+function parse_fixedeffect(df::AbstractDataFrame, feformula::FormulaTerm)
     fe = FixedEffect[]
     id = Symbol[]
-    for term in feformula
+    for term in eachterm(feformula.rhs)
         result = parse_fixedeffect(df, term)
         if result != nothing
             push!(fe, result[1])
@@ -18,11 +18,11 @@ function parse_fixedeffect(df::AbstractDataFrame, feformula)
     return fe, id
 end
 
-# Constructor
 parse_fixedeffect(x::Nothing) = nothing
 
-# Constructors from dataframe + symbol
-function parse_fixedeffect(df::AbstractDataFrame, a::Symbol)
+# Constructors from dataframe + Term
+function parse_fixedeffect(df::AbstractDataFrame, a::Term)
+    a = Symbol(a)
     v = df[!, a]
     if isa(v, CategoricalVector)
         # x from x*id -> x + id + x&id
@@ -30,31 +30,28 @@ function parse_fixedeffect(df::AbstractDataFrame, a::Symbol)
     end
 end
 
-# Constructors from dataframe + expression
-function parse_fixedeffect(df::AbstractDataFrame, a::Expr)
-    _check(a) || throw("Expression $a should only contain & and variable names")
-    factorvars, interactionvars = _split(df, allvars(a))
+# Constructors from dataframe + InteractionTerm
+function parse_fixedeffect(df::AbstractDataFrame, a::InteractionTerm)
+    factorvars, interactionvars = _split(df, a)
     if !isempty(factorvars)
         # x1&x2 from (x1&x2)*id
         fe = FixedEffect((df[!, v] for v in factorvars)...; interaction = _multiply(df, interactionvars))
-        id = _name(allvars(a))
+        id = _name(Symbol.(terms(a)))
         return fe, id
     end
 end
 
 
-function _check(a::Expr)
-    a.args[1] == :& && check(a.args[2]) && check(a.args[3])
-end
-check(a::Symbol) = true
 
 
-function _split(df::AbstractDataFrame, ss::Vector{Symbol})
-    catvars, contvars = Symbol[], Symbol[]
-    for s in ss
-        isa(df[!, s], CategoricalVector) ? push!(catvars, s) : push!(contvars, s)
+
+function _split(df::AbstractDataFrame, a::InteractionTerm)
+    factorvars, interactionvars = Symbol[], Symbol[]
+    for s in terms(a)
+        s = Symbol(s)
+        isa(df[!, s], CategoricalVector) ? push!(factorvars, s) : push!(interactionvars, s)
     end
-    return catvars, contvars
+    return factorvars, interactionvars
 end
 
 function _multiply(df, ss::Vector{Symbol})
@@ -62,7 +59,7 @@ function _multiply(df, ss::Vector{Symbol})
         out = Ones(size(df, 1))
     else
         out = ones(size(df, 1))
-        for j in 1:length(ss)
+        for j in eachindex(ss)
             _multiply!(out, df[!, ss[j]])
         end
     end
@@ -70,7 +67,7 @@ function _multiply(df, ss::Vector{Symbol})
 end
 
 function _multiply!(out, v)
-    for i in 1:length(out)
+    for i in eachindex(out)
         if v[i] === missing
             # may be missing when I remove singletons
             out[i] = 0.0

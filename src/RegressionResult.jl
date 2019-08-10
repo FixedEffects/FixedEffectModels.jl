@@ -30,17 +30,16 @@ end
 
 # predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = secondstage(x.formula)
-    newX = modelmatrix(rf.rhs, df)
-    # TODO: Ccehck no 0 in it
-    newX = hcat(ones(size(newX, 1)), newX)
+    f = secondstage(x.formula)
+    cols, nonmissings = StatsModels.missing_omit(columntable(df), f.rhs)
+    new_x = modelcols(f.rhs, cols)
     out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-    out[nonmissing(mf)] = newX * x.coef
+    out[nonmissings] = new_x * x.coef
 end
 
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = secondstage(x.formula)
-    mf = ModelFrame(Terms(rf), df)
+    f = secondstage(x.formula)
+    mf = ModelFrame(f, df)
     newX = ModelMatrix(mf).m 
     out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
     out[nonmissing(mf)] = model_response(mf) -  newX * x.coef

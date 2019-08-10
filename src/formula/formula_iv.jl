@@ -6,30 +6,27 @@ function decompose_iv(f::FormulaTerm)
 	endo_formula = nothing
 	endo_terms = nothing
 	rf = f
-	if isa(f.rhs, FormulaTerm)
-		has_iv = true
-		endo_terms = f.rhs.lhs
-		iv_terms = f.rhs.rhs
-		rf = FormulaTerm(f.lhs, ConstantTerm(1))
-	elseif isa(f.rhs, Tuple)
-		for t in f.rhs
-			if isa(t, FormulaTerm)
-				has_iv = true
-				endo_terms = t.lhs
-				iv_terms = t.rhs
-			end
+	for term in eachterm(f.rhs)
+		if isa(term, FormulaTerm)
+			has_iv = true
+			endo_terms = term.lhs
+			iv_terms = term.rhs
 		end
-		rf = FormulaTerm(f.lhs, tuple((t for t in f.rhs if !isa(t, FormulaTerm))...))
+		rf = FormulaTerm(f.lhs, tuple((t for t in eachterm(f.rhs) if !isa(t, FormulaTerm))...))
+	end
+	if isempty(rf.rhs)
+		rf = FormulaTerm(f.lhs, ConstantTerm(1))
 	end
 	return rf, has_iv, endo_terms, iv_terms
 end
 
 
 function secondstage(f::FormulaTerm)
-	rf, has_iv, endo_terms, iv_terms = f
+	rf, has_iv, endo_terms, iv_terms = decompose_iv(f)
 	if has_iv
-		rf = FormulaTerm(rf.lhs, tuple(rf.rhs..., endo_terms...))
+		rf = FormulaTerm(rf.lhs, (tuple(eachterm(rf.rhs)..., eachterm(endo_terms)...)))
 	end
+	FormulaTerm(rf.lhs, MatrixTerm(rf.rhs))
 end
 
 
@@ -46,7 +43,12 @@ function nonmissing(mf::ModelFrame)
 	end
 end
 
-allvars(f::Expr) = allvars(terms(@eval(@formula(nothing ~$(f))).rhs))
-allvars(f::FormulaTerm) = allvars(terms(f.rhs))
-allvars(terms::Vector{Term}) = unique([t.sym for t in terms])
-allvars(::Any) = Array{Symbol}(undef, 0)
+
+eachterm(x::AbstractTerm) = (x,)
+eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
+
+
+allvars(::Nothing) = Array{Symbol}(undef, 0)
+allvars(term::Union{AbstractTerm, NTuple{N, AbstractTerm}}) where {N} = termvars(term)
+allvars(f::Union{Expr, Symbol}) = termvars(@eval(@formula(nothing ~$(f))).rhs)
+

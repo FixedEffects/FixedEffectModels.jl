@@ -1,9 +1,9 @@
-VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(Terms(@eval(@formula($nothing ~ $x))).terms)
+VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(@eval(@formula(nothing ~ $x)).rhs)
 
 struct VcovClusterFormula <: AbstractVcovFormula
-    _::Vector{Any}
+    _::Any
 end
-allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in x._]...)
+allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in eachterm(x._)]...)
 
 struct VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
@@ -12,12 +12,13 @@ end
 function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     clusters = vcovcluster._
     vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
-    for c in clusters
-        if isa(c, Symbol)
+    for c in eachterm(clusters)
+        if isa(c, Term)
+            c = Symbol(c)
             isa(df[!, c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[!, c])), but should be a CategoricalVector.")
             vclusters[!, c] = group(df[!, c])
-        elseif isa(c, Expr)
-            factorvars, interactionvars = _split(df, allvars(c))
+        elseif isa(c, InteractionTerm)
+            factorvars, interactionvars = _split(df, c)
             vclusters[!, _name(factorvars)] = group((df[!, v] for v in factorvars)...)
         end
     end

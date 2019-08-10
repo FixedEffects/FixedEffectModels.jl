@@ -16,8 +16,8 @@ import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissin
 import Combinatorics: combinations
 using CategoricalArrays
 using FillArrays
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response
-import StatsModels: @formula,  FormulaTerm, Term, ModelFrame, ModelMatrix
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response, modelmatrix
+import StatsModels: @formula,  FormulaTerm, Term, ModelFrame, ModelMatrix, coefnames, columntable, missing_omit, termvars
 using Reexport
 @reexport using StatsBase
 @reexport using StatsModels
