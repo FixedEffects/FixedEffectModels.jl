@@ -14,23 +14,24 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
     for c in clusters
         if isa(c, Symbol)
-            isa(df[c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[c])), but should be a CategoricalVector.")
-            vclusters[c] = group(df[c])
+            isa(df[!, c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[!, c])), but should be a CategoricalVector.")
+            vclusters[!, c] = group(df[!, c])
         elseif isa(c, Expr)
             factorvars, interactionvars = _split(df, allvars(c))
-            vclusters[_name(factorvars)] = group((df[v] for v in factorvars)...)
+            vclusters[!, _name(factorvars)] = group((df[!, v] for v in factorvars)...)
         end
     end
     return VcovClusterMethod(vclusters)
 end
 
 function df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool)
-    minimum((length(v.clusters[c].pool) for c in names(v.clusters))) - 1
+    minimum((length(v.clusters[!, c].pool) for c in names(v.clusters))) - 1
 end
 
 function vcov!(v::VcovClusterMethod, x::VcovData)
     S = shat!(v, x)
-    return pinvertible(sandwich(x.crossmatrix, S))
+    invcrossmatrix = inv(x.crossmatrix)
+    return pinvertible(Symmetric(invcrossmatrix * S * invcrossmatrix))
 end
 
 function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
@@ -40,7 +41,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     G = typemax(Int)
     for c in combinations(names(v.clusters))
         # no need for group in case of one fixed effect, since was already done in VcovMethod
-        f = (length(c) == 1) ? v.clusters[c[1]] : group((v.clusters[var] for var in c)...)
+        f = (length(c) == 1) ? v.clusters[!, c[1]] : group((v.clusters[!, var] for var in c)...)
         # capture length of smallest dimension of multiway clustering in G
         G = min(G, length(f.pool))
         S += (-1)^(length(c) - 1) * helper_cluster(x.regressors, x.residuals, f)
@@ -64,17 +65,17 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
             end
         end
     end
-    return X2' * X2
+    return Symmetric(X2' * X2)
 end
 
-function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
-    eigval, eigvect = eigen(Symmetric(A))
+function pinvertible(A::Symmetric, tol = eps(real(float(one(eltype(A))))))
+    eigval, eigvect = eigen(A)
     small = eigval .<= tol
     if any(small)
         @warn "estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution."
         eigval[small] .= 0
-        return eigvect' * Diagonal(eigval) * eigvect
+        return Symmetric(eigvect' * Diagonal(eigval) * eigvect)
     else
         return A
     end

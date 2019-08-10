@@ -1,8 +1,8 @@
 using FixedEffectModels, DataFrames, Statistics, CSV, Test
 
 df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
-df[:pState] = categorical(df[:State])
-df[:pYear] = categorical(df[:Year])
+df.pState = categorical(df.State)
+df.pYear = categorical(df.Year)
 
 
 @test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI))[1])[1:5, :] ≈ [ -37.2108  9.72654; -35.5599  9.87628; -32.309   8.82602; -34.2826  9.64653; -35.0526  8.84143] atol = 1e-3

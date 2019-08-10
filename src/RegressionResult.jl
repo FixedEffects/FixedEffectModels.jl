@@ -368,7 +368,7 @@ function predict(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractD
     error("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
 end
 fes(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame) = fes(x)
-fes(x::Union{RegressionResultFEIV, RegressionResultFE}) = x.augmentdf[2:size(x.augmentdf, 2)]
+fes(x::Union{RegressionResultFEIV, RegressionResultFE}) = x.augmentdf[!, 2:size(x.augmentdf, 2)]
 
 function residuals(x::Union{RegressionResultFEIV, RegressionResultFE}, ::AbstractDataFrame)
     if size(x.augmentdf, 2) == 0
@@ -378,7 +378,7 @@ function residuals(x::Union{RegressionResultFEIV, RegressionResultFE}, ::Abstrac
     end
 end
 function residuals(x::Union{RegressionResultFEIV, RegressionResultFE})
-        x.augmentdf[:residuals]
+        x.augmentdf[!, :residuals]
 end
 
 

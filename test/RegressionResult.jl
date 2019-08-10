@@ -1,8 +1,8 @@
 using FixedEffectModels, DataFrames, CSV, Test
 
 df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
-df[:pState] = categorical(df[:State])
-df[:pYear] = categorical(df[:Year])
+df.pState = categorical(df.State)
+df.pYear = categorical(df.Year)
 
 
 
@@ -77,7 +77,7 @@ result = reg(df, model)
 # fixed effects
 model = @model Sales ~ Price fe = pState
 result = reg(df, model, save = true)
-@test result.augmentdf[:residuals][1:3] ≈ [-22.08499, -20.33318, -17.23318] atol = 1e-4
+@test result.augmentdf.residuals[1:3] ≈ [-22.08499, -20.33318, -17.23318] atol = 1e-4
 @test result.nobs == 1380
 @test r2(result) ≈ 0.7682403747044817 atol = 1e-4
 @test adjr2(result) ≈ 0.7602426682051615 atol = 1e-4
@@ -86,13 +86,13 @@ result = reg(df, model, save = true)
 # fixed effects and weights
 model = @model Sales ~ Price fe = pState weights = Pop
 result = reg(df, model, save = true)
-@test result.augmentdf[:residuals][1:3] ≈ [ -23.413793, -21.65289, -18.55289] atol = 1e-4
+@test result.augmentdf.residuals[1:3] ≈ [ -23.413793, -21.65289, -18.55289] atol = 1e-4
 
 # fixed effects and iv
 #TO CHECK WITH IVREGHDFE, NO SUPPORT RIGHT NOW
 model = @model Sales ~ CPI + (Price ~ Pimin)  fe = pState
 result = reg(df, model, save = true)
-@test result.augmentdf[:residuals][1:3] ≈ [ -16.925748, -14.835710, -12.017037] atol = 1e-4
+@test result.augmentdf.residuals[1:3] ≈ [ -16.925748, -14.835710, -12.017037] atol = 1e-4
 
 
 
@@ -120,11 +120,8 @@ result = reg(df, model, save = :fe)
 ##
 ##############################################################################
 
-if Base.USE_GPL_LIBS
-	method_s = [:cholesky, :qr, :lsmr, :lsmr_parallel, :lsmr_threads]
-else
-	method_s = [:lsmr, :lsmr_parallel, :lsmr_threads]
-end
+method_s = Base.USE_GPL_LIBS ? [:cholesky, :qr, :lsmr, :lsmr_parallel, :lsmr_threads] : [:lsmr, :lsmr_parallel, :lsmr_threads]
+
 
 for method in method_s
 	model = @model Sales ~ Price fe = pYear
@@ -151,7 +148,7 @@ end
 
 
 # fixed effects
-df[:Price2] = df[:Price]
+df.Price2 = df.Price
 model = @model Sales ~ Price + Price2 fe = pYear
 result = reg(df, model, save = true)
 @test fes(result)[1, :pYear] ≈ 164.77833189721005

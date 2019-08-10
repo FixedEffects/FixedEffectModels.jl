@@ -22,7 +22,7 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
-df[:SpeciesC] =  categorical(df[:Species])
+df.SpeciesC =  categorical(df.Species)
 result = partial_out(df, @model(SepalWidth + SepalLength ~ 1, fe = SpeciesC), add_mean = true)
 plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
    layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
@@ -58,9 +58,9 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     absorb_vars = allvars(feformula)
     all_vars = vcat(vars, absorb_vars)
     all_vars = unique(convert(Vector{Symbol}, all_vars))
-    esample = completecases(df[all_vars])
+    esample = completecases(df[!, all_vars])
     if has_weights
-        esample .&= isnaorneg(df[weightvar])
+        esample .&= isnaorneg(df[!, weightvar])
     end
 
     # initialize iterations & converged
@@ -138,7 +138,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     j = 0
     for y in yvars
         j += 1
-        out[y] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
+        out[!, y] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
         out[esample, y] = residuals[:, j]
     end
     return out, iterations, convergeds

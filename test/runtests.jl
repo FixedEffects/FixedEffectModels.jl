@@ -20,4 +20,4 @@ end
 
 
 using Test
-@test FixedEffectModels.pinvertible([1.0 1.0; 1.0 1.0]) ≈ [1.0 1.0; 1.0 1.0]
+@test FixedEffectModels.pinvertible(Symmetric([1.0 1.0; 1.0 1.0])) ≈ [1.0 1.0; 1.0 1.0]

@@ -37,5 +37,4 @@ allvars(x::AbstractVcovFormula) = Symbol[]
 # vcov!(::VcovSimpleMethod, x::VcovData)
 # shat!(::VcovSimpleMethod, x::VcovData)
 abstract type AbstractVcovMethod end
-sandwich(H, S::Matrix{Float64}) = H \ S * inv(H)
 df_FStat(::AbstractVcovMethod, x::VcovData, hasintercept::Bool) = x.dof_residual - hasintercept

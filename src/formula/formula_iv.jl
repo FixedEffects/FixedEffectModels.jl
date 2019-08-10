@@ -50,8 +50,3 @@ allvars(f::Expr) = allvars(terms(@eval(@formula(nothing ~$(f))).rhs))
 allvars(f::FormulaTerm) = allvars(terms(f.rhs))
 allvars(terms::Vector{Term}) = unique([t.sym for t in terms])
 allvars(::Any) = Array{Symbol}(undef, 0)
-
-
-
-
-
