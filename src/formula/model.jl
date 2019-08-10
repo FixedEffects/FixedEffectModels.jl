@@ -1,5 +1,5 @@
 struct Model
-    f::Formula
+    f::FormulaTerm
     dict::Dict{Symbol, Any}
 end
 
@@ -36,23 +36,19 @@ df[:StateC] =  categorical(df[:State])
 df[:YearC] =  categorical(df[:Year])
 reg(df, @model(Sales ~ NDI, weights = Pop))
 @model(Sales ~ NDI, fe = StateC, vcov = robust)
-@model(Sales ~ NDI, fe = StateC + YearC, weights = Pop, vcov = cluster(StateC)
+@model(Sales ~ NDI, fe = StateC + YearC, weights = Pop, vcov = cluster(StateC))
 
 ```
 """
-macro model(args...)
-    Expr(:call, :model_helper, (esc(Base.Meta.quot(a)) for a in args)...)
-end
-
-function model_helper(args...)
-    (args[1].head === :call && args[1].args[1] === :(~)) || throw("First argument of @model should be a formula")
-    f = @eval(@formula($(args[1].args[2]) ~ $(args[1].args[3])))
+macro model(ex, kws...)
+    f = @eval(@formula($ex))
     dict = Dict{Symbol, Any}()
-    for i in 2:length(args)
-        isa(args[i], Expr) &&  args[i].head== :(=) || throw("All arguments of @model, except the first one, should be keyboard arguments")
-        dict[args[i].args[1]] = args[i].args[2]
+    for kw in kws
+       isa(kw, Expr) &&  kw.head== :(=) || throw("All arguments of @model, except the first one, should be keyboard arguments")
+       dict[kw.args[1]] = kw.args[2]
     end
     Model(f, dict)
 end
+
 
 
