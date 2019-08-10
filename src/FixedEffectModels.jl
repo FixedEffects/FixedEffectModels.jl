@@ -16,11 +16,10 @@ import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissin
 import Combinatorics: combinations
 using CategoricalArrays
 using FillArrays
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response
-import StatsModels: @formula,  Formula, ModelFrame, ModelMatrix, Terms, coefnames, evalcontrasts, check_non_redundancy!
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response, coefnames
+
 using Reexport
 @reexport using StatsBase
-@reexport using StatsModels
 @reexport using FixedEffects
 
 ##############################################################################
@@ -67,6 +66,12 @@ Model,
 ## Load files
 ##
 ##############################################################################
+include("statsmodels/contrasts.jl")
+include("statsmodels/formula.jl")
+include("statsmodels/modelframe.jl")
+include("statsmodels/modelmatrix.jl")
+
+
 include("utils/model.jl")
 include("utils/weights.jl")
 include("utils/fixedeffects.jl")
