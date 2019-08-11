@@ -45,7 +45,6 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
     end
-    
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
     has_absorb = fe != nothing

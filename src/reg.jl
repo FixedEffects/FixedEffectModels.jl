@@ -52,19 +52,19 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
-    if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
-        f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
-    end
 
     ##############################################################################
     ##
     ## Parse formula
     ##
     ##############################################################################
+    if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
+        f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
+    end
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
     has_absorb = fe != nothing
-    has_weights = (weights != nothing)
+    has_weights = weights != nothing
 
 
 
@@ -95,8 +95,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     absorb_vars = allvars(fe)
     vcov_vars = allvars(vcovformula)
     # create a dataframe without missing values & negative weights
-    all_vars = vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars)
-    all_vars = unique(Symbol.(all_vars))
+    all_vars = unique(vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars))
 
 
 

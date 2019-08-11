@@ -30,14 +30,14 @@ end
 
 # predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
-    cols, nonmissings = StatsModels.missing_omit(columntable(df), MatrixTerm(x.formula_schema.rhs))
+    cols, nonmissings = missing_omit(columntable(df), MatrixTerm(x.formula_schema.rhs))
     new_x = modelmatrix(x.formula_schema, cols)
     out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
     out[nonmissings] = new_x * x.coef
 end
 
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
-    cols, nonmissings = StatsModels.missing_omit(columntable(df), x.formula_schema)
+    cols, nonmissings = missing_omit(columntable(df), x.formula_schema)
     new_x = modelmatrix(x.formula_schema, cols)
     y = response(x.formula_schema, df)
     out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))

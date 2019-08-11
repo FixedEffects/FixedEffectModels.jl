@@ -14,13 +14,6 @@ function decompose_iv(f::FormulaTerm)
 end
 
 
-function secondstage(f::FormulaTerm)
-	formula, formula_endo, formula_iv = decompose_iv(f)
-	if formula_iv != nothing
-		formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(endo_terms)...)))
-	end
-	return formula
-end
 
 
 ##############################################################################
@@ -28,15 +21,6 @@ end
 ## build model
 ##
 ##############################################################################
-function nonmissing(mf::ModelFrame)
-	if  :msng ∈ fieldnames(typeof(mf))
-		mf.msng
-	else
-		mf.nonmissing
-	end
-end
-
-
 eachterm(x::AbstractTerm) = (x,)
 eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
 
