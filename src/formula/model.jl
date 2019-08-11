@@ -41,15 +41,14 @@ reg(df, @model(Sales ~ NDI, weights = Pop))
 ```
 """
 macro model(ex, kws...)
-    f = @eval(@formula($ex))
-    dict = Dict{Symbol, Any}()
+    f = FixedEffectModels.terms!(FixedEffectModels.sort_terms!(FixedEffectModels.parse!(ex)))
+    d = Dict{Symbol, Any}()
     for kw in kws
        isa(kw, Expr) &&  kw.head== :(=) || throw("All arguments of @model, except the first one, should be keyboard arguments")
-       dict[kw.args[1]] = kw.args[2]
+       d[kw.args[1]] = kw.args[2]
     end
-    Model(f, dict)
+    :(Model($f, $d))
 end
-
 
 
 

@@ -17,11 +17,10 @@ import Combinatorics: combinations
 using CategoricalArrays
 using FillArrays
 import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response, modelmatrix
-import StatsModels: @formula,  FormulaTerm, Term, InteractionTerm, ConstantTerm, MatrixTerm, AbstractTerm, coefnames, columntable, missing_omit, termvars, schema, apply_schema, modelmatrix, response, terms
+import StatsModels: @formula,  FormulaTerm, Term, InteractionTerm, ConstantTerm, MatrixTerm, AbstractTerm, coefnames, columntable, missing_omit, termvars, schema, apply_schema, modelmatrix, response, terms, terms!, sort_terms!, parse!, capture_call
 using Reexport
 @reexport using StatsBase
 @reexport using FixedEffects
-
 ##############################################################################
 ##
 ## Exported methods and types

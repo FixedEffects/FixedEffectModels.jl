@@ -127,7 +127,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # Compute weights
     sqrtw = get_weights(df, esample, weights)
-
+    all(isfinite, sqrtw) || throw("Weights are not finite")
 
     # Compute pfe, a FixedEffectMatrix
     has_absorb_intercept = false
@@ -157,10 +157,13 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
     y = convert(Vector{Float64}, response(formula_schema, subdf))
+    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+
     y .= y .* sqrtw
 
     # Obtain X
     Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
+    all(isfinite, Xexo) || throw("Some observations for the regressor are infinite")
     Xexo .= Xexo .* sqrtw
 
 
@@ -174,7 +177,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     if has_iv
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
+        all(isfinite, Xendo) || throw("Some observations for the endogenous variable are infinite")
         Xendo .= Xendo .* sqrtw
+
         coefendo_names = coefnames(formula_endo_schema)[2]
         if !isa(coefendo_names, Vector)
             coefendo_names = [coefendo_names]
@@ -187,6 +192,8 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts),StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
+        all(isfinite, Z) || throw("Some observations for the instrument are infinite")
+
         Z .= Z .* sqrtw
     else
         Xendo = Matrix{Float64}(undef, nobs, 0)

@@ -159,10 +159,27 @@ x = reg(df, m)
 #x = reg(df, m)
 
 
+##############################################################################
+##
+## Functions
+##
+##############################################################################
 
+# fucntions
+m = @model y ~ log(x1)
+x = reg(df, m)
+@test coef(x)[1] ≈184.98520688 atol = 1e-4
 
+# my function
+mylog(x) = log(x)
+m = @model y ~ mylog(x1)
+x = reg(df, m)
 
-
+# Function returning Inf
+df.x1_zero = copy(df.x1)
+df.x1_zero[1] = 0.0
+m = @model y ~ log(x1_zero)
+@test_throws  "Some observations for the regressor are infinite" x = reg(df, m)
 ##############################################################################
 ##
 ## collinearity
