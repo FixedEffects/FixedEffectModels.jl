@@ -42,7 +42,7 @@ x = reg(df, m)
 m = @model y ~ x1 fe = pid1 + pid2
 x = reg(df, m)
 @test coef(x)  ≈ [-1.08471] atol = 1e-4
-m = @model y ~ x1 fe = pid1 + pid1&id2
+m = @model y ~ x1 fe = pid1 + pid1*id2
 x = reg(df, m)
 @test coef(x) ≈   [-0.53470] atol = 1e-4
 m = @model y ~ x1 fe = pid1*id2

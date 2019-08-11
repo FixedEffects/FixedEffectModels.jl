@@ -20,12 +20,11 @@ import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, Regressi
 import StatsModels: @formula,  FormulaTerm, Term, ModelFrame, ModelMatrix, coefnames, columntable, missing_omit, termvars
 using Reexport
 @reexport using StatsBase
-@reexport using StatsModels
 @reexport using FixedEffects
 
 ##############################################################################
 ##
-## Exported methods and types 
+## Exported methods and types
 ##
 ##############################################################################
 
@@ -43,16 +42,16 @@ RegressionResultIV,
 RegressionResultFE,
 RegressionResultFEIV,
 
-AbstractVcovFormula, 
-VcovSimpleFormula, 
-VcovRobustFormula, 
+AbstractVcovFormula,
+VcovSimpleFormula,
+VcovRobustFormula,
 VcovClusterFormula,
 VcovFormula,
 
-AbstractVcovMethod, 
+AbstractVcovMethod,
 VcovMethod,
-VcovSimpleMethod, 
-VcovWhiteMethod, 
+VcovSimpleMethod,
+VcovWhiteMethod,
 VcovClusterMethod,
 
 vcov!,
