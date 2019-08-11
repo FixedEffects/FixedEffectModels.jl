@@ -30,34 +30,20 @@ end
 
 # predict, residuals, modelresponse
 function predict(x::AbstractRegressionResult, df::AbstractDataFrame)
-    f = secondstage(x.formula)
-    cols, nonmissings = StatsModels.missing_omit(columntable(df), f.rhs)
-    new_x = modelcols(f.rhs, cols)
+    cols, nonmissings = StatsModels.missing_omit(columntable(df), MatrixTerm(x.formula_schema.rhs))
+    new_x = modelmatrix(x.formula_schema, cols)
     out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
     out[nonmissings] = new_x * x.coef
 end
 
 function residuals(x::AbstractRegressionResult, df::AbstractDataFrame)
-    f = secondstage(x.formula)
-    mf = ModelFrame(f, df)
-    newX = ModelMatrix(mf).m 
+    cols, nonmissings = StatsModels.missing_omit(columntable(df), x.formula_schema)
+    new_x = modelmatrix(x.formula_schema, cols)
+    y = response(x.formula_schema, df)
     out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
-    out[nonmissing(mf)] = model_response(mf) -  newX * x.coef
+    out[nonmissings] = y -  new_x * x.coef
 end
 
-function response(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = deepcopy(x.formula)
-    secondstage!(rf)
-    mf = ModelFrame(Terms(rf), df)
-    model_response(mf)
-end
-
-function modelmatrix(x::AbstractRegressionResult, df::AbstractDataFrame)
-    rf = deepcopy(x.formula)
-    secondstage!(rf)
-    mf = ModelFrame(Terms(rf), df)
-    ModelMatrix(mf)
-end
 
 # depreciations
 function df_residual(x::AbstractRegressionResult)
@@ -218,6 +204,7 @@ struct RegressionResult <: AbstractRegressionResult
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
     formula::FormulaTerm        # Original formula 
+    formula_schema
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
@@ -250,6 +237,7 @@ struct RegressionResultIV <: AbstractRegressionResult
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
     formula::FormulaTerm        # Original formula 
+    formula_schema
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
@@ -288,6 +276,8 @@ struct RegressionResultFE <: AbstractRegressionResult
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
     formula::FormulaTerm        # Original formula 
+    formula_schema
+
     feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations
@@ -327,6 +317,8 @@ struct RegressionResultFEIV <: AbstractRegressionResult
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
     formula::FormulaTerm        # Original formula 
+    formula_schema
+
     feformula::Union{Symbol, Expr}      # fixed effect formula 
 
     nobs::Int64             # Number of observations

@@ -52,14 +52,21 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
+    if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
+        f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
+    end
+
     ##############################################################################
     ##
     ## Parse formula
     ##
     ##############################################################################
-    rf, has_iv, endo_terms, iv_terms = decompose_iv(f)
+    formula, formula_endo, formula_iv = decompose_iv(f)
+    has_iv = formula_iv != nothing
     has_absorb = fe != nothing
     has_weights = (weights != nothing)
+
+
 
     ##############################################################################
     ##
@@ -82,9 +89,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ##############################################################################
 
     # create a dataframe without missing values & negative weights
-    vars = allvars(rf)
-    iv_vars = allvars(iv_terms)
-    endo_vars = allvars(endo_terms)
+    vars = allvars(formula)
+    iv_vars = allvars(formula_iv)
+    endo_vars = allvars(formula_endo)
     absorb_vars = allvars(fe)
     vcov_vars = allvars(vcovformula)
     # create a dataframe without missing values & negative weights
@@ -128,14 +135,14 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     if has_absorb
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([isa(fe.interaction, Ones) for fe in fes])
-            rf = FormulaTerm(rf.lhs, tuple(ConstantTerm(0), (t for t in eachterm(rf.rhs) if t!= ConstantTerm(1))...))
+            formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
             has_absorb_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
     end
 
-    has_intercept = ConstantTerm(0) ∉ eachterm(rf.rhs)
+    has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
     vcov_method_data = VcovMethod(df[esample, unique(Symbol.(vcov_vars))], vcovformula)
@@ -147,32 +154,40 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ##############################################################################
     subdf = columntable(df[esample, unique(vcat(vars, iv_vars, endo_vars))])
 
-    mf = ModelFrame(rf, subdf)
-
+    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(mf))
-    yname = Symbol(rf.lhs)
+    y = convert(Vector{Float64}, response(formula_schema, subdf))
     y .= y .* sqrtw
 
     # Obtain X
-    coef_names = coefnames(mf)
-    has_exo = !isempty(coef_names)
-    if has_exo
-        Xexo = ModelMatrix(mf).m
-        Xexo .= Xexo .* sqrtw
-    else
-        Xexo = Matrix{Float64}(undef, nobs, 0)
+    Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
+    Xexo .= Xexo .* sqrtw
+
+
+    yname, coef_names = coefnames(formula_schema)
+    if !isa(coef_names, Vector)
+        coef_names = [coef_names]
     end
+    yname = Symbol(yname)
+    coef_names = Symbol.(coef_names)
 
     if has_iv
-        mf = ModelFrame(FormulaTerm(rf.lhs, tuple(ConstantTerm(0), eachterm(endo_terms)...)), subdf)
-        append!(coef_names, coefnames(mf))
-        Xendo = ModelMatrix(mf).m
+        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
+        Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         Xendo .= Xendo .* sqrtw
+        coefendo_names = coefnames(formula_endo_schema)[2]
+        if !isa(coefendo_names, Vector)
+            coefendo_names = [coefendo_names]
+        end
+        append!(coef_names, Symbol.(coefendo_names))
 
-        mf = ModelFrame(FormulaTerm(rf.lhs, tuple(ConstantTerm(0), eachterm(iv_terms)...)), subdf)
-        Z = ModelMatrix(mf).m
+        formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
+        formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
+
+
+        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts),StatisticalModel)
+        Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         Z .= Z .* sqrtw
     else
         Xendo = Matrix{Float64}(undef, nobs, 0)
@@ -307,7 +322,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if isa(vcovformula, VcovClusterFormula)
-                if any(isnested(fe, vcov_method_data.clusters[v]) for v in names(vcov_method_data.clusters))
+                if any(isnested(fe, v) for v in eachcol(vcov_method_data.clusters))
                     df_absorb = 1 # if fe is nested you still lose 1 degree of freedom 
                     break
                 end
@@ -365,19 +380,19 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     # return
     if !has_iv && !has_absorb
         return RegressionResult(coef, matrix_vcov, esample, augmentdf,
-                                coef_names, yname, f, nobs, dof_residual,
+                                coef_names, yname, f, formula_schema, nobs, dof_residual,
                                 rss, tss, r2, adjr2, F, p)
     elseif has_iv && !has_absorb
         return RegressionResultIV(coef, matrix_vcov, esample, augmentdf,
-                                  coef_names, yname, f, nobs, dof_residual,
+                                  coef_names, yname, f, formula_schema, nobs, dof_residual,
                                   rss, tss,  r2, adjr2, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
         return RegressionResultFE(coef, matrix_vcov, esample, augmentdf,
-                                  coef_names, yname, f, fe, nobs, dof_residual,
+                                  coef_names, yname, f, formula_schema, fe, nobs, dof_residual,
                                   rss, tss, r2, adjr2, r2_within, F, p, iterations, converged)
     elseif has_iv && has_absorb
         return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf,
-                                   coef_names, yname, f, fe, nobs, dof_residual,
+                                   coef_names, yname, f, formula_schema, fe, nobs, dof_residual,
                                    rss, tss, r2, adjr2, r2_within, F, p, F_kp, p_kp,
                                    iterations, converged)
     end

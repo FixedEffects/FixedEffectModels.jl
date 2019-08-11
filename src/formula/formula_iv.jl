@@ -1,32 +1,25 @@
 # decompose formula into normal vs iv part
 function decompose_iv(f::FormulaTerm)
-	has_iv = false
-	iv_formula = nothing
-	iv_terms = nothing
-	endo_formula = nothing
-	endo_terms = nothing
-	rf = f
+	formula = f
+	formula_endo = nothing
+	formula_iv = nothing
 	for term in eachterm(f.rhs)
 		if isa(term, FormulaTerm)
-			has_iv = true
-			endo_terms = term.lhs
-			iv_terms = term.rhs
+			formula_endo = FormulaTerm(ConstantTerm(0), term.lhs)
+			formula_iv = FormulaTerm(ConstantTerm(0), term.rhs)
 		end
-		rf = FormulaTerm(f.lhs, tuple((t for t in eachterm(f.rhs) if !isa(t, FormulaTerm))...))
+		formula = FormulaTerm(f.lhs, tuple((t for t in eachterm(f.rhs) if !isa(t, FormulaTerm))...))
 	end
-	if isempty(rf.rhs)
-		rf = FormulaTerm(f.lhs, ConstantTerm(1))
-	end
-	return rf, has_iv, endo_terms, iv_terms
+	return formula, formula_endo, formula_iv
 end
 
 
 function secondstage(f::FormulaTerm)
-	rf, has_iv, endo_terms, iv_terms = decompose_iv(f)
-	if has_iv
-		rf = FormulaTerm(rf.lhs, (tuple(eachterm(rf.rhs)..., eachterm(endo_terms)...)))
+	formula, formula_endo, formula_iv = decompose_iv(f)
+	if formula_iv != nothing
+		formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(endo_terms)...)))
 	end
-	FormulaTerm(rf.lhs, MatrixTerm(rf.rhs))
+	return formula
 end
 
 
