@@ -131,8 +131,6 @@ Base.convert(::Type{ContrastsMatrix{FullDummyCoding}}, C::ContrastsMatrix) =
     ContrastsMatrix(FullDummyCoding(), C.levels)
 
 
-DummyCoding
-
 contrasts_matrix(C::DummyCoding, baseind, n) =
     Matrix(1.0I, n, n)[:, [1:(baseind-1); (baseind+1):n]]
 
