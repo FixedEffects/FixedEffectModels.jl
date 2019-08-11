@@ -165,12 +165,12 @@ x = reg(df, m)
 ##
 ##############################################################################
 
-# fucntions
+# function
 m = @model y ~ log(x1)
 x = reg(df, m)
 @test coef(x)[1] ≈184.98520688 atol = 1e-4
 
-# my function
+# function defined in user space
 mylog(x) = log(x)
 m = @model y ~ mylog(x1)
 x = reg(df, m)
