@@ -113,7 +113,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     if has_absorb
-        feformula = @eval(@formula(nothing ~ $(fe)))
+        feformula = @eval(@formula(0 ~ $(fe)))
         fes, ids = parse_fixedeffect(df, feformula)
         if drop_singletons
             for fe in fes
