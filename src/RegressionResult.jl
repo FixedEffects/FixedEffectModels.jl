@@ -3,6 +3,8 @@
 ## The lightest type that can (i) print table (ii) predict etc
 ##
 ##############################################################################
+FixedEffectModel <: RegressionModel
+implicit_intercept(::FixedEffectModel) = false 
 
 abstract type AbstractRegressionResult <: RegressionModel end
 

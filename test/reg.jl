@@ -86,6 +86,52 @@ x = reg(df, m)
 m = @model y ~ 1 fe = pid1 + pid2
 x = reg(df, m)
 
+
+
+
+# TO DO: REPORT INTERCEPT IN CASE OF FIXED EFFFECTS, LIKE STATA
+df.id3  = categorical(mod.(1:size(df, 1), Ref(3)))
+df.id4  = categorical(div.(1:size(df, 1), Ref(10)))
+
+m = @model y ~ id3
+x = reg(df, m)
+@test length(coef(x)) == 3
+
+m = @model y ~ 0 + id3
+x = reg(df, m)
+@test length(coef(x)) == 3
+
+
+m = @model y ~  id3 fe = id4
+x = reg(df, m)
+
+
+m = @model y ~ pid2 fe = pid1
+x = reg(df, m)
+
+
+m = @model y ~ id3&x1
+x = reg(df, m)
+@test length(coef(x)) == 4
+m = @model y ~ id3&x1 + x1
+x = reg(df, m)
+@test length(coef(x)) == 4
+
+
+
+
+
+m = @model y ~ id2 fe = pid1
+x = reg(df, m)
+
+
+
+m = @model y ~ pid2&x1 fe = pid1
+x = reg(df, m)
+
+
+
+
 # absorb + weights
 m = @model y ~ x1 fe = pid1 weights = w
 x = reg(df, m)

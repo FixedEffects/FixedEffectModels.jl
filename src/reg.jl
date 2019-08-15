@@ -99,7 +99,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
 
 
-    esample = completecases(df[!, all_vars])
+    esample = completecases(df, all_vars)
 
     if has_weights
         esample .&= isnaorneg(df[!, weights])
@@ -109,7 +109,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         if length(subset) != size(df, 1)
             error("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
         end
-        esample .&= convert(BitArray, subset)
+        esample .&= subset
     end
 
     if has_absorb
@@ -151,9 +151,8 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-    subdf = columntable(df[esample, unique(vcat(vars, iv_vars, endo_vars))])
-
-    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
+    subdf = df[esample, unique(vars)]
+    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel)
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
     y = convert(Vector{Float64}, response(formula_schema, subdf))
@@ -171,30 +170,36 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     if !isa(coef_names, Vector)
         coef_names = [coef_names]
     end
+
     yname = Symbol(yname)
     coef_names = Symbol.(coef_names)
 
     if has_iv
-        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
+        subdf = df[esample, unique(endo_vars)]
+        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), FixedEffectModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variable are infinite")
         Xendo .= Xendo .* sqrtw
 
-        coefendo_names = coefnames(formula_endo_schema)[2]
+        _, coefendo_names = coefnames(formula_endo_schema)
         if !isa(coefendo_names, Vector)
-            coefendo_names = [coefendo_names]
-        end
+              coefendo_names = [coefendo_names]
+          end
         append!(coef_names, Symbol.(coefendo_names))
 
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
-        formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
+        formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel)
 
-
-        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts),StatisticalModel)
+        subdf = df[esample, unique(iv_vars)]
+        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts),FixedEffectModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrument are infinite")
 
         Z .= Z .* sqrtw
+
+        if size(Z, 2) < size(Xendo, 2)
+            error("Model not identified. There must be at least as many ivs as endogeneneous variables")
+        end
     else
         Xendo = Matrix{Float64}(undef, nobs, 0)
         Z = Matrix{Float64}(undef, nobs, 0)
@@ -245,9 +250,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv
-        if size(Z, 2) < size(Xendo, 2)
-            error("Model not identified. There must be at least as many ivs as endogeneneous variables")
-        end
         # get linearly independent columns
         # note that I do it after residualizing
         baseall = basecol(Z, Xexo, Xendo)

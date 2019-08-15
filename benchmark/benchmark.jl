@@ -1,4 +1,4 @@
-using DataFrames, FixedEffectModels
+using DataFrames, StatsModels, FixedEffectModels
 N = 10000000
 K = 100
 id1 = Int.(rand(1:(N/K), N))
@@ -10,6 +10,10 @@ x1 = 5 * cos.(id1) + 5 * sin.(id2) + randn(N)
 x2 =  cos.(id1) +  sin.(id2) + randn(N)
 y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2, w = w, y = y)
+
+
+
+
 @time reg(df, @model(y ~ x1 + x2))
 # 0.582029 seconds (852 allocations: 535.311 MiB, 18.28% gc time)
 @time reg(df, @model(y ~ x1 + x2, vcov = cluster(id2)))
@@ -23,26 +27,31 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 
 
 # more regressors
-df[:x3] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x4] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x5] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x6] =  cos.(id1) + sin.(id2) + randn(N)
-df[:x7] =  cos.(id1) + sin.(id2) + randn(N)
+df.x3 =  cos.(id1) + sin.(id2) + randn(N)
+df.x4 =  cos.(id1) + sin.(id2) + randn(N)
+df.x5 =  cos.(id1) + sin.(id2) + randn(N)
+df.x6 =  cos.(id1) + sin.(id2) + randn(N)
+df.x7 =  cos.(id1) + sin.(id2) + randn(N)
 @time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1 + id2, subset = x3 .>= 0.5))
 #  4.064132 seconds (2.24 k allocations: 965.500 MiB, 12.50% gc time)
 
+df.id1 = categorical(mod.(1:size(df, 1), Ref(5)))
+df.id4 = categorical(mod.(1:size(df, 1), Ref(4)))
+@time reg(df, @model(y ~ id4, fe = id1), method = :lsmr)
+
+
 
 # Benchmark Parallel
-df[:id3] = categorical(Int.(rand(1:15, N)))
-df[:x3] =  cos.(id1) + sin.(id2) + randn(N)
+df.id3 = categorical(Int.(rand(1:15, N)))
+df.x3 =  cos.(id1) + sin.(id2) + randn(N)
 sort!(df, [:id1])
-@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr))
-@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_parallel))
-@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w, method = lsmr_threads))
+@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w), method = :lsmr)
+@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w), method = :lsmr_parallel)
+@time reg(df, @model(y ~ x1 + id3, fe = id1 + id2 + id2&x3, weights = w), method = :lsmr_threads)
 
 
 #check that as fast as lm with no fixed effects
-df[:id3] = categorical(Int.(rand(1:15, N)))
+df.id3 = categorical(Int.(rand(1:15, N)))
 @time reg(df, @model(y ~ x1 + id3))
 using GLM
 @time lm(@formula(y ~ x1 + id3), df)
