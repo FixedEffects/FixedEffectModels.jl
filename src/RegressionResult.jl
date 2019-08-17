@@ -3,9 +3,6 @@
 ## The lightest type that can (i) print table (ii) predict etc
 ##
 ##############################################################################
-FixedEffectModel <: RegressionModel
-implicit_intercept(::FixedEffectModel) = false 
-
 abstract type AbstractRegressionResult <: RegressionModel end
 
 # Check API at  https://github.com/JuliaStats/StatsBase.jl/blob/11a44398bdc16a00060bc6c2fb65522e4547f159/src/statmodels.jl

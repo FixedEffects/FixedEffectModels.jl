@@ -32,6 +32,10 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
 reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
+
+FixedEffectModel <: RegressionModel
+implicit_intercept(::FixedEffectModel) = false 
+
 function reg(df::AbstractDataFrame, m::Model; kwargs...)
     reg(df, m.f; m.dict..., kwargs...)
 end
