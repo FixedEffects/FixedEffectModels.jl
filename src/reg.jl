@@ -33,7 +33,7 @@ reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)
 ```
 """
 
-FixedEffectModel <: RegressionModel
+struct FixedEffectModel <: RegressionModel
 implicit_intercept(::FixedEffectModel) = false 
 
 function reg(df::AbstractDataFrame, m::Model; kwargs...)
