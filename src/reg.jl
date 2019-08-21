@@ -33,8 +33,6 @@ reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)
 ```
 """
 
-struct FixedEffectModel <: RegressionModel
-implicit_intercept(::FixedEffectModel) = false 
 
 function reg(df::AbstractDataFrame, m::Model; kwargs...)
     reg(df, m.f; m.dict..., kwargs...)
@@ -93,11 +91,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ##############################################################################
 
     # create a dataframe without missing values & negative weights
-    vars = allvars(formula)
-    iv_vars = allvars(formula_iv)
-    endo_vars = allvars(formula_endo)
-    absorb_vars = allvars(fe)
-    vcov_vars = allvars(vcovformula)
+    vars = unique(allvars(formula))
+    iv_vars = unique(allvars(formula_iv))
+    endo_vars = unique(allvars(formula_endo))
+    absorb_vars = unique(allvars(fe))
+    vcov_vars = unique(allvars(vcovformula))
     # create a dataframe without missing values & negative weights
     all_vars = unique(vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars))
 
@@ -148,15 +146,15 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
-    vcov_method_data = VcovMethod(df[esample, unique(Symbol.(vcov_vars))], vcovformula)
+    vcov_method_data = VcovMethod(df[esample, vcov_vars], vcovformula)
 
     ##############################################################################
     ##
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-    subdf = df[esample, unique(vars)]
-    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel)
+    subdf = columntable(df[esample, vars])
+    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
     y = convert(Vector{Float64}, response(formula_schema, subdf))
@@ -179,8 +177,8 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     coef_names = Symbol.(coef_names)
 
     if has_iv
-        subdf = df[esample, unique(endo_vars)]
-        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), FixedEffectModel)
+        subdf = columntable(df[esample, endo_vars])
+        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variable are infinite")
         Xendo .= Xendo .* sqrtw
@@ -191,11 +189,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
           end
         append!(coef_names, Symbol.(coefendo_names))
 
-        formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
-        formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel)
-
-        subdf = df[esample, unique(iv_vars)]
-        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts),FixedEffectModel)
+ 
+        subdf = columntable(df[esample, iv_vars])
+        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrument are infinite")
 
@@ -204,9 +200,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         if size(Z, 2) < size(Xendo, 2)
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
-    else
-        Xendo = Matrix{Float64}(undef, nobs, 0)
-        Z = Matrix{Float64}(undef, nobs, 0)
+
+        # modify formula to use in predict
+        formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
+        formula_schema = apply_schema(formula, schema(formula, columntable(df), contrasts), StatisticalModel)
     end
 
     # compute tss now before potentially demeaning y
@@ -216,7 +213,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         # used to compute tss even without save_fe
         if save_fe
             oldy = deepcopy(y)
-            oldX = hcat(Xexo, Xendo)
+            if has_iv
+                oldX = hcat(Xexo, Xendo)
+            else
+                oldX = deepcopy(Xexo)
+            end
         end
 
         # initialize iterations and converged
@@ -231,13 +232,15 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         append!(iterations, b)
         append!(convergeds, c)
 
-        Xendo, b, c = solve_residuals!(Xendo, pfe; maxiter = maxiter, tol = tol)
-        append!(iterations, b)
-        append!(convergeds, c)
+        if has_iv
+            Xendo, b, c = solve_residuals!(Xendo, pfe; maxiter = maxiter, tol = tol)
+            append!(iterations, b)
+            append!(convergeds, c)
 
-        Z, b, c = solve_residuals!(Z, pfe; maxiter = maxiter, tol = tol)
-        append!(iterations, b)
-        append!(convergeds, c)
+            Z, b, c = solve_residuals!(Z, pfe; maxiter = maxiter, tol = tol)
+            append!(iterations, b)
+            append!(convergeds, c)
+        end
 
         iterations = maximum(iterations)
         converged = all(convergeds)
