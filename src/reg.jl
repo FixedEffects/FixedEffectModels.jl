@@ -44,7 +44,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     weights::Union{Symbol, Expr, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
-    tol::Real= 1e-8, df_add::Integer = 0,
+    tol::Real= 1e-8, dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true
    )
 
@@ -328,25 +328,19 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ##############################################################################
 
     # Compute degrees of freedom
-    df_intercept = 0
-    if has_intercept | has_absorb_intercept
-        df_intercept = 1
-    end
-    df_absorb = 0
+    dof_absorb = 0
     if has_absorb
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if isa(vcovformula, VcovClusterFormula)
-                if any(isnested(fe, v) for v in eachcol(vcov_method_data.clusters))
-                    df_absorb = 1 # if fe is nested you still lose 1 degree of freedom 
-                    break
-                end
+            if isa(vcovformula, VcovClusterFormula) && any(isnested(fe, v) for v in eachcol(vcov_method_data.clusters))
+                    dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
+            else
+                #only count groups that exists
+                dof_absorb +=  length(Set(fe.refs))
             end
-            #only count groups that exists
-            df_absorb += length(Set(fe.refs))
         end
     end
-    dof_residual = max(1, nobs - size(X, 2) - df_absorb - df_add)
+    dof_residual = max(1, nobs - size(X, 2) - dof_absorb - dof_add)
 
     # Compute rss, tss, r2, r2 adjusted
     rss = sum(abs2, residuals)
@@ -368,8 +362,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip,
-                                  vcov_method_data, size(X, 2), df_absorb)
+                                  vcov_method_data, size(X, 2), dof_absorb)
     end
+
+    # https://github.com/matthieugomez/FixedEffectModels.jl/issues/66
+    dof_residual = df_FStat(vcov_method_data, vcov_data, has_intercept)
 
     ##############################################################################
     ##

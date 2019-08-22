@@ -345,7 +345,16 @@ m=@model y ~ x1 + pid1 vcov=cluster(pid1&pid2)
 x = reg(df, m)
 @test stderror(x)[1:2] ≈ [3.032187, 0.0110005] atol=1e-5
 
+#check palue printed is correct 
+m = @model y ~ x1 fe = pid1 vcov = cluster(pid1)
+x = reg(df, m)
+@test coeftable(x).mat[1, 4] ≈ 4.872723900371927e-7 atol = 1e-7
+
 # catch continuous variable in cluster
+@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
+
+
+
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
 
 ##############################################################################

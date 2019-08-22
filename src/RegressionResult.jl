@@ -21,7 +21,7 @@ rss(x::AbstractRegressionResult) = x.rss
 mss(x::AbstractRegressionResult) = deviance(x) - rss(x)
 
 function confint(x::AbstractRegressionResult) 
-    scale = quantile(TDist(x.dof_residual), 1 - (1-0.95)/2)
+    scale = quantile(TDist(dof_residual(x)), 1 - (1-0.95)/2)
     se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
