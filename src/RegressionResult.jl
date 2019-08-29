@@ -20,7 +20,7 @@ deviance(x::AbstractRegressionResult) = x.tss
 rss(x::AbstractRegressionResult) = x.rss
 mss(x::AbstractRegressionResult) = deviance(x) - rss(x)
 
-function confint(x::AbstractRegressionResult) 
+function confint(x::AbstractRegressionResult)
     scale = quantile(TDist(dof_residual(x)), 1 - (1-0.95)/2)
     se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
@@ -57,7 +57,7 @@ end
 
 
 # Display Results
-function title(::AbstractRegressionResult) 
+function title(::AbstractRegressionResult)
     error("function title has no general method for AbstractRegressionResult")
 end
 
@@ -87,12 +87,12 @@ function coeftable(x::AbstractRegressionResult)
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
 
-function Base.show(io::IO, x::AbstractRegressionResult) 
+function Base.show(io::IO, x::AbstractRegressionResult)
     show(io, coeftable(x))
 end
 
 
-## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients. 
+## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients.
 ## Pull request: https://github.com/JuliaStats/StatsBase.jl/pull/119
 
 struct CoefTable2
@@ -102,7 +102,7 @@ struct CoefTable2
     pvalcol::Integer
     title::AbstractString
     top::Matrix{AbstractString}
-    function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0, 
+    function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0,
                         title::AbstractString = "", top::Matrix = Any[])
         nr,nc = size(mat)
         0 <= pvalcol <= nc || error("pvalcol = $pvalcol should be in 0,...,$nc]")
@@ -121,7 +121,7 @@ end
 
 
 function Base.show(io::IO, ct::CoefTable2)
-    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms; 
+    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms;
     pvc = ct.pvalcol; title = ct.title;   top = ct.top
     if length(rownms) == 0
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
@@ -150,8 +150,8 @@ function Base.show(io::IO, ct::CoefTable2)
     end
     widths .+= 1
     totalwidth = sum(widths) + rnwidth
-    if length(title) > 0 
-        halfwidth = div(totalwidth - length(title), 2) 
+    if length(title) > 0
+        halfwidth = div(totalwidth - length(title), 2)
         println(io, " " ^ halfwidth * string(title) * " " ^ halfwidth)
     end
     if length(top) > 0
@@ -159,7 +159,7 @@ function Base.show(io::IO, ct::CoefTable2)
             top[i, 1] = top[i, 1] * ":"
         end
         println(io, "=" ^totalwidth)
-        halfwidth = div(totalwidth, 2) - 1 
+        halfwidth = div(totalwidth, 2) - 1
         interwidth = 2 +  mod(totalwidth, 2)
         for i in 1:(div(size(top, 1) - 1, 2)+1)
             print(io, top[2*i-1, 1])
@@ -172,10 +172,10 @@ function Base.show(io::IO, ct::CoefTable2)
             println(io)
         end
     end
-    println("=" ^totalwidth)
+    println(io,"=" ^totalwidth)
     println(io," " ^ rnwidth *
             join([lpad(string(colnms[i]), widths[i]) for i = 1:nc], ""))
-    println("-" ^totalwidth)
+    println(io,"-" ^totalwidth)
     for i in 1:nr
         print(io, rownms[i])
         for j in 1:nc
@@ -183,7 +183,7 @@ function Base.show(io::IO, ct::CoefTable2)
         end
         println(io)
     end
-    println("=" ^totalwidth)
+    println(io,"=" ^totalwidth)
 end
 
 
@@ -202,7 +202,7 @@ struct RegressionResult <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::FormulaTerm        # Original formula 
+    formula::FormulaTerm        # Original formula
     formula_schema
 
     nobs::Int64             # Number of observations
@@ -235,7 +235,7 @@ struct RegressionResultIV <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::FormulaTerm        # Original formula 
+    formula::FormulaTerm        # Original formula
     formula_schema
 
     nobs::Int64             # Number of observations
@@ -248,7 +248,7 @@ struct RegressionResultIV <: AbstractRegressionResult
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
 
-    F_kp::Float64           # First Stage F statistics KP 
+    F_kp::Float64           # First Stage F statistics KP
     p_kp::Float64           # First Stage p value KP
 end
 
@@ -274,10 +274,10 @@ struct RegressionResultFE <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::FormulaTerm        # Original formula 
+    formula::FormulaTerm        # Original formula
     formula_schema
 
-    feformula::Union{Symbol, Expr}      # fixed effect formula 
+    feformula::Union{Symbol, Expr}      # fixed effect formula
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
@@ -290,12 +290,12 @@ struct RegressionResultFE <: AbstractRegressionResult
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
 
-    iterations::Int         # Number of iterations        
+    iterations::Int         # Number of iterations
     converged::Bool         # Has the demeaning algorithm converged?
 end
 
 title(::RegressionResultFE) = "Fixed Effect Model"
-top(x::RegressionResultFE) = [ 
+top(x::RegressionResultFE) = [
             "Number of obs" sprint(show, nobs(x), context = :compact => true);
             "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
@@ -315,10 +315,10 @@ struct RegressionResultFEIV <: AbstractRegressionResult
 
     coefnames::Vector       # Name of coefficients
     yname::Symbol           # Name of dependent variable
-    formula::FormulaTerm        # Original formula 
+    formula::FormulaTerm        # Original formula
     formula_schema
 
-    feformula::Union{Symbol, Expr}      # fixed effect formula 
+    feformula::Union{Symbol, Expr}      # fixed effect formula
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # degrees of freedoms
@@ -331,11 +331,11 @@ struct RegressionResultFEIV <: AbstractRegressionResult
 
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
-    
-    F_kp::Float64           # First Stage F statistics KP 
+
+    F_kp::Float64           # First Stage F statistics KP
     p_kp::Float64           # First Stage p value KP
 
-    iterations::Int         # Number of iterations        
+    iterations::Int         # Number of iterations
     converged::Bool         # Has the demeaning algorithm converged?
 end
 
@@ -370,8 +370,3 @@ end
 function residuals(x::Union{RegressionResultFEIV, RegressionResultFE})
         x.augmentdf[!, :residuals]
 end
-
-
-
-
-
