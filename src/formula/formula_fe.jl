@@ -24,10 +24,11 @@ parse_fixedeffect(x::Nothing) = nothing
 function parse_fixedeffect(df::AbstractDataFrame, a::Term)
     a = Symbol(a)
     v = df[!, a]
-    if isa(v, CategoricalVector)
+    if !isa(v, CategoricalVector)
         # x from x*id -> x + id + x&id
-        return FixedEffect(v), a
+        v = categorical(v)
     end
+    return FixedEffect(v), a
 end
 
 # Constructors from dataframe + InteractionTerm
@@ -85,6 +86,3 @@ function _name(s::Vector{Symbol})
     end
     return out
 end
-
-
-

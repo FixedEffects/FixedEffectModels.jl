@@ -15,8 +15,11 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     for c in eachterm(clusters)
         if isa(c, Term)
             c = Symbol(c)
-            isa(df[!, c], CategoricalVector) || error("Cluster variable $(c) is of type $(typeof(df[!, c])), but should be a CategoricalVector.")
-            vclusters[!, c] = group(df[!, c])
+            v = df[!, c]
+            if !isa(v, CategoricalVector)
+                v = categorical(v)
+            end
+            vclusters[!, c] = group(v)
         elseif isa(c, InteractionTerm)
             factorvars, interactionvars = _split(df, c)
             vclusters[!, _name(factorvars)] = group((df[!, v] for v in factorvars)...)
