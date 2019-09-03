@@ -27,6 +27,8 @@ function parse_fixedeffect(df::AbstractDataFrame, a::Term)
     if isa(v, CategoricalVector)
         # x from x*id -> x + id + x&id
         return FixedEffect(v), a
+    else
+        @warn "The term $(a) in fe= is ignored. To add it as a set of fixed effects, use the function 'categorical'."
     end
 end
 
