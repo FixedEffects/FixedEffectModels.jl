@@ -16,7 +16,7 @@ import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissin
 import Combinatorics: combinations
 using CategoricalArrays
 using FillArrays
-import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response, modelmatrix
+import StatsBase: coef, nobs, coeftable, vcov, predict, residuals, var, RegressionModel, model_response, stderror, confint, fit, CoefTable, dof_residual, r2, adjr2, deviance, mss, rss, islinear, response, modelmatrix, fit
 import StatsModels: @formula,  FormulaTerm, Term, InteractionTerm, ConstantTerm, MatrixTerm, AbstractTerm, coefnames, columntable, missing_omit, termvars, schema, apply_schema, modelmatrix, response, terms, terms!, sort_terms!, parse!, capture_call
 using Reexport
 @reexport using StatsBase
@@ -33,14 +33,9 @@ allvars,
 fes,
 WeightFormula,
 
-AbstractRegressionResult,
 title,
 top,
-RegressionResult,
-RegressionResultIV,
-RegressionResultFE,
-RegressionResultFEIV,
-
+FixedEffectModel,
 AbstractVcovFormula,
 VcovSimpleFormula,
 VcovRobustFormula,
@@ -75,7 +70,7 @@ include("formula/formula_iv.jl")
 include("formula/formula_fe.jl")
 
 
-include("RegressionResult.jl")
+include("FixedEffectModel.jl")
 
 include("vcov/types.jl")
 include("vcov/vcovsimple.jl")

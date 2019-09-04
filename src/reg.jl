@@ -32,8 +32,6 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
 reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-
-
 function reg(df::AbstractDataFrame, m::Model; kwargs...)
     reg(df, m.f; m.dict..., kwargs...)
 end
@@ -65,7 +63,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
-    has_absorb = fe != nothing
+    has_fe = fe != nothing
     has_weights = weights != nothing
 
 
@@ -81,7 +79,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         end
     end
     save_residuals = (save == :residuals) | (save == true)
-    save_fe = (save == :fe) | ((save == true) & has_absorb)
+    save_fe = (save == :fe) | ((save == true) & has_fe)
 
 
     ##############################################################################
@@ -114,7 +112,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         esample .&= subset
     end
 
-    if has_absorb
+    if has_fe
         feformula = @eval(@formula(0 ~ $(fe)))
         fes, ids = parse_fixedeffect(df, feformula)
         if drop_singletons
@@ -132,12 +130,12 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     all(isfinite, sqrtw) || throw("Weights are not finite")
 
     # Compute pfe, a FixedEffectMatrix
-    has_absorb_intercept = false
-    if has_absorb
+    has_fe_intercept = false
+    if has_fe
         # in case some FixedEffect does not have interaction, remove the intercept
         if any([isa(fe.interaction, Ones) for fe in fes])
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
-            has_absorb_intercept = true
+            has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
@@ -176,6 +174,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     yname = Symbol(yname)
     coef_names = Symbol.(coef_names)
 
+
     if has_iv
         subdf = columntable(df[esample, endo_vars])
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
@@ -207,9 +206,14 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # compute tss now before potentially demeaning y
-    tss = compute_tss(y, has_intercept | has_absorb_intercept, sqrtw)
+    tss = compute_tss(y, has_intercept | has_fe_intercept, sqrtw)
 
-    if has_absorb
+
+    # create unitilaized 
+    iterations, converged, r2_within = nothing, nothing, nothing
+    F_kp, p_kp = nothing, nothing
+
+    if has_fe
         # used to compute tss even without save_fe
         if save_fe
             oldy = deepcopy(y)
@@ -327,9 +331,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ##
     ##############################################################################
 
+
     # Compute degrees of freedom
     dof_absorb = 0
-    if has_absorb
+    if has_fe
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if isa(vcovformula, VcovClusterFormula) && any(isnested(fe, v) for v in eachcol(vcov_method_data.clusters))
@@ -346,9 +351,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     rss = sum(abs2, residuals)
     mss = tss - rss
     r2 = 1 - rss / tss
-    adjr2 = 1 - rss / tss * (nobs - (has_intercept | has_absorb_intercept)) / dof_residual
-    if has_absorb
-        r2_within = 1 - rss / compute_tss(y, (has_intercept | has_absorb_intercept), sqrtw)
+    adjr2 = 1 - rss / tss * (nobs - (has_intercept | has_fe_intercept)) / dof_residual
+    if has_fe
+        r2_within = 1 - rss / compute_tss(y, (has_intercept | has_fe_intercept), sqrtw)
     end
 
     # Compute standard error
@@ -389,39 +394,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         matrix_vcov = newmatrix_vcov
     end
 
-    # return
-    if !has_iv && !has_absorb
-        return RegressionResult(coef, matrix_vcov, esample, augmentdf,
-                                coef_names, yname, f, formula_schema, nobs, dof_residual,
-                                rss, tss, r2, adjr2, F, p)
-    elseif has_iv && !has_absorb
-        return RegressionResultIV(coef, matrix_vcov, esample, augmentdf,
-                                  coef_names, yname, f, formula_schema, nobs, dof_residual,
-                                  rss, tss,  r2, adjr2, F, p, F_kp, p_kp)
-    elseif !has_iv && has_absorb
-        return RegressionResultFE(coef, matrix_vcov, esample, augmentdf,
-                                  coef_names, yname, f, formula_schema, fe, nobs, dof_residual,
-                                  rss, tss, r2, adjr2, r2_within, F, p, iterations, converged)
-    elseif has_iv && has_absorb
-        return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf,
-                                   coef_names, yname, f, formula_schema, fe, nobs, dof_residual,
-                                   rss, tss, r2, adjr2, r2_within, F, p, F_kp, p_kp,
-                                   iterations, converged)
-    end
+    return FixedEffectModel(coef, matrix_vcov, esample, augmentdf,
+                            coef_names, yname, f, formula_schema, nobs, dof_residual,
+                            rss, tss, r2, adjr2, F, p,
+                            fe, iterations, converged, r2_within, 
+                            F_kp, p_kp)
 end
 
-
-##############################################################################
-##
-## Syntax without keywords
-##
-##############################################################################
-function evaluate_subset(df, ex::Expr)
-    if ex.head == :call
-        return Expr(ex.head, ex.args[1], (evaluate_subset(df, ex.args[i]) for i in 2:length(ex.args))...)
-    else
-        return Expr(ex.head, (evaluate_subset(df, ex.args[i]) for i in 1:length(ex.args))...)
-    end
-end
-evaluate_subset(df, ex::Symbol) = df[!, ex]
-evaluate_subset(df, ex)  = ex
