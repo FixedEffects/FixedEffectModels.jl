@@ -100,37 +100,6 @@ function fes(x::FixedEffectModel)
    x.augmentdf[!, 2:size(x.augmentdf, 2)]
 end
 
-##############################################################################
-##
-## Display Result
-##
-##############################################################################
-
-function coeftable(x::FixedEffectModel)
-    ctitle = title(x)
-    ctop = top(x)
-    cc = coef(x)
-    se = stderror(x)
-    coefnms = coefnames(x)
-    conf_int = confint(x)
-    # put (intercept) last
-    if !isempty(coefnms) && ((coefnms[1] == Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)"))
-        newindex = vcat(2:length(cc), 1)
-        cc = cc[newindex]
-        se = se[newindex]
-        conf_int = conf_int[newindex, :]
-        coefnms = coefnms[newindex]
-    end
-    tt = cc ./ se
-    CoefTable2(
-        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1:2]),
-        ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
-        ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
-end
-
-function Base.show(io::IO, x::FixedEffectModel)
-    show(io, coeftable(x))
-end
 
 function title(x::FixedEffectModel)
     iv = has_iv(x)
@@ -170,6 +139,40 @@ function top(x::FixedEffectModel)
     end
     return out
 end
+
+function Base.show(io::IO, x::FixedEffectModel)
+    show(io, coeftable(x))
+end
+
+function coeftable(x::FixedEffectModel)
+    ctitle = title(x)
+    ctop = top(x)
+    cc = coef(x)
+    se = stderror(x)
+    coefnms = coefnames(x)
+    conf_int = confint(x)
+    # put (intercept) last
+    if !isempty(coefnms) && ((coefnms[1] == Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)"))
+        newindex = vcat(2:length(cc), 1)
+        cc = cc[newindex]
+        se = se[newindex]
+        conf_int = conf_int[newindex, :]
+        coefnms = coefnms[newindex]
+    end
+    tt = cc ./ se
+    CoefTable2(
+        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1:2]),
+        ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
+        ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
+end
+
+
+##############################################################################
+##
+## Display Result
+##
+##############################################################################
+
 
 
 ## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients.
