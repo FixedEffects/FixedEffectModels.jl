@@ -1,7 +1,7 @@
 
 ##############################################################################
 ##
-## Subtypes of Regression Result
+## Type FixedEffectModel
 ##
 ##############################################################################
 
@@ -66,7 +66,6 @@ function confint(x::FixedEffectModel)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
 
-
 # predict, residuals, modelresponse
 function predict(x::FixedEffectModel, df::AbstractDataFrame)
     has_fe(x) && error("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
@@ -100,14 +99,13 @@ function fes(x::FixedEffectModel)
    !has_fe(x) && error("fes is not defined for fixed effect models without fixed effects")
    x.augmentdf[!, 2:size(x.augmentdf, 2)]
 end
+
 ##############################################################################
 ##
-## Display Resutls
+## Display Result
 ##
 ##############################################################################
 
-
-# Display Results
 function coeftable(x::FixedEffectModel)
     ctitle = title(x)
     ctop = top(x)
@@ -174,15 +172,6 @@ function top(x::FixedEffectModel)
 end
 
 
-
-
-
-##############################################################################
-##
-## The lightest type that can (i) print table (ii) predict etc
-##
-##############################################################################
-
 ## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients.
 ## Pull request: https://github.com/JuliaStats/StatsBase.jl/pull/119
 
@@ -209,7 +198,6 @@ end
 function format_scientific(pv::Number)
     return @sprintf("%.3f", pv)
 end
-
 
 function Base.show(io::IO, ct::CoefTable2)
     mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms;
