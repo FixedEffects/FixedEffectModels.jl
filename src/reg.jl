@@ -331,7 +331,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ##
     ##############################################################################
 
-
     # Compute degrees of freedom
     dof_absorb = 0
     if has_fe
@@ -370,7 +369,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
                                   vcov_method_data, size(X, 2), dof_absorb)
     end
 
-    # https://github.com/matthieugomez/FixedEffectModels.jl/issues/66
     dof_residual = df_FStat(vcov_method_data, vcov_data, has_intercept)
 
     ##############################################################################

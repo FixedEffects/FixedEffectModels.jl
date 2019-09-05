@@ -253,8 +253,8 @@ x = reg(df, m)
 #@test_throws ErrorException reg(df, @formula(y ~ x1 + (x2 + w = x2)))
 
 # catch continuous variables in fixed effects
-#@test_throws ErrorException reg(df, @model(y ~ x1, fe = x2))
-# @test_throws ErrorException reg(df, @model(y ~ x1, fe = x2 + pid1))
+@test_throws ErrorException reg(df, @model(y ~ x1, fe = x2))
+@test_throws ErrorException reg(df, @model(y ~ x1, fe = x2 + pid1))
 
 
 
@@ -352,9 +352,6 @@ x = reg(df, m)
 
 # catch continuous variable in cluster
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
-
-
-
 @test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
 
 ##############################################################################
