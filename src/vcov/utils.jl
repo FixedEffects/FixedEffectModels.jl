@@ -4,15 +4,12 @@ function compute_Fstat(coef::Vector{Float64}, matrix_vcov::AbstractMatrix{Float6
     nobs::Int, has_intercept::Bool, vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
     coefF = copy(coef)
     # TODO: check I can't do better
-    length(coef) == has_intercept && return NaN, NaN
+    length(coef) == has_intercept && return NaN
     if has_intercept
         coefF = coefF[2:end]
         matrix_vcov = matrix_vcov[2:end, 2:end]
     end
-    F = (coefF' * (matrix_vcov \ coefF)) / length(coefF)
-    df_ans = df_FStat(vcov_method_data, vcov_data, has_intercept)
-    dist = FDist(length(coefF), df_ans)
-    return F, ccdf(dist, F)
+    return (coefF' * (matrix_vcov \ coefF)) / length(coefF)
 end
 
 

@@ -63,7 +63,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
-    has_fe = fe != nothing
+    has_fe = fe != nothing 
     has_weights = weights != nothing
 
 
@@ -151,11 +151,12 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-    subdf = columntable(df[esample, vars])
+    subdf = columntable(disallowmissing!(df[esample, vars]))
     formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
+
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(formula_schema, subdf))
+    y = response(formula_schema, subdf)
     all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
 
     y .= y .* sqrtw
@@ -176,7 +177,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
 
     if has_iv
-        subdf = columntable(df[esample, endo_vars])
+        subdf = columntable(disallowmissing!(df[esample, endo_vars]))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variable are infinite")
@@ -189,7 +190,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         append!(coef_names, Symbol.(coefendo_names))
 
  
-        subdf = columntable(df[esample, iv_vars])
+        subdf = columntable(disallowmissing!(df[esample, iv_vars]))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrument are infinite")
@@ -360,7 +361,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     matrix_vcov = vcov!(vcov_method_data, vcov_data)
 
     # Compute Fstat
-    (F, p) = compute_Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method_data, vcov_data)
+    F = compute_Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method_data, vcov_data)
+
+    dof_residual = max(1, df_FStat(vcov_method_data, vcov_data, has_intercept))
+    p = ccdf(FDist(max(length(coef) - has_intercept, 1), dof_residual), F)
 
     # Compute Fstat of First Stage
     if has_iv
@@ -369,7 +373,8 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
                                   vcov_method_data, size(X, 2), dof_absorb)
     end
 
-    dof_residual = df_FStat(vcov_method_data, vcov_data, has_intercept)
+
+
 
     ##############################################################################
     ##

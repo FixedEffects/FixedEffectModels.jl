@@ -1,4 +1,4 @@
-function compute_tss(y::Vector{Float64}, hasintercept::Bool, sqrtw::AbstractVector)
+function compute_tss(y::AbstractVector, hasintercept::Bool, sqrtw::AbstractVector)
     if hasintercept
         tss = zero(Float64)
         m = (mean(y) / sum(sqrtw) * length(y))::Float64

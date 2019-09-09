@@ -12,7 +12,7 @@ import LinearAlgebra.BLAS: gemm!
 import Statistics: mean, quantile
 import Printf: @sprintf
 import Distributions: ccdf, TDist, FDist, Chisq
-import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing, groupby, groupindices
+import DataFrames: DataFrame, AbstractDataFrame, completecases, names!, ismissing, groupby, groupindices, disallowmissing!
 import Combinatorics: combinations
 using CategoricalArrays
 using FillArrays
