@@ -373,9 +373,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
                                   vcov_method_data, size(X, 2), dof_absorb)
     end
 
-
-
-
     ##############################################################################
     ##
     ## Return regression result

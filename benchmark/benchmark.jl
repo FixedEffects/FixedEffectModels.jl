@@ -29,6 +29,7 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 #  2.113248 seconds (499.66 k allocations: 811.751 MiB, 15.08% gc time)
 @time reg(df, @model(y ~ x1 + x2, fe = id1 + id2))
 # 3.553678 seconds (1.36 k allocations: 1005.101 MiB, 10.55% gc time))
+@time reg(df, @model(y ~ x1 + x2, fe = id1 + id2, vcov = cluster(id1 + id2)))
 
 
 # more regressors
@@ -39,8 +40,9 @@ df.x6 =  cos.(id1) + sin.(id2) + randn(N)
 df.x7 =  cos.(id1) + sin.(id2) + randn(N)
 @time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, subset = x3 .>= 0.5))
 
-@time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1, subset = x3 .>= 0.5))
-#  4.064132 seconds (2.24 k allocations: 965.500 MiB, 12.50% gc time)
+@time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1))
+#  6.191703 seconds (537.87 k allocations: 4.545 GiB, 5.93% gc time)
+@time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1), method = :lsmr_threads)
 
 df.id1 = categorical(mod.(1:size(df, 1), Ref(5)))
 df.id4 = categorical(mod.(1:size(df, 1), Ref(4)))

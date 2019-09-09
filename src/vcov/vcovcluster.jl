@@ -54,7 +54,7 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
     rmul!(S, (size(x.regressors, 1) - 1) / x.dof_residual * G / (G - 1))
 end
 
-# Matrix version is used for IV
+# res is a Vector in OLS, Matrix in IV
 function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{Float64}}, f::CategoricalVector)
     X2 = fill(zero(Float64), length(f.pool), size(X, 2) * size(res, 2))
     index = 0
