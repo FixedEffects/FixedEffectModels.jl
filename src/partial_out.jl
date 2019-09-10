@@ -87,7 +87,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # Compute residualized Y
-    subdf = columntable(df[esample, unique(vcat(vars))])
+    subdf = columntable(disallowmissing!(df[esample, unique(vcat(vars))]))
     formula_y = FormulaTerm(ConstantTerm(0), (ConstantTerm(0), eachterm(formula.lhs)...))
     formula_y_schema = apply_schema(formula_y, schema(formula_y, subdf, contrasts), StatisticalModel)
     Y = convert(Matrix{Float64}, modelmatrix(formula_y_schema, subdf))
