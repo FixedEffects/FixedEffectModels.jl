@@ -125,13 +125,13 @@ function top(x::FixedEffectModel)
             "p-value" format_scientific(x.p);
             ]
     if has_iv(x)
-        vcat(out, 
+        out = vcat(out, 
             ["First Stage F-stat (KP)" sprint(show, x.F_kp, context = :compact => true);
             "First Stage p-val (KP)" format_scientific(x.p_kp);
             ])
     end
     if has_fe(x)
-        vcat(out, 
+        out = vcat(out, 
             ["R2 within" format_scientific(x.r2_within);
            "Iterations" sprint(show, x.iterations, context = :compact => true);
              "Converged" sprint(show, x.converged, context = :compact => true);

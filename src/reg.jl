@@ -156,7 +156,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
-    y = response(formula_schema, subdf)
+    y = convert(Vector{Float64}, response(formula_schema, subdf))
     all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
 
     y .= y .* sqrtw

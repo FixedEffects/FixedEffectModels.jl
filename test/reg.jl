@@ -624,7 +624,9 @@ x = reg(df2,@model(b ~ a))
 @test coef(x) ≈ [ 2.4285714285714253, 2.7142857142857157] atol = 1e-4
 
 # Works with Integers
-df1 = DataFrame(a=[1, 2, 3, 4], b=[5, 7, 11, 13])
+df1 = DataFrame(a=[1, 2, 3, 4], b=[5, 7, 11, 13] c = categorical([1, 1, 2, 2]))
 x = reg(df1,@model(a ~ b))
+@test coef(x) ≈ [-0.65, 0.35] atol = 1e-4
+x = reg(df1,@model(a ~ b, fe = c))
 @test coef(x) ≈ [-0.65, 0.35] atol = 1e-4
 
