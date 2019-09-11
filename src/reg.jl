@@ -129,7 +129,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     sqrtw = get_weights(df, esample, weights)
     all(isfinite, sqrtw) || throw("Weights are not finite")
 
-    # Compute pfe, a FixedEffectMatrix
+    # Compute feM, a FixedEffectMatrix
     has_fe_intercept = false
     if has_fe
         # in case some FixedEffect does not have interaction, remove the intercept
@@ -138,7 +138,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
             has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
+        feM = FixedEffectMatrix(fes, sqrtw, Val{method})
     end
 
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
@@ -159,13 +159,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     y = convert(Vector{Float64}, response(formula_schema, subdf))
     all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
 
-    y .= y .* sqrtw
-
     # Obtain X
     Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
     all(isfinite, Xexo) || throw("Some observations for the regressor are infinite")
-    Xexo .= Xexo .* sqrtw
-
 
     yname, coef_names = coefnames(formula_schema)
     if !isa(coef_names, Vector)
@@ -175,13 +171,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     yname = Symbol(yname)
     coef_names = Symbol.(coef_names)
 
-
     if has_iv
         subdf = columntable(disallowmissing!(df[esample, endo_vars]))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variable are infinite")
-        Xendo .= Xendo .* sqrtw
 
         _, coefendo_names = coefnames(formula_endo_schema)
         if !isa(coefendo_names, Vector)
@@ -195,7 +189,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrument are infinite")
 
-        Z .= Z .* sqrtw
 
         if size(Z, 2) < size(Xendo, 2)
             error("Model not identified. There must be at least as many ivs as endogeneneous variables")
@@ -229,20 +222,20 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         iterations = Int[]
         convergeds = Bool[]
 
-        y, b, c = solve_residuals!(y, pfe; maxiter = maxiter, tol = tol)
+        y, b, c = solve_residuals!(y, feM; maxiter = maxiter, tol = tol)
         append!(iterations, b)
         append!(convergeds, c)
 
-        Xexo, b, c = solve_residuals!(Xexo, pfe; maxiter = maxiter, tol = tol)
+        Xexo, b, c = solve_residuals!(Xexo, feM; maxiter = maxiter, tol = tol)
         append!(iterations, b)
         append!(convergeds, c)
 
         if has_iv
-            Xendo, b, c = solve_residuals!(Xendo, pfe; maxiter = maxiter, tol = tol)
+            Xendo, b, c = solve_residuals!(Xendo, feM; maxiter = maxiter, tol = tol)
             append!(iterations, b)
             append!(convergeds, c)
 
-            Z, b, c = solve_residuals!(Z, pfe; maxiter = maxiter, tol = tol)
+            Z, b, c = solve_residuals!(Z, feM; maxiter = maxiter, tol = tol)
             append!(iterations, b)
             append!(convergeds, c)
         end
@@ -254,6 +247,12 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         end
     end
 
+    y .= y .* sqrtw
+    Xexo .= Xexo .* sqrtw
+    if has_iv
+        Xendo .= Xendo .* sqrtw
+        Z .= Z .* sqrtw
+    end
     ##############################################################################
     ##
     ## Get Linearly Independent Components of Matrix
@@ -319,7 +318,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
     if save_fe
         oldX = getcols(oldX, basecoef)
-        newfes, b, c = solve_coefficients!(oldy - oldX * coef, pfe; tol = tol, maxiter = maxiter)
+        newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for j in 1:length(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
             augmentdf[esample, ids[j]] = newfes[j]

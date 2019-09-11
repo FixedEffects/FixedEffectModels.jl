@@ -83,7 +83,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
             has_absorb_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        pfe = FixedEffectMatrix(fes, sqrtw, Val{method})
+        feM = FixedEffectMatrix(fes, sqrtw, Val{method})
     end
 
     # Compute residualized Y
@@ -91,7 +91,6 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     formula_y = FormulaTerm(ConstantTerm(0), (ConstantTerm(0), eachterm(formula.lhs)...))
     formula_y_schema = apply_schema(formula_y, schema(formula_y, subdf, contrasts), StatisticalModel)
     Y = convert(Matrix{Float64}, modelmatrix(formula_y_schema, subdf))
-    Y .= Y .* sqrtw
 
     ynames = coefnames(formula_y_schema)[2]
     if !isa(ynames, Vector)
@@ -102,22 +101,21 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
         m = mean(Y, dims = 1)
     end
     if has_absorb
-        Y, b, c = solve_residuals!(Y, pfe; maxiter = maxiter, tol = tol)
+        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol)
         append!(iterations, b)
         append!(convergeds, c)
     end
-
+    Y .= Y .* sqrtw
     # Compute residualized X
     formula_x = FormulaTerm(ConstantTerm(0), formula.rhs)
     formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
     X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
-    X .= X .* sqrtw
     if has_absorb
-        X, b, c = solve_residuals!(X, pfe; maxiter = maxiter, tol = tol)
+        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol)
         append!(iterations, b)
         append!(convergeds, c)
     end
-    
+    X .= X .* sqrtw
     # Compute residuals
     if size(X, 2) > 0
         residuals = Y .- X * (X \ Y)
