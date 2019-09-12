@@ -42,9 +42,9 @@ df.x7 =  cos.(id1) + sin.(id2) + randn(N)
 @time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1))
 #  6.191703 seconds (537.87 k allocations: 4.545 GiB, 5.93% gc time)
 @time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1+id2))
-
+# 10.520039 seconds (3.50 k allocations: 4.334 GiB, 6.19% gc time)
 @time reg(df, @model(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7, fe = id1+id2), method = :lsmr_threads)
-
+#  9.591568 seconds (3.94 k allocations: 6.372 GiB, 5.24% gc time)
 df.id1 = categorical(mod.(1:size(df, 1), Ref(5)))
 df.id4 = categorical(mod.(1:size(df, 1), Ref(4)))
 @time reg(df, @model(y ~ id4, fe = id1), method = :lsmr)
