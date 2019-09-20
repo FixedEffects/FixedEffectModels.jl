@@ -5,7 +5,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `df::AbstractDataFrame`
 * `model::Model`: A model created using [`@model`](@ref)
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
-* `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  With parallel use `:lsmr_parallel`. To use multi threaded use `lsmr_threads`. Other choices are `:qr` and `:cholesky` (factorization methods)
+* `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu` (in this case, do `using CuArrays` before `using FixedEffectModels`). Other choices are `:qr` and `:cholesky` (factorization methods).
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `tol::Real =1e-8`: Tolerance

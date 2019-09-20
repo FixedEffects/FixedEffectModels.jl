@@ -122,6 +122,12 @@ The package has support for [parallel computing](https://docs.julialang.org/en/l
 	reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_threads)
 	```
 
+## GPU
+Thanks to Paul Schrimpf, the package can now do the demeaning operations on a GPU, which can be an order of magnitude faster. 
+```julia
+using CuArrays, FixedEffectModels
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_gpu)
+```
 
 
 # References
