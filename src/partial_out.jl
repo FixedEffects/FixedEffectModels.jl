@@ -39,7 +39,8 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     add_mean = false,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     tol::Real = 1e-8,
-    method::Symbol = :lsmr)
+    method::Symbol = :lsmr,
+    double_precision::Bool = method != :lsmr_gpu)
     weightvar = weights
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
@@ -83,7 +84,11 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
             has_absorb_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = FixedEffectMatrix(fes, sqrtw, Val{method})
+        if double_precision
+            feM = FixedEffectMatrix(fes, convert(AbstractVector{Float64}, sqrtw), Val{method})
+        else
+            feM = FixedEffectMatrix(fes, convert(AbstractVector{Float32}, sqrtw), Val{method})
+        end    
     end
 
     # Compute residualized Y

@@ -8,6 +8,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu` (in this case, do `using CuArrays` before `using FixedEffectModels`). Other choices are `:qr` and `:cholesky` (factorization methods).
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `maxiter::Integer = 10000`: Maximum number of iterations
+* `double_precision`: Should the demeaning be be done with double precision? Default to yes, except with `lsmr_gpu`.
 * `tol::Real =1e-8`: Tolerance
 
 
@@ -43,8 +44,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     subset::Union{Symbol, Expr, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     tol::Real= 1e-8, dof_add::Integer = 0,
-    save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true
+    save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
+    double_precision::Bool = method != :lsmr_gpu
    )
+
 
     if isa(vcov, Symbol)
         vcovformula = VcovFormula(Val{vcov})
@@ -138,7 +141,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
             has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = FixedEffectMatrix(fes, sqrtw, Val{method})
+        if double_precision
+            feM = FixedEffectMatrix(fes, convert(AbstractVector{Float64}, sqrtw), Val{method})
+        else
+            feM = FixedEffectMatrix(fes, convert(AbstractVector{Float32}, sqrtw), Val{method})
+        end
     end
 
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)

@@ -540,9 +540,7 @@ df.y = df.Wage
 df.x1 = df.Emp
 df.w = df.Output
 
-method_s = Base.USE_GPL_LIBS ? [:cholesky, :qr, :lsmr, :lsmr_parallel, :lsmr_threads] : [:lsmr, :lsmr_parallel, :lsmr_threads]
-
-for method in method_s
+for method in methods_vec
 	# absorb
 	m = @model y ~ x1 fe = pid1
 	x = reg(df, m, method = method)
