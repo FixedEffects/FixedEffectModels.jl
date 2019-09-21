@@ -102,6 +102,15 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
 
+## GPU
+The package has support for computing on GPU. This is more than an order of magnitude faster for complicated model.
+```julia
+using CuArrays, FixedEffectModels
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_gpu)
+```
+(thanks to Paul Schrimpf).
+
+
 ## Parallel / multi-threading
 The package has support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). In this case, each regressor is demeaned in a different processor/thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
 
@@ -122,12 +131,7 @@ The package has support for [parallel computing](https://docs.julialang.org/en/l
 	reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_threads)
 	```
 
-## GPU
-Thanks to Paul Schrimpf, the package can now do the demeaning operations on a GPU, which can be an order of magnitude faster. 
-```julia
-using CuArrays, FixedEffectModels
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_gpu)
-```
+
 
 
 # References
