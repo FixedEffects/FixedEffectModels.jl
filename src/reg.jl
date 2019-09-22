@@ -5,10 +5,10 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `df::AbstractDataFrame`
 * `model::Model`: A model created using [`@model`](@ref)
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
-* `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu` (in this case, do `using CuArrays` before `using FixedEffectModels`). Other choices are `:qr` and `:cholesky` (factorization methods).
+* `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu`(requires `CuArrays` to be loaded before loading `FixedEffectModels`. Use the option `double_precision = false` to use `Float32` on the GPU.). Other choices are `:qr` and `:cholesky` (factorization methods).
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `maxiter::Integer = 10000`: Maximum number of iterations
-* `double_precision`: Should the demeaning be be done with double precision? Default to yes, except with `lsmr_gpu`.
+* `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real =1e-8`: Tolerance
 
 
@@ -43,9 +43,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     weights::Union{Symbol, Expr, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
-    tol::Real= 1e-8, dof_add::Integer = 0,
+    dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
-    double_precision::Bool = method != :lsmr_gpu
+    double_precision::Bool = true, tol::Real = double_precision ? sqrt(eps(Float64)) : sqrt(eps(Float32))
    )
 
 
@@ -141,11 +141,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
             has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        if double_precision
-            feM = FixedEffectMatrix(fes, convert(AbstractVector{Float64}, sqrtw), Val{method})
-        else
-            feM = FixedEffectMatrix(fes, convert(AbstractVector{Float32}, sqrtw), Val{method})
-        end
+        feM = AbstractFixedEffectMatrix{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
     end
 
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
@@ -347,7 +343,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
                     dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists
-                dof_absorb +=  length(Set(fe.refs))
+                dof_absorb +=  ndistincts(fe)
             end
         end
     end
