@@ -8,9 +8,6 @@ tests = ["reg.jl",
 println("Running tests:")
 
 global methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
-if Base.USE_GPL_LIBS
-	push!(methods_vec,  :cholesky, :qr)
-end
 try 
     using CuArrays
     push!(methods_vec, :lsmr_gpu)

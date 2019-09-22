@@ -103,12 +103,12 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
 
 ## GPU
-The package has support for computing on GPU. This is more than an order of magnitude faster for complicated model.
+The package has support for GPUs (Nvidia), thanks to Paul Schrimpf. This makes it an order of magnitude faster.
+
 ```julia
 using CuArrays, FixedEffectModels
 reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_gpu)
 ```
-(thanks to Paul Schrimpf).
 
 
 ## Parallel / multi-threading
