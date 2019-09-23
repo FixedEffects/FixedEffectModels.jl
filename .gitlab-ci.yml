@@ -6,4 +6,3 @@ include:
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v4/test_v1.0.yml'
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v4/test_v1.1.yml'
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v4/test_dev.yml'
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v4/coverage_v1.1.yml'
