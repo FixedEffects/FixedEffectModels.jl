@@ -127,10 +127,9 @@ result2 = reg(df, model2)
 
 methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
 if isdefined(FixedEffects, :FixedEffectLSMRGPU)
-	push!(method_s, :lsmr_gpu)
-else
-    @info "CuArrays not found, skipping test of :lsmr_gpu"
+	push!(methods_vec, :lsmr_gpu)
 end
+
 for method in methods_vec
 	model = @model Sales ~ Price fe = pYear
 	result = reg(df, model, save = true, method = method)

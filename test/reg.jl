@@ -543,11 +543,8 @@ df.w = df.Output
 
 methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
 if isdefined(FixedEffects, :FixedEffectLSMRGPU)
-	push!(method_s, :lsmr_gpu)
-else
-    @info "CuArrays not found, skipping test of :lsmr_gpu"
+	push!(methods_vec, :lsmr_gpu)
 end
-
 for method in methods_vec
 	@show method
 	m = @model y ~ x1 fe = pid1
