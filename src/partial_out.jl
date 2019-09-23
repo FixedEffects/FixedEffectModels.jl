@@ -5,7 +5,7 @@ Partial out variables in a Dataframe
 * `df::AbstractDataFrame`
 * `model::Model`: A `Model` created using `@model`. See `@model`.
 * `add_mean::Bool`: Should the initial mean added to the returned variable?
-* `method::Symbol`: A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :lsmr_parallel, :lsmr_threads, :lsmr_gpu (requires `CuArrays` to be loaded before loading `FixedEffectModels`. Use the option `double_precision = false` to use `Float32` on the GPU).
+* `method::Symbol`: A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :lsmr_parallel, :lsmr_threads, :lsmr_gpu (requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU).
 * `maxiter::Integer`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real`: Tolerance

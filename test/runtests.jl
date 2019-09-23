@@ -7,14 +7,6 @@ tests = ["reg.jl",
 
 println("Running tests:")
 
-global methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
-try 
-    using CuArrays
-    push!(methods_vec, :lsmr_gpu)
-catch e
-    @info "CuArrays not found, skipping test of :lsmr_gpu"
-end
-
 
 for test in tests
 	try

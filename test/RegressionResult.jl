@@ -125,6 +125,12 @@ model2 = @model Sales ~ Price weights = Pop
 result2 = reg(df, model2)
 @test r2(result1) ≈ r2(result2)
 
+methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
+if isdefined(FixedEffects, :FixedEffectLSMRGPU)
+	push!(method_s, :lsmr_gpu)
+else
+    @info "CuArrays not found, skipping test of :lsmr_gpu"
+end
 for method in methods_vec
 	model = @model Sales ~ Price fe = pYear
 	result = reg(df, model, save = true, method = method)

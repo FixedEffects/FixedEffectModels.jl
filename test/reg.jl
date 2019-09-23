@@ -540,7 +540,16 @@ df.y = df.Wage
 df.x1 = df.Emp
 df.w = df.Output
 
+
+methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
+if isdefined(FixedEffects, :FixedEffectLSMRGPU)
+	push!(method_s, :lsmr_gpu)
+else
+    @info "CuArrays not found, skipping test of :lsmr_gpu"
+end
+
 for method in methods_vec
+	@show method
 	m = @model y ~ x1 fe = pid1
 	x = reg(df, m, method = method)
 	@test coef(x) ≈ [- 0.11981270017206136] atol = 1e-4
