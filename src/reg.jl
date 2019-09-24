@@ -132,7 +132,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     sqrtw = get_weights(df, esample, weights)
     all(isfinite, sqrtw) || throw("Weights are not finite")
 
-    # Compute feM, a FixedEffectMatrix
+    # Compute feM, an AbstractFixedEffectSolver
     has_fe_intercept = false
     if has_fe
         # in case some FixedEffect does not have interaction, remove the intercept
@@ -141,7 +141,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
             has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectMatrix{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
     end
 
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)

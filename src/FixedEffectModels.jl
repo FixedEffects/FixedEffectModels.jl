@@ -21,6 +21,10 @@ import StatsModels: @formula,  FormulaTerm, Term, InteractionTerm, ConstantTerm,
 using Reexport
 @reexport using StatsBase
 @reexport using FixedEffects
+
+if !isdefined(FixedEffects, :AbstractFixedEffectSolver)
+	AbstractFixedEffectSolver{T} = AbstractFixedEffectMatrix{T}
+end
 ##############################################################################
 ##
 ## Exported methods and types

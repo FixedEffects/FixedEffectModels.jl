@@ -85,7 +85,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
             has_absorb_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectMatrix{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
     end
 
     # Compute residualized Y
