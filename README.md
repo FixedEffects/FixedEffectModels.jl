@@ -104,7 +104,7 @@ Denote the model `y = X β + D θ + e` where X is a matrix with few columns and 
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
 
 ## GPU
-The package has support for GPUs (Nvidia), thanks to Paul Schrimpf. This makes the package an order of magnitude faster for complicated problems.
+The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This makes the package an order of magnitude faster for complicated problems.
 
 ```julia
 using CuArrays, FixedEffectModels
@@ -112,28 +112,21 @@ reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :
 ```
 
 
-## Parallel / multi-threading
-The package has support for [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/) and [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/). In this case, each regressor is demeaned in a different processor/thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
+## Parallel Computing
+The package has support for [multi-threading](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#man-multithreading-1 and [multi-cores](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#Multi-Core-or-Distributed-Processing-1). In this case, each regressor is demeaned in a different thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
 
-1. For [parallel computing](https://docs.julialang.org/en/latest/manual/parallel-computing/), the syntax is as follow:
-	```julia
-	using Distributed
-	addprocs(n)
-	@everywhere using DataFrames, FixedEffectModels
-	reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_parallel)
-	```
-2. For [multi-threading](https://docs.julialang.org/en/latest/base/multi-threading/),  before starting Julia, set the number of threads to `n` with
-	```
-	export JULIA_NUM_THREADS=n
-	```
-	Then, in Julia, use the option `lsmr_threads`
-	```julia
-	using DataFrames, FixedEffectModels
-	reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_threads)
-	```
+```julia
+# Multi-threading
+using DataFrames, FixedEffectModels
+Threads.nthreads()
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_threads)
 
-
-
+# Multi-cores 
+using Distributed
+addprocs(4)
+@everywhere using DataFrames, FixedEffectModels
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_cores)
+```
 
 # References
 

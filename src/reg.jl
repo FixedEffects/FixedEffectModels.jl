@@ -386,9 +386,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         newcoef = fill(zero(Float64), length(basecoef))
         newmatrix_vcov = fill(NaN, (length(basecoef), length(basecoef)))
         newindex = [searchsortedfirst(cumsum(basecoef), i) for i in 1:length(coef)]
-        for i in 1:length(coef)
+        for i in eachindex(newindex)
             newcoef[newindex[i]] = coef[i]
-            for j in 1:length(coef)
+            for j in eachindex(newindex)
                 newmatrix_vcov[newindex[i], newindex[j]] = matrix_vcov[i, j]
             end
         end
@@ -402,4 +402,3 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
                             fe, iterations, converged, r2_within, 
                             F_kp, p_kp)
 end
-

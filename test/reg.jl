@@ -541,7 +541,7 @@ df.x1 = df.Emp
 df.w = df.Output
 
 
-methods_vec = [:lsmr, :lsmr_parallel, :lsmr_threads]
+methods_vec = [:lsmr, :lsmr_cores, :lsmr_threads]
 if isdefined(FixedEffects, :FixedEffectSolverLSMRGPU) | isdefined(FixedEffects, :FixedEffectLSMRGPU)
 	push!(methods_vec, :lsmr_gpu)
 end
