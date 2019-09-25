@@ -21,11 +21,12 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df.StateC =  categorical(df.State)
 df.YearC =  categorical(df.Year)
+@time reg(df, @model(Sales ~ Price))
 reg(df, @model(Sales ~ Price, fe = StateC + YearC))
 reg(df, @model(Sales ~ NDI, fe = StateC + StateC&Year))
 reg(df, @model(Sales ~ NDI, fe = StateC*Year))
 reg(df, @model(Sales ~ (Price ~ Pimin)))
-reg(df, @model(Sales ~ Price, weights = Pop))
+@time reg(df, @model(Sales ~ Price, weights = Pop))
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC)))
@@ -39,7 +40,7 @@ end
 
 function reg(df::AbstractDataFrame, f::FormulaTerm;
     fe::Union{Symbol, Expr, Nothing} = nothing,
-    vcov::Union{Symbol, Expr, Nothing} = :(simple()),
+    vcov::Union{Symbol, Expr} = :(simple()),
     weights::Union{Symbol, Expr, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),

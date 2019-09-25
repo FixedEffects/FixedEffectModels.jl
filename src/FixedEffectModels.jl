@@ -87,6 +87,9 @@ include("vcov/utils.jl")
 include("reg.jl")
 include("partial_out.jl")
 
-
+# precompile hint
+df = DataFrame(y = [1, 1], x =[1, 2], id = categorical([1, 1]))
+reg(df, @model(y ~ x, fe = id))
+reg(df, @model(y ~ x, vcov = cluster(id)))
 
 end  # module FixedEffectModels
