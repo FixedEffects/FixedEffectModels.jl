@@ -22,8 +22,8 @@ df.w = df.Pop
 m = @model y ~ x1
 x = reg(df, m)
 @test coef(x) ≈ [139.73446,-0.22974] atol = 1e-4
-m = @model y ~ x1 weights = w
-x = reg(df, m)
+m = @model y ~ x1
+x = reg(df, m, weights = :w)
 @test coef(x) ≈ [137.72495428982756,-0.23738] atol = 1e-4
 
 df.SalesInt = round.(Int64, df.Sales)
@@ -133,14 +133,14 @@ x = reg(df, m)
 
 
 # absorb + weights
-m = @model y ~ x1 fe = pid1 weights = w
-x = reg(df, m)
+m = @model y ~ x1 fe = pid1
+x = reg(df, m, weights = :w)
 @test coef(x) ≈ [- 0.21741] atol = 1e-4
-m = @model y ~ x1 fe = pid1 + pid2 weights = w
-x = reg(df, m)
+m = @model y ~ x1 fe = pid1 + pid2
+x = reg(df, m, weights = :w)
 @test coef(x) ≈ [- 0.88794] atol = 1e-3
-m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w
-x = reg(df, m)
+m = @model y ~ x1 fe = pid1 + pid1&id2
+x = reg(df, m, weights = :w)
 @test coef(x) ≈ [- 0.461085492] atol = 1e-4
 
 # iv
@@ -166,16 +166,16 @@ x = reg(df, m)
 @test coef(x) ≈ result atol = 1e-4
 
 # iv + weight
-m = @model y ~ (x1 ~ z1) weights = w
-x = reg(df, m)
+m = @model y ~ (x1 ~ z1)
+x = reg(df, m,  weights = :w)
 @test coef(x) ≈ [137.03637,- 0.22802] atol = 1e-4
 
 # iv + weight + absorb
 m = @model y ~ (x1 ~ z1) fe = pid1
 x = reg(df, m)
 @test coef(x) ≈ [-0.20284] atol = 1e-4
-m = @model y ~ (x1 ~ z1) fe = pid1 weights = w
-x = reg(df, m)
+m = @model y ~ (x1 ~ z1) fe = pid1
+x = reg(df, m,  weights = :w)
 @test coef(x) ≈ [-0.20995] atol = 1e-4
 m = @model y ~ x2 + (x1 ~ z1)
 x = reg(df, m)
@@ -192,8 +192,8 @@ x = reg(df, m)
 m = @model y ~ x1 + pid2 fe = pid1
 x = reg(df, m)
 @test coef(x)[1] ≈ -1.08471 atol = 1e-4
-m = @model y ~ x1 + pid2 fe = pid1 weights = w
-x = reg(df, m)
+m = @model y ~ x1 + pid2 fe = pid1
+x = reg(df, m,  weights = :w)
 @test coef(x)[1] ≈ -0.88794 atol = 1e-4
 m = @model y ~ x2 + (x1 ~ z1) + pid2 fe = pid1
 x = reg(df, m)
@@ -287,15 +287,15 @@ x = reg(df, m)
 
 # White
 # Stata reg - matches stata
-m = @model y ~ x1 vcov = robust
+m = @model y ~ x1 vcov = robust()
 x = reg(df, m)
 @test stderror(x) ≈ [1.686791, 0.0167042] atol = 1e-6
 # Stata ivreg - ivreg2 discrepancy - matches with df_add=-2
-m = @model y ~ (x1 ~ z1) vcov = robust
+m = @model y ~ (x1 ~ z1) vcov = robust()
 x = reg(df, m)
 @test stderror(x) ≈ [1.63305, 0.01674] atol = 1e-4
 # Stata areg - matches areg
-m = @model y ~ x1 fe = pid1 vcov = robust
+m = @model y ~ x1 fe = pid1 vcov = robust()
 x = reg(df, m)
 @test stderror(x) ≈ [0.0110005] atol = 1e-7
 
@@ -317,12 +317,12 @@ m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1)
 x = reg(df, m)
 @test stderror(x) ≈ [0.0019704, 0.1893396] atol = 1e-7
 # iv + fe + cluster + weights - matches ivreghdfe
-m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
-x = reg(df, m)
+m = @model y ~ x2 + (x1 ~z1) fe = pid1 vcov = cluster(pid1)
+x = reg(df, m,  weights = :w)
 @test stderror(x) ≈ [0.000759, 0.070836] atol = 1e-6
 # iv + fe + cluster + weights - matches ivreghdfe
-m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1) weights = w
-x = reg(df, m)
+m = @model y ~ (x1 ~z1) fe = pid1 vcov = cluster(pid1)
+x = reg(df, m,  weights = :w)
 @test stderror(x) ≈ [0.0337439] atol = 1e-7
 # multiway clustering - matches reghdfe
 m = @model y ~ x1 vcov = cluster(pid1 + pid2)
@@ -351,8 +351,8 @@ x = reg(df, m)
 @test coeftable(x).mat[1, 4] ≈ 4.872723900371927e-7 atol = 1e-7
 
 # catch continuous variable in cluster
-@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
-@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
+#@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
+#@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
 
 ##############################################################################
 ##
@@ -467,16 +467,16 @@ x = reg(df, m)
 @test x.F_kp ≈ 100927.75710 atol = 1e-4
 
 # exactly same with ivreg2
-m = @model y ~ (x1 ~ z1) vcov = robust
+m = @model y ~ (x1 ~ z1) vcov = robust()
 x = reg(df, m)
 @test x.F_kp ≈ 23160.06350 atol = 1e-4
-m = @model y ~ (x1 ~ z1) fe = pid1 vcov = robust
+m = @model y ~ (x1 ~ z1) fe = pid1 vcov = robust()
 x = reg(df, m)
 @test x.F_kp  ≈ 37662.82808 atol = 1e-4
-m = @model y ~ CPI + (x1 ~ z1)  vcov = robust
+m = @model y ~ CPI + (x1 ~ z1)  vcov = robust()
 x = reg(df, m)
 @test x.F_kp ≈ 2093.46609 atol = 1e-4
-m = @model y ~ (x1 ~ z1 + CPI) vcov = robust
+m = @model y ~ (x1 ~ z1 + CPI) vcov = robust()
 x = reg(df, m)
 @test x.F_kp  ≈ 16418.21196 atol = 1e-4
 
@@ -559,16 +559,16 @@ for method in methods_vec
 	m = @model y ~ 1 fe = id2&pid1
 	x = reg(df, m, method = method)
 	@test coef(x) ≈  [- 356.40430526316396] atol = 1e-4
-	m = @model y ~ x1 fe = pid1 weights = w
-	x = reg(df, m, method = method)
+	m = @model y ~ x1 fe = pid1 
+	x = reg(df, m, weights = :w,  method = method)
 	@test coef(x) ≈ [- 0.11514363590574725] atol = 1e-4
 
 	# absorb + weights
 	m = @model y ~ x1 fe = pid1 + pid2
 	x = reg(df, m, method = method)
 	@test coef(x)  ≈  [- 0.04683333721137311] atol = 1e-4
-	m = @model y ~ x1 fe = pid1 + pid2 weights = w
-	x = reg(df, m, method = method)
+	m = @model y ~ x1 fe = pid1 + pid2 
+	x = reg(df, m, weights = :w, method = method)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
 	## the last two ones test an ill conditioned model matrix
@@ -577,8 +577,8 @@ for method in methods_vec
 	@test coef(x)  ≈   [- 0.122354] atol = 1e-4
 	@test x.iterations <= 30
 
-	m = @model y ~ x1 fe = pid1 + pid1&id2 weights = w
-	x = reg(df, m, method = method)
+	m = @model y ~ x1 fe = pid1 + pid1&id2
+	x = reg(df, m, weights = :w, method = method)
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
 
@@ -596,14 +596,14 @@ for method in methods_vec
 	m = @model y ~ 1 fe = id2&pid1
 	x = reg(df, m, method = method, double_precision = false)
 	@test coef(x) ≈  [- 356.40430526316396] rtol = 1e-4
-	m = @model y ~ x1 fe = pid1 weights = w
-	x = reg(df, m, method = method, double_precision = false)
+	m = @model y ~ x1 fe = pid1 
+	x = reg(df, m, weights = :w, method = method, double_precision = false)
 	@test coef(x) ≈ [- 0.11514363590574725] rtol = 1e-4
 	m = @model y ~ x1 fe = pid1 + pid2
 	x = reg(df, m, method = method, double_precision = false)
 	@test coef(x)  ≈  [- 0.04683333721137311] rtol = 1e-4
-	m = @model y ~ x1 fe = pid1 + pid2 weights = w
-	x = reg(df, m, method = method, double_precision = false)
+	m = @model y ~ x1 fe = pid1 + pid2
+	x = reg(df, m, weights = :w, method = method, double_precision = false)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
 end

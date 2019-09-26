@@ -16,7 +16,7 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 df.StateCategorical =  categorical(df.State)
 df.YearCategorical =  categorical(df.Year)
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, weights = Pop, vcov = cluster(StateCategorical)))
+reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, vcov = cluster(StateCategorical)), weights = :Pop)
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139
@@ -61,23 +61,10 @@ reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, weights = P
 
 - Standard errors are indicated with the keyword argument `vcov`.
 	```julia
-	vcov = robust
+	vcov = robust()
 	vcov = cluster(StateCategorical)
 	vcov = cluster(StateCategorical + YearCategorical)
 	```
-
-- weights are indicated with the keyword argument `weights`
-	```julia
-	weights = Pop
-	```
-
-Arguments of `@model` are captured and transformed into expressions. If you want to program with `@model`, use expression interpolations:
-```julia
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-w = :Pop
-reg(df, @model(Sales ~ NDI, weights = $(w)))
-```
 
 ## Output
 `reg` returns a light object. It is composed of 

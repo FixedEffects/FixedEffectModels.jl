@@ -2,7 +2,6 @@ VcovFormula(::Type{Val{:simple}}) = VcovSimpleFormula()
 
 struct VcovSimpleFormula <: AbstractVcovFormula end
 
-
 struct VcovSimpleMethod <: AbstractVcovMethod end
 VcovMethod(::AbstractDataFrame, ::VcovSimpleFormula) = VcovSimpleMethod()
 

@@ -26,5 +26,3 @@ function shat!(::VcovRobustMethod, x::VcovData{T, N}) where {T, N}
     S2 = X2' * X2
     Symmetric(rmul!(S2, size(x.regressors, 1) / x.dof_residual))
 end
-
-

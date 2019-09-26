@@ -30,9 +30,9 @@ reg(df, @model(Sales ~ Price, fe = StateC + YearC))
 reg(df, @model(Sales ~ NDI, fe = StateC + StateC&Year))
 reg(df, @model(Sales ~ NDI, fe = StateC*Year))
 reg(df, @model(Sales ~ (Price ~ Pimin)))
-@time reg(df, @model(Sales ~ Price, weights = Pop))
+@time reg(df, @model(Sales ~ Price), weights = :Pop)
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
-reg(df, @model(Sales ~ NDI, vcov = robust))
+reg(df, @model(Sales ~ NDI, vcov = robust()))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC)))
 reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
 reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
@@ -46,7 +46,7 @@ end
 function reg(df::AbstractDataFrame, f::FormulaTerm;
     fe::Union{Symbol, Expr, Nothing} = nothing,
     vcov::Union{Symbol, Expr} = :(simple()),
-    weights::Union{Symbol, Expr, Nothing} = nothing,
+    weights::Union{Symbol, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     dof_add::Integer = 0,
@@ -56,10 +56,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
 
     if isa(vcov, Symbol)
-        vcovformula = VcovFormula(Val{vcov})
-    else
-        vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
+        @warn "vcov = $vcov is deprecated. Use vcov = $vcov()"
+        vcov = Expr(:call, vcov)
     end
+    vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
 
 
     ##############################################################################
@@ -157,7 +157,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
-    vcov_method_data = VcovMethod(disallowmissing(view(df, esample, vcov_vars)), vcovformula)
+    vcov_method = VcovMethod(disallowmissing(view(df, esample, vcov_vars)), vcovformula)
 
     ##############################################################################
     ##
@@ -357,7 +357,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     if has_fe
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if isa(vcovformula, VcovClusterFormula) && any(isnested(fe, v.refs) for v in eachcol(vcov_method_data.clusters))
+            if isa(vcovformula, VcovClusterFormula) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
                     dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists
@@ -378,19 +378,19 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # Compute standard error
     vcov_data = VcovData(Xhat, crossx, residuals, dof_residual)
-    matrix_vcov = vcov!(vcov_method_data, vcov_data)
+    matrix_vcov = vcov!(vcov_method, vcov_data)
 
     # Compute Fstat
-    F = Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method_data, vcov_data)
+    F = Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method, vcov_data)
 
-    dof_residual = max(1, df_FStat(vcov_method_data, vcov_data, has_intercept))
+    dof_residual = max(1, df_FStat(vcov_method, vcov_data, has_intercept))
     p = ccdf(FDist(max(length(coef) - has_intercept, 1), dof_residual), F)
 
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip,
-                                  vcov_method_data, size(X, 2), dof_absorb)
+                                  vcov_method, size(X, 2), dof_absorb)
     end
 
     ##############################################################################
@@ -414,7 +414,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         matrix_vcov = newmatrix_vcov
     end
 
-    return FixedEffectModel(coef, matrix_vcov, esample, augmentdf,
+    return FixedEffectModel(coef, matrix_vcov, vcov, esample, augmentdf,
                             coef_names, yname, f, formula_schema, nobs, dof_residual,
                             rss, tss_, r2, adjr2, F, p,
                             fe, iterations, converged, r2_within, 

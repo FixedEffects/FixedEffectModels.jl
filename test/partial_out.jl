@@ -13,8 +13,8 @@ df.pYear = categorical(df.Year)
 @test mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, add_mean = true))[1]), dims = 1[1]) ≈ [123.951  68.6999] atol = 1e-3
 @test mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, add_mean = true))[1]), dims = 1[1]) ≈ [123.951  68.6999] atol = 1e-3
 @test mean(convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, add_mean = true))[1]), dims = 1[1]) ≈ [123.951  68.6999] atol = 1e-3
-@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, weights = Pop))[1])[1:5, :] ≈[ -37.5296  11.8467; -35.8224  11.9922; -32.5151  10.9377; -34.4416  11.7546; -35.163   10.9459] atol = 1e-3
-@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState, weights = Pop))[1])[1:5, :] ≈ [ -22.2429  -1.2635 ; -20.5296  -1.1515 ; -17.2164  -2.23949; -19.1378  -1.45057; -19.854   -2.28819] atol = 1e-3
-@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState, weights = Pop))[1])[1:5, :] ≈ [ -14.0383   -43.1224; -12.5383   -41.9224; -9.43825  -41.9224; -11.5383   -40.2224; -12.4383   -40.1224] atol = 1e-3
-@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, weights = Pop))[1])[1:5, :] ≈ [ -26.3745  -44.9103; -24.8745  -43.7103; -21.7745  -43.7103; -23.8745  -42.0103; -24.7745  -41.9103] atol = 1e-3
+@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI), weights = :Pop)[1])[1:5, :] ≈[ -37.5296  11.8467; -35.8224  11.9922; -32.5151  10.9377; -34.4416  11.7546; -35.163   10.9459] atol = 1e-3
+@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ NDI, fe = pState), weights = :Pop)[1])[1:5, :] ≈ [ -22.2429  -1.2635 ; -20.5296  -1.1515 ; -17.2164  -2.23949; -19.1378  -1.45057; -19.854   -2.28819] atol = 1e-3
+@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1, fe = pState), weights = :Pop)[1])[1:5, :] ≈ [ -14.0383   -43.1224; -12.5383   -41.9224; -9.43825  -41.9224; -11.5383   -40.2224; -12.4383   -40.1224] atol = 1e-3
+@test convert(Matrix{Float64}, partial_out(df, @model(Sales + Price ~ 1), weights = :Pop)[1])[1:5, :] ≈ [ -26.3745  -44.9103; -24.8745  -43.7103; -21.7745  -43.7103; -23.8745  -42.0103; -24.7745  -41.9103] atol = 1e-3
     
