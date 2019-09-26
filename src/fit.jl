@@ -213,7 +213,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # compute tss now before potentially demeaning y
-    tss = compute_tss(y, has_intercept | has_fe_intercept, sqrtw)
+    tss_ = tss(y, has_intercept | has_fe_intercept, sqrtw)
 
 
     # create unitilaized 
@@ -369,11 +369,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # Compute rss, tss, r2, r2 adjusted
     rss = sum(abs2, residuals)
-    mss = tss - rss
-    r2 = 1 - rss / tss
-    adjr2 = 1 - rss / tss * (nobs - (has_intercept | has_fe_intercept)) / dof_residual
+    mss = tss_ - rss
+    r2 = 1 - rss / tss_
+    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fe_intercept)) / dof_residual
     if has_fe
-        r2_within = 1 - rss / compute_tss(y, (has_intercept | has_fe_intercept), sqrtw)
+        r2_within = 1 - rss / tss(y, (has_intercept | has_fe_intercept), sqrtw)
     end
 
     # Compute standard error
@@ -416,7 +416,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     return FixedEffectModel(coef, matrix_vcov, esample, augmentdf,
                             coef_names, yname, f, formula_schema, nobs, dof_residual,
-                            rss, tss, r2, adjr2, F, p,
+                            rss, tss_, r2, adjr2, F, p,
                             fe, iterations, converged, r2_within, 
                             F_kp, p_kp)
 end
