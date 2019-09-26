@@ -47,7 +47,12 @@ macro model(ex, kws...)
     d = Dict{Symbol, Any}()
     for kw in kws
        isa(kw, Expr) &&  kw.head== :(=) || throw("All arguments of @model, except the first one, should be keyboard arguments")
-       d[kw.args[1]] = kw.args[2]
+       if kw.args[1] == :fe
+            @warn "The keyword argument fe is deprecated. Instead of @model(y ~ x, fe = state + year),  write @model(y ~ x + fe(state) + fe(year))"
+            d[:feformula] = kw.args[2]
+        else
+           d[kw.args[1]] = kw.args[2]
+       end
     end
     :(Model($f, $d))
 end

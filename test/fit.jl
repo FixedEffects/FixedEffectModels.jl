@@ -13,6 +13,9 @@ df.z1 = df.Pimin
 df.x2 = df.NDI
 df.w = df.Pop
 
+m = @model y ~ x1 fe = pid1
+x = reg(df, m)
+
 ##############################################################################
 ##
 ## coefficients

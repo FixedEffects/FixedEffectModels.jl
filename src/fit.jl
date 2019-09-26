@@ -39,15 +39,12 @@ reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)
 ```
 """
 function reg(df::AbstractDataFrame, m::Model;kwargs...)
-    if :fe ∈ keys(m.dict)
-        throw("The syntax for fixed effects has changed. Use @model(y ~ x + fe(id)) instead of @model(y ~ x, fe = id)")
-    end
     reg(df, m.f; m.dict..., kwargs...)
-
 end
 
 
 function reg(df::AbstractDataFrame, f::FormulaTerm;
+    feformula::Union{Symbol, Expr, Nothing} = nothing,
     vcov::Union{Symbol, Expr} = :(simple()),
     weights::Union{Symbol, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
@@ -98,6 +95,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # create a dataframe without missing values & negative weights
     vars = unique(allvars(formula))
+    if feformula != nothing
+        vars = vcat(vars, allvars(feformula))
+    end
     iv_vars = unique(allvars(formula_iv))
     endo_vars = unique(allvars(formula_endo))
     vcov_vars = unique(allvars(vcovformula))
@@ -117,6 +117,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
     fes, ids, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
+    if feformula != nothing
+        has_fes = true
+        feformula = @eval(@formula(0 ~ $(feformula)))
+        fes, ids = oldparse_fixedeffect(df, feformula)
+    end
     if has_fes
         if drop_singletons
             for fe in fes
