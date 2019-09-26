@@ -27,14 +27,17 @@ reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weigh
 # =====================================================================
 ```
 - A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
+	
 	```julia
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(high_dimensional_fixedeffects)
 	```
 
-High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact multiple fixed effects using `&` 
+	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact multiple fixed effects using `&` 
+	
 	```julia
 	fe = fe(State)&fe(Year)
 	```
+
 	Interact a fixed effect with a continuous variable using `&`
 	```julia
 	fe = fe(State)&Year
