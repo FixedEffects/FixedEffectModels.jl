@@ -1,8 +1,7 @@
 using FixedEffectModels, DataFrames, CSV, Test
 
 df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
-df.pState = categorical(df.State)
-df.pYear = categorical(df.Year)
+
 
 
 
@@ -28,10 +27,10 @@ residuals(result, df)
 @test  nobs(result) == 1380
 @test vcov(result)[1] ≈ 3.5384578251636785
 
-model = @model Sales ~ Price  fe = pState
+model = @model Sales ~ Price + fe(State)
 result = reg(df, model)
 show(result)
-model = @model Sales ~ CPI + (Price ~ Pimin) fe = pState
+model = @model Sales ~ CPI + (Price ~ Pimin) + fe(State)
 result = reg(df, model)
 show(result)
 
@@ -74,7 +73,7 @@ result = reg(df, model)
 
 
 # fixed effects
-model = @model Sales ~ Price fe = pState
+model = @model Sales ~ Price + fe(State)
 result = reg(df, model, save = true)
 @test result.augmentdf.residuals[1:3] ≈ [-22.08499, -20.33318, -17.23318] atol = 1e-4
 @test result.nobs == 1380
@@ -83,33 +82,33 @@ result = reg(df, model, save = true)
 @test result.F ≈ 458.4582526109375 atol = 1e-4
 
 # fixed effects and weights
-model = @model Sales ~ Price fe = pState weights = Pop
-result = reg(df, model, save = true)
+model = @model Sales ~ Price + fe(State)
+result = reg(df, model,  weights = :Pop, save = true)
 @test result.augmentdf.residuals[1:3] ≈ [ -23.413793, -21.65289, -18.55289] atol = 1e-4
 
 # fixed effects and iv
 #TO CHECK WITH IVREGHDFE, NO SUPPORT RIGHT NOW
-model = @model Sales ~ CPI + (Price ~ Pimin)  fe = pState
+model = @model Sales ~ CPI + (Price ~ Pimin) + fe(State)
 result = reg(df, model, save = true)
 @test result.augmentdf.residuals[1:3] ≈ [ -16.925748, -14.835710, -12.017037] atol = 1e-4
 
 
 
 # test different arguments for the keyword argument save
-model = @model Sales ~ Price fe = pState
+model = @model Sales ~ Price + fe(State)
 result = reg(df, model, save = true)
 @test :residuals ∈ names(result.augmentdf)
-@test :pState ∈ names(result.augmentdf)
+@test Symbol("fe(State)") ∈ names(result.augmentdf)
 
-model = @model Sales ~ Price fe = pState
+model = @model Sales ~ Price + fe(State)
 result = reg(df, model, save = :residuals)
 @test :residuals ∈ names(result.augmentdf)
-@test :pState ∉ names(result.augmentdf)
+@test Symbol("fe(State)") ∉ names(result.augmentdf)
 
-model = @model Sales ~ Price fe = pState
+model = @model Sales ~ Price + fe(State)
 result = reg(df, model, save = :fe)
 @test :residuals ∉ names(result.augmentdf)
-@test :pState ∈ names(result.augmentdf)
+@test Symbol("fe(State)") ∈ names(result.augmentdf)
 
 
 
@@ -131,75 +130,75 @@ if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU) | isdefi
 end
 
 for method in methods_vec
-	model = @model Sales ~ Price fe = pYear
+	model = @model Sales ~ Price + fe(Year)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] ≈ 164.77833189721005
+	@test fes(result)[1, Symbol("fe(Year)")] ≈ 164.77833189721005
 
-	model = @model Sales ~ Price fe = pYear + pState
+	model = @model Sales ~ Price + fe(Year) + fe(State)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] + fes(result)[1, :pState] ≈ 140.6852 atol = 1e-3
+	@test fes(result)[1, Symbol("fe(Year)")] + fes(result)[1, Symbol("fe(State)")] ≈ 140.6852 atol = 1e-3
 
-	model = @model Sales ~ Price fe = Year&pState
+	model = @model Sales ~ Price + Year&fe(State)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :YearxpState] ≈ 1.742779  atol = 1e-3
+	@test fes(result)[1, Symbol("fe(State)&Year")] ≈ 1.742779  atol = 1e-3
 
-	model = @model Sales ~ Price fe = pState + Year&pState
+	model = @model Sales ~ Price + fe(State) + Year&fe(State)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pState] ≈ -91.690635 atol = 1e-1
+	@test fes(result)[1, Symbol("fe(State)")] ≈ -91.690635 atol = 1e-1
 
-	model = @model Sales ~ Price fe = pState subset = (State .<= 30)
+	model = @model Sales ~ Price + fe(State) subset = (State .<= 30)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1,:pState] ≈  124.913976 atol = 1e-1
-	@test ismissing(fes(result)[1380,:pState])
+	@test fes(result)[1, Symbol("fe(State)")] ≈  124.913976 atol = 1e-1
+	@test ismissing(fes(result)[1380 , Symbol("fe(State)")])
 
-	model = @model Sales ~ Price weights = Pop fe = pYear
-	result = reg(df, model, save = true, method = method)
-	@test fes(result)[2, :pYear] -  fes(result)[1, :pYear] ≈ -3.0347149502496222
+	model = @model Sales ~ Price + fe(Year)
+	result = reg(df, model, weights = :Pop, save = true, method = method)
+	@test fes(result)[2, Symbol("fe(Year)")] -  fes(result)[1, Symbol("fe(Year)")] ≈ -3.0347149502496222
 
 	# fixed effects
 	df.Price2 = df.Price
-	model = @model Sales ~ Price + Price2 fe = pYear
+	model = @model Sales ~ Price + Price2 + fe(Year)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] ≈ 164.77833189721005
+	@test fes(result)[1, Symbol("fe(Year)")] ≈ 164.77833189721005
 
 	# iv
-	model = @model Sales ~ (State ~ Price) fe = pYear
+	model = @model Sales ~ (State ~ Price) + fe(Year)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] ≈ -167.48093490413623
+	@test fes(result)[1, Symbol("fe(Year)")] ≈ -167.48093490413623
 
 	# weights
-	model = @model Sales ~ Price weights = Pop fe = pYear
-	result = reg(df, model, save = true, method = method)
-	@test fes(result)[2, :pYear] -  fes(result)[1, :pYear] ≈ -3.0347149502496222
+	model = @model Sales ~ Price + fe(Year)
+	result = reg(df, model, weights = :Pop, save = true, method = method)
+	@test fes(result)[2, Symbol("fe(Year)")] -  fes(result)[1, Symbol("fe(Year)")] ≈ -3.0347149502496222
 
 	# IV and weights
-	model = @model Sales ~ (Price ~ Pimin) weights = Pop fe = pYear
-	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] ≈ 168.24688 atol = 1e-4
+	model = @model Sales ~ (Price ~ Pimin) + fe(Year)
+	result = reg(df, model, weights = :Pop, save = true, method = method)
+	@test fes(result)[1, Symbol("fe(Year)")] ≈ 168.24688 atol = 1e-4
 
 
 	# IV, weights and both year and state fixed effects
-	model = @model Sales ~ (Price ~ Pimin) weights = Pop fe = pState + pYear
-	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] + fes(result)[1, :pState]≈ 147.84145 atol = 1e-4
+	model = @model Sales ~ (Price ~ Pimin) + fe(State) + fe(Year)
+	result = reg(df, model, weights = :Pop, save = true, method = method)
+	@test fes(result)[1, Symbol("fe(Year)")] + fes(result)[1, Symbol("fe(State)")]≈ 147.84145 atol = 1e-4
 
 
 	# subset with IV
-	model = @model Sales ~ (Price ~ Pimin) fe = pYear  subset = (State .<= 30)
+	model = @model Sales ~ (Price ~ Pimin) + fe(Year)  subset = (State .<= 30)
 	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] ≈ 164.05245824240276 atol = 1e-4
-	@test ismissing(fes(result)[811, :pYear])
+	@test fes(result)[1, Symbol("fe(Year)")] ≈ 164.05245824240276 atol = 1e-4
+	@test ismissing(fes(result)[811, Symbol("fe(Year)")])
 
 
 	# subset with IV, weights and year fixed effects
-	model = @model Sales ~ (Price ~ Pimin) weights = Pop fe = pYear subset = (State .<= 30)
-	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] ≈ 182.71915 atol = 1e-4
+	model = @model Sales ~ (Price ~ Pimin) + fe(Year) subset = (State .<= 30)
+	result = reg(df, model, weights = :Pop, save = true, method = method)
+	@test fes(result)[1, Symbol("fe(Year)")] ≈ 182.71915 atol = 1e-4
 
 	# subset with IV, weights and year fixed effects
-	model = @model Sales ~ (Price ~ Pimin) weights = Pop fe = pState + pYear subset = (State .<= 30)
-	result = reg(df, model, save = true, method = method)
-	@test fes(result)[1, :pYear] + fes(result)[1, :pState] ≈ 158.91798 atol = 1e-4
+	model = @model Sales ~ (Price ~ Pimin) + fe(State) + fe(Year) subset = (State .<= 30)
+	result = reg(df, model, weights = :Pop, save = true, method = method)
+	@test fes(result)[1, Symbol("fe(Year)")] + fes(result)[1, Symbol("fe(State)")] ≈ 158.91798 atol = 1e-4
 
 
 

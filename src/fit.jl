@@ -26,9 +26,9 @@ df = dataset("plm", "Cigar")
 df.StateC = categorical(df.State)
 df.YearC = categorical(df.Year)
 @time reg(df, @model(Sales ~ Price))
-reg(df, @model(Sales ~ Price, fe = StateC + YearC))
-reg(df, @model(Sales ~ NDI, fe = StateC + StateC&Year))
-reg(df, @model(Sales ~ NDI, fe = StateC*Year))
+reg(df, @model(Sales ~ Price + fe(State) + fe(Year)))
+reg(df, @model(Sales ~ NDI + fe(State) + fe(State)&Year))
+reg(df, @model(Sales ~ NDI + fe(State)*Year))
 reg(df, @model(Sales ~ (Price ~ Pimin)))
 @time reg(df, @model(Sales ~ Price), weights = :Pop)
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
@@ -38,13 +38,16 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
 reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(df::AbstractDataFrame, m::Model; kwargs...)
+function reg(df::AbstractDataFrame, m::Model;kwargs...)
+    if :fe ∈ keys(m.dict)
+        throw("The syntax for fixed effects has changed. Use @model(y ~ x + fe(id)) instead of @model(y ~ x, fe = id)")
+    end
     reg(df, m.f; m.dict..., kwargs...)
+
 end
 
 
 function reg(df::AbstractDataFrame, f::FormulaTerm;
-    fe::Union{Symbol, Expr, Nothing} = nothing,
     vcov::Union{Symbol, Expr} = :(simple()),
     weights::Union{Symbol, Nothing} = nothing,
     subset::Union{Symbol, Expr, Nothing} = nothing,
@@ -53,8 +56,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
     double_precision::Bool = true, tol::Real = double_precision ? sqrt(eps(Float64)) : sqrt(eps(Float32))
    )
-
-
     if isa(vcov, Symbol)
         @warn "vcov = $vcov is deprecated. Use vcov = $vcov()"
         vcov = Expr(:call, vcov)
@@ -72,7 +73,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
-    has_fe = fe != nothing 
     has_weights = weights != nothing
     has_subset = subset != nothing
 
@@ -88,7 +88,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         end
     end
     save_residuals = (save == :residuals) | (save == true)
-    save_fe = (save == :fe) | ((save == true) & has_fe)
 
 
     ##############################################################################
@@ -101,13 +100,11 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     vars = unique(allvars(formula))
     iv_vars = unique(allvars(formula_iv))
     endo_vars = unique(allvars(formula_endo))
-    absorb_vars = unique(allvars(fe))
     vcov_vars = unique(allvars(vcovformula))
     # create a dataframe without missing values & negative weights
-    all_vars = unique(vcat(vars, vcov_vars, absorb_vars, endo_vars, iv_vars))
+    all_vars = unique(vcat(vars, vcov_vars, endo_vars, iv_vars))
 
     esample = completecases(df, all_vars)
-
     if has_weights
         esample .&= isnaorneg(df[!, weights])
     end
@@ -118,16 +115,16 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
         end
         esample .&= subset
     end
-
-    if has_fe
-        feformula = @eval(@formula(0 ~ $(fe)))
-        fes, ids = parse_fixedeffect(df, feformula)
+    fes, ids, formula = parse_fixedeffect(df, formula)
+    has_fes = !isempty(fes)
+    if has_fes
         if drop_singletons
             for fe in fes
                 drop_singletons!(esample, fe)
             end
         end
     end
+    save_fe = (save == :fe) | ((save == true) & has_fes)
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
@@ -143,12 +140,12 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     all(isfinite, sqrtw) || throw("Weights are not finite")
 
     # Compute feM, an AbstractFixedEffectSolver
-    has_fe_intercept = false
-    if has_fe
+    has_fes_intercept = false
+    if has_fes
         # in case some FixedEffect does not have interaction, remove the intercept
         if any(isa(fe.interaction, Ones) for fe in fes)
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
-            has_fe_intercept = true
+            has_fes_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
@@ -164,6 +161,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     ## Dataframe --> Matrix
     ##
     ##############################################################################
+    vars = unique(allvars(formula))
     subdf = StatsModels.columntable(disallowmissing(view(df, esample, vars)))
     formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
 
@@ -213,14 +211,14 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # compute tss now before potentially demeaning y
-    tss_ = tss(y, has_intercept | has_fe_intercept, sqrtw)
+    tss_ = tss(y, has_intercept | has_fes_intercept, sqrtw)
 
 
     # create unitilaized 
     iterations, converged, r2_within = nothing, nothing, nothing
     F_kp, p_kp = nothing, nothing
 
-    if has_fe
+    if has_fes
         # used to compute tss even without save_fe
         if save_fe
             oldy = deepcopy(y)
@@ -354,7 +352,7 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
 
     # Compute degrees of freedom
     dof_absorb = 0
-    if has_fe
+    if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if isa(vcovformula, VcovClusterFormula) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
@@ -371,9 +369,9 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     rss = sum(abs2, residuals)
     mss = tss_ - rss
     r2 = 1 - rss / tss_
-    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fe_intercept)) / dof_residual
-    if has_fe
-        r2_within = 1 - rss / tss(y, (has_intercept | has_fe_intercept), sqrtw)
+    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fes_intercept)) / dof_residual
+    if has_fes
+        r2_within = 1 - rss / tss(y, (has_intercept | has_fes_intercept), sqrtw)
     end
 
     # Compute standard error
@@ -417,8 +415,6 @@ function reg(df::AbstractDataFrame, f::FormulaTerm;
     return FixedEffectModel(coef, matrix_vcov, vcov, esample, augmentdf,
                             coef_names, yname, f, formula_schema, nobs, dof_residual,
                             rss, tss_, r2, adjr2, F, p,
-                            fe, iterations, converged, r2_within, 
+                            iterations, converged, r2_within, 
                             F_kp, p_kp)
 end
-
-

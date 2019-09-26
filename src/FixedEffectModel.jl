@@ -30,7 +30,6 @@ struct FixedEffectModel <: RegressionModel
     p::Float64              # p value for the F statistics
 
     # for FE
-    feformula::Union{Symbol, Expr, Nothing}     
     iterations::Union{Int, Nothing}         # Number of iterations
     converged::Union{Bool, Nothing}         # Has the demeaning algorithm converged?
     r2_within::Union{Float64, Nothing}      # within r2 (with fixed effect
@@ -41,7 +40,7 @@ struct FixedEffectModel <: RegressionModel
 end
 
 has_iv(x::FixedEffectModel) = x.F_kp !== nothing
-has_fe(x::FixedEffectModel) = x.feformula !== nothing
+has_fe(x::FixedEffectModel) = has_fe(x.formula)
 
 
 # Check API at  https://github.com/JuliaStats/StatsBase.jl/blob/11a44398bdc16a00060bc6c2fb65522e4547f159/src/statmodels.jl
@@ -150,7 +149,7 @@ function Base.show(io::IO, x::FixedEffectModel)
     show(io, coeftable(x))
 end
 
-function coeftable(x::FixedEffectModel)
+function StatsBase.coeftable(x::FixedEffectModel)
     ctitle = title(x)
     ctop = top(x)
     cc = coef(x)

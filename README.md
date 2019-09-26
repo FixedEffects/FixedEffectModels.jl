@@ -14,9 +14,7 @@ To estimate a `@model`, specify  a formula with, eventually, a set of fixed effe
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df.StateCategorical =  categorical(df.State)
-df.YearCategorical =  categorical(df.Year)
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, vcov = cluster(StateCategorical)), weights = :Pop)
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weights = :Pop)
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139
@@ -33,37 +31,20 @@ reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical, vcov = clus
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables)
 	```
 
-- Fixed effect variables are indicated with the keyword argument `fe`. They must be of type CategoricalArray (use `categorical` to convert a variable to a `CategoricalArray`).
-
+- Fixed effect variables are indicated with the keyword argument `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`.  Interact multiple fixed effects using `&` 
 	```julia
-	df.StateCategorical =  categorical(df.State)
-	# one high dimensional fixed effect
-	fe = StateCategorical
+	fe = fe(State)&fe(Year)
 	```
-	You can add an arbitrary number of high dimensional fixed effects, separated with `+`
+	Interact a fixed effect with a continuous variable using `&`
 	```julia
-	df.YearCategorical =  categorical(df.Year)
-	fe = StateCategorical + YearCategorical
-	```
-	Interact multiple categorical variables using `&` 
-	```julia
-	fe = StateCategorical&DecPooled
-	```
-	Interact a categorical variable with a continuous variable using `&`
-	```julia
-	fe = StateCategorical + StateCategorical&Year
-	```
-	Alternative, use `*` to add a categorical variable and its interaction with a continuous variable
-	```julia
-	fe = StateCategorical*Year
-	# equivalent to fe = StateCategorical + StateCategorical&year
+	fe = fe(State)&Year
 	```
 
 - Standard errors are indicated with the keyword argument `vcov`.
 	```julia
 	vcov = robust()
-	vcov = cluster(StateCategorical)
-	vcov = cluster(StateCategorical + YearCategorical)
+	vcov = cluster(State)
+	vcov = cluster(State + Year)
 	```
 
 ## Output
@@ -87,8 +68,10 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This makes the package an order of magnitude faster for complicated problems.
 
 ```julia
-using CuArrays, FixedEffectModels
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_gpu)
+using CuArrays, DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
 
 
@@ -97,15 +80,17 @@ The package has support for [multi-threading](https://docs.julialang.org/en/v1.2
 
 ```julia
 # Multi-threading
-using DataFrames, FixedEffectModels
 Threads.nthreads()
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_threads)
+using DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
 
 # Multi-cores 
 using Distributed
 addprocs(4)
-@everywhere using DataFrames, FixedEffectModels
-reg(df, @model(Sales ~ NDI, fe = StateCategorical + YearCategorical), method = :lsmr_cores)
+@everywhere using DataFrames,  RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
 ```
 
 

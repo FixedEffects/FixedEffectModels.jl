@@ -34,11 +34,11 @@ depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df.StateC =  categorical(df.State)
-df.YearC =  categorical(df.Year)
-reg(df, @model(Sales ~ NDI, weights = Pop))
-@model(Sales ~ NDI, fe = StateC, vcov = robust)
-@model(Sales ~ NDI, fe = StateC + YearC, weights = Pop, vcov = cluster(StateC))
+df.StateC = categorical(df.State)
+df.YearC = categorical(df.Year)
+reg(df, @model(Sales ~ NDI))
+@model(Sales ~ NDI, vcov = robust)
+@model(Sales ~ NDI, vcov = cluster(StateC))
 
 ```
 """

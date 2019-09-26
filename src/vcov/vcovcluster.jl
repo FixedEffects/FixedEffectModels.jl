@@ -17,8 +17,8 @@ function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
             c = Symbol(c)
             vclusters[!, c] = group(df[!, c])
         elseif isa(c, InteractionTerm)
-            factorvars, interactionvars = _split(df, c)
-            vclusters[!, _name(factorvars)] = group((df[!, v] for v in factorvars)...)
+            factorvars = Symbol.(terms(c))
+            vclusters[!, Symbol(reduce((x1, x2) -> string(x1)*"&"*string(x2), factorvars))] = group((df[!, v] for v in factorvars)...)
         end
     end
     return VcovClusterMethod(vclusters)
