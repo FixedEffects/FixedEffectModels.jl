@@ -9,7 +9,7 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
 ## Estimate a model
-To estimate a `@model`, specify  a formula with, eventually, a set of fixed effects with the argument `fe`, a way to compute standard errors with the argument `vcov`, and a weight variable with `weights`.
+To estimate a `@model`, specify  a formula with a way to compute standard errors with the argument `vcov`.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
@@ -28,10 +28,10 @@ reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weigh
 ```
 - A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
 	```julia
-	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables)
+	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(high_dimensional_fixedeffects)
 	```
 
-- Fixed effect variables are indicated with the keyword argument `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`.  Interact multiple fixed effects using `&` 
+High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact multiple fixed effects using `&` 
 	```julia
 	fe = fe(State)&fe(Year)
 	```
@@ -70,7 +70,6 @@ The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This makes 
 ```julia
 using CuArrays, DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-
 reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
 
