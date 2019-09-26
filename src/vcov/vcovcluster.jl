@@ -55,8 +55,8 @@ function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
 end
 
 # res is a Vector in OLS, Matrix in IV
-function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{Float64}}, f::CategoricalVector)
-    X2 = fill(zero(Float64), length(f.pool), size(X, 2) * size(res, 2))
+function helper_cluster(X::Matrix, res::Union{Vector, Matrix}, f::CategoricalVector)
+    X2 = zeros(eltype(X), length(f.pool), size(X, 2) * size(res, 2))
     index = 0
     for k in 1:size(res, 2)
         for j in 1:size(X, 2)

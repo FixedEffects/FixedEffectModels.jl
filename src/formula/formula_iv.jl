@@ -26,6 +26,6 @@ eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
 
 
 allvars(::Nothing) = Array{Symbol}(undef, 0)
-allvars(term::Union{AbstractTerm, NTuple{N, AbstractTerm}}) where {N} = termvars(term)
-allvars(f::Union{Expr, Symbol}) = termvars(@eval(@formula(nothing ~$(f))).rhs)
+allvars(term::Union{AbstractTerm, NTuple{N, AbstractTerm}}) where {N} = StatsModels.termvars(term)
+allvars(f::Union{Expr, Symbol}) = StatsModels.termvars(@eval(@formula(nothing ~$(f))).rhs)
 

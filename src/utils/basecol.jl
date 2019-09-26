@@ -4,16 +4,16 @@
 ## 
 ##############################################################################
 
-struct Combination{N}
-    A::NTuple{N, Matrix{Float64}}
+struct Combination{N, T <: AbstractMatrix}
+    A::NTuple{N, T}
     cumlength::Vector{Int}
 end
 
-function Combination(A::Matrix{Float64}...)
+function Combination(A::AbstractMatrix...)
     Combination(A, cumsum([size(x, 2) for x in A]))
 end
 
-function size(c::Combination, i)
+function Base.size(c::Combination, i)
     if i == 1
         size(c.A[1], 1)
     elseif i == 2
@@ -21,7 +21,7 @@ function size(c::Combination, i)
     end
 end
 
-function view(c::Combination, ::Colon, j)
+function Base.view(c::Combination, ::Colon, j)
     index = searchsortedfirst(c.cumlength, j)
     newj = j
     if index > 1
@@ -37,12 +37,12 @@ end
 ##############################################################################
 
 # Construct [A B C]'[A B C] without generating [A B C]
-function crossprod(c::Combination{N}) where {N}
+function crossprod(c::Combination)
     out = Array{Float64}(undef, size(c, 2), size(c, 2))
+    cviews = [view(c, :, i) for i in 1:size(c, 2)]
     for j in 1:size(c, 2)
-        viewj = view(c, :, j)
         for i in j:size(c, 2)
-            out[i, j] = dot(viewj, view(c, :, i))
+            out[i, j] = dot(cviews[j], cviews[i])
         end
     end
     # make symmetric
@@ -51,8 +51,8 @@ function crossprod(c::Combination{N}) where {N}
     end
     return out
 end
-crossprod(A::Matrix{Float64}) = A'A
-crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
+crossprod(A::AbstractMatrix) = A'A
+crossprod(A::AbstractMatrix...) = crossprod(Combination(A...))
 
 ##############################################################################
 ##
@@ -64,7 +64,7 @@ crossprod(A::Matrix{Float64}...) = crossprod(Combination(A...))
 ##############################################################################
 
 # rank(A) == rank(A'A)
-function basecol(X::Matrix{Float64}...; factorization = :Cholesky)
+function basecol(X::AbstractMatrix...; factorization = :Cholesky)
     cholm = cholesky!(Symmetric(crossprod(X...)), Val(true); tol = -1, check = false)
     r = 0
     if size(cholm, 1) > 0
@@ -74,6 +74,6 @@ function basecol(X::Matrix{Float64}...; factorization = :Cholesky)
     invpermute!(1:size(cholm, 1) .<= r, cholm.piv)
 end
 
-function getcols(X::Matrix{Float64},  basecolX::BitArray{1})
+function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
 end

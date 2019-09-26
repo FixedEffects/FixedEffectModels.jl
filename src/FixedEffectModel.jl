@@ -42,61 +42,66 @@ end
 has_iv(x::FixedEffectModel) = x.F_kp !== nothing
 has_fe(x::FixedEffectModel) = x.feformula !== nothing
 
-function fit(::Type{FixedEffectModel}, m::Model, df::AbstractDataFrame; kwargs...)
-    reg(m, df; kwargs...)
-end
 
 # Check API at  https://github.com/JuliaStats/StatsBase.jl/blob/11a44398bdc16a00060bc6c2fb65522e4547f159/src/statmodels.jl
 # fields
-coef(x::FixedEffectModel) = x.coef
-coefnames(x::FixedEffectModel) = x.coefnames
-vcov(x::FixedEffectModel) = x.vcov
-nobs(x::FixedEffectModel) = x.nobs
-dof_residual(x::FixedEffectModel) = x.dof_residual
-r2(x::FixedEffectModel) = x.r2
-adjr2(x::FixedEffectModel) = x.adjr2
-islinear(x::FixedEffectModel) = true
-deviance(x::FixedEffectModel) = x.tss
-rss(x::FixedEffectModel) = x.rss
-mss(x::FixedEffectModel) = deviance(x) - rss(x)
+StatsBase.coef(x::FixedEffectModel) = x.coef
+StatsBase.coefnames(x::FixedEffectModel) = x.coefnames
+StatsBase.vcov(x::FixedEffectModel) = x.vcov
+StatsBase.nobs(x::FixedEffectModel) = x.nobs
+StatsBase.dof_residual(x::FixedEffectModel) = x.dof_residual
+StatsBase.r2(x::FixedEffectModel) = x.r2
+StatsBase.adjr2(x::FixedEffectModel) = x.adjr2
+StatsBase.islinear(x::FixedEffectModel) = true
+StatsBase.deviance(x::FixedEffectModel) = x.tss
+StatsBase.rss(x::FixedEffectModel) = x.rss
+StatsBase.mss(x::FixedEffectModel) = deviance(x) - rss(x)
 
-function confint(x::FixedEffectModel)
+function StatsBase.confint(x::FixedEffectModel)
     scale = quantile(TDist(dof_residual(x)), 1 - (1-0.95)/2)
     se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
 
 # predict, residuals, modelresponse
-function predict(x::FixedEffectModel, df::AbstractDataFrame)
-    has_fe(x) && error("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
-    cols, nonmissings = missing_omit(columntable(df), MatrixTerm(x.formula_schema.rhs))
+function StatsBase.predict(x::FixedEffectModel, df::AbstractDataFrame)
+    has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
+    cols, nonmissings = StatsModels.missing_omit(StatsModels.columntable(df), MatrixTerm(x.formula_schema.rhs))
     new_x = modelmatrix(x.formula_schema, cols)
-    out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-    out[nonmissings] = new_x * x.coef
+    if all(nonmissings)
+        out = new_x * x.coef
+    else
+        out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
+        out[nonmissings] = new_x * x.coef
+    end
     return out
 end
 
-function residuals(x::FixedEffectModel, df::AbstractDataFrame)
+function StatsBase.residuals(x::FixedEffectModel, df::AbstractDataFrame)
     if !has_fe(x)
-        cols, nonmissings = missing_omit(columntable(df), x.formula_schema)
+        cols, nonmissings = StatsModels.missing_omit(StatsModels.columntable(df), x.formula_schema)
         new_x = modelmatrix(x.formula_schema, cols)
         y = response(x.formula_schema, df)
-        out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
-        out[nonmissings] = y -  new_x * x.coef
+        if all(nonmissings)
+            out =  y -  new_x * x.coef
+        else
+            out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
+            out[nonmissings] = y -  new_x * x.coef
+        end
         return out
     else
-        size(x.augmentdf, 2) == 0 && error("To access residuals in a fixed effect regression,  run `reg` with the option save = true, and then access residuals with `residuals()`")
+        size(x.augmentdf, 2) == 0 && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = true, and then access residuals with `residuals()`")
        residuals(x)
    end
 end
 
-function residuals(x::FixedEffectModel)
-    !has_fe(x) && error("To access residuals,  use residuals(x, df::AbstractDataFrame")
+function StatsBase.residuals(x::FixedEffectModel)
+    !has_fe(x) && throw("To access residuals,  use residuals(x, df::AbstractDataFrame")
     x.augmentdf.residuals
 end
    
 function fes(x::FixedEffectModel)
-   !has_fe(x) && error("fes is not defined for fixed effect models without fixed effects")
+   !has_fe(x) && throw("fes is not defined for fixed effect models without fixed effects")
    x.augmentdf[!, 2:size(x.augmentdf, 2)]
 end
 
@@ -188,10 +193,10 @@ struct CoefTable2
     function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0,
                         title::AbstractString = "", top::Matrix = Any[])
         nr,nc = size(mat)
-        0 <= pvalcol <= nc || error("pvalcol = $pvalcol should be in 0,...,$nc]")
-        length(colnms) in [0,nc] || error("colnms should have length 0 or $nc")
-        length(rownms) in [0,nr] || error("rownms should have length 0 or $nr")
-        length(top) == 0 || (size(top, 2) == 2 || error("top should have 2 columns"))
+        0 <= pvalcol <= nc || throw("pvalcol = $pvalcol should be in 0,...,$nc]")
+        length(colnms) in [0,nc] || throw("colnms should have length 0 or $nc")
+        length(rownms) in [0,nr] || throw("rownms should have length 0 or $nr")
+        length(top) == 0 || (size(top, 2) == 2 || throw("top should have 2 columns"))
         new(mat,colnms,rownms,pvalcol, title, top)
     end
 end

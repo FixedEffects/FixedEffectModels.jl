@@ -2,7 +2,6 @@ VcovFormula(::Type{Val{:robust}}) = VcovRobustFormula()
 
 struct VcovRobustFormula <: AbstractVcovFormula  end
 
-
 struct VcovRobustMethod <: AbstractVcovMethod end
 VcovMethod(::AbstractDataFrame, ::VcovRobustFormula) = VcovRobustMethod()
 
@@ -11,7 +10,6 @@ function vcov!(v::VcovRobustMethod, x::VcovData)
     invcrossmatrix = inv(x.crossmatrix)
     return pinvertible(Symmetric(invcrossmatrix * S * invcrossmatrix))
 end
-
 
 # S_{(l-1) * K + k, (l'-1)*K + k'} = \sum_i X[i, k] res[i, l] X[i, k'] res[i, l']
 function shat!(::VcovRobustMethod, x::VcovData{T, N}) where {T, N}
@@ -26,8 +24,7 @@ function shat!(::VcovRobustMethod, x::VcovData{T, N}) where {T, N}
         end
     end
     S2 = X2' * X2
-    rmul!(S2, size(x.regressors, 1) / x.dof_residual)
-    return Symmetric(S2)
+    Symmetric(rmul!(S2, size(x.regressors, 1) / x.dof_residual))
 end
 
 

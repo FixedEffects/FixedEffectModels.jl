@@ -10,6 +10,8 @@ function Base.show(io::IO, m::Model)
     end
 end
 
+import StatsModels: capture_call
+
 """
 Capture and parse a set of expressions to generate a Model
 ## Arguments
@@ -41,7 +43,7 @@ reg(df, @model(Sales ~ NDI, weights = Pop))
 ```
 """
 macro model(ex, kws...)
-    f = FixedEffectModels.terms!(FixedEffectModels.sort_terms!(FixedEffectModels.parse!(ex)))
+    f = StatsModels.terms!(StatsModels.sort_terms!(StatsModels.parse!(ex)))
     d = Dict{Symbol, Any}()
     for kw in kws
        isa(kw, Expr) &&  kw.head== :(=) || throw("All arguments of @model, except the first one, should be keyboard arguments")

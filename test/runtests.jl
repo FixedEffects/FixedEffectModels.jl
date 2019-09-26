@@ -1,7 +1,7 @@
 using FixedEffectModels
 
-tests = ["reg.jl", 
-		 "RegressionResult.jl", 
+tests = ["fit.jl", 
+		 "predict.jl", 
 		 "partial_out.jl"
 		 ]
 
