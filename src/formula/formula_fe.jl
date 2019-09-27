@@ -30,7 +30,7 @@ end
 # Constructors from dataframe + Term
 function parse_fixedeffect(df::AbstractDataFrame, a::FunctionTerm{typeof(fe)})
     sa = Symbol(first(a.args_parsed))
-    return FixedEffect(df[!, sa]), Symbol("fe(" * string(sa) * ")")
+    return FixedEffect(df[!, sa]), Symbol(:fe_, sa)
 end
 
 # Constructors from dataframe + InteractionTerm
@@ -42,7 +42,7 @@ function parse_fixedeffect(df::AbstractDataFrame, a::InteractionTerm)
         fe_names = [Symbol(first(x.args_parsed)) for x in fes]
         fe = FixedEffect(group((df[!, fe_name] for fe_name in fe_names)...); interaction = _multiply(df, Symbol.(interactions)))
         interactions = setdiff(Symbol.(terms(a)), fe_names)
-        s = vcat(["fe(" * string(fe_name) * ")" for fe_name in fe_names], string.(interactions))
+        s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(interactions))
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
     end
 end

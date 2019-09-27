@@ -1,16 +1,17 @@
 # decompose formula into normal vs iv part
 function decompose_iv(f::FormulaTerm)
-	formula = f
 	formula_endo = nothing
 	formula_iv = nothing
 	for term in eachterm(f.rhs)
 		if isa(term, FormulaTerm)
+			if formula_endo != nothing
+				throw("There can only be one instrumental variable specification")
+			end
 			formula_endo = FormulaTerm(ConstantTerm(0), term.lhs)
 			formula_iv = FormulaTerm(ConstantTerm(0), term.rhs)
 		end
-		formula = FormulaTerm(f.lhs, tuple((t for t in eachterm(f.rhs) if !isa(t, FormulaTerm))...))
 	end
-	return formula, formula_endo, formula_iv
+	return FormulaTerm(f.lhs, tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm))...)), formula_endo, formula_iv
 end
 
 
