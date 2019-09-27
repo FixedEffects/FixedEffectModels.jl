@@ -14,7 +14,7 @@ To estimate a `@model`, specify  a formula with a way to compute standard errors
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weights = :Pop)
+fit(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weights = :Pop)
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139
@@ -26,21 +26,13 @@ reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weigh
 # NDI  -0.00526264 0.00144043 -3.65351    0.000 -0.00808837 -0.00243691
 # =====================================================================
 ```
-- A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instrumental variables.
+- A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
 	
 	```julia
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(high_dimensional_fixedeffects)
 	```
 
-	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact multiple fixed effects using `&` 
-	
-	```julia
-	fe = fe(State)&fe(Year)
-	```
-
-	Interact a fixed effect with a continuous variable using `&`
-	```julia
-	fe = fe(State)&Year
+	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact a fixed effect with a continuous variable (e.g. `fe(State)&Year`) or with another fixed effect (e.g. `fe(State)&fe(Year)`).
 	```
 
 - Standard errors are indicated with the keyword argument `vcov`.
@@ -73,7 +65,7 @@ The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This makes 
 ```julia
 using CuArrays, DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
+fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
 
 
@@ -85,14 +77,14 @@ The package has support for [multi-threading](https://docs.julialang.org/en/v1.2
 Threads.nthreads()
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
+fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
 
 # Multi-cores 
 using Distributed
 addprocs(4)
 @everywhere using DataFrames,  RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
+fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
 ```
 
 

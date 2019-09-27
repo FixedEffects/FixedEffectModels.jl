@@ -1,7 +1,3 @@
-function StatsBase.fit(::Type{FixedEffectModel}, m::Model, df::AbstractDataFrame; kwargs...)
-    reg(m, df; kwargs...)
-end
-
 """
 Estimate a linear model with high dimensional categorical variables / instrumental variables
 
@@ -39,11 +35,17 @@ reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)
 ```
 """
 function reg(df::AbstractDataFrame, m::Model;kwargs...)
-    reg(df, m.f; m.dict..., kwargs...)
+    fit(df, m; kwargs...)
+end
+function StatsBase.fit(df::AbstractDataFrame, m::Model;kwargs...)
+    _fit(df, m.f; m.dict..., kwargs...)
+end
+function StatsBase.fit(::Type{FixedEffectModel}, m::Model, df::AbstractDataFrame; kwargs...)
+    fit(df, m; kwargs...)
 end
 
 
-function reg(df::AbstractDataFrame, f::FormulaTerm;
+function _fit(df::AbstractDataFrame, f::FormulaTerm;
     feformula::Union{Symbol, Expr, Nothing} = nothing,
     vcov::Union{Symbol, Expr} = :(simple()),
     weights::Union{Symbol, Nothing} = nothing,
