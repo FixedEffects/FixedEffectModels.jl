@@ -61,11 +61,14 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 ## GPU
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This makes the package an order of magnitude faster for complicated problems.
 
+First make sure that `using CuArrays` works without issue.
 ```julia
-using CuArrays, DataFrames, RDatasets, FixedEffectModels
+using FixedEffectModels
 df = dataset("plm", "Cigar")
 fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
+
+It is also encouraged to set the floating point precision to float32 when working on the GPU as that is usually much faster (using the option `double_precision = false`).
 
 
 ## Parallel Computing

@@ -40,7 +40,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     method::Symbol = :lsmr,
     double_precision::Bool = true,
-    tol::Real = double_precision ? sqrt(eps(Float64)) : sqrt(eps(Float32)))
+    tol::Real = double_precision ? 1e-8 : 1e-6)
     weightvar = weights
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))

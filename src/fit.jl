@@ -9,7 +9,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
-* `tol::Real =1e-8`: Tolerance
+* `tol::Real` Tolerance. Default to 1e-8 if `double_precision = true`, 1e-6 otherwise.
+
 
 
 ### Details
@@ -53,8 +54,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
-    double_precision::Bool = true, tol::Real = double_precision ? sqrt(eps(Float64)) : sqrt(eps(Float32))
-   )
+    double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6)
     if isa(vcov, Symbol)
         @warn "vcov = $vcov is deprecated. Use vcov = $vcov()"
         vcov = Expr(:call, vcov)
