@@ -89,6 +89,13 @@ df = dataset("plm", "Cigar")
 reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
 ```
 
+## Construct Model Programatically
+You can use
+```julia
+using StatsModels, DataFrames, RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+reg(df, Term(:Sales) ~ Term(:NDI) + FixedEffectTerm(:State) + FixedEffectTerm(:Year); vcov = :(cluster(State)))
+```
 
 
 ## Solution Method

@@ -38,6 +38,12 @@ reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)
 function reg(df::AbstractDataFrame, m::Model;kwargs...)
     fit(df, m; kwargs...)
 end
+
+function reg(df::AbstractDataFrame, f::FormulaTerm ; kwargs...)
+    _fit(df, f; kwargs...)
+end
+
+
 function StatsBase.fit(df::AbstractDataFrame, m::Model;kwargs...)
     _fit(df, m.f; m.dict..., kwargs...)
 end

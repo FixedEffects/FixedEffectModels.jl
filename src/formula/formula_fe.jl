@@ -4,13 +4,23 @@
 ##
 ##
 ##############################################################################
+struct FixedEffectTerm <: AbstractTerm
+    x::Symbol
+end
+StatsModels.termvars(t::FixedEffectTerm) = [t.x]
 
-fe(x) = nothing
-has_fe(x::FunctionTerm{typeof(fe)}) = true
-has_fe(x::InteractionTerm) = any(has_fe(x) for x in x.terms)
-has_fe(x::AbstractTerm) = false
-has_fe(x::FormulaTerm) = any(has_fe(term) for term in eachterm(x.rhs))
 
+fe(x::Symbol) = FixedEffectTerm(x)
+
+has_fe(::FixedEffectTerm) = true
+has_fe(::FunctionTerm{typeof(fe)}) = true
+has_fe(t::InteractionTerm) = any(has_fe(x) for x in t.terms)
+has_fe(::AbstractTerm) = false
+has_fe(t::FormulaTerm) = any(has_fe(x) for x in eachterm(t.rhs))
+
+
+fesymbol(t::FixedEffectTerm) = t.x
+fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
 
 
 function parse_fixedeffect(df::AbstractDataFrame, formula::FormulaTerm)
@@ -28,28 +38,27 @@ function parse_fixedeffect(df::AbstractDataFrame, formula::FormulaTerm)
 end
 
 # Constructors from dataframe + Term
-function parse_fixedeffect(df::AbstractDataFrame, a::FunctionTerm{typeof(fe)})
-    sa = Symbol(first(a.args_parsed))
-    return FixedEffect(df[!, sa]), Symbol(:fe_, sa)
+function parse_fixedeffect(df::AbstractDataFrame, t::AbstractTerm)
+    if has_fe(t)
+        st = fesymbol(t)
+        return FixedEffect(df[!, st]), Symbol(:fe_, st)
+    end
 end
 
 # Constructors from dataframe + InteractionTerm
-function parse_fixedeffect(df::AbstractDataFrame, a::InteractionTerm)
-    fes = (x for x in a.terms if has_fe(x))
-    interactions = (x for x in a.terms if !has_fe(x))
+function parse_fixedeffect(df::AbstractDataFrame, t::InteractionTerm)
+    fes = (x for x in t.terms if has_fe(x))
+    interactions = (x for x in t.terms if !has_fe(x))
     if !isempty(fes)
         # x1&x2 from (x1&x2)*id
-        fe_names = [Symbol(first(x.args_parsed)) for x in fes]
+        fe_names = [fesymbol(x) for x in fes]
         fe = FixedEffect(group((df[!, fe_name] for fe_name in fe_names)...); interaction = _multiply(df, Symbol.(interactions)))
-        interactions = setdiff(Symbol.(terms(a)), fe_names)
+        interactions = setdiff(Symbol.(terms(t)), fe_names)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(interactions))
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
     end
 end
 
-function parse_fixedeffect(df::AbstractDataFrame, a::AbstractTerm)
-    nothing
-end
 
 function _multiply(df, ss::Vector)
     if isempty(ss)

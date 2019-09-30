@@ -38,6 +38,7 @@ WeightFormula,
 
 title,
 top,
+FixedEffectTerm,
 FixedEffectModel,
 has_iv,
 has_fe,

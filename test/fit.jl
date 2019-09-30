@@ -210,6 +210,19 @@ x = reg(df, m)
 #x = reg(df, m)
 
 
+
+##############################################################################
+##
+## Programming
+##
+##############################################################################
+using StatsModels
+reg(df, Term(:Sales) ~ Term(:NDI) + FixedEffectTerm(:State) + FixedEffectTerm(:Year); 
+	vcov = :(cluster(State)))
+
+
+
+
 ##############################################################################
 ##
 ## Functions
@@ -662,3 +675,5 @@ x = reg(df1,@model(a ~ b))
 @test coef(x) ≈ [-0.65, 0.35] atol = 1e-4
 x = reg(df1,@model(a ~ b + fe(c)))
 @test coef(x) ≈ [0.5] atol = 1e-4
+
+
