@@ -80,7 +80,7 @@ It is also encouraged to set the floating point precision to float32 when workin
 
 
 #### Parallel Computing
-The package has support for [multi-threading](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#man-multithreading-1 and [multi-cores](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#Multi-Core-or-Distributed-Processing-1). In this case, each regressor is demeaned in a different thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
+The package has support for [multi-threading](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#man-multithreading-1) and [multi-cores](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#Multi-Core-or-Distributed-Processing-1). In this case, each regressor is demeaned in a different thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
 
 ```julia
 # Multi-threading
