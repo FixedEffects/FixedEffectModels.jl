@@ -541,10 +541,16 @@ df.x1 = df.Emp
 df.w = df.Output
 
 
-methods_vec = [:lsmr, :lsmr_cores, :lsmr_threads]
+methods_vec = [:lsmr, :lsmr_threads]
+if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRCores) 
+	push!(methods_vec, :lsmr_cores)
+else
+	push!(methods_vec, :lsmr_parallel)
+end
 if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU) | isdefined(FixedEffectModels.FixedEffects, :FixedEffectLSMRGPU)
 	push!(methods_vec, :lsmr_gpu)
 end
+
 for method in methods_vec
 	@show method
 	m = @model y ~ x1 + fe(id1)

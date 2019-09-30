@@ -14,7 +14,7 @@ struct FixedEffectModel <: RegressionModel
     augmentdf::DataFrame
 
     coefnames::Vector       # Name of coefficients
-    yname::Symbol           # Name of dependent variable
+    yname::Union{String, Symbol} # Name of dependent variable
     formula::FormulaTerm        # Original formula
     formula_schema
 

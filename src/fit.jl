@@ -55,7 +55,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
     double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6)
-    if isa(vcov, Symbol)
+    if vcov isa Symbol
         @warn "vcov = $vcov is deprecated. Use vcov = $vcov()"
         vcov = Expr(:call, vcov)
     end
@@ -81,7 +81,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     ## Save keyword argument
     ##
     ##############################################################################
-    if !isa(save, Bool)
+    if !(save isa Bool)
         if save ∉ (:residuals, :fe)
             throw("the save keyword argument must be a Bool or a Symbol equal to :residuals or :fe")
         end
@@ -140,8 +140,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     # Compute weights
     sqrtw = Ones{Float64}(sum(esample))
     if has_weights
-        sqrtw = convert(Vector{Float64}, view(df, esample, weights))
-        sqrtw .= sqrt.(sqrtw)
+        sqrtw = convert(Vector{Float64}, sqrt.(view(df, esample, weights)))
     end
 
     all(isfinite, sqrtw) || throw("Weights are not finite")
@@ -150,7 +149,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     has_fes_intercept = false
     if has_fes
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any(isa(fe.interaction, Ones) for fe in fes)
+        if any(fe.interaction isa Ones for fe in fes)
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
             has_fes_intercept = true
         end
@@ -182,12 +181,10 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
 
     yname, coef_names = coefnames(formula_schema)
-    if !isa(coef_names, Vector)
-        coef_names = [coef_names]
+    if !(coef_names isa Vector)
+        coef_names = typeof(coef_names)[coef_names]
     end
 
-    yname = Symbol(yname)
-    coef_names = Symbol.(coef_names)
 
     if has_iv
         subdf = StatsModels.columntable(disallowmissing!(df[esample, endo_vars]))
@@ -196,17 +193,13 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
 
         _, coefendo_names = coefnames(formula_endo_schema)
-        if !isa(coefendo_names, Vector)
-              coefendo_names = [coefendo_names]
-          end
-        append!(coef_names, Symbol.(coefendo_names))
+        append!(coef_names, coefendo_names)
 
- 
+
         subdf = StatsModels.columntable(disallowmissing!(df[esample, iv_vars]))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
-
 
         if size(Z, 2) < size(Xendo, 2)
             throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
@@ -362,7 +355,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if isa(vcovformula, VcovClusterFormula) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
+            if (vcovformula isa VcovClusterFormula) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
                     dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists

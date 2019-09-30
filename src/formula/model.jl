@@ -50,6 +50,9 @@ macro model(ex, kws...)
        if kw.args[1] == :fe
             @warn "The keyword argument fe is deprecated. Instead of @model(y ~ x, fe = state + year),  write @model(y ~ x + fe(state) + fe(year))"
             d[:feformula] = kw.args[2]
+        elseif kw.args[1] == :ife
+                 @warn "The keyword argument ife is deprecated. Instead of @model(y ~ x, ife = (state + year, 2)),  write @model(y ~ x + ife(state, year, 2))"
+            d[:ifeformula] = kw.args[2]
         else
            d[kw.args[1]] = kw.args[2]
        end

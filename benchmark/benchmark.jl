@@ -1,8 +1,8 @@
-using DataFrames, FixedEffectModels
+using DataFrames, FixedEffectModels, Random
 N = 10000000
 K = 100
-id1 = Int.(rand(1:(N/K), N))
-id2 = Int.(rand(1:K, N))
+id1 = rand(1:div(N, K), N)
+id2 = rand(1:K, N))
 w = cos.(id1)
 
 

@@ -14,7 +14,7 @@ To estimate a `@model`, specify  a formula with a way to compute standard errors
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-fit(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weights = :Pop)
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weights = :Pop)
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139
@@ -65,7 +65,7 @@ First make sure that `using CuArrays` works without issue.
 ```julia
 using FixedEffectModels
 df = dataset("plm", "Cigar")
-fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
 
 It is also encouraged to set the floating point precision to float32 when working on the GPU as that is usually much faster (using the option `double_precision = false`).
@@ -79,14 +79,14 @@ The package has support for [multi-threading](https://docs.julialang.org/en/v1.2
 Threads.nthreads()
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
 
 # Multi-cores 
 using Distributed
 addprocs(4)
 @everywhere using DataFrames,  RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-fit(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
+reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
 ```
 
 
