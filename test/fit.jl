@@ -217,7 +217,7 @@ x = reg(df, m)
 ##
 ##############################################################################
 using StatsModels
-reg(df, ModelTerm(Term(:Sales) ~ Term(:NDI) + FixedEffectTerm(:State) + FixedEffectTerm(:Year), Dict(:vcov => :(cluster(State)))))
+reg(df, ModelTerm(Term(:Sales) ~ Term(:NDI) + FixedEffectTerm(:State) + FixedEffectTerm(:Year), vcov = :(cluster(State)))))
 
 
 ##############################################################################

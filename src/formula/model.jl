@@ -23,12 +23,12 @@ Capture and parse a set of expressions to generate a Model
 * `subset::Expr`: Expression of the form State .>= 30
 
 ### Returns
-* `::Model`: a `Model` struct
+* `::ModelTerm`: a `ModelTerm`
 
 ## Detail
 A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, and instruments
 ```
-depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars
+depvar ~ exogeneousvars + (endogeneousvars ~ instrumentvars) + fe(high dimentional fixed effects)
 ```
 
 ### Examples
