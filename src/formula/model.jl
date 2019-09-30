@@ -1,9 +1,10 @@
-struct Model
+struct ModelTerm
     f::FormulaTerm
     dict::Dict{Symbol, Any}
 end
 
-function Base.show(io::IO, m::Model)
+ModelTerm(f::FormulaTerm; kwargs...) = Modelterm(f, Dict(pairs(kwargs)...))
+function Base.show(io::IO, m::ModelTerm)
     println(io, m.f)
     for (k, v) in m.dict
         println(io, k, ": ", v)
@@ -57,7 +58,7 @@ macro model(ex, kws...)
            d[kw.args[1]] = kw.args[2]
        end
     end
-    :(Model($f, $d))
+    :(ModelTerm($f, $d))
 end
 
 

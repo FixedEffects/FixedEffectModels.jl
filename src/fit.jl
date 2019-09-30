@@ -35,7 +35,7 @@ reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
 reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(df::AbstractDataFrame, m::Model;kwargs...)
+function reg(df::AbstractDataFrame, m::ModelTerm;kwargs...)
     fit(df, m; kwargs...)
 end
 
@@ -44,10 +44,10 @@ function reg(df::AbstractDataFrame, f::FormulaTerm ; kwargs...)
 end
 
 
-function StatsBase.fit(df::AbstractDataFrame, m::Model;kwargs...)
+function StatsBase.fit(df::AbstractDataFrame, m::ModelTerm ;kwargs...)
     _fit(df, m.f; m.dict..., kwargs...)
 end
-function StatsBase.fit(::Type{FixedEffectModel}, m::Model, df::AbstractDataFrame; kwargs...)
+function StatsBase.fit(::Type{FixedEffectModel}, m::ModelTerm, df::AbstractDataFrame; kwargs...)
     fit(df, m; kwargs...)
 end
 

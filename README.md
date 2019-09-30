@@ -62,7 +62,7 @@ You can use
 ```julia
 using StatsModels, DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, Term(:Sales) ~ Term(:NDI) + FixedEffectTerm(:State) + FixedEffectTerm(:Year); vcov = :(cluster(State)))
+reg(df, ModelTerm(Term(:Sales) ~ Term(:NDI) + FixedEffectTerm(:State) + FixedEffectTerm(:Year), :vcov => :(cluster(State))))
 ```
 
 ## Performances
