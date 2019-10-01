@@ -8,8 +8,6 @@ struct FixedEffectTerm <: AbstractTerm
     x::Symbol
 end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
-
-
 fe(x::Term) = FixedEffectTerm(Symbol(x))
 
 has_fe(::FixedEffectTerm) = true
@@ -72,6 +70,9 @@ function _multiply(df, ss::Vector)
     return out
 end
 function _multiply!(out, v)
+    if v isa CategoricalVector
+        throw("Fixed Effects cannot be interacted with Categorical Vector. Use fe(x)&fe(y)")
+    end
     for i in eachindex(out)
         if v[i] === missing
             # may be missing when I remove singletons
