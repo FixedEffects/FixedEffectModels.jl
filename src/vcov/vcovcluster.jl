@@ -1,15 +1,17 @@
-VcovFormula(::Type{Val{:cluster}}, x) = VcovClusterFormula(@eval(@formula(nothing ~ $x)).rhs)
+Vcov(::Type{Val{:cluster}}, x::Expr) = VcovCluster(@eval(@formula(nothing ~ $x)).rhs)
+Vcov(::Type{Val{:cluster}}, x::Symbol) = VcovCluster(StatsModels.Term(x))
+Vcov(::Type{Val{:cluster}}, x::Tuple) = VcovCluster((StatsModels.Term(t) for t in x))
 
-struct VcovClusterFormula <: AbstractVcovFormula
+struct VcovCluster <: AbstractVcov
     _::Any
 end
-allvars(x::VcovClusterFormula) =  vcat([allvars(a) for a in eachterm(x._)]...)
+allvars(x::VcovCluster) =  vcat([allvars(a) for a in eachterm(x._)]...)
 
 struct VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
 end
 
-function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
+function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovCluster)
     clusters = vcovcluster._
     vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
     for c in eachterm(clusters)

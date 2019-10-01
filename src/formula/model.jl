@@ -3,7 +3,7 @@ struct ModelTerm
     dict::Dict{Symbol, Any}
 end
 
-ModelTerm(f::FormulaTerm; kwargs...) = Modelterm(f, Dict(pairs(kwargs)...))
+ModelTerm(f::FormulaTerm; kwargs...) = ModelTerm(f, Dict(pairs(kwargs)...))
 function Base.show(io::IO, m::ModelTerm)
     println(io, m.f)
     for (k, v) in m.dict

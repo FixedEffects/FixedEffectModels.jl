@@ -24,13 +24,13 @@ VcovDataMatrix{T} = VcovData{T, 2}
 ##############################################################################
 
 
-abstract type AbstractVcovFormula end
+abstract type AbstractVcov end
 # this type is used for syntax
-# the argument vcov = v(x) calls the function VcovFormula(::Type{Val{:v}}, x) which must result into a type that inherits from AbstractVcovFormula
+# the argument vcov = v(x) calls the function Vcov(::Type{Val{:v}}, x) which must result into a type that inherits from AbstractVcov
 # Moreover, this type must define 
 # (i) a function allvars that gives all variables needed to compute standard errors and a Vcovmethod
-allvars(x::AbstractVcovFormula) = Symbol[]
-# (ii) a VcovMethod that transform a dataframe and a object <: ABstractVcovFormula into a AbstractVcovMethod
+allvars(x::AbstractVcov) = Symbol[]
+# (ii) a VcovMethod that transform a dataframe and a object <: ABstractVcov into a AbstractVcovMethod
 
 
 # this type must implement

@@ -62,10 +62,9 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
     double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6)
     if vcov isa Symbol
-        @warn "vcov = $vcov is deprecated. Use vcov = $vcov()"
         vcov = Expr(:call, vcov)
     end
-    vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
+    vcovformula = Vcov(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
 
 
     ##############################################################################
@@ -361,7 +360,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if (vcovformula isa VcovClusterFormula) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
+            if (vcovformula isa VcovCluster) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
                     dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists

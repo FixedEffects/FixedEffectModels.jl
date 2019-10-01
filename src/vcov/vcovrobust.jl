@@ -1,9 +1,9 @@
-VcovFormula(::Type{Val{:robust}}) = VcovRobustFormula()
+Vcov(::Type{Val{:robust}}) = VcovRobust()
 
-struct VcovRobustFormula <: AbstractVcovFormula  end
+struct VcovRobust <: AbstractVcov  end
 
 struct VcovRobustMethod <: AbstractVcovMethod end
-VcovMethod(::AbstractDataFrame, ::VcovRobustFormula) = VcovRobustMethod()
+VcovMethod(::AbstractDataFrame, ::VcovRobust) = VcovRobustMethod()
 
 function vcov!(v::VcovRobustMethod, x::VcovData) 
     S = shat!(v, x)

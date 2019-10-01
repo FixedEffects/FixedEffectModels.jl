@@ -10,7 +10,7 @@ end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
 
 
-fe(x::Symbol) = FixedEffectTerm(x)
+fe(x::Term) = FixedEffectTerm(Symbol(x))
 
 has_fe(::FixedEffectTerm) = true
 has_fe(::FunctionTerm{typeof(fe)}) = true

@@ -1,9 +1,9 @@
-VcovFormula(::Type{Val{:simple}}) = VcovSimpleFormula()
+Vcov(::Type{Val{:simple}}) = VcovSimple()
 
-struct VcovSimpleFormula <: AbstractVcovFormula end
+struct VcovSimple <: AbstractVcov end
 
 struct VcovSimpleMethod <: AbstractVcovMethod end
-VcovMethod(::AbstractDataFrame, ::VcovSimpleFormula) = VcovSimpleMethod()
+VcovMethod(::AbstractDataFrame, ::VcovSimple) = VcovSimpleMethod()
 
 function vcov!(::VcovSimpleMethod, x::VcovData)
     invcrossmatrix = Matrix(inv(x.crossmatrix))
