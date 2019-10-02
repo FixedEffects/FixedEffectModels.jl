@@ -205,10 +205,6 @@ x = reg(df, m)
 @test coef(x)[1] ≈ -0.00525 atol = 1e-4
 
 
-# * and & are supported
-#m = @model y ~ x1*id2
-#x = reg(df, m)
-
 
 
 ##############################################################################
@@ -264,8 +260,8 @@ m = @model y ~ zz1 + (x1 ~ x2 + z1)
 x = reg(df, m)
 @test coef(x)[2] != 0.0
 
-# catch when IV underidentified : re-try when 0.5
-#@test_throws ErrorException reg(df, @formula(y ~ x1 + (x2 + w = x2)))
+# catch when IV underidentified 
+@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @model(y ~ x1 + (x2 + w ~ x2)))
 
 
 
@@ -362,9 +358,6 @@ m = @model y ~ x1 + fe(id1) vcov = cluster(id1)
 x = reg(df, m)
 @test coeftable(x).mat[1, 4] ≈ 4.872723900371927e-7 atol = 1e-7
 
-# catch continuous variable in cluster
-#@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
-#@test_throws ErrorException reg(df, @model(y ~ x1, vcov = cluster(State)))
 
 ##############################################################################
 ##

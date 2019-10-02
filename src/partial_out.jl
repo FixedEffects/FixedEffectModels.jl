@@ -98,7 +98,6 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     if !isa(ynames, Vector)
         ynames = [ynames]
     end
-    ynames = Symbol.(ynames)
     if add_mean
         m = mean(Y, dims = 1)
     end
@@ -136,12 +135,13 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     j = 0
 
     for y in ynames
+
         j += 1
         if nobs < length(esample)
-            out[!, y] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-            out[esample, y] = residuals[:, j]
+            out[!, Symbol(y)] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
+            out[esample, Symbol(y)] = residuals[:, j]
         else
-            out[!, y] = residuals[:, j]
+            out[!, Symbol(y)] = residuals[:, j]
         end
     end
     return out, iterations, convergeds
