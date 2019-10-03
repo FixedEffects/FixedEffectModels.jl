@@ -36,8 +36,6 @@ fe,
 fes,
 WeightFormula,
 
-title,
-top,
 FixedEffectModel,
 has_iv,
 has_fe,
