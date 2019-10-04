@@ -20,9 +20,6 @@ using Reexport
 using StatsModels
 using FixedEffects
 
-if !isdefined(FixedEffects, :AbstractFixedEffectSolver)
-	AbstractFixedEffectSolver{T} = AbstractFixedEffectMatrix{T}
-end
 ##############################################################################
 ##
 ## Exported methods and types

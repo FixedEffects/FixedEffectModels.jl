@@ -545,12 +545,7 @@ df.w = df.Output
 
 
 methods_vec = [:lsmr, :lsmr_threads]
-if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRCores) 
-	push!(methods_vec, :lsmr_cores)
-else
-	push!(methods_vec, :lsmr_parallel)
-end
-if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU) | isdefined(FixedEffectModels.FixedEffects, :FixedEffectLSMRGPU)
+if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
 	push!(methods_vec, :lsmr_gpu)
 end
 
