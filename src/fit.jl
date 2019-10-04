@@ -113,7 +113,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
 
     esample = completecases(df, all_vars)
     if has_weights
-        esample .&= isnaorneg(df[!, weights])
+        esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
     end
     if subset != nothing
         subset = eval(evaluate_subset(df, subset))

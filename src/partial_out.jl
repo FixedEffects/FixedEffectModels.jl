@@ -41,7 +41,6 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     method::Symbol = :lsmr,
     double_precision::Bool = true,
     tol::Real = double_precision ? 1e-8 : 1e-6)
-    weightvar = weights
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
@@ -49,14 +48,14 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
     has_iv && throw("partial_out does not support instrumental variables")
-    has_weights = weightvar != nothing
+    has_weights = weights != nothing
 
 
     # create a dataframe without missing values & negative weights
     all_vars = allvars(formula)
     esample = completecases(df[!, all_vars])
     if has_weights
-        esample .&= isnaorneg(df[!, weightvar])
+        esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
     end
 
     # initialize iterations & converged

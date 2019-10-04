@@ -60,7 +60,6 @@ ModelTerm,
 ## Load files
 ##
 ##############################################################################
-include("utils/weights.jl")
 include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/tss.jl")

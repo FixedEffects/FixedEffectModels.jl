@@ -124,7 +124,7 @@ model2 = @model Sales ~ Price weights = Pop
 result2 = reg(df, model2)
 @test r2(result1) ≈ r2(result2)
 
-methods_vec = [:lsmr, :lsmr_cores, :lsmr_threads]
+methods_vec = [:lsmr, :lsmr_threads, :lsmr_cores]
 if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
 	push!(methods_vec, :lsmr_gpu)
 end
