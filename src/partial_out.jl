@@ -51,7 +51,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
 
 
     # create a dataframe without missing values & negative weights
-    all_vars = allvars(formula)
+    all_vars = StatsModels.termvars(formula)
     esample = completecases(df[!, all_vars])
     if has_weights
         esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
@@ -86,7 +86,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # Compute residualized Y
-    vars = unique(allvars(formula))
+    vars = unique(StatsModels.termvars(formula))
     subdf = StatsModels.columntable(disallowmissing!(df[esample, vars]))
     formula_y = FormulaTerm(ConstantTerm(0), (ConstantTerm(0), eachterm(formula.lhs)...))
     formula_y_schema = apply_schema(formula_y, schema(formula_y, subdf, contrasts), StatisticalModel)

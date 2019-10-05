@@ -101,13 +101,17 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     ##############################################################################
 
     # create a dataframe without missing values & negative weights
-    vars = unique(allvars(formula))
-    if feformula != nothing
-        vars = vcat(vars, allvars(feformula))
+    vars = StatsModels.termvars(formula)
+    if feformula != nothing # to deprecate
+        vars = vcat(vars, StatsModels.termvars(@eval(@formula(0 ~ $(feformula)))))
     end
-    iv_vars = unique(allvars(formula_iv))
-    endo_vars = unique(allvars(formula_endo))
-    vcov_vars = unique(allvars(vcovformula))
+    iv_vars = Symbol[]
+    endo_vars = Symbol[]
+    if has_iv
+        iv_vars = StatsModels.termvars(formula_iv)
+        endo_vars = StatsModels.termvars(formula_endo)
+    end
+    vcov_vars = StatsModels.termvars(vcovformula)
     # create a dataframe without missing values & negative weights
     all_vars = unique(vcat(vars, vcov_vars, endo_vars, iv_vars))
 
@@ -120,7 +124,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
         if length(subset) != size(df, 1)
             throw("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
         end
-        esample .&= subset
+        esample .&= BitArray(!ismissing(x) && x for x in subset)
     end
     fes, ids, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
@@ -172,8 +176,8 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-    vars = unique(allvars(formula))
-    subdf = StatsModels.columntable(disallowmissing(view(df, esample, vars)))
+    exo_vars = unique(StatsModels.termvars(formula))
+    subdf = StatsModels.columntable(disallowmissing(view(df, esample, exo_vars)))
     formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
 
     # Obtain y

@@ -5,7 +5,7 @@ Vcov(::Type{Val{:cluster}}, x::Tuple) = VcovCluster((StatsModels.Term(t) for t i
 struct VcovCluster <: AbstractVcov
     _::Any
 end
-allvars(x::VcovCluster) =  vcat([allvars(a) for a in eachterm(x._)]...)
+StatsModels.termvars(x::VcovCluster) =  vcat([StatsModels.termvars(a) for a in eachterm(x._)]...)
 
 struct VcovClusterMethod <: AbstractVcovMethod
     clusters::DataFrame

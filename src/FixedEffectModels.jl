@@ -10,11 +10,11 @@ using Base
 using LinearAlgebra
 using Statistics
 using Printf
-using Distributions
-using DataFrames
 using Combinatorics
-using CategoricalArrays
 using FillArrays
+using CategoricalArrays
+using DataFrames
+using Distributions
 using Reexport
 @reexport using StatsBase
 using StatsModels
@@ -28,22 +28,21 @@ using FixedEffects
 
 export reg,
 partial_out,
-allvars,
 fe,
 fes,
-WeightFormula,
 
 FixedEffectModel,
 has_iv,
 has_fe,
+
+Vcov, # constructor
 AbstractVcov,
 VcovSimple,
 VcovRobust,
 VcovCluster,
-Vcov,
 
+VcovMethod, # constructor
 AbstractVcovMethod,
-VcovMethod,
 VcovSimpleMethod,
 VcovWhiteMethod,
 VcovClusterMethod,
@@ -63,10 +62,8 @@ ModelTerm,
 include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/tss.jl")
-
-include("formula/model.jl")
-include("formula/formula_iv.jl")
-include("formula/formula_fe.jl")
+include("utils/model.jl")
+include("utils/formula.jl")
 
 include("vcov/types.jl")
 include("vcov/vcovsimple.jl")
@@ -78,8 +75,8 @@ include("FixedEffectModel.jl")
 include("fit.jl")
 include("partial_out.jl")
 
-# precompile hint
-df = DataFrame(y = [1, 1], x =[1, 2], id = categorical([1, 1]))
+# precompile script
+df = DataFrame(y = [1, 1], x =[1, 2], id = [1, 1])
 reg(df, @model(y ~ x + fe(id)))
 reg(df, @model(y ~ x, vcov = cluster(id)))
 
