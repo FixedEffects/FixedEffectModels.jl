@@ -9,5 +9,6 @@ matrix:
 after_success:
 - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
 notifications:
-  on_success: never 
-  on_failure: change
+  email:
+    on_success: never 
+    on_failure: change
