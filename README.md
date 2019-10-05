@@ -69,14 +69,14 @@ reg(df, ModelTerm(Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year))
 #### GPU
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This makes the package an order of magnitude faster for complicated problems.
 
-First make sure that `using CuArrays` works without issue.
+First make sure that `using CuArrays` works without issue. Then, estimate a model with `method = :lsmr_gpu`.
 ```julia
 using FixedEffectModels
 df = dataset("plm", "Cigar")
 reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
 
-It is also encouraged to set the floating point precision to float32 when working on the GPU as that is usually much faster (using the option `double_precision = false`).
+When working on the GPU, it is encouraged to set the floating point precision to `Float32` with `double_precision = false`, since it is usually much faster.
 
 
 #### Parallel Computing
