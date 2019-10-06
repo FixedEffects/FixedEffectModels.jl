@@ -1,6 +1,6 @@
 Vcov(::Type{Val{:cluster}}, x::Expr) = VcovCluster(@eval(@formula(nothing ~ $x)).rhs)
 Vcov(::Type{Val{:cluster}}, x::Symbol) = VcovCluster(StatsModels.Term(x))
-Vcov(::Type{Val{:cluster}}, x::Tuple) = VcovCluster((StatsModels.Term(t) for t in x))
+Vcov(::Type{Val{:cluster}}, args...) = VcovCluster(tuple((StatsModels.Term(t) for t in args)...))
 
 struct VcovCluster <: AbstractVcov
     _::Any

@@ -13,8 +13,6 @@ df.z1 = df.Pimin
 df.x2 = df.NDI
 df.w = df.Pop
 
-m = @model y ~ x1 fe = pid1
-x = reg(df, m)
 
 ##############################################################################
 ##
@@ -215,7 +213,9 @@ x = reg(df, m)
 using StatsModels
 reg(df, ModelTerm(Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year)), vcov = :(cluster(State))))
 
-
+# old syntax
+m = @model y ~ x1 fe = pid1
+x = reg(df, m)
 ##############################################################################
 ##
 ## Functions
@@ -336,8 +336,15 @@ x = reg(df, m,  weights = :w)
 m = @model y ~ x1 vcov = cluster(id1 + id2)
 x = reg(df, m)
 @test stderror(x) ≈ [6.196362, 0.0403469] atol = 1e-6
+# multiway clustering - matches reghdfe
+m = @model y ~ x1 vcov = cluster(id1, id2)
+x = reg(df, m)
+@test stderror(x) ≈ [6.196362, 0.0403469] atol = 1e-6
 # fe + multiway clustering - matches reghdfe
 m = @model y ~ x1 + fe(id1) vcov = cluster(id1 + id2)
+x = reg(df, m)
+@test stderror(x) ≈ [0.0405335] atol = 1e-7
+m = @model y ~ x1 + fe(id1) vcov = cluster(id1, id2)
 x = reg(df, m)
 @test stderror(x) ≈ [0.0405335] atol = 1e-7
 # fe + clustering on interactions - matches reghdfe

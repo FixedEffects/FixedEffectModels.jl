@@ -38,7 +38,7 @@ reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weigh
 	```julia
 	vcov = robust()
 	vcov = cluster(State)
-	vcov = cluster(State + Year)
+	vcov = cluster(State, Year)
 	```
 
 ## Output
