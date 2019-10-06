@@ -52,7 +52,7 @@ function reg(df, f::FormulaTerm;
     dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
     double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6)
-    df = DataFrame(df)
+    df = DataFrame(df; copycols = false)
     if vcov isa Symbol
         vcov = Expr(:call, vcov)
     end
