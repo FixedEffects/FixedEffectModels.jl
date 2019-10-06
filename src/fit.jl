@@ -2,7 +2,7 @@
 Estimate a linear model with high dimensional categorical variables / instrumental variables
 
 ### Arguments
-* `df::AbstractDataFrame`
+* `df`: a Table
 * `model::Model`: A model created using [`@model`](@ref)
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
 * `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu`(requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU.).
@@ -18,10 +18,8 @@ Models with instruments variables are estimated using 2SLS. `reg` tests for weak
 
 ### Examples
 ```julia
-using DataFrames, RDatasets, FixedEffectModels
+using RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-df.StateC = categorical(df.State)
-df.YearC = categorical(df.Year)
 @time reg(df, @model(Sales ~ Price))
 reg(df, @model(Sales ~ Price + fe(State) + fe(Year)))
 reg(df, @model(Sales ~ NDI + fe(State) + fe(State)&Year))
@@ -30,29 +28,22 @@ reg(df, @model(Sales ~ (Price ~ Pimin)))
 @time reg(df, @model(Sales ~ Price), weights = :Pop)
 reg(df, @model(Sales ~ NDI, subset = State .< 30))
 reg(df, @model(Sales ~ NDI, vcov = robust()))
-reg(df, @model(Sales ~ NDI, vcov = cluster(StateC)))
-reg(df, @model(Sales ~ NDI, vcov = cluster(StateC + YearC)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(State)))
+reg(df, @model(Sales ~ NDI, vcov = cluster(State , Year)))
+df.Yearc = categoricay(df.Year)
 reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(df::AbstractDataFrame, m::ModelTerm;kwargs...)
-    fit(df, m; kwargs...)
-end
-
-function reg(df::AbstractDataFrame, f::FormulaTerm ; kwargs...)
-    _fit(df, f; kwargs...)
+function reg(df, m::ModelTerm;kwargs...)
+    reg(df, m.f; m.dict..., kwargs...)
 end
 
 
-function StatsBase.fit(df::AbstractDataFrame, m::ModelTerm ;kwargs...)
-    _fit(df, m.f; m.dict..., kwargs...)
-end
-function StatsBase.fit(::Type{FixedEffectModel}, m::ModelTerm, df::AbstractDataFrame; kwargs...)
-    fit(df, m; kwargs...)
+function StatsBase.fit(::Type{FixedEffectModel}, m::ModelTerm, df; kwargs...)
+    reg(df, m.f; m.dict..., kwargs...)
 end
 
-
-function _fit(df::AbstractDataFrame, f::FormulaTerm;
+function reg(df, f::FormulaTerm;
     feformula::Union{Symbol, Expr, Nothing} = nothing,
     vcov::Union{Symbol, Expr} = :(simple()),
     weights::Union{Symbol, Nothing} = nothing,
@@ -61,6 +52,7 @@ function _fit(df::AbstractDataFrame, f::FormulaTerm;
     dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
     double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6)
+    df = DataFrame(df)
     if vcov isa Symbol
         vcov = Expr(:call, vcov)
     end

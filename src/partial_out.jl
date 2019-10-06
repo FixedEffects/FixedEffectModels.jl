@@ -2,7 +2,7 @@
 Partial out variables in a Dataframe
 
 ### Arguments
-* `df::AbstractDataFrame`
+* `df`: A table
 * `model::Model`: A `Model` created using `@model`. See `@model`.
 * `add_mean::Bool`: Should the initial mean added to the returned variable?
 * `method::Symbol`: A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :lsmr_parallel, :lsmr_threads, :lsmr_gpu (requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU).
@@ -28,8 +28,8 @@ plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.
    layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
 ```
 """
-function partial_out(df::AbstractDataFrame, m::ModelTerm; kwargs...)
-    partial_out(df, m.f; m.dict..., kwargs...)
+function partial_out(df, m::ModelTerm; kwargs...)
+    partial_out(DataFrame(df), m.f; m.dict..., kwargs...)
 end
 
 
