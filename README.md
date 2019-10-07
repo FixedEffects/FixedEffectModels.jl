@@ -84,7 +84,7 @@ First make sure that `using CuArrays` works without issue. Then, estimate a mode
 ```julia
 using FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu)
 ```
 
 When working on the GPU, it is encouraged to set the floating point precision to `Float32` with `double_precision = false`, since it is usually much faster.
@@ -98,14 +98,14 @@ The package has support for [multi-threading](https://docs.julialang.org/en/v1.2
 Threads.nthreads()
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
 
 # Multi-cores 
 using Distributed
 addprocs(4)
 @everywhere using DataFrames,  RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
 ```
 
 

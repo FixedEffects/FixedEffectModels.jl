@@ -67,7 +67,7 @@ result = reg(df, model, weights = :Pop)
 @test residuals(result, df)[1:3] ≈ [ -30.2284549, -28.09507, -25.313248] atol = 1e-4
 
 # iv, weights and subset of states
-model = @model Sales ~ CPI + (Price ~ Pimin)
+model = @formula Sales ~ CPI + (Price ~ Pimin)
 result = reg(df, model, subset = df.State .<= 30, weights = :Pop)
 @test residuals(result, df)[1:3] ≈ [ -34.081720, -31.906020, -29.131738] atol = 1e-4
 
@@ -146,7 +146,7 @@ for method in methods_vec
 	result = reg(df, model, save = true, method = method)
 	@test fes(result)[1, :fe_State] ≈ -91.690635 atol = 1e-1
 
-	model = @model Sales ~ Price + fe(State)
+	model = @formula Sales ~ Price + fe(State)
 	result = reg(df, model, subset = df.State .<= 30, save = true, method = method)
 	@test fes(result)[1, :fe_State] ≈  124.913976 atol = 1e-1
 	@test ismissing(fes(result)[1380 , :fe_State])

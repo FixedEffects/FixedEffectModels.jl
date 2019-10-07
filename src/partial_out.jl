@@ -3,7 +3,7 @@ Partial out variables in a Dataframe
 
 ### Arguments
 * `df`: A table
-* `model::Model`: A `Model` created using `@model`. See `@model`.
+* `formula::FormulaTerm`: A formula created using `@formula`
 * `add_mean::Bool`: Should the initial mean added to the returned variable?
 * `method::Symbol`: A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :lsmr_parallel, :lsmr_threads, :lsmr_gpu (requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU).
 * `maxiter::Integer`: Maximum number of iterations
@@ -23,7 +23,7 @@ The regression model is estimated on only the rows where *none* of the dependent
 ```julia
 using  RDatasets, DataFrames, FixedEffectModels, Gadfly
 df = dataset("datasets", "iris")
-result = partial_out(df, @model(SepalWidth + SepalLength ~ fe(Species)), add_mean = true)
+result = partial_out(df, @formula(SepalWidth + SepalLength ~ fe(Species)), add_mean = true)
 plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.point),
    layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
 ```
