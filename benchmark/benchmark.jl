@@ -2,7 +2,7 @@ using DataFrames, FixedEffectModels, Random
 N = 10000000
 K = 100
 id1 = rand(1:div(N, K), N)
-id2 = rand(1:K, N))
+id2 = rand(1:K, N)
 w = cos.(id1)
 
 
