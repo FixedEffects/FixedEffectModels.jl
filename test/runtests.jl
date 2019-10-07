@@ -21,4 +21,4 @@ end
 
 
 using Test
-@test FixedEffectModels.pinvertible(Symmetric([1.0 1.0; 1.0 1.0])) ≈ [1.0 1.0; 1.0 1.0]
+@test Vcov.pinvertible(Symmetric([1.0 1.0; 1.0 1.0])) ≈ [1.0 1.0; 1.0 1.0]

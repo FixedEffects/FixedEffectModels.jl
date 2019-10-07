@@ -9,12 +9,11 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
 ## Estimate a model
-To estimate a `@model`, specify  a formula with a way to compute standard errors with the argument `vcov`.
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weights = :Pop)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year), Vcov.cluster(:State), weights = :Pop)
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139
@@ -26,20 +25,34 @@ reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weigh
 # NDI  -0.00526264 0.00144043 -3.65351    0.000 -0.00808837 -0.00243691
 # =====================================================================
 ```
-- A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
+A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
 	
-	```julia
-	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(fixedeffect variable)
-	```
+```julia
+dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(fixedeffect variable)
+```
 
-	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact a fixed effect with a continuous variable (e.g. `fe(State)&Year`) or with another fixed effect (e.g. `fe(State)&fe(Year)`).
+High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact a fixed effect with a continuous variable (e.g. `fe(State)&Year`) or with another fixed effect (e.g. `fe(State)&fe(Year)`).
 
-- Standard errors are indicated with the keyword argument `vcov`.
+
+
+## Options
+- Standard errors are indicated with the prefix `Vcov`.
 	```julia
-	vcov = robust()
-	vcov = cluster(State)
-	vcov = cluster(State, Year)
+	Vcov.robust()
+	Vcov.cluster(:State)
+	Vcov.cluster(:State, :Year)
 	```
+- `weights` specify a variable for weights
+	```julia
+	weights = :Pop
+	```
+- `subset` specify a subset of the data 
+	```julia
+	subset = df.State .>= 30
+	```
+- `save`  `:residuals` saves residuals, `:fe` save fixed effects, `true` saves both
+- `contrasts` to specify particular contrasts for categorical variables in the formula, e.g. `contrasts = Dict(:YearC => DummyCoding(base = 80)))`
+- `method`: choose the method used to estimate fixed effects (see Performances below).
 
 ## Output
 `reg` returns a light object. It is composed of 
@@ -50,19 +63,17 @@ reg(df, @model(Sales ~ NDI + fe(State) + fe(Year), vcov = cluster(State)), weigh
   - with the option `save = true`, a dataframe aligned with the initial dataframe with residuals and, if the model contains high dimensional fixed effects, fixed effects estimates.
 
 
-
-
 Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
 
 
 You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
 
-## Construct Model Programatically
+## Construct Formula Programatically
 You can use
 ```julia
 using StatsModels, DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, ModelTerm(Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year)), vcov = :(cluster(State))))
+reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year), ...)
 ```
 
 ## Performances

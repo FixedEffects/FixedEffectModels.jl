@@ -3,7 +3,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 
 ### Arguments
 * `df`: a Table
-* `model::Model`: A model created using [`@model`](@ref)
+* `FormulaTerm`: A formula created using [`@formula`](@ref)
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
 * `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu`(requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU.).
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
@@ -20,43 +20,48 @@ Models with instruments variables are estimated using 2SLS. `reg` tests for weak
 ```julia
 using RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-@time reg(df, @model(Sales ~ Price))
-reg(df, @model(Sales ~ Price + fe(State) + fe(Year)))
-reg(df, @model(Sales ~ NDI + fe(State) + fe(State)&Year))
-reg(df, @model(Sales ~ NDI + fe(State)*Year))
-reg(df, @model(Sales ~ (Price ~ Pimin)))
-@time reg(df, @model(Sales ~ Price), weights = :Pop)
-reg(df, @model(Sales ~ NDI, vcov = robust()))
-reg(df, @model(Sales ~ NDI, vcov = cluster(State)))
-reg(df, @model(Sales ~ NDI, vcov = cluster(State , Year)))
+@time reg(df, @formula(Sales ~ Price))
+reg(df, @formula(Sales ~ Price + fe(State) + fe(Year)))
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(State)&Year))
+reg(df, @formula(Sales ~ NDI + fe(State)*Year))
+reg(df, @formula(Sales ~ (Price ~ Pimin)))
+@time reg(df, @formula(Sales ~ Price), weights = :Pop)
+reg(df, @formula(Sales ~ NDI), Vcov.robust()))
+reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State)))
+reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State , :Year)))
 df.Yearc = categoricay(df.Year)
-reg(df, @model(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
+reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
 function reg(df, m::ModelTerm;kwargs...)
     reg(df, m.f; m.dict..., kwargs...)
 end
 
-
-function StatsBase.fit(::Type{FixedEffectModel}, m::ModelTerm, df; kwargs...)
-    reg(df, m.f; m.dict..., kwargs...)
-end
-
-function reg(df, f::FormulaTerm;
-    feformula::Union{Symbol, Expr, Nothing} = nothing,
-    vcov::Union{Symbol, Expr} = :(simple()),
+function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     weights::Union{Symbol, Nothing} = nothing,
-    subset::Union{Symbol, Expr, Nothing} = nothing,
+    subset::Union{AbstractVector, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     dof_add::Integer = 0,
     save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
-    double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6)
-    df = DataFrame(df; copycols = false)
-    if vcov isa Symbol
-        vcov = Expr(:call, vcov)
-    end
-    vcovformula = Vcov(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
+    double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6,
+    feformula::Union{Symbol, Expr, Nothing} = nothing,
+    vcovformula::Union{Symbol, Expr, Nothing} = nothing,
+    subsetformula::Union{Symbol, Expr, Nothing} = nothing)
+    df = DataFrame(df; copycols = false) 
 
+    # to deprecate
+    if vcovformula != nothing
+        if (vcovformula == :simple) | (vcovformula == :(simple()))
+            vcov = Vcov.Simple()
+        elseif (vcovformula == :robust) | (vcovformula == :(robust()))
+            vcov = Vcov.Robust()
+        else
+            vcov = Vcov.cluster(StatsModels.termvars(@eval(@formula(0 ~ $(vcovformula.args[2]))))...)
+        end
+    end
+    if subsetformula != nothing
+        subset = eval(evaluate_subset(df, subsetformula))
+    end
 
     ##############################################################################
     ##
@@ -69,7 +74,6 @@ function reg(df, f::FormulaTerm;
     formula, formula_endo, formula_iv = decompose_iv(f)
     has_iv = formula_iv != nothing
     has_weights = weights != nothing
-    has_subset = subset != nothing
 
 
     ##############################################################################
@@ -102,7 +106,7 @@ function reg(df, f::FormulaTerm;
         iv_vars = StatsModels.termvars(formula_iv)
         endo_vars = StatsModels.termvars(formula_endo)
     end
-    vcov_vars = StatsModels.termvars(vcovformula)
+    vcov_vars = StatsModels.termvars(vcov)
     # create a dataframe without missing values & negative weights
     all_vars = unique(vcat(vars, vcov_vars, endo_vars, iv_vars))
 
@@ -110,8 +114,8 @@ function reg(df, f::FormulaTerm;
     if has_weights
         esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
     end
+
     if subset != nothing
-        subset = eval(evaluate_subset(df, subset))
         if length(subset) != size(df, 1)
             throw("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
         end
@@ -160,7 +164,7 @@ function reg(df, f::FormulaTerm;
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
-    vcov_method = VcovMethod(disallowmissing(view(df, esample, vcov_vars)), vcovformula)
+    vcov_method = Vcov.VcovMethod(disallowmissing(view(df, esample, vcov_vars)), vcov)
 
     ##############################################################################
     ##
@@ -355,7 +359,7 @@ function reg(df, f::FormulaTerm;
     if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if (vcovformula isa VcovCluster) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
+            if (vcov isa Vcov.Cluster) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
                     dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists
@@ -375,19 +379,19 @@ function reg(df, f::FormulaTerm;
     end
 
     # Compute standard error
-    vcov_data = VcovData(Xhat, crossx, residuals, dof_residual)
-    matrix_vcov = vcov!(vcov_method, vcov_data)
+    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual)
+    matrix_vcov = Vcov.vcov!(vcov_method, vcov_data)
 
     # Compute Fstat
-    F = Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method, vcov_data)
+    F = Vcov.Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method, vcov_data)
 
-    dof_residual = max(1, df_FStat(vcov_method, vcov_data, has_intercept))
+    dof_residual = max(1, Vcov.df_FStat(vcov_method, vcov_data, has_intercept))
     p = ccdf(FDist(max(length(coef) - has_intercept, 1), dof_residual), F)
 
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip,
+        (F_kp, p_kp) = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method, size(X, 2), dof_absorb)
     end
 

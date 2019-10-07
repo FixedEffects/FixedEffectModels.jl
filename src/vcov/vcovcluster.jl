@@ -1,42 +1,36 @@
-Vcov(::Type{Val{:cluster}}, x::Expr) = VcovCluster(@eval(@formula(nothing ~ $x)).rhs)
-Vcov(::Type{Val{:cluster}}, x::Symbol) = VcovCluster(StatsModels.Term(x))
-Vcov(::Type{Val{:cluster}}, args...) = VcovCluster(tuple((StatsModels.Term(t) for t in args)...))
-
-struct VcovCluster <: AbstractVcov
-    _::Any
+struct Cluster <: AbstractVcov
+    _::NTuple
 end
-StatsModels.termvars(x::VcovCluster) =  vcat([StatsModels.termvars(a) for a in eachterm(x._)]...)
 
-struct VcovClusterMethod <: AbstractVcovMethod
+cluster(x::Symbol) = Cluster((x,))
+cluster(args...) = Cluster(args)
+
+StatsModels.termvars(x::Cluster) =  collect(x._)
+
+struct ClusterMethod <: AbstractVcovMethod
     clusters::DataFrame
 end
 
-function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovCluster)
-    clusters = vcovcluster._
+function VcovMethod(df::AbstractDataFrame, cluster::Cluster)
+    clusters = cluster._
     vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
-    for c in eachterm(clusters)
-        if isa(c, Term)
-            c = Symbol(c)
-            vclusters[!, c] = group(df[!, c])
-        elseif isa(c, InteractionTerm)
-            factorvars = Symbol.(terms(c))
-            vclusters[!, Symbol(reduce((x1, x2) -> string(x1)*"&"*string(x2), factorvars))] = group((df[!, v] for v in factorvars)...)
-        end
+    for c in cluster._
+        vclusters[!, c] = group(df[!, c])
     end
-    return VcovClusterMethod(vclusters)
+    return ClusterMethod(vclusters)
 end
 
-function df_FStat(v::VcovClusterMethod, ::VcovData, ::Bool)
+function df_FStat(v::ClusterMethod, ::VcovData, ::Bool)
     minimum((length(v.clusters[!, c].pool) for c in names(v.clusters))) - 1
 end
 
-function vcov!(v::VcovClusterMethod, x::VcovData)
+function vcov!(v::ClusterMethod, x::VcovData)
     S = shat!(v, x)
     invcrossmatrix = inv(x.crossmatrix)
     return pinvertible(Symmetric(invcrossmatrix * S * invcrossmatrix))
 end
 
-function shat!(v::VcovClusterMethod, x::VcovData{T, N}) where {T, N}
+function shat!(v::ClusterMethod, x::VcovData{T, N}) where {T, N}
     # Cameron, Gelbach, & Miller (2011): section 2.3
     dim = size(x.regressors, 2) * size(x.residuals, 2)
     S = zeros(dim, dim)

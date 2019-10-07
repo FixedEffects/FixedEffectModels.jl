@@ -17,7 +17,7 @@ using DataFrames
 using Distributions
 using Reexport
 @reexport using StatsBase
-using StatsModels
+@reexport using StatsModels
 using FixedEffects
 
 ##############################################################################
@@ -35,24 +35,11 @@ FixedEffectModel,
 has_iv,
 has_fe,
 
-Vcov, # constructor
-AbstractVcov,
-VcovSimple,
-VcovRobust,
-VcovCluster,
+Vcov,
 
-VcovMethod, # constructor
-AbstractVcovMethod,
-VcovSimpleMethod,
-VcovWhiteMethod,
-VcovClusterMethod,
-
-vcov!,
-shat!,
-VcovData,
-
-ModelTerm,
+#deprecated
 @model
+
 
 ##############################################################################
 ##
@@ -65,11 +52,7 @@ include("utils/tss.jl")
 include("utils/model.jl")
 include("utils/formula.jl")
 
-include("vcov/types.jl")
-include("vcov/vcovsimple.jl")
-include("vcov/vcovrobust.jl")
-include("vcov/vcovcluster.jl")
-include("vcov/utils.jl")
+include("vcov/vcov.jl")
 
 include("FixedEffectModel.jl")
 include("fit.jl")
@@ -77,7 +60,7 @@ include("partial_out.jl")
 
 # precompile script
 df = DataFrame(y = [1, 1], x =[1, 2], id = [1, 1])
-reg(df, @model(y ~ x + fe(id)))
-reg(df, @model(y ~ x, vcov = cluster(id)))
+reg(df, @formula(y ~ x + fe(id)))
+reg(df, @formula(y ~ x), Vcov.cluster(:id))
 
 end  # module FixedEffectModels

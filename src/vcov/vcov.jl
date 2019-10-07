@@ -1,3 +1,11 @@
+module Vcov
+
+using StatsModels
+using DataFrames
+using LinearAlgebra
+using FixedEffects
+using Combinatorics
+using Distributions
 ##############################################################################
 ##
 ## VcovData stores data you need to compute errors
@@ -38,3 +46,11 @@ StatsModels.termvars(x::AbstractVcov) = Symbol[]
 # shat!(::VcovSimpleMethod, x::VcovData)
 abstract type AbstractVcovMethod end
 df_FStat(::AbstractVcovMethod, x::VcovData, hasintercept::Bool) = x.dof_residual - hasintercept
+
+
+include("vcovsimple.jl")
+include("vcovrobust.jl")
+include("vcovcluster.jl")
+include("utils.jl")
+
+end

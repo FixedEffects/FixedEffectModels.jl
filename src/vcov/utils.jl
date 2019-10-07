@@ -58,7 +58,7 @@ function ranktest!(X::Matrix{Float64},
     lambda = kronv * vec(theta)
 
     # compute vhat
-    if typeof(vcov_method) == VcovSimpleMethod
+    if typeof(vcov_method) == SimpleMethod
         vhat= Matrix(I/size(X, 1), L * K, L * K)
     else
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
