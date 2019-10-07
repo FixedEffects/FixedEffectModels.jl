@@ -106,14 +106,16 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
         iv_vars = StatsModels.termvars(formula_iv)
         endo_vars = StatsModels.termvars(formula_endo)
     end
-    vcov_vars = StatsModels.termvars(vcov)
     # create a dataframe without missing values & negative weights
-    all_vars = unique(vcat(vars, vcov_vars, endo_vars, iv_vars))
+    all_vars = unique(vcat(vars, endo_vars, iv_vars))
 
     esample = completecases(df, all_vars)
     if has_weights
         esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
     end
+
+    esample .&= completecases(df, vcov)
+
 
     if subset != nothing
         if length(subset) != size(df, 1)
@@ -164,7 +166,7 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
-    vcov_method = Vcov.VcovMethod(disallowmissing(view(df, esample, vcov_vars)), vcov)
+    vcov_method = Vcov.VcovMethod(view(df, esample, :), vcov)
 
     ##############################################################################
     ##
@@ -383,7 +385,7 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     matrix_vcov = Vcov.vcov!(vcov_method, vcov_data)
 
     # Compute Fstat
-    F = Vcov.Fstat(coef, matrix_vcov, nobs, has_intercept, vcov_method, vcov_data)
+    F = Vcov.Fstat(coef, matrix_vcov, has_intercept)
 
     dof_residual = max(1, Vcov.df_FStat(vcov_method, vcov_data, has_intercept))
     p = ccdf(FDist(max(length(coef) - has_intercept, 1), dof_residual), F)
@@ -391,8 +393,10 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        (F_kp, p_kp) = Vcov.ranktest!(Xendo_res, Z_res, Pip,
+        r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method, size(X, 2), dof_absorb)
+        p_kp = ccdf(Chisq((size(Z_res, 2) - size(Xendo_res, 2) +1 )), r_kp)
+        F_kp = r_kp / size(Z_res, 2)
     end
 
     ##############################################################################

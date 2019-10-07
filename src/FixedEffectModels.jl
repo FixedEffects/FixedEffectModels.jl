@@ -10,7 +10,6 @@ using Base
 using LinearAlgebra
 using Statistics
 using Printf
-using Combinatorics
 using FillArrays
 using CategoricalArrays
 using DataFrames
@@ -18,6 +17,8 @@ using Distributions
 using Reexport
 @reexport using StatsBase
 @reexport using StatsModels
+@reexport using Vcov
+
 using FixedEffects
 
 ##############################################################################
@@ -35,8 +36,6 @@ FixedEffectModel,
 has_iv,
 has_fe,
 
-Vcov,
-
 #deprecated
 @model
 
@@ -51,8 +50,6 @@ include("utils/basecol.jl")
 include("utils/tss.jl")
 include("utils/model.jl")
 include("utils/formula.jl")
-
-include("vcov/vcov.jl")
 
 include("FixedEffectModel.jl")
 include("fit.jl")
