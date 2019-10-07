@@ -48,13 +48,13 @@ has_fe,
 include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/tss.jl")
-include("utils/model.jl")
 include("utils/formula.jl")
 
 include("FixedEffectModel.jl")
 include("fit.jl")
 include("partial_out.jl")
 
+include("deprecated.jl")
 # precompile script
 df = DataFrame(y = [1, 1], x =[1, 2], id = [1, 1])
 reg(df, @formula(y ~ x + fe(id)))

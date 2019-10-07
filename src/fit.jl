@@ -33,10 +33,6 @@ df.Yearc = categoricay(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(df, m::ModelTerm;kwargs...)
-    reg(df, m.f; m.dict..., kwargs...)
-end
-
 function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     weights::Union{Symbol, Nothing} = nothing,
     subset::Union{AbstractVector, Nothing} = nothing,

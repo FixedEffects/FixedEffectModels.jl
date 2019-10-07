@@ -28,11 +28,6 @@ plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.
    layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
 ```
 """
-function partial_out(df, m::ModelTerm; kwargs...)
-    partial_out(DataFrame(df), m.f; m.dict..., kwargs...)
-end
-
-
 function partial_out(df::AbstractDataFrame, f::FormulaTerm; 
     weights::Union{Symbol, Expr, Nothing} = nothing,
     add_mean = false,
@@ -133,7 +128,6 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     j = 0
 
     for y in ynames
-
         j += 1
         if nobs < length(esample)
             out[!, Symbol(y)] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
@@ -144,9 +138,3 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     end
     return out, iterations, convergeds
 end
-
-
-
-
-
-
