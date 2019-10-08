@@ -17,7 +17,6 @@ using Distributions
 using Reexport
 @reexport using StatsBase
 @reexport using StatsModels
-@reexport using Vcov
 
 using FixedEffects
 
@@ -36,9 +35,10 @@ FixedEffectModel,
 has_iv,
 has_fe,
 
+Vcov,
+
 #deprecated
 @model
-
 
 ##############################################################################
 ##
@@ -49,6 +49,8 @@ include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/tss.jl")
 include("utils/formula.jl")
+
+include("vcov/Vcov.jl")
 
 include("FixedEffectModel.jl")
 include("fit.jl")
