@@ -13,7 +13,7 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year), Vcov.cluster(:State), weights = :Pop)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weights = :Pop)
 # =====================================================================
 # Number of obs:               1380   Degrees of freedom:            31
 # R2:                         0.804   R2 within:                  0.139

@@ -4,6 +4,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Arguments
 * `df`: a Table
 * `FormulaTerm`: A formula created using [`@formula`](@ref)
+* `CovarianceEstimator`: A method to compute the variance-covariance matrix
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
 * `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu`(requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU.).
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
@@ -33,7 +34,7 @@ df.Yearc = categoricay(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
+function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     weights::Union{Symbol, Nothing} = nothing,
     subset::Union{AbstractVector, Nothing} = nothing,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
@@ -162,7 +163,7 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
-    vcov_method = Vcov.VcovMethod(view(df, esample, :), vcov)
+    vcov_method = Vcov.materialize(vcov, view(df, esample, :))
 
     ##############################################################################
     ##
@@ -357,7 +358,7 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if (vcov isa Vcov.Cluster) && any(isnested(fe, v.refs) for v in eachcol(vcov_method.clusters))
+            if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.refs) for v in values(vcov_method.clusters))
                     dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists
@@ -377,19 +378,19 @@ function reg(df, f::FormulaTerm, vcov::Vcov.AbstractVcov = Vcov.simple();
     end
 
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual)
-    matrix_vcov = Vcov.vcov!(vcov_method, vcov_data)
+    vcov_data = VcovData(Xhat, crossx, residuals, dof_residual)
+    matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
-    F = Vcov.Fstat(coef, matrix_vcov, has_intercept)
+    F = Fstat(coef, matrix_vcov, has_intercept)
 
-    dof_residual = max(1, Vcov.df_FStat(vcov_method, vcov_data, has_intercept))
+    dof_residual = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept))
     p = ccdf(FDist(max(length(coef) - has_intercept, 1), dof_residual), F)
 
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
+        r_kp = ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method, size(X, 2), dof_absorb)
         p_kp = ccdf(Chisq((size(Z_res, 2) - size(Xendo_res, 2) +1 )), r_kp)
         F_kp = r_kp / size(Z_res, 2)

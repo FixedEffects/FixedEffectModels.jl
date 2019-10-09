@@ -1,45 +1,28 @@
-struct Cluster <: AbstractVcov
-    _::NTuple
+struct ClusterCovariance{T} <: CovarianceEstimator
+    clusters::T
 end
 
-cluster(x::Symbol) = Cluster((x,))
-cluster(args...) = Cluster(args)
+cluster(x::Symbol) = ClusterCovariance((x,))
+cluster(args...) = ClusterCovariance(args)
 
-DataFrames.completecases(df::AbstractDataFrame, x::Cluster) = completecases(df, collect(x._))
+DataFrames.completecases(df::AbstractDataFrame, x::ClusterCovariance) = completecases(df, collect(x.clusters))
 
-
-struct ClusterMethod <: AbstractVcovMethod
-    clusters::DataFrame
+function materialize(x::ClusterCovariance, df::AbstractDataFrame)
+    ClusterCovariance(NamedTuple{x.clusters}(ntuple(i -> group(df[!, x.clusters[i]]), length(x.clusters))))
 end
 
-function VcovMethod(df::AbstractDataFrame, cluster::Cluster)
-    clusters = cluster._
-    vclusters = DataFrame(Matrix{Vector}(undef, size(df, 1), 0))
-    for c in cluster._
-        vclusters[!, c] = group(df[!, c])
-    end
-    return ClusterMethod(vclusters)
+function df_FStat(::RegressionModel, v::ClusterCovariance, ::Bool)
+    minimum((length(c.pool) for c in values(v.clusters))) - 1
 end
 
-
-function df_FStat(v::ClusterMethod, ::VcovData, ::Bool)
-    minimum((length(v.clusters[!, c].pool) for c in names(v.clusters))) - 1
-end
-
-function vcov!(v::ClusterMethod, x::VcovData)
-    S = shat!(v, x)
-    invcrossmatrix = inv(crossmatrix(x))
-    return pinvertible(Symmetric(invcrossmatrix * S * invcrossmatrix))
-end
-
-function shat!(v::ClusterMethod, x::VcovData{T, N}) where {T, N}
+function shat!(x::RegressionModel, v::ClusterCovariance) 
     # Cameron, Gelbach, & Miller (2011): section 2.3
     dim = size(modelmatrix(x), 2) * size(residuals(x), 2)
     S = zeros(dim, dim)
     G = typemax(Int)
-    for c in combinations(names(v.clusters))
+    for c in combinations(keys(v.clusters))
         # no need for group in case of one fixed effect, since was already done in VcovMethod
-        f = (length(c) == 1) ? v.clusters[!, c[1]] : group((v.clusters[!, var] for var in c)...)
+        f = (length(c) == 1) ? v.clusters[c[1]] : group((v.clusters[var] for var in c)...)
         # capture length of smallest dimension of multiway clustering in G
         G = min(G, length(f.pool))
         S += (-1)^(length(c) - 1) * helper_cluster(modelmatrix(x), residuals(x), f)
@@ -66,15 +49,8 @@ function helper_cluster(X::Matrix, res::Union{Vector, Matrix}, f::CategoricalVec
     return Symmetric(X2' * X2)
 end
 
-function pinvertible(A::Symmetric, tol = eps(real(float(one(eltype(A))))))
-    eigval, eigvect = eigen(A)
-    small = eigval .<= tol
-    if any(small)
-        @warn "estimated covariance matrix of moment conditions not of full rank.
-                 model tests should be interpreted with caution."
-        eigval[small] .= 0
-        return Symmetric(eigvect' * Diagonal(eigval) * eigvect)
-    else
-        return A
-    end
+function StatsBase.vcov(x::RegressionModel, v::ClusterCovariance)
+    S = shat!(x, v)
+    invcrossmodelmatrix = inv(crossmodelmatrix(x))
+    pinvertible(Symmetric(invcrossmodelmatrix * S * invcrossmodelmatrix))
 end
