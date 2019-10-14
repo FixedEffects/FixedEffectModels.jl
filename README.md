@@ -35,6 +35,14 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact a fixed effect with a continuous variable (e.g. `fe(State)&Year`) or with another fixed effect (e.g. `fe(State)&fe(Year)`).
 
+	```julia
+	reg(df, @formula(Sales ~ Price + fe(State) + fe(Year)))
+	reg(df, @formula(Sales ~ NDI + fe(State) + fe(State)&Year))
+	reg(df, @formula(Sales ~ NDI + fe(State)&fe(Year)))
+	reg(df, @formula(Sales ~ (Price ~ Pimin)))
+	```
+
+
 	To construct formula programatically, use
 	```julia
 	reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year))
