@@ -5,10 +5,10 @@ end
 cluster(x::Symbol) = ClusterCovariance((x,))
 cluster(args...) = ClusterCovariance(args)
 
-DataFrames.completecases(df::AbstractDataFrame, x::ClusterCovariance) = completecases(df, collect(x.clusters))
+Vcov.completecases(df::AbstractDataFrame, v::ClusterCovariance) = DataFrames.completecases(df, collect(v.clusters))
 
-function materialize(x::ClusterCovariance, df::AbstractDataFrame)
-    ClusterCovariance(NamedTuple{x.clusters}(ntuple(i -> group(df[!, x.clusters[i]]), length(x.clusters))))
+function materialize(df::AbstractDataFrame, v::ClusterCovariance)
+    ClusterCovariance(NamedTuple{v.clusters}(ntuple(i -> group(df[!, v.clusters[i]]), length(v.clusters))))
 end
 
 function df_FStat(::RegressionModel, v::ClusterCovariance, ::Bool)

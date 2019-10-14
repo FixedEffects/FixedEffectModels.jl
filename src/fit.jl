@@ -111,7 +111,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
     end
 
-    esample .&= completecases(df, vcov)
+    esample .&= Vcov.completecases(df, vcov)
 
 
     if subset != nothing
@@ -163,7 +163,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
-    vcov_method = Vcov.materialize(vcov, view(df, esample, :))
+    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
 
     ##############################################################################
     ##

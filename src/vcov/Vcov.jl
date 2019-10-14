@@ -7,20 +7,20 @@ using FixedEffects
 using Combinatorics
 
 
-##############################################################################
-##
-## Any Method to Compute Standard Errors must Define two Types
-##
-##############################################################################
 crossmodelmatrix(x::RegressionModel) = cholesky!(modelmatrix(x)' * modelmatrix(x))
-materialize(x::CovarianceEstimator, df::AbstractDataFrame) = x
-DataFrames.completecases(df::AbstractDataFrame, x::CovarianceEstimator) = trues(size(df, 1))
+##############################################################################
+##
+## Any type used for standard errors must define the following methods:
+##
+##############################################################################
+materialize(df::AbstractDataFrame, v::CovarianceEstimator) = v
+completecases(df::AbstractDataFrame, ::CovarianceEstimator) = trues(size(df, 1))
 shat!(x::RegressionModel, ::CovarianceEstimator) = error("shat! not defined for this type")
 df_FStat(x::RegressionModel, ::CovarianceEstimator, hasintercept::Bool) = dof_residual(x) - hasintercept
 
+include("utils.jl")
 include("vcovsimple.jl")
 include("vcovrobust.jl")
 include("vcovcluster.jl")
-include("utils.jl")
 
 end
