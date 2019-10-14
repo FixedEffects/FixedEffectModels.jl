@@ -147,3 +147,9 @@ function partial_out(df, m::ModelTerm; kwargs...)
     partial_out(DataFrame(df), m.f; m.dict..., kwargs...)
 end
 
+
+function fes(args...)
+    @warn "fes() is deprecated. Use fe()"
+    fe(args...)
+end
+

@@ -29,7 +29,6 @@ using FixedEffects
 export reg,
 partial_out,
 fe,
-fes,
 
 FixedEffectModel,
 has_iv,
@@ -38,7 +37,8 @@ has_fe,
 Vcov,
 
 #deprecated
-@model
+@model,
+fes
 
 ##############################################################################
 ##

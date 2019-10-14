@@ -65,7 +65,7 @@ end
 
 # predict, residuals, modelresponse
 function StatsBase.predict(x::FixedEffectModel, df::AbstractDataFrame)
-    has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fes()`")
+    has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fe()`")
     cols, nonmissings = StatsModels.missing_omit(StatsModels.columntable(df), MatrixTerm(x.formula_schema.rhs))
     new_x = modelmatrix(x.formula_schema, cols)
     if all(nonmissings)
@@ -100,8 +100,8 @@ function StatsBase.residuals(x::FixedEffectModel)
     x.augmentdf.residuals
 end
    
-function fes(x::FixedEffectModel)
-   !has_fe(x) && throw("fes is not defined for fixed effect models without fixed effects")
+function fe(x::FixedEffectModel)
+   !has_fe(x) && throw("fe() is not defined for fixed effect models without fixed effects")
    x.augmentdf[!, 2:size(x.augmentdf, 2)]
 end
 
