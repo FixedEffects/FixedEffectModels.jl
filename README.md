@@ -8,7 +8,7 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
-## Estimate a model
+## Syntax
 
 ```julia
 using DataFrames, RDatasets, FixedEffectModels
@@ -25,34 +25,38 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 # NDI  -0.00526264 0.00144043 -3.65351    0.000 -0.00808837 -0.00243691
 # =====================================================================
 ```
-A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
-	
-```julia
-dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(fixedeffect variable)
-```
-
-High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact a fixed effect with a continuous variable (e.g. `fe(State)&Year`) or with another fixed effect (e.g. `fe(State)&fe(Year)`).
 
 
+-  A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
+		
+	```julia
+	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(fixedeffect variable)
+	```
 
-## Options
+	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. Moreover, you can interact a fixed effect with a continuous variable (e.g. `fe(State)&Year`) or with another fixed effect (e.g. `fe(State)&fe(Year)`).
+
+	To construct formula programatically, use
+	```julia
+	reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year))
+	```
+
 - Standard errors are indicated with the prefix `Vcov`.
 	```julia
 	Vcov.robust()
 	Vcov.cluster(:State)
 	Vcov.cluster(:State, :Year)
 	```
-- `weights` specify a variable for weights
+- The option `weights` specifies a variable for weights
 	```julia
 	weights = :Pop
 	```
-- `subset` specify a subset of the data 
+- The option `subset` specifies a subset of the data 
 	```julia
 	subset = df.State .>= 30
 	```
-- `save`  `:residuals` saves residuals, `:fe` save fixed effects, `true` saves both
-- `contrasts` to specify particular contrasts for categorical variables in the formula, e.g. `contrasts = Dict(:YearC => DummyCoding(base = 80)))`
-- `method`: choose the method used to estimate fixed effects (see Performances below).
+- The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `true` to save both
+- The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g. `contrasts = Dict(:YearC => DummyCoding(base = 80)))`
+- The option `method` can be set to one of the following: `:lsmr`, `:lsmr_gpu`, `:lsmr_threads`, `:lsmr_cores` (see Performances below).
 
 ## Output
 `reg` returns a light object. It is composed of 
@@ -68,13 +72,6 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 
 You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
 
-## Construct Formula Programatically
-You can use
-```julia
-using StatsModels, DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year), ...)
-```
 
 ## Performances
 #### GPU
