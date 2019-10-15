@@ -15,7 +15,7 @@ crossmodelmatrix(x::RegressionModel) = cholesky!(modelmatrix(x)' * modelmatrix(x
 ##############################################################################
 materialize(df::AbstractDataFrame, v::CovarianceEstimator) = v
 completecases(df::AbstractDataFrame, ::CovarianceEstimator) = trues(size(df, 1))
-shat!(x::RegressionModel, ::CovarianceEstimator) = error("shat! not defined for this type")
+S_hat(x::RegressionModel, ::CovarianceEstimator) = error("S_hat not defined for this type")
 df_FStat(x::RegressionModel, ::CovarianceEstimator, hasintercept::Bool) = dof_residual(x) - hasintercept
 
 include("utils.jl")

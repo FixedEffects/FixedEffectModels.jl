@@ -15,7 +15,7 @@ function df_FStat(::RegressionModel, v::ClusterCovariance, ::Bool)
     minimum((length(c.pool) for c in values(v.clusters))) - 1
 end
 
-function shat!(x::RegressionModel, v::ClusterCovariance) 
+function S_hat(x::RegressionModel, v::ClusterCovariance) 
     # Cameron, Gelbach, & Miller (2011): section 2.3
     dim = size(modelmatrix(x), 2) * size(residuals(x), 2)
     S = zeros(dim, dim)
@@ -50,7 +50,6 @@ function helper_cluster(X::Matrix, res::Union{Vector, Matrix}, f::CategoricalVec
 end
 
 function StatsBase.vcov(x::RegressionModel, v::ClusterCovariance)
-    S = shat!(x, v)
-    invcrossmodelmatrix = inv(crossmodelmatrix(x))
-    pinvertible(Symmetric(invcrossmodelmatrix * S * invcrossmodelmatrix))
+    xtx = inv(crossmodelmatrix(x))
+    pinvertible(Symmetric(xtx * S_hat(x, v) * xtx))
 end

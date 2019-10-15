@@ -52,12 +52,11 @@ function ranktest!(X::Matrix{Float64},
         temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
         k = kron(temp1, temp2)'
         vcovmodel = VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
-        matrix_vcov2 = Vcov.shat!(vcovmodel, vcov_method)
+        matrix_vcov2 = Vcov.S_hat(vcovmodel, vcov_method)
         vhat = k \ (k \ matrix_vcov2)'
     end
 
     # return statistics
-    # why do I need to add Hermitian? (since 0.5)
     vlab = cholesky!(Hermitian(kronv * vhat * kronv'))
     r_kp = lambda' * (vlab \ lambda)
     return r_kp[1]

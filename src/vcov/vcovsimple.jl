@@ -2,7 +2,7 @@ struct SimpleCovariance <: CovarianceEstimator end
 
 simple() = SimpleCovariance()
 
-function shat!(x::RegressionModel, ::SimpleCovariance)
+function S_hat(x::RegressionModel, ::SimpleCovariance)
 	rmul!(crossmodelmatrix(x), sum(abs2, residuals(x)))
 end
 

@@ -2,7 +2,7 @@ struct RobustCovariance <: CovarianceEstimator end
 
 robust() = RobustCovariance()
 
-function shat!(x::RegressionModel, ::RobustCovariance)
+function S_hat(x::RegressionModel, ::RobustCovariance)
     m = modelmatrix(x)
     r = residuals(x)
     X2 = zeros(size(m, 1), size(m, 2) * size(r, 2))
@@ -20,7 +20,7 @@ function shat!(x::RegressionModel, ::RobustCovariance)
 end
 
 function StatsBase.vcov(x::RegressionModel, v::RobustCovariance)
-    S = shat!(x, v)
-    invcrossmodelmatrix = inv(crossmodelmatrix(x))
-    pinvertible(Symmetric(invcrossmodelmatrix * S * invcrossmodelmatrix))
+    xtx = inv(crossmodelmatrix(x))
+    pinvertible(Symmetric(xtx * S_hat(x, v) * xtx))
 end
+
