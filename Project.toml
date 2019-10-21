@@ -25,7 +25,7 @@ FillArrays = "0"
 FixedEffects = "0.4"
 StatsBase = "0"
 StatsModels = "0.6"
-Tables = "0.1, 0.2"
+Tables = "0"
 DataFrames = "0.19"
 CSV = "0.5"
 
