@@ -19,7 +19,7 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 
 [compat]
-julia = "≥ 1.1.0"
+julia = "1"
 StatsBase = "≥ 0.22.0"
 StatsModels = "≥ 0.6.4"
 Distributions = "≥ 0.4.6"
