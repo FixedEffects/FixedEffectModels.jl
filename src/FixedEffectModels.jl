@@ -11,7 +11,6 @@ using LinearAlgebra
 using Statistics
 using Printf
 using FillArrays
-using CategoricalArrays
 using DataFrames
 using Distributions
 using Reexport
