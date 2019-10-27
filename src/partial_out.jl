@@ -63,12 +63,14 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
-    # Compute weight vector
-    sqrtw = Ones{Float64}(sum(esample))
+    # Compute weights
     if has_weights
-        sqrtw = convert(Vector{Float64}, view(df, esample, weights))
-        sqrtw .= sqrt.(sqrtw)
+        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+    else
+        weights = Weights(Ones{Float64}(sum(esample)))
     end
+    all(isfinite, values(weights)) || throw("Weights are not finite")
+    sqrtw = sqrt.(values(weights))
 
     if has_fes
         # in case some FixedEffect does not have interaction, remove the intercept
@@ -77,7 +79,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
             has_fes_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
 
     # Compute residualized Y

@@ -141,12 +141,13 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
 
 
     # Compute weights
-    sqrtw = Ones{Float64}(sum(esample))
     if has_weights
-        sqrtw = convert(Vector{Float64}, sqrt.(view(df, esample, weights)))
+        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+    else
+        weights = Weights(Ones{Float64}(sum(esample)))
     end
-
-    all(isfinite, sqrtw) || throw("Weights are not finite")
+    all(isfinite, values(weights)) || throw("Weights are not finite")
+    sqrtw = sqrt.(values(weights))
 
     # Compute feM, an AbstractFixedEffectSolver
     has_fes_intercept = false
@@ -157,7 +158,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
             has_fes_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, sqrtw, Val{method})
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
 
     has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)

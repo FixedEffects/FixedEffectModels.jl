@@ -8,6 +8,9 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
+## Installation
+The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
+
 ## Syntax
 
 ```julia
