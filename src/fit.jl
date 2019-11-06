@@ -72,7 +72,6 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     has_iv = formula_iv != nothing
     has_weights = weights != nothing
 
-
     ##############################################################################
     ##
     ## Save keyword argument
@@ -84,7 +83,6 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         end
     end
     save_residuals = (save == :residuals) | (save == true)
-
 
     ##############################################################################
     ##
@@ -110,10 +108,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     if has_weights
         esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
     end
-
     esample .&= Vcov.completecases(df, vcov)
-
-
     if subset != nothing
         if length(subset) != size(df, 1)
             throw("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
@@ -138,7 +133,6 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
-
 
     # Compute weights
     if has_weights
@@ -184,11 +178,10 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
     all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
 
-    yname, coef_names = coefnames(formula_schema)
+    response_name, coef_names = coefnames(formula_schema)
     if !(coef_names isa Vector)
         coef_names = typeof(coef_names)[coef_names]
     end
-
 
     if has_iv
         subdf = StatsModels.columntable(disallowmissing!(df[esample, endo_vars]))
@@ -216,7 +209,6 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
 
     # compute tss now before potentially demeaning y
     tss_ = tss(y, has_intercept | has_fes_intercept, sqrtw)
-
 
     # create unitilaized 
     iterations, converged, r2_within = nothing, nothing, nothing
@@ -268,6 +260,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         Xendo .= Xendo .* sqrtw
         Z .= Z .* sqrtw
     end
+
     ##############################################################################
     ##
     ## Get Linearly Independent Components of Matrix
@@ -299,7 +292,6 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         ## partial out Z in place wrt Xexo
         Pi2 = cholesky!(Symmetric(Xexo' * Xexo)) \ (Xexo' * Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
-
     else
         # get linearly independent columns
         basecolXexo = basecol(Xexo)
@@ -360,14 +352,19 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.refs) for v in values(vcov_method.clusters))
-                    dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
+                dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
             else
                 #only count groups that exists
-                dof_absorb += ndistincts(fe)
+                dof_absorb += nunique(fe)
             end
         end
     end
     dof_residual = max(1, nobs - size(X, 2) - dof_absorb - dof_add)
+    
+    nclusters = nothing
+    if vcov isa Vcov.ClusterCovariance
+        nclusters = map(x -> length(levels(x)), vcov_method.clusters)
+    end
 
     # Compute rss, tss, r2, r2 adjusted
     rss = sum(abs2, residuals)
@@ -418,8 +415,8 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         matrix_vcov = newmatrix_vcov
     end
 
-    return FixedEffectModel(coef, matrix_vcov, vcov, esample, augmentdf,
-                            coef_names, yname, f, formula_schema, nobs, dof_residual,
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, augmentdf,
+                            coef_names, response_name, f, formula_schema, nobs, dof_residual,
                             rss, tss_, r2, adjr2, F, p,
                             iterations, converged, r2_within, 
                             F_kp, p_kp)

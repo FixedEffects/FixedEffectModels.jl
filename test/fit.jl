@@ -555,9 +555,7 @@ df.w = df.Output
 
 
 methods_vec = [:lsmr, :lsmr_threads, :lsmr_cores]
-if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
-	push!(methods_vec, :lsmr_gpu)
-end
+
 
 for method in methods_vec
 	@show method
@@ -595,8 +593,11 @@ for method in methods_vec
 	x = reg(df, m, weights = :w, method = method)
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
-
-
+end
+if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
+	push!(methods_vec, :lsmr_gpu)
+end
+for method in methods_vec
 	# same thing with float32 precision
 	m = @formula y ~ x1 + fe(id1)
 	x = reg(df, m, method = method, double_precision = false)
@@ -619,7 +620,6 @@ for method in methods_vec
 	m = @formula y ~ x1 + fe(id1) + fe(id2)
 	x = reg(df, m, weights = :w, method = method, double_precision = false)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
-
 end
 
 

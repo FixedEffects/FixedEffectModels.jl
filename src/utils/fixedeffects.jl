@@ -25,7 +25,7 @@ end
 ##
 ##############################################################################
 
-function ndistincts(fe::FixedEffect)
+function nunique(fe::FixedEffect)
     out = zeros(Int, fe.n)
     for ref in fe.refs
         out[ref] += 1

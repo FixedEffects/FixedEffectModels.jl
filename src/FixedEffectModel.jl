@@ -9,6 +9,7 @@ struct FixedEffectModel <: RegressionModel
     coef::Vector{Float64}   # Vector of coefficients
     vcov::Matrix{Float64}   # Covariance matrix
     vcov_type::CovarianceEstimator
+    nclusters::Union{NamedTuple, Nothing}
 
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
     augmentdf::DataFrame

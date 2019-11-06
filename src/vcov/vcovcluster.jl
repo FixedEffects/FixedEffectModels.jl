@@ -11,8 +11,8 @@ function materialize(df::AbstractDataFrame, v::ClusterCovariance)
     ClusterCovariance(NamedTuple{v.clusters}(ntuple(i -> group(df[!, v.clusters[i]]), length(v.clusters))))
 end
 
-function df_FStat(::RegressionModel, v::ClusterCovariance, ::Bool)
-    minimum((length(c.pool) for c in values(v.clusters))) - 1
+function df_FStat(x::RegressionModel, v::ClusterCovariance, ::Bool)
+    minimum((length(levels(x)) for x in values(v.clusters))) - 1
 end
 
 function S_hat(x::RegressionModel, v::ClusterCovariance) 
@@ -53,3 +53,6 @@ function StatsBase.vcov(x::RegressionModel, v::ClusterCovariance)
     xtx = inv(crossmodelmatrix(x))
     pinvertible(Symmetric(xtx * S_hat(x, v) * xtx))
 end
+
+
+
