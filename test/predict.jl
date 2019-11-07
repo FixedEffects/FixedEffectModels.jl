@@ -206,7 +206,7 @@ end
 for method in methods_vec
 	model = @formula Sales ~ Price + fe(Year)
 	result = reg(df, model, save = true, method = method, double_precision = false)
-	@test fe(result)[1, :fe_Year] ≈ 164.77
+	@test fe(result)[1, :fe_Year] ≈ 164.7
 end
 
 
