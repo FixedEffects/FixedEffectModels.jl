@@ -45,7 +45,6 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	reg(df, @formula(Sales ~ (Price ~ Pimin)))
 	```
 
-
 	To construct formula programatically, use
 	```julia
 	reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year))
@@ -66,9 +65,14 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	subset = df.State .>= 30
 	```
 - The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `true` to save both
-- The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g. `contrasts = Dict(:YearC => DummyCoding(base = 80)))`
+
 - The option `method` can be set to one of the following: `:lsmr`, `:lsmr_gpu`, `:lsmr_threads`, `:lsmr_cores` (see Performances below).
 
+- The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g. 
+	```julia
+	df.Yearc = categorical(df.Year)
+	reg(df, @formula(Sales ~ Yearc; contrasts = Dict(:YearC => DummyCoding(base = 80)))
+	```
 ## Output
 `reg` returns a light object. It is composed of 
  
