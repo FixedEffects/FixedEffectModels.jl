@@ -71,7 +71,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 - The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g. 
 	```julia
 	df.Yearc = categorical(df.Year)
-	reg(df, @formula(Sales ~ Yearc; contrasts = Dict(:YearC => DummyCoding(base = 80)))
+	reg(df, @formula(Sales ~ Yearc); contrasts = Dict(:YearC => DummyCoding(base = 80)))
 	```
 ## Output
 `reg` returns a light object. It is composed of 
