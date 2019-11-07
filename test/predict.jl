@@ -125,9 +125,7 @@ result2 = reg(df, model2, weights = :Pop)
 @test r2(result1) ≈ r2(result2)
 
 methods_vec = [:lsmr, :lsmr_threads, :lsmr_cores]
-if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
-	push!(methods_vec, :lsmr_gpu)
-end
+
 
 for method in methods_vec
 	model = @formula Sales ~ Price + fe(Year)
@@ -200,8 +198,15 @@ for method in methods_vec
 	result = reg(df, model, subset = df.State .<= 30, weights = :Pop, save = true, method = method)
 	@test fe(result)[1, :fe_Year] + fe(result)[1, :fe_State] ≈ 158.91798 atol = 1e-4
 
+end
 
-
+if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
+	push!(methods_vec, :lsmr_gpu)
+end
+for method in methods_vec
+	model = @formula Sales ~ Price + fe(Year)
+	result = reg(df, model, save = true, method = method, double_precision = false)
+	@test fe(result)[1, :fe_Year] ≈ 164.77
 end
 
 
