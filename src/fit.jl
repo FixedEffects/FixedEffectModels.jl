@@ -22,30 +22,36 @@ Models with instruments variables are estimated using 2SLS. `reg` tests for weak
 using RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 @time reg(df, @formula(Sales ~ Price))
-reg(df, @formula(Sales ~ Price + fe(State) + fe(Year)))
+@time reg(df, @formula(Sales ~ Price + fe(State) + fe(Year)))
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(State)&Year))
 reg(df, @formula(Sales ~ NDI + fe(State)*Year))
 reg(df, @formula(Sales ~ (Price ~ Pimin)))
 @time reg(df, @formula(Sales ~ Price), weights = :Pop)
-reg(df, @formula(Sales ~ NDI), Vcov.robust()))
-reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State)))
-reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State , :Year)))
-df.Yearc = categoricay(df.Year)
+reg(df, @formula(Sales ~ NDI), Vcov.robust())
+reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State))
+reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State , :Year))
+df.YearC = categorical(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
-    weights::Union{Symbol, Nothing} = nothing,
-    subset::Union{AbstractVector, Nothing} = nothing,
-    maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
+function reg(@nospecialize(df), 
+    @nospecialize(formula::FormulaTerm), 
+    @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
+    @nospecialize(weights::Union{Symbol, Nothing} = nothing),
+    @nospecialize(subset::Union{AbstractVector, Nothing} = nothing),
+    maxiter::Integer = 10000, 
+    contrasts::Dict = Dict{Symbol, Any}(),
     dof_add::Integer = 0,
-    save::Union{Bool, Symbol} = false,  method::Symbol = :lsmr, drop_singletons = true, 
-    double_precision::Bool = true, tol::Real = double_precision ? 1e-8 : 1e-6,
-    feformula::Union{Symbol, Expr, Nothing} = nothing,
-    vcovformula::Union{Symbol, Expr, Nothing} = nothing,
-    subsetformula::Union{Symbol, Expr, Nothing} = nothing)
-    df = DataFrame(df; copycols = false) 
+    @nospecialize(save::Union{Bool, Symbol} = false),  
+    method::Symbol = :lsmr, 
+    drop_singletons = true, 
+    double_precision::Bool = true, 
+    tol::Real = double_precision ? 1e-8 : 1e-6,
+    @nospecialize(feformula::Union{Symbol, Expr, Nothing} = nothing),
+    @nospecialize(vcovformula::Union{Symbol, Expr, Nothing} = nothing),
+    @nospecialize(subsetformula::Union{Symbol, Expr, Nothing} = nothing))
 
+    df = DataFrame(df; copycols = false) 
     # to deprecate
     if vcovformula != nothing
         if (vcovformula == :simple) | (vcovformula == :(simple()))
@@ -65,10 +71,12 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     ## Parse formula
     ##
     ##############################################################################
-    if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
-        f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
+ 
+    formula_origin = formula
+    if  !any(term isa ConstantTerm for term in eachterm(formula.rhs))
+        formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(1), eachterm(formula.rhs)...))
     end
-    formula, formula_endo, formula_iv = decompose_iv(f)
+    formula, formula_endo, formula_iv = parse_iv(formula)
     has_iv = formula_iv != nothing
     has_weights = weights != nothing
 
@@ -133,6 +141,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
+    
 
     # Compute weights
     if has_weights
@@ -144,18 +153,15 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     sqrtw = sqrt.(values(weights))
 
     # Compute feM, an AbstractFixedEffectSolver
-    has_fes_intercept = false
+    has_intercept = !(ConstantTerm(0) ∈ eachterm(formula.rhs))
+    has_fe_intercept = false
     if has_fes
-        # in case some FixedEffect does not have interaction, remove the intercept
         if any(fe.interaction isa Ones for fe in fes)
-            formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
-            has_fes_intercept = true
+            has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
-
-    has_intercept = ConstantTerm(1) ∈ eachterm(formula.rhs)
     
     # Compute data for std errors
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
@@ -208,7 +214,7 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     end
 
     # compute tss now before potentially demeaning y
-    tss_ = tss(y, has_intercept | has_fes_intercept, sqrtw)
+    tss_ = tss(y, has_intercept | has_fe_intercept, sqrtw)
 
     # create unitilaized 
     iterations, converged, r2_within = nothing, nothing, nothing
@@ -301,7 +307,6 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         basecoef = basecolXexo
     end
 
-
     ##############################################################################
     ##
     ## Do the regression
@@ -370,9 +375,9 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
     rss = sum(abs2, residuals)
     mss = tss_ - rss
     r2 = 1 - rss / tss_
-    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fes_intercept)) / dof_residual
+    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fe_intercept)) / dof_residual
     if has_fes
-        r2_within = 1 - rss / tss(y, (has_intercept | has_fes_intercept), sqrtw)
+        r2_within = 1 - rss / tss(y, has_intercept | has_fe_intercept, sqrtw)
     end
 
     # Compute standard error
@@ -414,9 +419,8 @@ function reg(df, f::FormulaTerm, vcov::CovarianceEstimator = Vcov.simple();
         coef = newcoef
         matrix_vcov = newmatrix_vcov
     end
-
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, augmentdf,
-                            coef_names, response_name, f, formula_schema, nobs, dof_residual,
+                            coef_names, response_name, formula_origin, formula_schema, nobs, dof_residual,
                             rss, tss_, r2, adjr2, F, p,
                             iterations, converged, r2_within, 
                             F_kp, p_kp)

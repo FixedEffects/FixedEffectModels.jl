@@ -3,9 +3,9 @@
 ## Iterate on terms
 ##
 ##############################################################################
+
 eachterm(x::AbstractTerm) = (x,)
 eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
-
 
 ##############################################################################
 ##
@@ -13,19 +13,16 @@ eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
 ##
 ##############################################################################
 
-function decompose_iv(f::FormulaTerm)
-	formula_endo = nothing
-	formula_iv = nothing
+function parse_iv(f::FormulaTerm)
 	for term in eachterm(f.rhs)
-		if isa(term, FormulaTerm)
-			if formula_endo != nothing
-				throw("There can only be one instrumental variable specification")
-			end
+		if term isa FormulaTerm
 			formula_endo = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), eachterm(term.lhs)...))
 			formula_iv = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), eachterm(term.rhs)...))
+            exos = Tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm)))
+            return FormulaTerm(f.lhs, exos), formula_endo, formula_iv
 		end
 	end
-	return FormulaTerm(f.lhs, tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm))...)), formula_endo, formula_iv
+	return f, nothing, nothing
 end
 
 ##############################################################################
@@ -51,17 +48,23 @@ fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
 
 
 function parse_fixedeffect(df::AbstractDataFrame, formula::FormulaTerm)
-    fe = FixedEffect[]
-    id = Symbol[]
+    fes = FixedEffect[]
+    ids = Symbol[]
     for term in eachterm(formula.rhs)
         result = parse_fixedeffect(df, term)
         if result != nothing
-            push!(fe, result[1])
-            push!(id, result[2])
+            push!(fes, result[1])
+            push!(ids, result[2])
         end
     end
-    formula = FormulaTerm(formula.lhs, tuple((term for term in eachterm(formula.rhs) if !has_fe(term))...))
-    return fe, id, formula
+    if !isempty(fes)
+        if any(fe.interaction isa Ones for fe in fes)
+            formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (term for term in eachterm(formula.rhs) if (term != ConstantTerm(1)) & !has_fe(term))...))
+        else
+            formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
+        end
+    end
+    return fes, ids, formula
 end
 
 # Constructors from dataframe + Term
@@ -86,7 +89,6 @@ function parse_fixedeffect(df::AbstractDataFrame, t::InteractionTerm)
     end
 end
 
-
 function _multiply(df, ss::Vector)
     if isempty(ss)
         out = Ones(size(df, 1))
@@ -98,6 +100,7 @@ function _multiply(df, ss::Vector)
     end
     return out
 end
+
 function _multiply!(out, v)
     if v isa CategoricalVector
         throw("Fixed Effects cannot be interacted with Categorical Vector. Use fe(x)&fe(y)")
