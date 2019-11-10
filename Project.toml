@@ -1,6 +1,6 @@
 name = "FixedEffectModels"
 uuid = "9d5cd8c9-2029-5cab-9928-427838db53e3"
-version = "0.10.1"
+version = "0.10.2"
 
 [deps]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
