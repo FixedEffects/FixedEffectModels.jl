@@ -13,7 +13,7 @@ eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
 ##
 ##############################################################################
 
-function parse_iv(f::FormulaTerm)
+function parse_iv(@nospecialize(f::FormulaTerm))
 	for term in eachterm(f.rhs)
 		if term isa FormulaTerm
 			formula_endo = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), eachterm(term.lhs)...))
@@ -47,7 +47,7 @@ fesymbol(t::FixedEffectTerm) = t.x
 fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
 
 
-function parse_fixedeffect(df::AbstractDataFrame, formula::FormulaTerm)
+function parse_fixedeffect(df::AbstractDataFrame, @nospecialize(formula::FormulaTerm))
     fes = FixedEffect[]
     ids = Symbol[]
     for term in eachterm(formula.rhs)
