@@ -91,6 +91,7 @@ x = reg(df, m)
 
 
 
+
 # TO DO: REPORT INTERCEPT IN CASE OF FIXED EFFFECTS, LIKE STATA
 df.id3  = categorical(mod.(1:size(df, 1), Ref(3)))
 df.id4  = categorical(div.(1:size(df, 1), Ref(10)))
@@ -104,8 +105,10 @@ x = reg(df, m)
 @test length(coef(x)) == 3
 
 
+# with fixed effects it's like implicit intercept
 m = @formula y ~  id3 + fe(id4)
 x = reg(df, m)
+@test length(coef(x)) == 2
 
 
 m = @formula y ~ id2 + fe(id1)

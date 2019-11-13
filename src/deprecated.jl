@@ -101,6 +101,7 @@ end
 
 import StatsModels: capture_call
 macro model(ex, kws...)
+    @warn "@model is deprecated, please use @formula"
     f = StatsModels.terms!(StatsModels.sort_terms!(StatsModels.parse!(ex)))
     d = Dict{Symbol, Any}()
     for kw in kws

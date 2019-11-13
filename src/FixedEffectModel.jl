@@ -275,3 +275,17 @@ function Base.show(io::IO, ct::CoefTable2)
 end
 
 
+##############################################################################
+##
+## Schema
+##
+##############################################################################
+function StatsModels.apply_schema(t::FormulaTerm, schema::StatsModels.Schema, Mod::Type{FixedEffectModel}, has_fe_intercept)
+    schema = StatsModels.FullRank(schema)
+    if has_fe_intercept
+        push!(schema.already, InterceptTerm{true}())
+    end
+    FormulaTerm(apply_schema(t.lhs, schema.schema, StatisticalModel),
+                StatsModels.collect_matrix_terms(apply_schema(t.rhs, schema, StatisticalModel)))
+end
+

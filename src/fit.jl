@@ -73,8 +73,8 @@ function reg(@nospecialize(df),
     ##############################################################################
  
     formula_origin = formula
-    if  !any(term isa ConstantTerm for term in eachterm(formula.rhs))
-        formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(1), eachterm(formula.rhs)...))
+    if  !omitsintercept(formula) & !hasintercept(formula)
+        formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
     end
     formula, formula_endo, formula_iv = parse_iv(formula)
     has_iv = formula_iv != nothing
@@ -153,7 +153,7 @@ function reg(@nospecialize(df),
     sqrtw = sqrt.(values(weights))
 
     # Compute feM, an AbstractFixedEffectSolver
-    has_intercept = !(ConstantTerm(0) ∈ eachterm(formula.rhs))
+    has_intercept = hasintercept(formula)
     has_fe_intercept = false
     if has_fes
         if any(fe.interaction isa Ones for fe in fes)
@@ -173,7 +173,7 @@ function reg(@nospecialize(df),
     ##############################################################################
     exo_vars = unique(StatsModels.termvars(formula))
     subdf = StatsModels.columntable(disallowmissing(view(df, esample, exo_vars)))
-    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), StatisticalModel)
+    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel, has_fe_intercept)
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
@@ -197,7 +197,6 @@ function reg(@nospecialize(df),
 
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
-
 
         subdf = StatsModels.columntable(disallowmissing!(df[esample, iv_vars]))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
@@ -364,7 +363,7 @@ function reg(@nospecialize(df),
             end
         end
     end
-    dof_residual = max(1, nobs - size(X, 2) - dof_absorb - dof_add)
+    _n_coefs = size(X, 2) + dof_absorb + dof_add
     
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
@@ -375,20 +374,20 @@ function reg(@nospecialize(df),
     rss = sum(abs2, residuals)
     mss = tss_ - rss
     r2 = 1 - rss / tss_
-    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fe_intercept)) / dof_residual
+    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fe_intercept)) / (nobs - _n_coefs)
     if has_fes
         r2_within = 1 - rss / tss(y, has_intercept | has_fe_intercept, sqrtw)
     end
 
     # Compute standard error
-    vcov_data = VcovData(Xhat, crossx, residuals, dof_residual)
+    vcov_data = VcovData(Xhat, crossx, residuals, (nobs - _n_coefs))
     matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
 
-    dof_residual = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept))
-    p = ccdf(FDist(max(length(coef) - has_intercept, 1), dof_residual), F)
+    dof_residual = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
+    p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), dof_residual), F)
 
     # Compute Fstat of First Stage
     if has_iv

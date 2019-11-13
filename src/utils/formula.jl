@@ -6,7 +6,15 @@
 
 eachterm(x::AbstractTerm) = (x,)
 eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
-
+TermOrTerms = Union{AbstractTerm, NTuple{N, AbstractTerm} where N}
+hasintercept(t::TermOrTerms) =
+    InterceptTerm{true}() ∈ terms(t) ||
+    ConstantTerm(1) ∈ terms(t)
+omitsintercept(f::FormulaTerm) = omitsintercept(f.rhs)
+omitsintercept(t::TermOrTerms) =
+    InterceptTerm{false}() ∈ terms(t) ||
+    ConstantTerm(0) ∈ terms(t) ||
+    ConstantTerm(-1) ∈ terms(t)
 ##############################################################################
 ##
 ## Parse IV
@@ -59,7 +67,7 @@ function parse_fixedeffect(df::AbstractDataFrame, @nospecialize(formula::Formula
     end
     if !isempty(fes)
         if any(fe.interaction isa Ones for fe in fes)
-            formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (term for term in eachterm(formula.rhs) if (term != ConstantTerm(1)) & !has_fe(term))...))
+            formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if (term != ConstantTerm(1)) & (term != InterceptTerm{true}()) & !has_fe(term))...))
         else
             formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
         end
@@ -114,3 +122,5 @@ function _multiply!(out, v)
         end
     end
 end
+
+
