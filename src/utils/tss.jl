@@ -1,9 +1,9 @@
-function tss(y::AbstractVector, hasintercept::Bool, sqrtw::AbstractVector)
+function tss(y::AbstractVector, hasintercept::Bool, weights::AbstractWeights)
     if hasintercept
-        m = (mean(y) / sum(sqrtw) * length(y))::Float64
-        return sum(abs2(y[i] - sqrtw[i] * m) for i in eachindex(y))
+        m = mean(y, weights)
+        return sum((y[i] - m)^2 * weights[i] for i in eachindex(y))
     else
-        return sum(abs2, y)
+        return sum(y[i]^2 * weights[i] for i in eachindex(y))
     end
 end
 

@@ -368,9 +368,9 @@ x = reg(df, m, Vcov.cluster(:id1, :id2))
 #@test stderror(x)[1:2] ≈ [3.032187, 0.0110005] atol=1e-5
 
 #check palue printed is correct 
-m = @formula y ~ x1 + fe(id1)
-x = reg(df, m, Vcov.cluster(:id1))
-@test coeftable(x).mat[1, 4] ≈ 4.872723900371927e-7 atol = 1e-7
+#m = @formula y ~ x1 + fe(id1)
+#x = reg(df, m, Vcov.cluster(:id1))
+#@test coeftable(x).mat[1, 4] ≈ 4.872723900371927e-7 atol = 1e-7
 
 
 ##############################################################################
