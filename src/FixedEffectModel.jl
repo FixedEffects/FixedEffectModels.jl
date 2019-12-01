@@ -20,7 +20,7 @@ struct FixedEffectModel <: RegressionModel
     formula_schema
 
     nobs::Int64             # Number of observations
-    dof_residual::Int64      # degrees of freedoms
+    dof_residual::Int64      # nobs - degrees of freedoms
 
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares

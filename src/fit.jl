@@ -21,12 +21,9 @@ Models with instruments variables are estimated using 2SLS. `reg` tests for weak
 ```julia
 using RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
-@time reg(df, @formula(Sales ~ Price))
-@time reg(df, @formula(Sales ~ Price + fe(State) + fe(Year)))
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(State)&Year))
 reg(df, @formula(Sales ~ NDI + fe(State)*Year))
 reg(df, @formula(Sales ~ (Price ~ Pimin)))
-@time reg(df, @formula(Sales ~ Price), weights = :Pop)
 reg(df, @formula(Sales ~ NDI), Vcov.robust())
 reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State))
 reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State , :Year))
@@ -213,7 +210,7 @@ function reg(@nospecialize(df),
     end
 
     # compute tss now before potentially demeaning y
-    tss_ = tss(y, has_intercept | has_fe_intercept, sqrtw)
+    tss_total = tss(y, has_intercept | has_fe_intercept, weights)
 
     # create unitilaized 
     iterations, converged, r2_within = nothing, nothing, nothing
@@ -257,6 +254,8 @@ function reg(@nospecialize(df),
         if converged == false
             @warn "convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
         end
+
+        tss_partial = tss(y, has_intercept | has_fe_intercept, weights)
     end
 
     y .= y .* sqrtw
@@ -364,7 +363,8 @@ function reg(@nospecialize(df),
         end
     end
     _n_coefs = size(X, 2) + dof_absorb + dof_add
-    
+    dof_residual_ = max(1, nobs - _n_coefs)
+
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
         nclusters = map(x -> length(levels(x)), vcov_method.clusters)
@@ -372,22 +372,21 @@ function reg(@nospecialize(df),
 
     # Compute rss, tss, r2, r2 adjusted
     rss = sum(abs2, residuals)
-    mss = tss_ - rss
-    r2 = 1 - rss / tss_
-    adjr2 = 1 - rss / tss_ * (nobs - (has_intercept | has_fe_intercept)) / (nobs - _n_coefs)
+    mss = tss_total - rss
+    r2 = 1 - rss / tss_total
+    adjr2 = 1 - rss / tss_total * (nobs - (has_intercept | has_fe_intercept)) / dof_residual_
     if has_fes
-        r2_within = 1 - rss / tss(y, has_intercept | has_fe_intercept, sqrtw)
+        r2_within = 1 - rss / tss_partial
     end
 
     # Compute standard error
-    vcov_data = VcovData(Xhat, crossx, residuals, (nobs - _n_coefs))
+    vcov_data = VcovData(Xhat, crossx, residuals, dof_residual_)
     matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
-
-    dof_residual = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
-    p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), dof_residual), F)
+    df_FStat_ = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
+    p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_), F)
 
     # Compute Fstat of First Stage
     if has_iv
@@ -419,8 +418,8 @@ function reg(@nospecialize(df),
         matrix_vcov = newmatrix_vcov
     end
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, augmentdf,
-                            coef_names, response_name, formula_origin, formula_schema, nobs, dof_residual,
-                            rss, tss_, r2, adjr2, F, p,
+                            coef_names, response_name, formula_origin, formula_schema, nobs, dof_residual_,
+                            rss, tss_total, r2, adjr2, F, p,
                             iterations, converged, r2_within, 
                             F_kp, p_kp)
 end
