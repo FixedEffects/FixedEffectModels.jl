@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/FixedEffects/FixedEffectModels.jl.svg?branch=master](https://travis-ci.com/FixedEffects/FixedEffectModels.jl)
+[![Build Status](https://travis-ci.com/FixedEffects/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.com/FixedEffects/FixedEffectModels.jl)
 [![pipeline status](https://gitlab.com/JuliaGPU/FixedEffectModels.jl/badges/master/pipeline.svg)](https://gitlab.com/JuliaGPU/FixedEffectModels.jl/commits/master)
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
