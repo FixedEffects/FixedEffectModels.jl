@@ -17,14 +17,15 @@ using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weights = :Pop)
 # =====================================================================
-# Number of obs:               1380   Degrees of freedom:            31
-# R2:                         0.804   R2 within:                  0.139
-# F-Statistic:              13.3481   p-value:                    0.000
-# Iterations:                     6   Converged:                   true
+# Number of obs:               1380   Degrees of freedom:            32
+# R2:                         0.803   R2 Adjusted:                0.798
+# F Statistic:              13.3382   p-value:                    0.001
+# R2 within:                  0.139   Iterations:                     6
+# Converged:                   true
 # =====================================================================
 #         Estimate  Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
 # ---------------------------------------------------------------------
-# NDI  -0.00526264 0.00144043 -3.65351    0.000 -0.00808837 -0.00243691
+# NDI  -0.00526264 0.00144097 -3.65216    0.000 -0.00808942 -0.00243586
 # =====================================================================
 ```
 
