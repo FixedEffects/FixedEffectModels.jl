@@ -6,7 +6,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `FormulaTerm`: A formula created using [`@formula`](@ref)
 * `CovarianceEstimator`: A method to compute the variance-covariance matrix
 * `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects.
-* `method::Symbol = :lsmr`: Method to deman regressors. `:lsmr` is akin to conjugate gradient descent.  To use LSMR on multiple cores, use `:lsmr_parallel`. To use LSMR with multiple threads,  use `lsmr_threads`. To use LSMR on GPU, use `lsmr_gpu`(requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU.).
+* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
@@ -40,7 +40,7 @@ function reg(@nospecialize(df),
     contrasts::Dict = Dict{Symbol, Any}(),
     dof_add::Integer = 0,
     @nospecialize(save::Union{Bool, Symbol} = false),  
-    method::Symbol = :lsmr, 
+    method::Symbol = :cpu, 
     drop_singletons = true, 
     double_precision::Bool = true, 
     tol::Real = double_precision ? 1e-8 : 1e-6,

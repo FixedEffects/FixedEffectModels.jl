@@ -66,7 +66,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	```
 - The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `true` to save both
 
-- The option `method` can be set to one of the following: `:lsmr`, `:lsmr_gpu`, `:lsmr_threads`, `:lsmr_cores` (see Performances below).
+- The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
 - The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g. 
 	```julia
@@ -92,34 +92,17 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 #### GPU
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
 
-First make sure that `using CuArrays` works without issue. Then, estimate a model with `method = :lsmr_gpu`.
+First make sure that `using CuArrays` works without issue. Then, estimate a model with `method = :gpu`.
 
 When working on the GPU, it is encouraged to set the floating point precision to `Float32` with `double_precision = false`, since it is usually much faster.
 
 ```julia
 using FixedEffectModels
 df = dataset("plm", "Cigar")
-reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_gpu, double_precision = false)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :gpu, double_precision = false)
 ```
 
 
-#### Parallel Computing
-The package has support for [multi-threading](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#man-multithreading-1) and [multi-cores](https://docs.julialang.org/en/v1.2/manual/parallel-computing/#Multi-Core-or-Distributed-Processing-1). In this case, each regressor is demeaned in a different thread. It only allows for a modest speedup (between 10% and 60%) since the demeaning operation is typically memory bound.
-
-```julia
-# Multi-threading
-Threads.nthreads()
-using DataFrames, RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_threads)
-
-# Multi-cores 
-using Distributed
-addprocs(4)
-@everywhere using DataFrames,  RDatasets, FixedEffectModels
-df = dataset("plm", "Cigar")
-reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :lsmr_cores)
-```
 
 
 ## Solution Method

@@ -5,7 +5,7 @@ Partial out variables in a Dataframe
 * `df`: A table
 * `formula::FormulaTerm`: A formula created using `@formula`
 * `add_mean::Bool`: Should the initial mean added to the returned variable?
-* `method::Symbol`: A symbol for the method. Default is :lsmr (akin to conjugate gradient descent). Other choices are :lsmr_parallel, :lsmr_threads, :lsmr_gpu (requires `CuArrays`. Use the option `double_precision = false` to use `Float32` on the GPU).
+* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
 * `maxiter::Integer`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real`: Tolerance
@@ -32,7 +32,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     weights::Union{Symbol, Expr, Nothing} = nothing,
     add_mean = false,
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
-    method::Symbol = :lsmr,
+    method::Symbol = :cpu,
     double_precision::Bool = true,
     tol::Real = double_precision ? 1e-8 : 1e-6)
 
