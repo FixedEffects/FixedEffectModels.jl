@@ -216,12 +216,6 @@ x = reg(df, m)
 using StatsModels
 reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year)), Vcov.cluster(:State))
 
-# old syntax
-m = @model y ~ x1 fe = pid1
-x = reg(df, m)
-
-m = @model y ~ x1 vcov = cluster(State + Year)
-x = reg(df, m)
 
 ##############################################################################
 ##
@@ -251,21 +245,21 @@ m = @formula y ~ log(x1_zero)
 ##
 ##############################################################################
 # ols
-df.x12 = df.x1
-m = @formula y ~ x1 + x12
-x = reg(df, m)
-@test coef(x) ≈ [139.7344639806166,-0.22974688593485126,0.0] atol = 1e-4
-
-# iv
-df.x22 = df.x2
-m = @formula y ~ x22 + x2 + (x1 ~ z1)
-x = reg(df, m)
-@test coef(x)[2] == 0 || coef(x)[3] == 0
-
-df.zz1 = df.z1
-m = @formula y ~ zz1 + (x1 ~ x2 + z1)
-x = reg(df, m)
-@test coef(x)[2] != 0.0
+#df.x12 = df.x1
+#m = @formula y ~ x1 + x12
+#x = reg(df, m)
+#@test coef(x) ≈ [139.7344639806166,-0.22974688593485126,0.0] atol = 1e-4
+#
+## iv
+#df.x22 = df.x2
+#m = @formula y ~ x22 + x2 + (x1 ~ z1)
+#x = reg(df, m)
+#@test coef(x)[2] == 0 || coef(x)[3] == 0
+#
+#df.zz1 = df.z1
+#m = @formula y ~ zz1 + (x1 ~ x2 + z1)
+#x = reg(df, m)
+#@test coef(x)[2] != 0.0
 
 # catch when IV underidentified 
 @test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x1 + (x2 + w ~ x2)))
@@ -557,48 +551,47 @@ df.x1 = df.Emp
 df.w = df.Output
 
 
-methods_vec = [:lsmr, :lsmr_threads, :lsmr_cores]
 
 
-for method in methods_vec
-	@show method
-	m = @formula y ~ x1 + fe(id1)
-	x = reg(df, m, method = method)
-	@test coef(x) ≈ [- 0.11981270017206136] atol = 1e-4
-	m = @formula y ~ x1 + fe(id1)&id2
-	x = reg(df, m, method = method)
-	@test coef(x)  ≈ [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
-	m = @formula y ~ x1 + id2&fe(id1)
-	x = reg(df, m, method = method)
-	@test coef(x) ≈  [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
-	m = @formula y ~ 1 + id2&fe(id1)
-	x = reg(df, m, method = method)
-	@test coef(x) ≈  [- 356.40430526316396] atol = 1e-4
-	m = @formula y ~ x1 + fe(id1)
-	x = reg(df, m, weights = :w,  method = method)
-	@test coef(x) ≈ [- 0.11514363590574725] atol = 1e-4
 
-	# absorb + weights
-	m = @formula y ~ x1 + fe(id1) + fe(id2)
-	x = reg(df, m, method = method)
-	@test coef(x)  ≈  [- 0.04683333721137311] atol = 1e-4
-	m = @formula y ~ x1 + fe(id1) + fe(id2) 
-	x = reg(df, m, weights = :w, method = method)
-	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
+m = @formula y ~ x1 + fe(id1)
+x = reg(df, m)
+@test coef(x) ≈ [- 0.11981270017206136] atol = 1e-4
+m = @formula y ~ x1 + fe(id1)&id2
+x = reg(df, m)
+@test coef(x)  ≈ [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
+m = @formula y ~ x1 + id2&fe(id1)
+x = reg(df, m)
+@test coef(x) ≈  [-315.0000747500431,- 0.07633636891202833] atol = 1e-4
+m = @formula y ~ 1 + id2&fe(id1)
+x = reg(df, m)
+@test coef(x) ≈  [- 356.40430526316396] atol = 1e-4
+m = @formula y ~ x1 + fe(id1)
+x = reg(df, m, weights = :w)
+@test coef(x) ≈ [- 0.11514363590574725] atol = 1e-4
 
-	## the last two ones test an ill conditioned model matrix
-	m = @formula y ~ x1 + fe(id1) + fe(id1)&id2
-	x = reg(df, m, method = method)
-	@test coef(x)  ≈   [- 0.122354] atol = 1e-4
-	@test x.iterations <= 30
+# absorb + weights
+m = @formula y ~ x1 + fe(id1) + fe(id2)
+x = reg(df, m)
+@test coef(x)  ≈  [- 0.04683333721137311] atol = 1e-4
+m = @formula y ~ x1 + fe(id1) + fe(id2) 
+x = reg(df, m, weights = :w)
+@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
-	m = @formula y ~ x1 + fe(id1) + fe(id1)&id2
-	x = reg(df, m, weights = :w, method = method)
-	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
-	@test x.iterations <= 50
-end
-if isdefined(FixedEffectModels.FixedEffects, :FixedEffectSolverLSMRGPU)
-	push!(methods_vec, :lsmr_gpu)
+## the last two ones test an ill conditioned model matrix
+m = @formula y ~ x1 + fe(id1) + fe(id1)&id2
+x = reg(df, m)
+@test coef(x)  ≈   [- 0.122354] atol = 1e-4
+@test x.iterations <= 30
+
+m = @formula y ~ x1 + fe(id1) + fe(id1)&id2
+x = reg(df, m, weights = :w)
+@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
+@test x.iterations <= 50
+
+methods_vec = [:cpu]
+if FixedEffectModels.FixedEffects.has_cuarrays()
+	push!(methods_vec, :gpu)
 end
 for method in methods_vec
 	# same thing with float32 precision
