@@ -14,7 +14,7 @@ result = reg(df, model)
 show(result)
 predict(result, df)
 residuals(result, df)
-
+@test responsename(result) == "Sales"
 
 
 model = @formula Sales ~ CPI + (Price ~ Pimin)
@@ -31,6 +31,7 @@ show(result)
 model = @formula Sales ~ CPI + (Price ~ Pimin) + fe(State)
 result = reg(df, model)
 show(result)
+
 
 
 ##############################################################################
