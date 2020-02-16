@@ -146,8 +146,8 @@ function reg(@nospecialize(df),
     else
         weights = Weights(Ones{Float64}(sum(esample)))
     end
-    all(isfinite, values(weights)) || throw("Weights are not finite")
-    sqrtw = sqrt.(values(weights))
+    all(isfinite, weights) || throw("Weights are not finite")
+    sqrtw = sqrt.(weights)
 
     # Compute feM, an AbstractFixedEffectSolver
     has_intercept = hasintercept(formula)
@@ -380,7 +380,7 @@ function reg(@nospecialize(df),
     end
 
     # Compute standard error
-    vcov_data = VcovData(Xhat, crossx, residuals, dof_residual_)
+    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual_)
     matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
 
     # Compute Fstat

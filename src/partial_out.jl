@@ -69,8 +69,8 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     else
         weights = Weights(Ones{Float64}(sum(esample)))
     end
-    all(isfinite, values(weights)) || throw("Weights are not finite")
-    sqrtw = sqrt.(values(weights))
+    all(isfinite, weights) || throw("Weights are not finite")
+    sqrtw = sqrt.(weights)
 
     if has_fes
         # in case some FixedEffect does not have interaction, remove the intercept
