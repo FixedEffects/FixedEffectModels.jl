@@ -48,6 +48,7 @@ has_fe(x::FixedEffectModel) = has_fe(x.formula)
 # fields
 StatsBase.coef(x::FixedEffectModel) = x.coef
 StatsBase.coefnames(x::FixedEffectModel) = x.coefnames
+StatsBase.responsename(x::FixedEffectModel) = x.yname
 StatsBase.vcov(x::FixedEffectModel) = x.vcov
 StatsBase.nobs(x::FixedEffectModel) = x.nobs
 StatsBase.dof_residual(x::FixedEffectModel) = x.dof_residual
@@ -57,6 +58,7 @@ StatsBase.islinear(x::FixedEffectModel) = true
 StatsBase.deviance(x::FixedEffectModel) = x.tss
 StatsBase.rss(x::FixedEffectModel) = x.rss
 StatsBase.mss(x::FixedEffectModel) = deviance(x) - rss(x)
+
 
 function StatsBase.confint(x::FixedEffectModel)
     scale = quantile(TDist(dof_residual(x)), 1 - (1-0.95)/2)

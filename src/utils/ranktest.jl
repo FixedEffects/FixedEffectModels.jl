@@ -51,7 +51,7 @@ function ranktest!(X::Matrix{Float64},
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
         temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
         k = kron(temp1, temp2)'
-        vcovmodel = VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
+        vcovmodel = Vcov.VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
         matrix_vcov2 = Vcov.S_hat(vcovmodel, vcov_method)
         vhat = k \ (k \ matrix_vcov2)'
     end
