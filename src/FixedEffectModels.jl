@@ -14,6 +14,7 @@ using FillArrays
 using DataFrames
 using Distributions
 using Reexport
+using Tables
 @reexport using StatsBase
 @reexport using StatsModels
 

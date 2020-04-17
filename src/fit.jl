@@ -171,7 +171,7 @@ function reg(@nospecialize(df),
     ##
     ##############################################################################
     exo_vars = unique(StatsModels.termvars(formula))
-    subdf = StatsModels.columntable(disallowmissing(view(df, esample, exo_vars)))
+    subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
     formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel, has_fe_intercept)
 
     # Obtain y
@@ -189,7 +189,7 @@ function reg(@nospecialize(df),
     end
 
     if has_iv
-        subdf = StatsModels.columntable(disallowmissing(view(df, esample, endo_vars)))
+        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
@@ -197,7 +197,7 @@ function reg(@nospecialize(df),
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
 
-        subdf = StatsModels.columntable(disallowmissing(view(df, esample, iv_vars)))
+        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
@@ -208,7 +208,7 @@ function reg(@nospecialize(df),
 
         # modify formula to use in predict
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
-        formula_schema = apply_schema(formula, schema(formula, StatsModels.columntable(df), contrasts), StatisticalModel)
+        formula_schema = apply_schema(formula, schema(formula, Tables.columntable(df), contrasts), StatisticalModel)
     end
 
     # compute tss now before potentially demeaning y
