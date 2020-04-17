@@ -90,37 +90,36 @@ function parse_fixedeffect(df::AbstractDataFrame, t::InteractionTerm)
     if !isempty(fes)
         # x1&x2 from (x1&x2)*id
         fe_names = [fesymbol(x) for x in fes]
-        fe = FixedEffect(group((df[!, fe_name] for fe_name in fe_names)...); interaction = _multiply(df, Symbol.(interactions)))
+        x1 = _group((df[!, fe_name] for fe_name in fe_names)...)
+        v1 = _multiply(df, Symbol.(interactions))
+        fe = FixedEffect(x1; interaction = v1)
         interactions = setdiff(Symbol.(terms(t)), fe_names)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(interactions))
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
     end
 end
 
-function _multiply(df, ss::Vector)
+function _group(args...)
+    if (length(args) == 1) & isa(args[1], CategoricalVector)
+        return args[1]
+    else
+        return group(args...)
+    end
+end
+
+
+function _multiply(df, ss::AbstractVector)
     if isempty(ss)
         out = Ones(size(df, 1))
     else
-        out = ones(size(df, 1))
-        for j in eachindex(ss)
-            _multiply!(out, df[!, ss[j]])
+        if any(x -> isa(df[!, x], CategoricalVector), ss)
+            throw("Fixed Effects cannot be interacted with Categorical Vector. Use fe(x)&fe(y)")
         end
+        out = .*((df[!, x] for x in ss)...)
     end
     return out
 end
 
-function _multiply!(out, v)
-    if v isa CategoricalVector
-        throw("Fixed Effects cannot be interacted with Categorical Vector. Use fe(x)&fe(y)")
-    end
-    for i in eachindex(out)
-        if v[i] === missing
-            # may be missing when I remove singletons
-            out[i] = 0.0
-        else
-            out[i] = out[i] * v[i]
-        end
-    end
-end
+
 
 
