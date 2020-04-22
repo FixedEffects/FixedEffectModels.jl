@@ -47,7 +47,6 @@ function reg(@nospecialize(df),
     @nospecialize(feformula::Union{Symbol, Expr, Nothing} = nothing),
     @nospecialize(vcovformula::Union{Symbol, Expr, Nothing} = nothing),
     @nospecialize(subsetformula::Union{Symbol, Expr, Nothing} = nothing))
-
     df = DataFrame(df; copycols = false) 
     # to deprecate
     if vcovformula != nothing
@@ -138,13 +137,17 @@ function reg(@nospecialize(df),
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
+
+    if nobs == size(df, 1)
+        esample = Colon()
+    end
     
 
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
     else
-        weights = Weights(Ones{Float64}(sum(esample)))
+        weights = Weights(Ones{Float64}(nobs))
     end
     all(isfinite, weights) || throw("Weights are not finite")
     sqrtw = sqrt.(weights)
@@ -162,14 +165,13 @@ function reg(@nospecialize(df),
     
     # Compute data for std errors
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
-
     ##############################################################################
     ##
     ## Dataframe --> Matrix
     ##
     ##############################################################################
     exo_vars = unique(StatsModels.termvars(formula))
-    subdf = StatsModels.columntable(disallowmissing(view(df, esample, exo_vars)))
+    subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
     formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel, has_fe_intercept)
 
     # Obtain y
@@ -187,7 +189,7 @@ function reg(@nospecialize(df),
     end
 
     if has_iv
-        subdf = StatsModels.columntable(disallowmissing!(df[esample, endo_vars]))
+        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
@@ -195,7 +197,7 @@ function reg(@nospecialize(df),
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
 
-        subdf = StatsModels.columntable(disallowmissing!(df[esample, iv_vars]))
+        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
@@ -206,7 +208,7 @@ function reg(@nospecialize(df),
 
         # modify formula to use in predict
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
-        formula_schema = apply_schema(formula, schema(formula, StatsModels.columntable(df), contrasts), StatisticalModel)
+        formula_schema = apply_schema(formula, schema(formula, Tables.columntable(df), contrasts), StatisticalModel)
     end
 
     # compute tss now before potentially demeaning y
@@ -323,8 +325,8 @@ function reg(@nospecialize(df),
 
     augmentdf = DataFrame()
     if save_residuals
-        if nobs < length(esample)
-            augmentdf.residuals = Vector{Union{Float64, Missing}}(missing, length(esample))
+        if nobs < size(df, 1)
+            augmentdf.residuals = Vector{Union{Float64, Missing}}(missing, size(df, 1))
             augmentdf[esample, :residuals] = residuals ./ sqrtw
         else
             augmentdf[!, :residuals] = residuals ./ sqrtw
@@ -334,8 +336,8 @@ function reg(@nospecialize(df),
         oldX = getcols(oldX, basecoef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for j in 1:length(fes)
-            if nobs < length(esample)
-                augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, length(esample))
+            if nobs < size(df, 1)
+                augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
                 augmentdf[esample, ids[j]] = newfes[j]
             else
                 augmentdf[!, ids[j]] = newfes[j]
@@ -416,6 +418,9 @@ function reg(@nospecialize(df),
         end
         coef = newcoef
         matrix_vcov = newmatrix_vcov
+    end
+    if esample == Colon()
+        esample = trues(size(df, 1))
     end
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, augmentdf,
                             coef_names, response_name, formula_origin, formula_schema, nobs, dof_residual_,

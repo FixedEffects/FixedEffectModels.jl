@@ -35,5 +35,3 @@ df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2,
 # 15.738214 seconds (929.97 k allocations: 147.737 MiB, 0.95% gc time)
 
 
-
-
