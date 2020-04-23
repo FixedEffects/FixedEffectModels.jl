@@ -72,7 +72,7 @@ result = reg(df, model, subset = df.State .<= 30, weights = :Pop)
 # fixed effects
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = true)
-@test result.augmentdf.residuals[1:3] ≈ [-22.08499, -20.33318, -17.23318] atol = 1e-4
+@test residuals(result)[1:3] ≈ [-22.08499, -20.33318, -17.23318] atol = 1e-4
 @test result.nobs == 1380
 @test r2(result) ≈ 0.7682403747044817 atol = 1e-4
 @test adjr2(result) ≈ 0.7602426682051615 atol = 1e-4
@@ -81,31 +81,31 @@ result = reg(df, model, save = true)
 # fixed effects and weights
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model,  weights = :Pop, save = true)
-@test result.augmentdf.residuals[1:3] ≈ [ -23.413793, -21.65289, -18.55289] atol = 1e-4
+@test residuals(result)[1:3] ≈ [ -23.413793, -21.65289, -18.55289] atol = 1e-4
 
 # fixed effects and iv
 #TO CHECK WITH IVREGHDFE, NO SUPPORT RIGHT NOW
 model = @formula Sales ~ CPI + (Price ~ Pimin) + fe(State)
 result = reg(df, model, save = true)
-@test result.augmentdf.residuals[1:3] ≈ [ -16.925748, -14.835710, -12.017037] atol = 1e-4
+@test residuals(result)[1:3] ≈ [ -16.925748, -14.835710, -12.017037] atol = 1e-4
 
 
 
 # test different arguments for the keyword argument save
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = true)
-@test :residuals ∈ names(result.augmentdf)
-@test :fe_State ∈ names(result.augmentdf)
+@test residuals(result) !== nothing
+@test :fe_State ∈ names(fe(result))
 
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = :residuals)
-@test :residuals ∈ names(result.augmentdf)
-@test :fe_State ∉ names(result.augmentdf)
+@test residuals(result) !== nothing
+@test :fe_State ∉ names(fe(result))
 
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = :fe)
-@test :residuals ∉ names(result.augmentdf)
-@test :fe_State ∈ names(result.augmentdf)
+@test residuals(result) === nothing
+@test :fe_State ∈ names(fe(result))
 
 
 
