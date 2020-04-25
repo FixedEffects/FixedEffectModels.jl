@@ -12,12 +12,14 @@ struct FixedEffectModel <: RegressionModel
     nclusters::Union{NamedTuple, Nothing}
 
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
-    augmentdf::DataFrame
+    residuals::Union{AbstractVector, Nothing}
+    fe::DataFrame
 
     coefnames::Vector       # Name of coefficients
     yname::Union{String, Symbol} # Name of dependent variable
     formula::FormulaTerm        # Original formula
-    formula_schema
+    formula_predict::FormulaTerm
+    contrasts::Dict
 
     nobs::Int64             # Number of observations
     dof_residual::Int64      # nobs - degrees of freedoms
@@ -67,45 +69,46 @@ function StatsBase.confint(x::FixedEffectModel)
 end
 
 # predict, residuals, modelresponse
-function StatsBase.predict(x::FixedEffectModel, df::AbstractDataFrame)
+function StatsBase.predict(x::FixedEffectModel, df)
     has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fe()`")
-    cols, nonmissings = StatsModels.missing_omit(StatsModels.columntable(df), MatrixTerm(x.formula_schema.rhs))
-    new_x = modelmatrix(x.formula_schema, cols)
-    if all(nonmissings)
-        out = new_x * x.coef
-    else
-        out = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-        out[nonmissings] = new_x * x.coef
-    end
+    df = StatsModels.columntable(df)
+    formula_schema = apply_schema(x.formula_predict, schema(x.formula_predict, df, x.contrasts), StatisticalModel)
+    cols, nonmissings = StatsModels.missing_omit(df, MatrixTerm(formula_schema.rhs))
+    new_x = modelmatrix(formula_schema, cols)
+    out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(df)))
+    out[nonmissings] = new_x * x.coef
     return out
 end
 
-function StatsBase.residuals(x::FixedEffectModel, df::AbstractDataFrame)
+function StatsBase.residuals(x::FixedEffectModel, df)
+    df = StatsModels.columntable(df)
     if !has_fe(x)
-        cols, nonmissings = StatsModels.missing_omit(StatsModels.columntable(df), x.formula_schema)
-        new_x = modelmatrix(x.formula_schema, cols)
-        y = response(x.formula_schema, df)
+        formula_schema = apply_schema(x.formula_predict, schema(x.formula_predict, df, x.contrasts), StatisticalModel)
+        cols, nonmissings = StatsModels.missing_omit(df, formula_schema)
+        new_x = modelmatrix(formula_schema, cols)
+        y = response(formula_schema, df)
         if all(nonmissings)
             out =  y -  new_x * x.coef
         else
-            out = Vector{Union{Float64, Missing}}(missing,  size(df, 1))
+            out = Vector{Union{Float64, Missing}}(missing,  length(Tables.rows(df)))
             out[nonmissings] = y -  new_x * x.coef
         end
         return out
     else
-        size(x.augmentdf, 2) == 0 && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = true, and then access residuals with `residuals()`")
+        typeof(x.residuals) == Nothing && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = true, and then access residuals with `residuals()`")
        residuals(x)
    end
 end
 
+
 function StatsBase.residuals(x::FixedEffectModel)
     !has_fe(x) && throw("To access residuals,  use residuals(x, df::AbstractDataFrame")
-    x.augmentdf.residuals
+    x.residuals
 end
    
 function fe(x::FixedEffectModel)
    !has_fe(x) && throw("fe() is not defined for fixed effect models without fixed effects")
-   x.augmentdf[!, 2:size(x.augmentdf, 2)]
+   x.fe
 end
 
 

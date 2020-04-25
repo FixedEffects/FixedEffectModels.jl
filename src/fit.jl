@@ -207,8 +207,7 @@ function reg(@nospecialize(df),
         end
 
         # modify formula to use in predict
-        formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., eachterm(formula_endo.rhs)...)))
-        formula_schema = apply_schema(formula, schema(formula, Tables.columntable(df), contrasts), StatisticalModel)
+        formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
 
     # compute tss now before potentially demeaning y
@@ -323,25 +322,19 @@ function reg(@nospecialize(df),
     ##
     ##############################################################################
 
-    augmentdf = DataFrame()
+    residuals2 = nothing
     if save_residuals
-        if nobs < size(df, 1)
-            augmentdf.residuals = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-            augmentdf[esample, :residuals] = residuals ./ sqrtw
-        else
-            augmentdf[!, :residuals] = residuals ./ sqrtw
-        end
+        residuals2 = Vector{Union{Float64, Missing}}(missing, size(df, 1))
+        residuals2[esample] = residuals ./ sqrtw
     end
+
+    augmentdf = DataFrame()
     if save_fe
         oldX = getcols(oldX, basecoef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for j in 1:length(fes)
-            if nobs < size(df, 1)
-                augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-                augmentdf[esample, ids[j]] = newfes[j]
-            else
-                augmentdf[!, ids[j]] = newfes[j]
-            end
+            augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
+            augmentdf[esample, ids[j]] = newfes[j]
         end
     end
     
@@ -422,8 +415,8 @@ function reg(@nospecialize(df),
     if esample == Colon()
         esample = trues(size(df, 1))
     end
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, augmentdf,
-                            coef_names, response_name, formula_origin, formula_schema, nobs, dof_residual_,
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf,
+                            coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,
                             rss, tss_total, r2, adjr2, F, p,
                             iterations, converged, r2_within, 
                             F_kp, p_kp)
