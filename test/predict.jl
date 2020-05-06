@@ -95,17 +95,17 @@ result = reg(df, model, save = true)
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = true)
 @test residuals(result) !== nothing
-@test :fe_State ∈ names(fe(result))
+@test "fe_State" ∈ names(fe(result))
 
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = :residuals)
 @test residuals(result) !== nothing
-@test :fe_State ∉ names(fe(result))
+@test "fe_State" ∉ names(fe(result))
 
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = :fe)
 @test residuals(result) === nothing
-@test :fe_State ∈ names(fe(result))
+@test "fe_State" ∈ names(fe(result))
 
 
 
