@@ -24,10 +24,14 @@ omitsintercept(t::TermOrTerms) =
 function parse_iv(@nospecialize(f::FormulaTerm))
 	for term in eachterm(f.rhs)
 		if term isa FormulaTerm
-			formula_endo = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), eachterm(term.lhs)...))
-			formula_iv = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), eachterm(term.rhs)...))
-            exos = Tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm)))
-            return FormulaTerm(f.lhs, exos), formula_endo, formula_iv
+            both = intersect(eachterm(term.lhs), eachterm(term.rhs))
+            endos = setdiff(eachterm(term.lhs), both)
+            exos = setdiff(eachterm(term.rhs), both)
+            !isempty(endos) && !isempty(exos) || throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
+			formula_endo = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), endos...))
+			formula_iv = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), exos...))
+            formula_exo = FormulaTerm(f.lhs, tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm))..., both...))
+            return formula_exo, formula_endo, formula_iv
 		end
 	end
 	return f, nothing, nothing

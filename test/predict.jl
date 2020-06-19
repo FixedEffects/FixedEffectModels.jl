@@ -199,8 +199,8 @@ if FixedEffectModels.FixedEffects.has_cuarrays()
 	push!(methods_vec, :gpu)
 end
 for method in methods_vec
-	model = @formula Sales ~ Price + fe(Year)
-	result = reg(df, model, save = true, method = method, double_precision = false)
+	local model = @formula Sales ~ Price + fe(Year)
+	local result = reg(df, model, save = true, method = method, double_precision = false)
 	@test fe(result)[1, :fe_Year] ≈ 164.7 atol = 1e-1
 end
 
