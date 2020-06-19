@@ -213,7 +213,6 @@ x = reg(df, m)
 ## Programming
 ##
 ##############################################################################
-using StatsModels
 reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year)), Vcov.cluster(:State))
 
 
@@ -237,7 +236,7 @@ x = reg(df, m)
 df.x1_zero = copy(df.x1)
 df.x1_zero[1] = 0.0
 m = @formula y ~ log(x1_zero)
-@test_throws  "Some observations for the regressor are infinite" x = reg(df, m)
+@test_throws  "Some observations for the regressor are infinite" reg(df, m)
 ##############################################################################
 ##
 ## collinearity
@@ -595,26 +594,26 @@ if FixedEffectModels.FixedEffects.has_cuarrays()
 end
 for method in methods_vec
 	# same thing with float32 precision
-	m = @formula y ~ x1 + fe(id1)
-	x = reg(df, m, method = method, double_precision = false)
+	local m = @formula y ~ x1 + fe(id1)
+	local x = reg(df, m, method = method, double_precision = false)
 	@test coef(x) ≈ [- 0.11981270017206136] rtol = 1e-4
-	m = @formula y ~ x1 + fe(id1)&id2
-	x = reg(df, m, method = method, double_precision = false)
+	local m = @formula y ~ x1 + fe(id1)&id2
+	local x = reg(df, m, method = method, double_precision = false)
 	@test coef(x)  ≈ [-315.0000747500431,- 0.07633636891202833] rtol = 1e-4
-	m = @formula y ~ x1 + id2&fe(id1)
-	x = reg(df, m, method = method, double_precision = false)
+	local m = @formula y ~ x1 + id2&fe(id1)
+	local x = reg(df, m, method = method, double_precision = false)
 	@test coef(x) ≈  [-315.0000747500431,- 0.07633636891202833] rtol = 1e-4
-	m = @formula y ~ 1 + id2&fe(id1)
-	x = reg(df, m, method = method, double_precision = false)
+	local m = @formula y ~ 1 + id2&fe(id1)
+	local x = reg(df, m, method = method, double_precision = false)
 	@test coef(x) ≈  [- 356.40430526316396] rtol = 1e-4
-	m = @formula y ~ x1 + fe(id1)
-	x = reg(df, m, weights = :w, method = method, double_precision = false)
+	local m = @formula y ~ x1 + fe(id1)
+	local x = reg(df, m, weights = :w, method = method, double_precision = false)
 	@test coef(x) ≈ [- 0.11514363590574725] rtol = 1e-4
-	m = @formula y ~ x1 + fe(id1) + fe(id2)
-	x = reg(df, m, method = method, double_precision = false)
+	local m = @formula y ~ x1 + fe(id1) + fe(id2)
+	local x = reg(df, m, method = method, double_precision = false)
 	@test coef(x)  ≈  [- 0.04683333721137311] rtol = 1e-4
-	m = @formula y ~ x1 + fe(id1) + fe(id2)
-	x = reg(df, m, weights = :w, method = method, double_precision = false)
+	local m = @formula y ~ x1 + fe(id1) + fe(id2)
+	local x = reg(df, m, weights = :w, method = method, double_precision = false)
 	@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 end
 
