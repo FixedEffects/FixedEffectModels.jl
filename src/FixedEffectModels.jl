@@ -59,9 +59,5 @@ include("fit.jl")
 include("partial_out.jl")
 
 include("deprecated.jl")
-# precompile script
-df = DataFrame(y = [1, 1], x =[1, 2], id = [1, 1])
-reg(df, @formula(y ~ x + fe(id)))
-reg(df, @formula(y ~ x), Vcov.cluster(:id))
 
 end  # module FixedEffectModels
