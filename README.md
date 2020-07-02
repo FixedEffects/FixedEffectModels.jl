@@ -49,7 +49,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 	To construct formula programatically, use
 	```julia
-	reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year))
+	reg(df, Term(:Sales) ~ Term(:NDI) + fe(Term(:State)) + fe(Term(:Year)))
 	```
 
 - Standard errors are indicated with the prefix `Vcov`.
