@@ -180,9 +180,9 @@ function reg(@nospecialize(df),
     all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
 
     # Obtain X
-    Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
-    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
-
+    Xexo = modelmatrix(formula_schema, subdf)
+    esample2 = completecases(DataFrame(Xexo))
+    
     response_name, coef_names = coefnames(formula_schema)
     if !(coef_names isa Vector)
         coef_names = typeof(coef_names)[coef_names]
@@ -191,17 +191,25 @@ function reg(@nospecialize(df),
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
-        Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
-        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
-
+        Xendo = modelmatrix(formula_endo_schema, subdf)
+            
+        esample2 .&= completecases(DataFrame(Xendo))
+            
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
 
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
-        Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
+        Z = modelmatrix(formula_iv_schema, subdf)
+        
+        esample2 .&= completecases(DataFrame(Z))
+    
+        Xendo = convert(Matrix{Float64}, Xendo[esample2,:])
+        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+        
+        Z = convert(Matrix{Float64}, Z[esample2,:])
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
-
+                
         if size(Z, 2) < size(Xendo, 2)
             throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
@@ -209,7 +217,14 @@ function reg(@nospecialize(df),
         # modify formula to use in predict
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
-
+    
+    Xexo = convert(Matrix{Float64}, Xexo[esample2,:])
+    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+    
+    y = y[esample2]
+    weights = weights[esample2]
+    sqrtw = sqrtw[esample2]
+    
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
 
