@@ -178,10 +178,14 @@ function reg(@nospecialize(df),
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
     y = convert(Vector{Float64}, response(formula_schema, subdf))
     all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
-
+    
     # Obtain X
     Xexo = modelmatrix(formula_schema, subdf)
-    esample2 = completecases(DataFrame(Xexo))
+    esample2 = trues(size(y))
+    
+    if size(Xexo, 2) > 0
+      esample2 .&= completecases(DataFrame(Xexo))
+    end
     
     response_name, coef_names = coefnames(formula_schema)
     if !(coef_names isa Vector)
@@ -192,8 +196,10 @@ function reg(@nospecialize(df),
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = modelmatrix(formula_endo_schema, subdf)
-            
-        esample2 .&= completecases(DataFrame(Xendo))
+        
+        if size(Xendo, 2) > 0
+            esample2 .&= completecases(DataFrame(Xendo))
+        end
             
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
