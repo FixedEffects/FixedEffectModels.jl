@@ -209,11 +209,16 @@ function reg(@nospecialize(df),
         Z = modelmatrix(formula_iv_schema, subdf)
         
         esample2 .&= completecases(DataFrame(Z))
-    
-        Xendo = convert(Matrix{Float64}, Xendo[esample2,:])
-        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
         
-        Z = convert(Matrix{Float64}, Z[esample2,:])
+        if any(esample2 .== false)
+            Xendo = Xendo[esample2,:]
+            Z = Z[esample2,:]
+        end
+        
+        Xendo = convert(Matrix{Float64}, Xendo)
+        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+
+        Z = convert(Matrix{Float64}, Z)
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
                 
         if size(Z, 2) < size(Xendo, 2)
@@ -224,13 +229,18 @@ function reg(@nospecialize(df),
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
     
-    Xexo = convert(Matrix{Float64}, Xexo[esample2,:])
+
+    
+    if any(esample .== false)
+        Xexo = Xexo[esample2,:]
+        y = y[esample2]
+        weights = weights[esample2]
+        sqrtw = sqrtw[esample2]
+    end
+
+    Xexo = convert(Matrix{Float64}, Xexo)  
     all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
-    
-    y = y[esample2]
-    weights = weights[esample2]
-    sqrtw = sqrtw[esample2]
-    
+  
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
 
