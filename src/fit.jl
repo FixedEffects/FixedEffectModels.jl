@@ -162,11 +162,15 @@ function reg(@nospecialize(df),
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
     y = response(formula_schema, subdf)
-    esample2 = .! ismissing.(y)
+
+    # added in PR #109 to handle cases where formula terms introduce missings
+    # to be removed when fixed in StatsModels
+    esample2 = .!ismissing.(y)
     
     # Obtain X
     Xexo = modelmatrix(formula_schema, subdf)
     
+    # PR #109, to be removed when fixed in StatsModels
     if size(Xexo, 2) > 0
         for c in eachcol(Xexo)
             esample2 .&= .!ismissing.(c)
@@ -183,6 +187,7 @@ function reg(@nospecialize(df),
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = modelmatrix(formula_endo_schema, subdf)
         
+        # PR #109, to be removed when fixed in StatsModels
         if size(Xendo, 2) > 0
             for c in eachcol(Xendo)
                 esample2 .&= .!ismissing.(c)
@@ -200,6 +205,7 @@ function reg(@nospecialize(df),
             esample2 .&= .!ismissing.(c)
         end
         
+        # PR #109, to be removed when fixed in StatsModels
         if any(esample2 .== false)
             Xendo = Xendo[esample2,:]
             Z = Z[esample2,:]
@@ -219,6 +225,7 @@ function reg(@nospecialize(df),
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
     
+    # PR #109, to be removed when fixed in StatsModels
     if any(esample2 .== false)
         Xexo = Xexo[esample2,:]
         y = y[esample2]
