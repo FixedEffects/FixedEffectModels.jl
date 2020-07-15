@@ -83,15 +83,38 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
     X = modelmatrix(formula_x_schema, subdf)
     
+    # added in PR #109 to handle cases where formula terms introduce missings
+    # to be removed when fixed in StatsModels
+    esample2 = trues(size(Y, 1))
+    for c in eachcol(Y)
+        esample2 .&= .!ismissing.(c)
+    end
+    if size(X, 2) > 0 # X can have zero rows if all regressors are fixed effects
+        for c in eachcol(X)
+            esample2 .&= .!ismissing.(c)
+        end
+    end
+    
+    if any(!, esample2)
+        esample = esample2
+        Y = Y[esample,:]
+        X = X[esample,:]
+        nobs = sum(esample)
+    end
+    
+    # Disallow missings
+    Y = convert(Matrix{Float64}, Y)
+    X = convert(Matrix{Float64}, X)
+    
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
     else
-        weights = Weights(Ones{Float64}(sum(esample)))
+        weights = Weights(Ones{Float64}(nobs))
     end
     all(isfinite, weights) || throw("Weights are not finite")
     sqrtw = sqrt.(weights)
-    
+
     if has_fes
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
@@ -147,3 +170,4 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     end
     return out, iterations, convergeds
 end
+
