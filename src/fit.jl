@@ -225,11 +225,17 @@ function reg(@nospecialize(df),
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
     
+    esample0 = esample == Colon() ? trues(size(df,1)) : copy(esample)
+    
     # PR #109, to be removed when fixed in StatsModels
     if any(esample2 .== false)
+        if any(esample0 .== 0)
+            throw(ArgumentError("You passed a dataset missing observations and used formula terms that introduce missings. This is not yet supported."))
+        end
         Xexo = Xexo[esample2,:]
         y = y[esample2]
-        esample = esample == Colon() ? esample2 : esample[esample2]
+        esample = copy(esample0)
+        esample[esample] .= esample2
         nobs = sum(esample2)
     end
 
