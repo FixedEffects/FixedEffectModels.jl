@@ -142,29 +142,14 @@ function reg(@nospecialize(df),
         esample = Colon()
     end
     
-
-    # Compute weights
-    if has_weights
-        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
-    else
-        weights = Weights(Ones{Float64}(nobs))
-    end
-    all(isfinite, weights) || throw("Weights are not finite")
-    sqrtw = sqrt.(weights)
-
-    # Compute feM, an AbstractFixedEffectSolver
     has_intercept = hasintercept(formula)
     has_fe_intercept = false
     if has_fes
         if any(fe.interaction isa Ones for fe in fes)
             has_fe_intercept = true
         end
-        fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
     
-    # Compute data for std errors
-    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
     ##############################################################################
     ##
     ## Dataframe --> Matrix
@@ -231,15 +216,33 @@ function reg(@nospecialize(df),
     
 
     
-    if any(esample .== false)
+    if any(esample2 .== false)
         Xexo = Xexo[esample2,:]
         y = y[esample2]
-        weights = weights[esample2]
-        sqrtw = sqrtw[esample2]
+        esample = esample == Colon() ? esample2 : esample[esample2]
     end
 
     Xexo = convert(Matrix{Float64}, Xexo)  
     all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+    
+    # Compute weights
+    if has_weights
+        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+    else
+        weights = Weights(Ones{Float64}(nobs))
+    end
+    all(isfinite, weights) || throw("Weights are not finite")
+    sqrtw = sqrt.(weights)
+
+    # Compute feM, an AbstractFixedEffectSolver
+    if has_fes
+        fes = FixedEffect[_subset(fe, esample) for fe in fes]
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
+    end
+
+    # Compute data for std errors
+    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
+
   
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
