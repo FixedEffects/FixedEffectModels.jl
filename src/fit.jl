@@ -161,12 +161,11 @@ function reg(@nospecialize(df),
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(formula_schema, subdf))
-    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+    y = response(formula_schema, subdf)
+    esample2 = .! ismissing.(y)
     
     # Obtain X
     Xexo = modelmatrix(formula_schema, subdf)
-    esample2 = trues(size(y))
     
     if size(Xexo, 2) > 0
       esample2 .&= completecases(DataFrame(Xexo))
@@ -214,13 +213,14 @@ function reg(@nospecialize(df),
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
     
-
-    
     if any(esample2 .== false)
         Xexo = Xexo[esample2,:]
         y = y[esample2]
         esample = esample == Colon() ? esample2 : esample[esample2]
     end
+
+    y = convert(Vector{Float64}, y)
+    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
 
     Xexo = convert(Matrix{Float64}, Xexo)  
     all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
