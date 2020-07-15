@@ -237,6 +237,49 @@ df.x1_zero = copy(df.x1)
 df.x1_zero[1] = 0.0
 m = @formula y ~ log(x1_zero)
 @test_throws  "Some observations for the regressor are infinite" reg(df, m)
+
+# function that introduces missing
+using StatsModels: lag
+df.x1_lagged = lag(df.x1)
+df.z1_lagged = lag(df.z1)
+df.y_lagged = lag(df.y)
+
+function test_lags(m0, m1, descr)
+    @testset "$descr" begin
+        x0 = reg(df, m0, Vcov.cluster(:id1), weights=:w)
+        x1 = reg(df, m1, Vcov.cluster(:id1), weights=:w)
+        
+        @test x0.residuals == x1.residuals
+        @test x0.coef == x1.coef
+        @test x0.nobs == x1.nobs
+        @test x0.vcov == x1.vcov
+    end
+end
+
+# NOTE: This is a "dumb" lag function,
+# it doesn't take into account time and group indices!
+@testset "missings from @formula" begin
+    m0 = @formula y ~ x1_lagged + fe(id1)
+    m1 = @formula y ~ lag(x1) + fe(id1)
+    test_lags(m0, m1, "ols: _ ~ lag")
+
+    m0 = @formula y_lagged ~ x1 + fe(id1)
+    m1 = @formula lag(y) ~ x1 + fe(id1)
+    test_lags(m0, m1, "ols: lag ~ _")
+    
+    m0 = @formula y ~ (x1_lagged ~ z1_lagged) + fe(id1)
+    m1 = @formula y ~ (lag(x1) ~ lag(z1)) + fe(id1)
+    test_lags(m0, m1, "iv: _ ~ (lag ~ lag)")
+    
+    m0 = @formula y ~ (x1_lagged ~ z1) + fe(id1)
+    m1 = @formula y ~ (lag(x1) ~ z1) + fe(id1)
+    test_lags(m0, m1, "iv: _ ~ (lag ~ _)")
+    
+    m0 = @formula y ~ (x1 ~ z1_lagged) + fe(id1)
+    m1 = @formula y ~ (x1 ~ lag(z1)) + fe(id1)
+    test_lags(m0, m1, "iv: _ ~ (_ ~ lag)")
+end
+
 ##############################################################################
 ##
 ## collinearity
