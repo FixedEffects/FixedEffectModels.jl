@@ -217,6 +217,7 @@ function reg(@nospecialize(df),
         Xexo = Xexo[esample2,:]
         y = y[esample2]
         esample = esample == Colon() ? esample2 : esample[esample2]
+        nobs = sum(esample2)
     end
 
     y = convert(Vector{Float64}, y)
