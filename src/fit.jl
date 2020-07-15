@@ -168,7 +168,9 @@ function reg(@nospecialize(df),
     Xexo = modelmatrix(formula_schema, subdf)
     
     if size(Xexo, 2) > 0
-      esample2 .&= completecases(DataFrame(Xexo))
+        for c in eachcol(Xexo)
+            esample2 .&= .!ismissing.(c)
+        end
     end
     
     response_name, coef_names = coefnames(formula_schema)
@@ -182,7 +184,9 @@ function reg(@nospecialize(df),
         Xendo = modelmatrix(formula_endo_schema, subdf)
         
         if size(Xendo, 2) > 0
-            esample2 .&= completecases(DataFrame(Xendo))
+            for c in eachcol(Xendo)
+                esample2 .&= .!ismissing.(c)
+            end
         end
             
         _, coefendo_names = coefnames(formula_endo_schema)
@@ -192,7 +196,9 @@ function reg(@nospecialize(df),
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = modelmatrix(formula_iv_schema, subdf)
         
-        esample2 .&= completecases(DataFrame(Z))
+        for c in eachcol(Z)
+            esample2 .&= .!ismissing.(c)
+        end
         
         if any(esample2 .== false)
             Xendo = Xendo[esample2,:]
