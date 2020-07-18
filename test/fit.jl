@@ -1,6 +1,6 @@
 
-using FixedEffectModels, CSV, DataFrames, LinearAlgebra, Test
-df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
+using CUDA, FixedEffectModels, CSV, DataFrames, LinearAlgebra, Test
+df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 df.id1 = df.State
 df.id2 = df.Year
 df.pid1 = categorical(df.id1)
@@ -542,7 +542,7 @@ x = reg(df, m, Vcov.cluster(:id1), drop_singletons = false)
 ## corresponds to abdata in Stata, for instance reghxe wage emp [w=indoutpt], a(id year)
 ##
 ##############################################################################
-df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/EmplUK.csv"))
+df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/EmplUK.csv")))
 df.id1 = df.Firm
 df.id2 = df.Year
 df.y = df.Wage
@@ -589,7 +589,7 @@ x = reg(df, m, weights = :w)
 @test x.iterations <= 50
 
 methods_vec = [:cpu]
-if FixedEffectModels.FixedEffects.has_cuarrays()
+if FixedEffectModels.FixedEffects.has_CUDA()
 	push!(methods_vec, :gpu)
 end
 for method in methods_vec

@@ -94,12 +94,12 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 #### GPU
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
 
-First make sure that `using CuArrays` works without issue. Then, estimate a model with `method = :gpu`.
+First make sure to do `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`.
 
 When working on the GPU, it is encouraged to set the floating point precision to `Float32` with `double_precision = false`, since it is usually much faster.
 
 ```julia
-using FixedEffectModels
+using CUDA, FixedEffectModels
 df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :gpu, double_precision = false)
 ```
