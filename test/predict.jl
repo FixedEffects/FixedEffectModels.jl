@@ -1,6 +1,6 @@
-using FixedEffectModels, DataFrames, CSV, Test
+using CUDA, FixedEffectModels, DataFrames, CSV, Test
 
-df = CSV.read(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
+df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 
 
 ##############################################################################
@@ -195,7 +195,7 @@ result = reg(df, model, subset = df.State .<= 30, weights = :Pop, save = true)
 @test fe(result)[1, :fe_Year] + fe(result)[1, :fe_State] ≈ 158.91798 atol = 1e-4
 
 methods_vec = [:cpu]
-if FixedEffectModels.FixedEffects.has_cuarrays()
+if FixedEffectModels.FixedEffects.has_CUDA()
 	push!(methods_vec, :gpu)
 end
 for method in methods_vec
