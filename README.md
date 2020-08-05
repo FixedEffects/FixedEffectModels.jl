@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/FixedEffects/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.com/FixedEffects/FixedEffectModels.jl)
 [![pipeline status](https://gitlab.com/JuliaGPU/FixedEffectModels.jl/badges/master/pipeline.svg)](https://gitlab.com/JuliaGPU/FixedEffectModels.jl/commits/master)
 
-This package estimates linear models with high dimensional categorical variables and/or instrumental variables. 
+This package estimates linear models with high dimensional categorical variables and/or instrumental variables.
 
 Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package tends to be much faster than these two options.
 
@@ -31,13 +31,13 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 
 -  A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
-		
+
 	```julia
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(fixedeffect variable)
 	```
 
-	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. You can also interact fixed effects using `&` or `*`. 
-	
+	High-dimensional fixed effect variables are indicated with the function `fe`.  You can add an arbitrary number of high dimensional fixed effects, separated with `+`. You can also interact fixed effects using `&` or `*`.
+
 	For instance, to add state fixed effects use `fe(State)`. To add both state and year fixed effects, use `fe(State) + fe(Year)`. To add state-year fixed effects, use `fe(State)&fe(Year)`. To add state specific slopes for year, use `fe(State)&Year`. To add both state fixed-effects and state specific slopes for year use `fe(State)*Year`.
 
 	```julia
@@ -62,7 +62,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	```julia
 	weights = :Pop
 	```
-- The option `subset` specifies a subset of the data 
+- The option `subset` specifies a subset of the data
 	```julia
 	subset = df.State .>= 30
 	```
@@ -70,14 +70,14 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
-- The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g. 
+- The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g.
 	```julia
 	df.YearC = categorical(df.Year)
 	reg(df, @formula(Sales ~ YearC); contrasts = Dict(:YearC => DummyCoding(base = 80)))
 	```
 ## Output
-`reg` returns a light object. It is composed of 
- 
+`reg` returns a light object. It is composed of
+
   - the vector of coefficients & the covariance matrix (use `coef`, `coefnames`, `vcov` on the output of `reg`)
   - a boolean vector reporting rows used in the estimation
   - a set of scalars (number of observations, the degree of freedoms, r2, etc)
@@ -90,13 +90,10 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
 
 
-## Performances
-#### GPU
+## GPU
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
 
-First make sure to do `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`.
-
-When working on the GPU, it is encouraged to set the floating point precision to `Float32` with `double_precision = false`, since it is usually much faster.
+To use GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`. For maximum speed, set the floating point precision to `Float32` with `double_precision = false`.
 
 ```julia
 using CUDA, FixedEffectModels
@@ -124,10 +121,6 @@ Fong, DC. and Saunders, M. (2011) *LSMR: An Iterative Algorithm for Sparse Least
 
 Gaure, S. (2013) *OLS with Multiple High Dimensional Category Variables*. Computational Statistics and Data Analysis
 
-Kleibergen, F, and Paap, R. (2006) *Generalized reduced rank tests using the singular value decomposition.* Journal of econometrics 
+Kleibergen, F, and Paap, R. (2006) *Generalized reduced rank tests using the singular value decomposition.* Journal of econometrics
 
 Kleibergen, F. and Schaffer, M.  (2007) *RANKTEST: Stata module to test the rank of a matrix using the Kleibergen-Paap rk statistic*. Statistical Software Components, Boston College Department of Economics.
-
-
-
-

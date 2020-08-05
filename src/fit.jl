@@ -43,24 +43,9 @@ function reg(@nospecialize(df),
     method::Symbol = :cpu, 
     drop_singletons = true, 
     double_precision::Bool = true, 
-    tol::Real = double_precision ? 1e-8 : 1e-6,
-    @nospecialize(feformula::Union{Symbol, Expr, Nothing} = nothing),
-    @nospecialize(vcovformula::Union{Symbol, Expr, Nothing} = nothing),
-    @nospecialize(subsetformula::Union{Symbol, Expr, Nothing} = nothing))
+    tol::Real = double_precision ? 1e-8 : 1e-6)
+
     df = DataFrame(df; copycols = false) 
-    # to deprecate
-    if vcovformula != nothing
-        if (vcovformula == :simple) | (vcovformula == :(simple()))
-            vcov = Vcov.Simple()
-        elseif (vcovformula == :robust) | (vcovformula == :(robust()))
-            vcov = Vcov.Robust()
-        else
-            vcov = Vcov.cluster(StatsModels.termvars(@eval(@formula(0 ~ $(vcovformula.args[2]))))...)
-        end
-    end
-    if subsetformula != nothing
-        subset = eval(evaluate_subset(df, subsetformula))
-    end
 
     ##############################################################################
     ##
@@ -96,9 +81,6 @@ function reg(@nospecialize(df),
 
     # create a dataframe without missing values & negative weights
     vars = StatsModels.termvars(formula)
-    if feformula != nothing # to deprecate
-        vars = vcat(vars, StatsModels.termvars(@eval(@formula(0 ~ $(feformula)))))
-    end
     iv_vars = Symbol[]
     endo_vars = Symbol[]
     if has_iv
@@ -121,11 +103,6 @@ function reg(@nospecialize(df),
     end
     fes, ids, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
-    if feformula != nothing
-        has_fes = true
-        feformula = @eval(@formula(0 ~ $(feformula)))
-        fes, ids = oldparse_fixedeffect(df, feformula)
-    end
     if has_fes
         if drop_singletons
             for fe in fes
