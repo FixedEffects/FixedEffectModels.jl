@@ -6,7 +6,6 @@ module FixedEffectModels
 ## Dependencies
 ##
 ##############################################################################
-using Base
 using LinearAlgebra
 using Statistics
 using Printf
@@ -15,10 +14,9 @@ using DataFrames
 using Distributions
 using Reexport
 using Tables
+using FixedEffects
 @reexport using StatsBase
 @reexport using StatsModels
-
-using FixedEffects
 
 ##############################################################################
 ##
@@ -29,16 +27,10 @@ using FixedEffects
 export reg,
 partial_out,
 fe,
-
 FixedEffectModel,
 has_iv,
 has_fe,
-
-Vcov,
-
-#deprecated
-@model,
-fes
+Vcov
 
 ##############################################################################
 ##
@@ -58,6 +50,5 @@ include("FixedEffectModel.jl")
 include("fit.jl")
 include("partial_out.jl")
 
-include("deprecated.jl")
 
 end  # module FixedEffectModels
