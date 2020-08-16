@@ -214,7 +214,7 @@ x = reg(df, m)
 ##
 ##############################################################################
 reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year), Vcov.cluster(:State))
-fe(:State) + fe(:Year) === reduce(+, fe.([:State, :Year])) === fe(Term(:State)) + fe(Term(:Year))
+@test fe(:State) + fe(:Year) === reduce(+, fe.([:State, :Year])) === fe(Term(:State)) + fe(Term(:Year))
 
 
 ##############################################################################
