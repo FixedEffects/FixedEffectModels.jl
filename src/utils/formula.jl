@@ -47,6 +47,7 @@ struct FixedEffectTerm <: AbstractTerm
 end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
 fe(x::Term) = FixedEffectTerm(Symbol(x))
+fe(s::Symbol) = FixedEffectTerm(s)
 
 has_fe(::FixedEffectTerm) = true
 has_fe(::FunctionTerm{typeof(fe)}) = true
