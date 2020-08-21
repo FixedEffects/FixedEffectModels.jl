@@ -43,7 +43,8 @@ function reg(@nospecialize(df),
     method::Symbol = :cpu, 
     drop_singletons = true, 
     double_precision::Bool = true, 
-    tol::Real = double_precision ? 1e-8 : 1e-6)
+    tol::Real = double_precision ? 1e-8 : 1e-6,
+    progressbar = true)
 
     df = DataFrame(df; copycols = false) 
 
@@ -208,24 +209,13 @@ function reg(@nospecialize(df),
         # initialize iterations and converged
         iterations = Int[]
         convergeds = Bool[]
-
-        y, b, c = solve_residuals!(y, feM; maxiter = maxiter, tol = tol)
-        append!(iterations, b)
-        append!(convergeds, c)
-
-        Xexo, b, c = solve_residuals!(Xexo, feM; maxiter = maxiter, tol = tol)
-        append!(iterations, b)
-        append!(convergeds, c)
-
         if has_iv
-            Xendo, b, c = solve_residuals!(Xendo, feM; maxiter = maxiter, tol = tol)
-            append!(iterations, b)
-            append!(convergeds, c)
-
-            Z, b, c = solve_residuals!(Z, feM; maxiter = maxiter, tol = tol)
-            append!(iterations, b)
-            append!(convergeds, c)
+            Xall = Hcat(y, Xexo, Xendo, Z)
+        else
+            Xall = Hcat(y, Xexo)
         end
+
+        _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progressbar = progressbar)
 
         iterations = maximum(iterations)
         converged = all(convergeds)
