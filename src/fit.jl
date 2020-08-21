@@ -31,29 +31,29 @@ df.YearC = categorical(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(@nospecialize(df), 
-    @nospecialize(formula::FormulaTerm), 
+function reg(@nospecialize(df),
+    @nospecialize(formula::FormulaTerm),
     @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
     @nospecialize(weights::Union{Symbol, Nothing} = nothing),
     @nospecialize(subset::Union{AbstractVector, Nothing} = nothing),
-    maxiter::Integer = 10000, 
+    maxiter::Integer = 10000,
     contrasts::Dict = Dict{Symbol, Any}(),
     dof_add::Integer = 0,
-    @nospecialize(save::Union{Bool, Symbol} = false),  
-    method::Symbol = :cpu, 
-    drop_singletons = true, 
-    double_precision::Bool = true, 
+    @nospecialize(save::Union{Bool, Symbol} = false),
+    method::Symbol = :cpu,
+    drop_singletons = true,
+    double_precision::Bool = true,
     tol::Real = double_precision ? 1e-8 : 1e-6,
     progressbar = true)
 
-    df = DataFrame(df; copycols = false) 
+    df = DataFrame(df; copycols = false)
 
     ##############################################################################
     ##
     ## Parse formula
     ##
     ##############################################################################
- 
+
     formula_origin = formula
     if  !omitsintercept(formula) & !hasintercept(formula)
         formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
@@ -119,7 +119,7 @@ function reg(@nospecialize(df),
     if nobs == size(df, 1)
         esample = Colon()
     end
-    
+
 
     # Compute weights
     if has_weights
@@ -140,7 +140,7 @@ function reg(@nospecialize(df),
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
-    
+
     # Compute data for std errors
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
     ##############################################################################
@@ -191,7 +191,7 @@ function reg(@nospecialize(df),
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
 
-    # create unitilaized 
+    # create unitilaized
     iterations, converged, r2_within = nothing, nothing, nothing
     F_kp, p_kp = nothing, nothing
 
@@ -304,7 +304,7 @@ function reg(@nospecialize(df),
             augmentdf[esample, ids[j]] = newfes[j]
         end
     end
-    
+
     ##############################################################################
     ##
     ## Test Statistics
@@ -317,7 +317,7 @@ function reg(@nospecialize(df),
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.refs) for v in values(vcov_method.clusters))
-                dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom 
+                dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom
             else
                 #only count groups that exists
                 dof_absorb += nunique(fe)
@@ -385,6 +385,6 @@ function reg(@nospecialize(df),
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf,
                             coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,
                             rss, tss_total, r2, adjr2, F, p,
-                            iterations, converged, r2_within, 
+                            iterations, converged, r2_within,
                             F_kp, p_kp)
 end
