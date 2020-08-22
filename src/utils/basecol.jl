@@ -4,13 +4,13 @@
 ## 
 ##############################################################################
 
-struct Combination{N, T <: AbstractMatrix}
-    A::NTuple{N, T}
+struct Combination{T} <: AbstractMatrix{T}
+    A::Tuple
     cumlength::Vector{Int}
 end
 
-function Combination(A::AbstractMatrix...)
-    Combination(A, cumsum([size(x, 2) for x in A]))
+function Combination(A::Union{AbstractVector{T}, AbstractMatrix{T}}...) where {T}
+    Combination{T}(A, cumsum([size(x, 2) for x in A]))
 end
 
 function Base.size(c::Combination, i)

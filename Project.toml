@@ -1,6 +1,6 @@
 name = "FixedEffectModels"
 uuid = "9d5cd8c9-2029-5cab-9928-427838db53e3"
-version = "0.11.0"
+version = "1.0.0"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
@@ -22,7 +22,7 @@ Combinatorics = "0, 1"
 DataFrames = "0.21"
 Distributions = "0"
 FillArrays = "0"
-FixedEffects = "0.7.4"
+FixedEffects = "1"
 Reexport = "0"
 StatsBase = "0.32, 0.33"
 StatsModels = "0.6"
