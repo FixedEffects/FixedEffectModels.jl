@@ -210,9 +210,9 @@ function reg(@nospecialize(df),
         iterations = Int[]
         convergeds = Bool[]
         if has_iv
-            Xall = Hcat(y, Xexo, Xendo, Z)
+            Xall = Combination(y, Xexo, Xendo, Z)
         else
-            Xall = Hcat(y, Xexo)
+            Xall = Combination(y, Xexo)
         end
 
         _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progressbar = progressbar)

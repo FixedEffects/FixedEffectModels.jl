@@ -15,7 +15,6 @@ using Distributions
 using Reexport
 using Tables
 using FixedEffects
-using LazyArrays
 @reexport using StatsBase
 @reexport using StatsModels
 
