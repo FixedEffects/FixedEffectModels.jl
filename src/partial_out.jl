@@ -99,7 +99,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
         m = mean(Y, dims = 1)
     end
     if has_fes
-        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol)
+        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol, progressbar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
@@ -109,7 +109,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
     X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
     if has_fes
-        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol)
+        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progressbar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
