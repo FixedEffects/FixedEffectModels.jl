@@ -9,6 +9,7 @@ Partial out variables in a Dataframe
 * `maxiter::Integer`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real`: Tolerance
+* `align::Bool`: Should the returned DataFrame align with the original DataFrame in case of missing values? Default to true
 
 ### Returns
 * `::DataFrame`: a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -34,7 +35,8 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
     method::Symbol = :cpu,
     double_precision::Bool = true,
-    tol::Real = double_precision ? 1e-8 : 1e-6)
+    tol::Real = double_precision ? 1e-8 : 1e-6,
+    align = true)
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
@@ -97,7 +99,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
         m = mean(Y, dims = 1)
     end
     if has_fes
-        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol)
+        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol, progressbar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
@@ -107,7 +109,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
     X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
     if has_fes
-        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol)
+        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progressbar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
@@ -131,7 +133,7 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
 
     for y in ynames
         j += 1
-        if nobs < length(esample)
+        if align & (nobs < length(esample))
             out[!, Symbol(y)] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
             out[esample, Symbol(y)] = residuals[:, j]
         else
