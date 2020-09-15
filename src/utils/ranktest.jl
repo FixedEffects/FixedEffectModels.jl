@@ -46,7 +46,7 @@ function ranktest!(X::Matrix{Float64},
 
     # compute vhat
     if vcov_method isa Vcov.SimpleCovariance
-        vhat = Matrix(I / size(X, 1), L * K, L * K)
+        vlab = cholesky!(Hermitian(kronv * kronv') ./ size(X, 1))
     else
         temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
         temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
@@ -54,10 +54,8 @@ function ranktest!(X::Matrix{Float64},
         vcovmodel = Vcov.VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
         matrix_vcov2 = Vcov.S_hat(vcovmodel, vcov_method)
         vhat = k \ (k \ matrix_vcov2)'
+        vlab = cholesky!(Hermitian(kronv * vhat * kronv'))
     end
-
-    # return statistics
-    vlab = cholesky!(Hermitian(kronv * vhat * kronv'))
     r_kp = lambda' * (vlab \ lambda)
     return r_kp[1]
 end
