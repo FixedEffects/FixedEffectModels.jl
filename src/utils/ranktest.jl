@@ -15,48 +15,38 @@ function ranktest!(X::Matrix{Float64},
                     df_small::Int, 
                     df_absorb::Int)
 
-    K = size(X, 2) 
-    L = size(Z, 2) 
-
-    crossz = cholesky!(Symmetric(Z' * Z))
-    crossx = cholesky!(Symmetric(X' * X))
-
-    Fmatrix = crossz.U
-    Gmatrix = crossx.U
+    # Compute theta
+    Fmatrix = cholesky!(Symmetric(Z' * Z)).U
+    Gmatrix = cholesky!(Symmetric(X' * X)).U
     theta = Fmatrix * (Gmatrix' \ Pi')'
 
+    # compute lambda
     svddecomposition = svd(theta, full = true) 
     u = svddecomposition.U
     vt = svddecomposition.Vt
 
-    # compute lambda
-    if K == 1
-        a_qq = sqrt(u * u')
-        b_qq = sqrt(vt * vt') 
-    else
-        u_12 = u[1:(K-1),(K:L)]
-        v_12 = vt[1:(K-1),K]
-        u_22 = u[(K:L),(K:L)]
-        v_22 = vt[K,K]
-        a_qq = vcat(u_12, u_22) * (u_22 \ sqrt(u_22 * u_22'))
-        b_qq = sqrt(v_22 * v_22') * (v_22' \ vcat(v_12, v_22)')
-    end
+    k = size(X, 2) 
+    l = size(Z, 2) 
+
+    u_sub = u[k:l, k:l]
+    a_qq = u[1:l, k:l] * (u_sub \ sqrt(u_sub * u_sub'))
+        
+    vt_sub = vt[k,k]
+    b_qq = sqrt(vt_sub * vt_sub') * (vt_sub' \ vt[1:k, k]')
+
     kronv = kron(b_qq, a_qq')
     lambda = kronv * vec(theta)
 
     # compute vhat
     if vcov_method isa Vcov.SimpleCovariance
-        vlab = cholesky!(Hermitian(kronv * kronv') ./ size(X, 1))
+        vlab = cholesky!(Hermitian((kronv * kronv') ./ size(X, 1)))
     else
-        temp1 = convert(Matrix{eltype(Gmatrix)}, Gmatrix)
-        temp2 = convert(Matrix{eltype(Fmatrix)}, Fmatrix)
-        k = kron(temp1, temp2)'
-        vcovmodel = Vcov.VcovData(Z, k, X, size(Z, 1) - df_small - df_absorb) 
+        K = kron(Gmatrix, Fmatrix)'
+        vcovmodel = Vcov.VcovData(Z, K, X, size(Z, 1) - df_small - df_absorb) 
         matrix_vcov2 = Vcov.S_hat(vcovmodel, vcov_method)
-        vhat = k \ (k \ matrix_vcov2)'
+        vhat = K \ (K \ matrix_vcov2)'
         vlab = cholesky!(Hermitian(kronv * vhat * kronv'))
     end
     r_kp = lambda' * (vlab \ lambda)
     return r_kp[1]
 end
-
