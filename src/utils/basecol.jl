@@ -35,24 +35,15 @@ end
 ## Crossprod computes [A B C ...]' [A B C ...] without forming it
 ## 
 ##############################################################################
-
-# Construct [A B C]'[A B C] without generating [A B C]
-function crossprod(c::Combination)
-    out = Array{Float64}(undef, size(c, 2), size(c, 2))
-    cviews = [view(c, :, i) for i in 1:size(c, 2)]
-    for j in 1:size(c, 2)
-        for i in j:size(c, 2)
-            out[i, j] = dot(cviews[j], cviews[i])
-        end
-    end
-    # make symmetric
-    for j in 1:size(c, 2), i in 1:(j-1)
-        out[i, j] = out[j, i]
-    end
-    return out
-end
 crossprod(A::AbstractMatrix) = A'A
-crossprod(A::AbstractMatrix...) = crossprod(Combination(A...))
+function crossprod(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
+    u11, u12, u13 = A'A, A'B, A'C
+    u22, u23 = B'B, B'C
+    u33 = C'C
+    hvcat(3, u11,  u12,  u13, 
+             u12', u22,  u23, 
+             u13', u23', u33)
+end
 
 ##############################################################################
 ##
