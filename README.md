@@ -103,9 +103,9 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :gpu, double_prec
 ## Solution Method
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
+1. `y, X`  are regressed on `D` using the package [FixedEffects.jl](https://github.com/FixedEffects/FixedEffects.jl)
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
-3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
+3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/FixedEffects/FixedEffects.jl)
 
 # References
 
