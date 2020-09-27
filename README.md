@@ -51,7 +51,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year))
 	```
 
-- Standard errors are indicated with the prefix `Vcov`.
+- Standard errors are indicated with the prefix `Vcov` (with the package [Vcov](http://github.com/matthieugomez/Vcov.jl))
 	```julia
 	Vcov.robust()
 	Vcov.cluster(:State)
@@ -62,7 +62,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	weights = :Pop
 	```
 
-- The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `:all` to save both. Default to `:none`. You can access the result with `residuals()` and `fe()`
+- The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
