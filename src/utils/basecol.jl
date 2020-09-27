@@ -13,20 +13,12 @@ function Combination(A::Union{AbstractVector{T}, AbstractMatrix{T}}...) where {T
     Combination{T}(A, cumsum([size(x, 2) for x in A]))
 end
 
-function Base.size(c::Combination, i)
-    if i == 1
-        size(c.A[1], 1)
-    elseif i == 2
-        c.cumlength[end]
-    end
-end
+Base.size(c::Combination) = (size(c.A[1], 1), c.cumlength[end])
+Base.size(c::Combination, i::Integer) = size(c)[i]
 
 function Base.view(c::Combination, ::Colon, j)
     index = searchsortedfirst(c.cumlength, j)
-    newj = j
-    if index > 1
-        newj = j - c.cumlength[index-1]
-    end
+    newj = index == 1 ? j : j - c.cumlength[index-1]
     view(c.A[index], :, newj)
 end
 
@@ -37,12 +29,12 @@ end
 ##############################################################################
 crossprod(A::AbstractMatrix) = A'A
 function crossprod(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
-    u11, u12, u13 = A'A, A'B, A'C
-    u22, u23 = B'B, B'C
-    u33 = C'C
-    hvcat(3, u11,  u12,  u13, 
-             u12', u22,  u23, 
-             u13', u23', u33)
+    u11, u12, u13 = A'A, A'B, A'C
+    u22, u23 = B'B, B'C
+    u33 = C'C
+    hvcat(3, u11,  u12,  u13, 
+             u12', u22,  u23, 
+             u13', u23', u33)
 end
 
 ##############################################################################

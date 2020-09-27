@@ -5,12 +5,17 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `df`: a Table
 * `FormulaTerm`: A formula created using [`@formula`](@ref)
 * `CovarianceEstimator`: A method to compute the variance-covariance matrix
-* `save::Union{Bool, Symbol} = false`: Should residuals and eventual estimated fixed effects saved in a dataframe? Use `save = :residuals` to only save residuals. Use `save = :fe` to only save fixed effects, `save = true` for both. Once saved, they can then be accessed using `residuals()` or `fe()`. The returned DataFrame is automatically aligned with the original DataFrame.
-* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
+
+### Keyword arguments
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
-* `maxiter::Integer = 10000`: Maximum number of iterations
+* `weights::Union{Nothing, Symbol}` A symbol to refer to a columns for weights
+* `save::Symbol`: Should residuals and eventual estimated fixed effects saved in a dataframe? Default to `:none` Use `save = :residuals` to only save residuals, `save = :fe` to only save fixed effects, `save = :all` for both. Once saved, they can then be accessed using `residuals()` or `fe()`. The returned DataFrame is automatically aligned with the original DataFrame.
+* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
+* `nthreads::Integer` Number of threads used in estimated. Default to `Threads.nthreads()` if `method = :cpu`, else to 256 if `method = :gpu`.
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real` Tolerance. Default to 1e-8 if `double_precision = true`, 1e-6 otherwise.
+* `maxiter::Integer = 10000`: Maximum number of iterations
+* `drop_singletons::Bool = true`: Should singletons be dropped?
 
 
 
@@ -31,22 +36,25 @@ df.YearC = categorical(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
-function reg(@nospecialize(df),
+function reg(
+    @nospecialize(df),
     @nospecialize(formula::FormulaTerm),
     @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
+    @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
     @nospecialize(weights::Union{Symbol, Nothing} = nothing),
-    @nospecialize(subset::Union{AbstractVector, Nothing} = nothing),
-    maxiter::Integer = 10000,
-    contrasts::Dict = Dict{Symbol, Any}(),
-    dof_add::Integer = 0,
-    @nospecialize(save::Union{Bool, Symbol} = false),
-    method::Symbol = :cpu,
-    drop_singletons = true,
-    double_precision::Bool = true,
-    tol::Real = double_precision ? 1e-8 : 1e-6,
-    progressbar = true)
+    @nospecialize(save::Union{Bool, Symbol} = :none),
+    @nospecialize(method::Symbol = :cpu),
+    @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
+    @nospecialize(double_precision::Bool = true),
+    @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
+    @nospecialize(maxiter::Integer = 10000),
+    @nospecialize(drop_singletons::Bool = true),
+    @nospecialize(progress_bar::Bool = true),
+    @nospecialize(dof_add::Integer = 0),
+    @nospecialize(subset::Union{Nothing, AbstractVector} = nothing))
 
     df = DataFrame(df; copycols = false)
+    N = size(df, 1)
 
     ##############################################################################
     ##
@@ -59,20 +67,23 @@ function reg(@nospecialize(df),
         formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
     end
     formula, formula_endo, formula_iv = parse_iv(formula)
-    has_iv = formula_iv != nothing
-    has_weights = weights != nothing
+    has_iv = formula_iv !== nothing
+    has_weights = weights !== nothing
 
     ##############################################################################
     ##
     ## Save keyword argument
     ##
     ##############################################################################
-    if !(save isa Bool)
-        if save ∉ (:residuals, :fe)
-            throw("the save keyword argument must be a Bool or a Symbol equal to :residuals or :fe")
-        end
+    if save == true
+        save = :all
+    elseif save == false
+        save = :none
     end
-    save_residuals = (save == :residuals) | (save == true)
+    if save ∉ (:all, :residuals, :fe, :none)
+            throw("the save keyword argument must be a Symbol equal to :all, :none, :residuals or :fe")
+    end
+    save_residuals = (save == :residuals) | (save == :all)
 
     ##############################################################################
     ##
@@ -93,15 +104,15 @@ function reg(@nospecialize(df),
 
     esample = completecases(df, all_vars)
     if has_weights
-        esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
+        esample .&= BitArray(!ismissing(x) && (x > 0) for x in df[!, weights])
     end
-    esample .&= Vcov.completecases(df, vcov)
-    if subset != nothing
-        if length(subset) != size(df, 1)
-            throw("df has $(size(df, 1)) rows but the subset vector has $(length(subset)) elements")
+    if subset !== nothing
+        if length(subset) != N
+            throw("df has $(N) rows but the subset vector has $(length(subset)) elements")
         end
         esample .&= BitArray(!ismissing(x) && x for x in subset)
     end
+    esample .&= Vcov.completecases(df, vcov)
     fes, ids, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
     if has_fes
@@ -111,36 +122,33 @@ function reg(@nospecialize(df),
             end
         end
     end
-    save_fe = (save == :fe) | ((save == true) & has_fes)
+    save_fe = (save == :fe) | ((save == :all) & has_fes)
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
 
-    if nobs == size(df, 1)
+    if nobs == N
         esample = Colon()
     end
-
 
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+        all(isfinite, weights) || throw("Weights are not finite")
     else
-        weights = Weights(Ones{Float64}(nobs))
+        weights = uweights(nobs)
     end
-    all(isfinite, weights) || throw("Weights are not finite")
-    sqrtw = sqrt.(weights)
 
     # Compute feM, an AbstractFixedEffectSolver
     has_intercept = hasintercept(formula)
     has_fe_intercept = false
     if has_fes
-        if any(fe.interaction isa Ones for fe in fes)
+        if any(fe.interaction isa UnitWeights for fe in fes)
             has_fe_intercept = true
         end
         fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
     end
-
     # Compute data for std errors
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
     ##############################################################################
@@ -171,7 +179,6 @@ function reg(@nospecialize(df),
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
-
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
 
@@ -179,7 +186,6 @@ function reg(@nospecialize(df),
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
-
         if size(Z, 2) < size(Xendo, 2)
             throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
@@ -187,10 +193,8 @@ function reg(@nospecialize(df),
         # modify formula to use in predict
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
-
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
-
     # create unitilaized
     iterations, converged, r2_within = nothing, nothing, nothing
     F_kp, p_kp = nothing, nothing
@@ -215,7 +219,7 @@ function reg(@nospecialize(df),
             Xall = Combination(y, Xexo)
         end
 
-        _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progressbar = progressbar)
+        _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
         iterations = maximum(iterations)
         converged = all(convergeds)
@@ -226,11 +230,14 @@ function reg(@nospecialize(df),
         tss_partial = tss(y, has_intercept | has_fe_intercept, weights)
     end
 
-    y .= y .* sqrtw
-    Xexo .= Xexo .* sqrtw
-    if has_iv
-        Xendo .= Xendo .* sqrtw
-        Z .= Z .* sqrtw
+    if has_weights
+        sqrtw = sqrt.(weights)
+        y .= y .* sqrtw
+        Xexo .= Xexo .* sqrtw
+        if has_iv
+            Xendo .= Xendo .* sqrtw
+            Z .= Z .* sqrtw
+        end
     end
 
     ##############################################################################
@@ -252,11 +259,10 @@ function reg(@nospecialize(df),
         basecoef = vcat(basecolXexo, basecolXendo)
 
         # Build
-        X = hcat(Xexo, Xendo)
         newZ = hcat(Xexo, Z)
-        crossz = cholesky!(Symmetric(newZ' * newZ))
-        Pi = crossz \ (newZ' * Xendo)
+        Pi = cholesky!(Symmetric(newZ' * newZ)) \ (newZ' * Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
+        X = hcat(Xexo, Xendo)
 
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
@@ -278,29 +284,31 @@ function reg(@nospecialize(df),
     ## Do the regression
     ##
     ##############################################################################
-
+   
     crossx = cholesky!(Symmetric(Xhat' * Xhat))
     coef = crossx \ (Xhat' * y)
-    residuals = y - X * coef
 
     ##############################################################################
     ##
     ## Optionally save objects in a new dataframe
     ##
     ##############################################################################
-
+    residuals = y - X * coef
     residuals2 = nothing
     if save_residuals
-        residuals2 = Vector{Union{Float64, Missing}}(missing, size(df, 1))
-        residuals2[esample] = residuals ./ sqrtw
+        residuals2 = Vector{Union{Float64, Missing}}(missing, N)
+        if has_weights
+            residuals .= residuals ./ sqrt.(weights)
+        end
+        residuals2[esample] = residuals
     end
 
     augmentdf = DataFrame()
     if save_fe
         oldX = getcols(oldX, basecoef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
-        for j in 1:length(fes)
-            augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
+        for j in eachindex(fes)
+            augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
             augmentdf[esample, ids[j]] = newfes[j]
         end
     end
@@ -310,7 +318,6 @@ function reg(@nospecialize(df),
     ## Test Statistics
     ##
     ##############################################################################
-
     # Compute degrees of freedom
     dof_absorb = 0
     if has_fes
@@ -329,7 +336,7 @@ function reg(@nospecialize(df),
 
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
-        nclusters = map(x -> length(levels(x)), vcov_method.clusters)
+        nclusters = map(length ∘ levels, vcov_method.clusters)
     end
 
     # Compute rss, tss, r2, r2 adjusted
@@ -341,6 +348,7 @@ function reg(@nospecialize(df),
         r2_within = 1 - rss / tss_partial
     end
 
+
     # Compute standard error
     vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual_)
     matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
@@ -348,23 +356,21 @@ function reg(@nospecialize(df),
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
     df_FStat_ = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
-    p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_), F)
-
+    #p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_), F)
+    p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        r_kp = ranktest!(Xendo_res, Z_res, Pip,
+        r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method, size(X, 2), dof_absorb)
-        p_kp = ccdf(Chisq((size(Z_res, 2) - size(Xendo_res, 2) +1 )), r_kp)
+        p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
         F_kp = r_kp / size(Z_res, 2)
     end
-
     ##############################################################################
     ##
     ## Return regression result
     ##
     ##############################################################################
-
     # add omitted variables
     if !all(basecoef)
         newcoef = zeros(length(basecoef))
@@ -380,11 +386,7 @@ function reg(@nospecialize(df),
         matrix_vcov = newmatrix_vcov
     end
     if esample == Colon()
-        esample = trues(size(df, 1))
+        esample = trues(N)
     end
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf,
-                            coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,
-                            rss, tss_total, r2, adjr2, F, p,
-                            iterations, converged, r2_within,
-                            F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

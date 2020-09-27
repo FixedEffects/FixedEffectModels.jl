@@ -61,6 +61,14 @@ end
 
 # index and convert interaction Vector{Float64,, Missing} to Vector{Missing}
 function _subset(fe::FixedEffect, esample)
-    interaction = convert(AbstractVector{Float64}, fe.interaction[esample])
+    if (fe.interaction isa UnitWeights)
+        if esample isa BitVector
+            interaction = UnitWeights{Float64}(sum(esample))
+        else
+            interaction = fe.interaction[esample]
+        end
+    else   
+        interaction = convert(AbstractVector{Float64}, fe.interaction[esample])
+    end
     FixedEffect{typeof(fe.refs), typeof(interaction)}(fe.refs[esample], interaction, fe.n)
 end

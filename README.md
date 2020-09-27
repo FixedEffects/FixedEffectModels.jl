@@ -51,7 +51,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year))
 	```
 
-- Standard errors are indicated with the prefix `Vcov`.
+- Standard errors are indicated with the prefix `Vcov` (with the package [Vcov](http://github.com/matthieugomez/Vcov.jl))
 	```julia
 	Vcov.robust()
 	Vcov.cluster(:State)
@@ -61,11 +61,8 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	```julia
 	weights = :Pop
 	```
-- The option `subset` specifies a subset of the data
-	```julia
-	subset = df.State .>= 30
-	```
-- The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `true` to save both. You can access the result with `residuals()` and `fe()`
+
+- The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
@@ -106,9 +103,9 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :gpu, double_prec
 ## Solution Method
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
-1. `y, X`  are regressed on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
+1. `y, X`  are regressed on `D` using the package [FixedEffects.jl](https://github.com/FixedEffects/FixedEffects.jl)
 2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
-3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/matthieugomez/FixedEffects.jl)
+3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/FixedEffects/FixedEffects.jl)
 
 # References
 

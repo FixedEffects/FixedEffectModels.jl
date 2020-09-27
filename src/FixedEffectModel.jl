@@ -63,7 +63,7 @@ StatsBase.mss(x::FixedEffectModel) = deviance(x) - rss(x)
 
 
 function StatsBase.confint(x::FixedEffectModel)
-    scale = quantile(TDist(dof_residual(x)), 1 - (1-0.95)/2)
+    scale = tdistinvcdf(dof_residual(x), 1 - (1 - 0.95) / 2)
     se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
@@ -172,7 +172,7 @@ function StatsBase.coeftable(x::FixedEffectModel)
     end
     tt = cc ./ se
     CoefTable2(
-        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1:2]),
+        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(x)), abs2.(tt)), conf_int[:, 1:2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
 end
