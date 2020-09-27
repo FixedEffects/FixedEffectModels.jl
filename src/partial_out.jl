@@ -29,14 +29,17 @@ plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.
    layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
 ```
 """
-function partial_out(df::AbstractDataFrame, f::FormulaTerm; 
-    weights::Union{Symbol, Expr, Nothing} = nothing,
-    add_mean = false,
-    maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
-    method::Symbol = :cpu,
-    double_precision::Bool = true,
-    tol::Real = double_precision ? 1e-8 : 1e-6,
-    align = true)
+function partial_out(
+    @nospecialize(df), 
+    @nospecialize(f::FormulaTerm); 
+    @nospecialize(weights::Union{Symbol, Expr, Nothing} = nothing),
+    @nospecialize(add_mean = false),
+    @nospecialize(maxiter::Integer = 10000), 
+    @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
+    @nospecialize(method::Symbol = :cpu),
+    @nospecialize(double_precision::Bool = true),
+    @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
+    @nospecialize(align = true))
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
@@ -68,15 +71,14 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+        all(isfinite, weights) || throw("Weights are not finite")
     else
-        weights = Weights(Ones{Float64}(sum(esample)))
+        weights = uweights(sum(esample))
     end
-    all(isfinite, weights) || throw("Weights are not finite")
-    sqrtw = sqrt.(weights)
 
     if has_fes
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any(isa(fe.interaction, Ones) for fe in fes)
+        if any(isa(fe.interaction, UnitWeights) for fe in fes)
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
             has_fes_intercept = true
         end
@@ -96,24 +98,27 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
         ynames = [ynames]
     end
     if add_mean
-        m = mean(Y, dims = 1)
+        m = mean(Y, weights, dims = 1)
     end
     if has_fes
-        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol, progressbar = false)
+        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
-    Y .= Y .* sqrtw
+
     # Compute residualized X
     formula_x = FormulaTerm(ConstantTerm(0), formula.rhs)
     formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
     X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
     if has_fes
-        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progressbar = false)
+        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
-    X .= X .* sqrtw
+    if has_weights
+        Y .= Y .* sqrt.(weights)
+        X .= X .* sqrt.(weights)
+    end
     # Compute residuals
     if size(X, 2) > 0
         residuals = Y .- X * (X \ Y)
@@ -122,10 +127,12 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # rescale residuals
+    if has_weights
+        residuals .= residuals ./ sqrt.(weights)
+    end
     if add_mean
         residuals .= residuals .+ m
     end
-    residuals .= residuals ./ sqrtw
 
     # Return a dataframe
     out = DataFrame()
@@ -140,5 +147,5 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
             out[!, Symbol(y)] = residuals[:, j]
         end
     end
-    return out, iterations, convergeds
+    return out, esample, iterations, convergeds
 end

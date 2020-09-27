@@ -61,11 +61,8 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	```julia
 	weights = :Pop
 	```
-- The option `subset` specifies a subset of the data
-	```julia
-	subset = df.State .>= 30
-	```
-- The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `true` to save both. You can access the result with `residuals()` and `fe()`
+
+- The option `save` can be set to one of the following:  `:residuals` to save residuals, `:fe` to save fixed effects, `:all` to save both. Default to `:none`. You can access the result with `residuals()` and `fe()`
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 

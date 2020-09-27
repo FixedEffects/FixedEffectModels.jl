@@ -1,4 +1,3 @@
-
 using CUDA, FixedEffectModels, CSV, DataFrames, LinearAlgebra, Test
 df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 df.id1 = df.State
@@ -212,7 +211,7 @@ x = reg(df, m)
 ##
 ##############################################################################
 reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year), Vcov.cluster(:State))
-@test fe(:State) + fe(:Year) === reduce(+, fe.([:State, :Year])) === fe(Term(:State)) + fe(Term(:Year))
+@test fe(:State) + fe(:Year) === reduce(+, fe.([:State, :Year])) === fe(term(:State)) + fe(term(:Year))
 
 
 ##############################################################################
@@ -387,6 +386,13 @@ x2 = reg(df, m)
 @test length(x2.esample) == size(df, 1)
 @test coef(x0) ≈ coef(x2) atol = 1e-4
 @test vcov(x0) ≈ vcov(x2) atol = 1e-2
+
+# missing weights
+df.x1_missing = ifelse.(df.id1 .<= 30, df.x1, missing)
+m = @formula y ~ x2 + pid1
+x = reg(df, m, weights = :x1_missing)
+@test length(x.esample) == size(df, 1)
+
 
 
 
