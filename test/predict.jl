@@ -19,7 +19,9 @@ residuals(result, df)
 
 model = @formula Sales ~ CPI + (Price ~ Pimin)
 result = reg(df, model)
+coeftable(result)
 show(result)
+
 predict(result, df)
 residuals(result, df)
 @test  nobs(result) == 1380

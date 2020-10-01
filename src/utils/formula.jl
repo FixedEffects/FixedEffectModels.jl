@@ -95,23 +95,13 @@ function parse_fixedeffect(df::AbstractDataFrame, t::InteractionTerm)
     if !isempty(fes)
         # x1&x2 from (x1&x2)*id
         fe_names = [fesymbol(x) for x in fes]
-        x1 = _group((df[!, fe_name] for fe_name in fe_names)...)
         v1 = _multiply(df, Symbol.(interactions))
-        fe = FixedEffect(x1; interaction = v1)
+        fe = FixedEffect((df[!, fe_name] for fe_name in fe_names)...; interaction = v1)
         interactions = setdiff(Symbol.(terms(t)), fe_names)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(interactions))
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
     end
 end
-
-function _group(args...)
-    if (length(args) == 1) & isa(args[1], CategoricalVector)
-        return args[1]
-    else
-        return group(args...)
-    end
-end
-
 
 function _multiply(df, ss::AbstractVector)
     if isempty(ss)
@@ -124,7 +114,3 @@ function _multiply(df, ss::AbstractVector)
     end
     return out
 end
-
-
-
-

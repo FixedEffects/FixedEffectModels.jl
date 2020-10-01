@@ -29,7 +29,7 @@ include("precompile.jl")
 _precompile_()
 
 # Export from StatsBase
-export coef, coefnames, responsename, vcov, stderror, nobs, dof_residual, r2, adjr2, islinear, deviance, rss, mss, confint, predict, residuals
+export coef, coefnames, coeftable, responsename, vcov, stderror, nobs, dof_residual, r2, adjr2, islinear, deviance, rss, mss, confint, predict, residuals
 
 export reg,
 partial_out,
