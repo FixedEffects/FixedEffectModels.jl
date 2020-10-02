@@ -105,12 +105,12 @@ end
 
 function _multiply(df, ss::AbstractVector)
     if isempty(ss)
-        out = UnitWeights{Float64}(size(df, 1))
+        return uweights(size(df, 1))
+    elseif length(ss) == 1
+        # in case it has missing (for some reason *(missing) not defined))
+        # do NOT use ! since it would modify the vector
+        return convert(AbstractVector{Float64}, replace(df[!, ss[1]], missing => 0))
     else
-        if any(x -> isa(df[!, x], CategoricalVector), ss)
-            throw("Fixed Effects cannot be interacted with Categorical Vector. Use fe(x)&fe(y)")
-        end
-        out = .*((df[!, x] for x in ss)...)
+        return convert(AbstractVector{Float64}, replace!(.*((df[!, x] for x in ss)...), missing => 0))
     end
-    return out
 end

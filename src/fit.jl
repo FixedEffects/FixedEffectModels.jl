@@ -146,7 +146,7 @@ function reg(
         if any(fe.interaction isa UnitWeights for fe in fes)
             has_fe_intercept = true
         end
-        fes = FixedEffect[_subset(fe, esample) for fe in fes]
+        fes = FixedEffect[fe[esample] for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
     end
     # Compute data for std errors
@@ -336,7 +336,7 @@ function reg(
 
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
-        nclusters = map(length ∘ levels, vcov_method.clusters)
+        nclusters = Vcov.nclusters(vcov_method)
     end
 
     # Compute rss, tss, r2, r2 adjusted
