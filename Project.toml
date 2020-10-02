@@ -17,7 +17,7 @@ Vcov = "ec2bfdc2-55df-4fc9-b9ae-4958c2cf2486"
 
 [compat]
 DataFrames = "0.21"
-FixedEffects = "1.1"
+FixedEffects = "1.1, 2.0"
 Reexport = "0.1, 0.2"
 StatsBase = "0.33"
 StatsFuns = "0.9"
