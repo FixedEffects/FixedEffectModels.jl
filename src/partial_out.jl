@@ -82,7 +82,7 @@ function partial_out(
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
             has_fes_intercept = true
         end
-        fes = FixedEffect[_subset(fe, esample) for fe in fes]
+        fes = FixedEffect[fe[esample] for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
 

@@ -394,6 +394,10 @@ x = reg(df, m, weights = :x1_missing)
 @test length(x.esample) == size(df, 1)
 
 
+# missing interaction
+m = @formula y ~ x2 + fe(id1)&x1_missing
+x = reg(df, m)
+@test nobs(x) == count(.!ismissing.(df.x1_missing))
 
 
 m = @formula y ~ x1 + fe(id1)
