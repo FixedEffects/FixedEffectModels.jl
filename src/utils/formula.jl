@@ -4,14 +4,14 @@
 ##
 ##############################################################################
 
-eachterm(x::AbstractTerm) = (x,)
-eachterm(x::NTuple{N, AbstractTerm}) where {N} = x
+eachterm(@nospecialize(x::AbstractTerm)) = (x,)
+eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
 TermOrTerms = Union{AbstractTerm, NTuple{N, AbstractTerm} where N}
-hasintercept(t::TermOrTerms) =
+hasintercept(@nospecialize(t::TermOrTerms)) =
     InterceptTerm{true}() ∈ terms(t) ||
     ConstantTerm(1) ∈ terms(t)
-omitsintercept(f::FormulaTerm) = omitsintercept(f.rhs)
-omitsintercept(t::TermOrTerms) =
+omitsintercept(@nospecialize(f::FormulaTerm)) = omitsintercept(f.rhs)
+omitsintercept(@nospecialize(t::TermOrTerms)) =
     InterceptTerm{false}() ∈ terms(t) ||
     ConstantTerm(0) ∈ terms(t) ||
     ConstantTerm(-1) ∈ terms(t)
@@ -47,12 +47,13 @@ struct FixedEffectTerm <: AbstractTerm
 end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
 fe(x::Term) = FixedEffectTerm(Symbol(x))
+fe(s::Symbol) = FixedEffectTerm(s)
 
 has_fe(::FixedEffectTerm) = true
 has_fe(::FunctionTerm{typeof(fe)}) = true
 has_fe(t::InteractionTerm) = any(has_fe(x) for x in t.terms)
 has_fe(::AbstractTerm) = false
-has_fe(t::FormulaTerm) = any(has_fe(x) for x in eachterm(t.rhs))
+has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 
 fesymbol(t::FixedEffectTerm) = t.x
@@ -70,7 +71,7 @@ function parse_fixedeffect(df::AbstractDataFrame, @nospecialize(formula::Formula
         end
     end
     if !isempty(fes)
-        if any(fe.interaction isa Ones for fe in fes)
+        if any(fe.interaction isa UnitWeights for fe in fes)
             formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if (term != ConstantTerm(1)) & (term != InterceptTerm{true}()) & !has_fe(term))...))
         else
             formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
@@ -94,36 +95,22 @@ function parse_fixedeffect(df::AbstractDataFrame, t::InteractionTerm)
     if !isempty(fes)
         # x1&x2 from (x1&x2)*id
         fe_names = [fesymbol(x) for x in fes]
-        x1 = _group((df[!, fe_name] for fe_name in fe_names)...)
         v1 = _multiply(df, Symbol.(interactions))
-        fe = FixedEffect(x1; interaction = v1)
+        fe = FixedEffect((df[!, fe_name] for fe_name in fe_names)...; interaction = v1)
         interactions = setdiff(Symbol.(terms(t)), fe_names)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(interactions))
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
     end
 end
 
-function _group(args...)
-    if (length(args) == 1) & isa(args[1], CategoricalVector)
-        return args[1]
-    else
-        return group(args...)
-    end
-end
-
-
 function _multiply(df, ss::AbstractVector)
     if isempty(ss)
-        out = Ones(size(df, 1))
+        return uweights(size(df, 1))
+    elseif length(ss) == 1
+        # in case it has missing (for some reason *(missing) not defined))
+        # do NOT use ! since it would modify the vector
+        return convert(AbstractVector{Float64}, replace(df[!, ss[1]], missing => 0))
     else
-        if any(x -> isa(df[!, x], CategoricalVector), ss)
-            throw("Fixed Effects cannot be interacted with Categorical Vector. Use fe(x)&fe(y)")
-        end
-        out = .*((df[!, x] for x in ss)...)
+        return convert(AbstractVector{Float64}, replace!(.*((df[!, x] for x in ss)...), missing => 0))
     end
-    return out
 end
-
-
-
-

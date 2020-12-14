@@ -1,63 +1,39 @@
 
 module FixedEffectModels
 
-##############################################################################
-##
-## Dependencies
-##
-##############################################################################
-using Base
-using LinearAlgebra
-using Statistics
-using Printf
-using FillArrays
+if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
+	@eval Base.Experimental.@optlevel 1
+end
+
 using DataFrames
-using Distributions
-using Reexport
-using Tables
-@reexport using StatsBase
-@reexport using StatsModels
-
 using FixedEffects
-
-##############################################################################
-##
-## Exported methods and types
-##
-##############################################################################
-
-export reg,
-partial_out,
-fe,
-
-FixedEffectModel,
-has_iv,
-has_fe,
-
-Vcov,
-
-#deprecated
-@model,
-fes
-
-##############################################################################
-##
-## Load files
-##
-##############################################################################
-include("vcov/Vcov.jl")
+using LinearAlgebra
+using Printf
+using Reexport
+using Statistics
+using StatsBase
+using StatsFuns
+@reexport using StatsModels
+using Tables
+using Vcov
 
 include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/tss.jl")
-include("utils/ranktest.jl")
 include("utils/formula.jl")
-
-
 include("FixedEffectModel.jl")
 include("fit.jl")
 include("partial_out.jl")
 
-include("deprecated.jl")
+# Export from StatsBase
+export coef, coefnames, coeftable, responsename, vcov, stderror, nobs, dof_residual, r2, adjr2, islinear, deviance, rss, mss, confint, predict, residuals
 
-end  # module FixedEffectModels
+export reg,
+partial_out,
+fe,
+FixedEffectModel,
+has_iv,
+has_fe,
+Vcov
+
+end 

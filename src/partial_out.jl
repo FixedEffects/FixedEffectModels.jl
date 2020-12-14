@@ -9,6 +9,7 @@ Partial out variables in a Dataframe
 * `maxiter::Integer`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real`: Tolerance
+* `align::Bool`: Should the returned DataFrame align with the original DataFrame in case of missing values? Default to true
 
 ### Returns
 * `::DataFrame`: a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -28,13 +29,17 @@ plot(layer(result[1], x="SepalWidth", y="SepalLength", Stat.binmean(n=10), Geom.
    layer(result[1], x="SepalWidth", y="SepalLength", Geom.smooth(method=:lm)))
 ```
 """
-function partial_out(df::AbstractDataFrame, f::FormulaTerm; 
-    weights::Union{Symbol, Expr, Nothing} = nothing,
-    add_mean = false,
-    maxiter::Integer = 10000, contrasts::Dict = Dict{Symbol, Any}(),
-    method::Symbol = :cpu,
-    double_precision::Bool = true,
-    tol::Real = double_precision ? 1e-8 : 1e-6)
+function partial_out(
+    @nospecialize(df), 
+    @nospecialize(f::FormulaTerm); 
+    @nospecialize(weights::Union{Symbol, Expr, Nothing} = nothing),
+    @nospecialize(add_mean = false),
+    @nospecialize(maxiter::Integer = 10000), 
+    @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
+    @nospecialize(method::Symbol = :cpu),
+    @nospecialize(double_precision::Bool = true),
+    @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
+    @nospecialize(align = true))
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
@@ -109,14 +114,18 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+        all(isfinite, weights) || throw("Weights are not finite")
     else
-        weights = Weights(Ones{Float64}(nobs))
+        weights = uweights(sum(esample))
     end
-    all(isfinite, weights) || throw("Weights are not finite")
-    sqrtw = sqrt.(weights)
 
     if has_fes
-        fes = FixedEffect[_subset(fe, esample) for fe in fes]
+        # in case some FixedEffect does not have interaction, remove the intercept
+        if any(isa(fe.interaction, UnitWeights) for fe in fes)
+            formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
+            has_fes_intercept = true
+        end
+        fes = FixedEffect[fe[esample] for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
     
@@ -126,22 +135,24 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
         ynames = [ynames]
     end
     if add_mean
-        m = mean(Y, dims = 1)
+        m = mean(Y, weights, dims = 1)
     end
     if has_fes
-        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol)
+        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
-    Y .= Y .* sqrtw
 
     # Compute residualized X
     if has_fes
-        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol)
+        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
-    X .= X .* sqrtw
+    if has_weights
+        Y .= Y .* sqrt.(weights)
+        X .= X .* sqrt.(weights)
+    end
     # Compute residuals
     if size(X, 2) > 0
         residuals = Y .- X * (X \ Y)
@@ -150,10 +161,12 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
     end
 
     # rescale residuals
+    if has_weights
+        residuals .= residuals ./ sqrt.(weights)
+    end
     if add_mean
         residuals .= residuals .+ m
     end
-    residuals .= residuals ./ sqrtw
 
     # Return a dataframe
     out = DataFrame()
@@ -161,13 +174,13 @@ function partial_out(df::AbstractDataFrame, f::FormulaTerm;
 
     for y in ynames
         j += 1
-        if nobs < length(esample)
+        if align & (nobs < length(esample))
             out[!, Symbol(y)] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
             out[esample, Symbol(y)] = residuals[:, j]
         else
             out[!, Symbol(y)] = residuals[:, j]
         end
     end
-    return out, iterations, convergeds
+    return out, esample, iterations, convergeds
 end
 

@@ -62,15 +62,15 @@ StatsBase.rss(x::FixedEffectModel) = x.rss
 StatsBase.mss(x::FixedEffectModel) = deviance(x) - rss(x)
 
 
-function StatsBase.confint(x::FixedEffectModel)
-    scale = quantile(TDist(dof_residual(x)), 1 - (1-0.95)/2)
+function StatsBase.confint(x::FixedEffectModel; level::Real = 0.95)
+    scale = tdistinvcdf(dof_residual(x), 1 - (1 - level) / 2)
     se = stderror(x)
     hcat(x.coef -  scale * se, x.coef + scale * se)
 end
 
 # predict, residuals, modelresponse
 function StatsBase.predict(x::FixedEffectModel, df)
-    has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = true, and access fixed effects with `fe()`")
+    has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = :fe, and access fixed effects with `fe()`")
     df = StatsModels.columntable(df)
     formula_schema = apply_schema(x.formula_predict, schema(x.formula_predict, df, x.contrasts), StatisticalModel)
     cols, nonmissings = StatsModels.missing_omit(df, MatrixTerm(formula_schema.rhs))
@@ -95,7 +95,7 @@ function StatsBase.residuals(x::FixedEffectModel, df)
         end
         return out
     else
-        typeof(x.residuals) == Nothing && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = true, and then access residuals with `residuals()`")
+        typeof(x.residuals) == Nothing && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
        residuals(x)
    end
 end
@@ -112,6 +112,33 @@ function fe(x::FixedEffectModel)
 end
 
 
+function StatsBase.coeftable(x::FixedEffectModel; level = 0.95)
+    cc = coef(x)
+    se = stderror(x)
+    coefnms = coefnames(x)
+    conf_int = confint(x; level = level)
+    # put (intercept) last
+    if !isempty(coefnms) && ((coefnms[1] == Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)"))
+        newindex = vcat(2:length(cc), 1)
+        cc = cc[newindex]
+        se = se[newindex]
+        conf_int = conf_int[newindex, :]
+        coefnms = coefnms[newindex]
+    end
+    tt = cc ./ se
+    CoefTable(
+        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(x)), abs2.(tt)), conf_int[:, 1:2]),
+        ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
+        ["$(coefnms[i])" for i = 1:length(cc)], 4)
+end
+
+
+##############################################################################
+##
+## Display Result
+##
+##############################################################################
+
 function title(x::FixedEffectModel)
     iv = has_iv(x)
     fe = has_fe(x)
@@ -125,6 +152,8 @@ function title(x::FixedEffectModel)
         return "IV Fixed Effect Model"
     end
 end
+
+format_scientific(x) = @sprintf("%.3f", x)
 
 function top(x::FixedEffectModel)
     out = [
@@ -151,11 +180,8 @@ function top(x::FixedEffectModel)
     return out
 end
 
-function Base.show(io::IO, x::FixedEffectModel)
-    show(io, coeftable(x))
-end
 
-function StatsBase.coeftable(x::FixedEffectModel)
+function Base.show(io::IO, x::FixedEffectModel)
     ctitle = title(x)
     ctop = top(x)
     cc = coef(x)
@@ -171,51 +197,14 @@ function StatsBase.coeftable(x::FixedEffectModel)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
-    CoefTable2(
-        hcat(cc, se, tt, ccdf.(Ref(FDist(1, dof_residual(x))), abs2.(tt)), conf_int[:, 1:2]),
-        ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
-        ["$(coefnms[i])" for i = 1:length(cc)], 4, ctitle, ctop)
-end
+    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(x)), abs2.(tt)), conf_int[:, 1:2])
+    nr, nc = size(mat)
+    colnms = ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%"]
+    rownms = ["$(coefnms[i])" for i = 1:length(cc)]
+    pvc = 4
 
 
-##############################################################################
-##
-## Display Result
-##
-##############################################################################
-
-
-
-## Coeftalble2 is a modified Coeftable allowing for a top String matrix displayed before the coefficients.
-## Pull request: https://github.com/JuliaStats/StatsBase.jl/pull/119
-
-struct CoefTable2
-    mat::Matrix
-    colnms::Vector
-    rownms::Vector
-    pvalcol::Integer
-    title::AbstractString
-    top::Matrix{AbstractString}
-    function CoefTable2(mat::Matrix,colnms::Vector,rownms::Vector,pvalcol::Int=0,
-                        title::AbstractString = "", top::Matrix = Any[])
-        nr,nc = size(mat)
-        0 <= pvalcol <= nc || throw("pvalcol = $pvalcol should be in 0,...,$nc]")
-        length(colnms) in [0,nc] || throw("colnms should have length 0 or $nc")
-        length(rownms) in [0,nr] || throw("rownms should have length 0 or $nr")
-        length(top) == 0 || (size(top, 2) == 2 || throw("top should have 2 columns"))
-        new(mat,colnms,rownms,pvalcol, title, top)
-    end
-end
-
-
-## format numbers in the p-value column
-function format_scientific(pv::Number)
-    return @sprintf("%.3f", pv)
-end
-
-function Base.show(io::IO, ct::CoefTable2)
-    mat = ct.mat; nr,nc = size(mat); rownms = ct.rownms; colnms = ct.colnms;
-    pvc = ct.pvalcol; title = ct.title;   top = ct.top
+    # print
     if length(rownms) == 0
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
@@ -243,24 +232,24 @@ function Base.show(io::IO, ct::CoefTable2)
     end
     widths .+= 1
     totalwidth = sum(widths) + rnwidth
-    if length(title) > 0
-        halfwidth = div(totalwidth - length(title), 2)
-        println(io, " " ^ halfwidth * string(title) * " " ^ halfwidth)
+    if length(ctitle) > 0
+        halfwidth = div(totalwidth - length(ctitle), 2)
+        println(io, " " ^ halfwidth * string(ctitle) * " " ^ halfwidth)
     end
-    if length(top) > 0
-        for i in 1:size(top, 1)
-            top[i, 1] = top[i, 1] * ":"
+    if length(ctop) > 0
+        for i in 1:size(ctop, 1)
+            ctop[i, 1] = ctop[i, 1] * ":"
         end
         println(io, "=" ^totalwidth)
         halfwidth = div(totalwidth, 2) - 1
         interwidth = 2 +  mod(totalwidth, 2)
-        for i in 1:(div(size(top, 1) - 1, 2)+1)
-            print(io, top[2*i-1, 1])
-            print(io, lpad(top[2*i-1, 2], halfwidth - length(top[2*i-1, 1])))
+        for i in 1:(div(size(ctop, 1) - 1, 2)+1)
+            print(io, ctop[2*i-1, 1])
+            print(io, lpad(ctop[2*i-1, 2], halfwidth - length(ctop[2*i-1, 1])))
             print(io, " " ^interwidth)
-            if size(top, 1) >= 2*i
-                print(io, top[2*i, 1])
-                print(io, lpad(top[2*i, 2], halfwidth - length(top[2*i, 1])))
+            if size(ctop, 1) >= 2*i
+                print(io, ctop[2*i, 1])
+                print(io, lpad(ctop[2*i, 2], halfwidth - length(ctop[2*i, 1])))
             end
             println(io)
         end
