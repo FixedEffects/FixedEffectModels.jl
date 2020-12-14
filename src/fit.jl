@@ -238,17 +238,21 @@ function reg(
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
     else
-        weights = Weights(Ones{Float64}(nobs))
+        weights = uweights(nobs)
     end
     all(isfinite, weights) || throw("Weights are not finite")
     sqrtw = sqrt.(weights)
 
     # Compute feM, an AbstractFixedEffectSolver
+    has_intercept = hasintercept(formula)
+    has_fe_intercept = false
     if has_fes
-        fes = FixedEffect[_subset(fe, esample) for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
+        if any(fe.interaction isa UnitWeights for fe in fes)
+              has_fe_intercept = true
+        end
+        fes = FixedEffect[fe[esample] for fe in fes]
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
     end
-
     # Compute data for std errors
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
 

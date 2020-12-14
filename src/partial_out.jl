@@ -70,7 +70,7 @@ function partial_out(
   
     if has_fes
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any(isa(fe.interaction, Ones) for fe in fes)
+        if any(isa(fe.interaction, UnitWeights) for fe in fes)
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
             has_fes_intercept = true
         end
