@@ -60,7 +60,7 @@ fesymbol(t::FixedEffectTerm) = t.x
 fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
 
 
-function parse_fixedeffect(df::AbstractDataFrame, @nospecialize(formula::FormulaTerm))
+function parse_fixedeffect(df, @nospecialize(formula::FormulaTerm))
     fes = FixedEffect[]
     ids = Symbol[]
     for term in eachterm(formula.rhs)
@@ -72,7 +72,7 @@ function parse_fixedeffect(df::AbstractDataFrame, @nospecialize(formula::Formula
     end
     if !isempty(fes)
         if any(fe.interaction isa UnitWeights for fe in fes)
-            formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if (term != ConstantTerm(1)) & (term != InterceptTerm{true}()) & !has_fe(term))...))
+            formula = FormulaTerm(formula.lhs, (InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}) && !has_fe(term))...))
         else
             formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
         end
@@ -80,23 +80,44 @@ function parse_fixedeffect(df::AbstractDataFrame, @nospecialize(formula::Formula
     return fes, ids, formula
 end
 
+# Method for external packages
+function parse_fixedeffect(df, @nospecialize(ts::NTuple{N, AbstractTerm})) where N
+    fes = FixedEffect[]
+    ids = Symbol[]
+    for term in eachterm(ts)
+        result = parse_fixedeffect(df, term)
+        if result != nothing
+            push!(fes, result[1])
+            push!(ids, result[2])
+        end
+    end
+    if !isempty(fes)
+        if any(fe.interaction isa UnitWeights for fe in fes)
+            ts = (InterceptTerm{false}(), (term for term in eachterm(ts) if !isa(term, Union{ConstantTerm,InterceptTerm}) && !has_fe(term))...)
+        else
+            ts = Tuple(term for term in eachterm(ts) if !has_fe(term))
+        end
+    end
+    return fes, ids, ts
+end
+
 # Constructors from dataframe + Term
-function parse_fixedeffect(df::AbstractDataFrame, t::AbstractTerm)
+function parse_fixedeffect(df, t::AbstractTerm)
     if has_fe(t)
         st = fesymbol(t)
-        return FixedEffect(df[!, st]), Symbol(:fe_, st)
+        return FixedEffect(Tables.getcolumn(df, st)), Symbol(:fe_, st)
     end
 end
 
 # Constructors from dataframe + InteractionTerm
-function parse_fixedeffect(df::AbstractDataFrame, t::InteractionTerm)
+function parse_fixedeffect(df, t::InteractionTerm)
     fes = (x for x in t.terms if has_fe(x))
     interactions = (x for x in t.terms if !has_fe(x))
     if !isempty(fes)
         # x1&x2 from (x1&x2)*id
         fe_names = [fesymbol(x) for x in fes]
         v1 = _multiply(df, Symbol.(interactions))
-        fe = FixedEffect((df[!, fe_name] for fe_name in fe_names)...; interaction = v1)
+        fe = FixedEffect((Tables.getcolumn(df, fe_name) for fe_name in fe_names)...; interaction = v1)
         interactions = setdiff(Symbol.(terms(t)), fe_names)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(interactions))
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
@@ -109,8 +130,8 @@ function _multiply(df, ss::AbstractVector)
     elseif length(ss) == 1
         # in case it has missing (for some reason *(missing) not defined))
         # do NOT use ! since it would modify the vector
-        return convert(AbstractVector{Float64}, replace(df[!, ss[1]], missing => 0))
+        return convert(AbstractVector{Float64}, replace(Tables.getcolumn(df, ss[1]), missing => 0))
     else
-        return convert(AbstractVector{Float64}, replace!(.*((df[!, x] for x in ss)...), missing => 0))
+        return convert(AbstractVector{Float64}, replace!(.*((Tables.getcolumn(df, x) for x in ss)...), missing => 0))
     end
 end
