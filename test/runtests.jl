@@ -1,9 +1,11 @@
 using FixedEffectModels
 
-tests = ["fit.jl", 
+tests = [
+		 "formula.jl",
+		 "fit.jl", 
 		 "predict.jl", 
 		 "partial_out.jl"
-		 ]
+		]
 
 println("Running tests:")
 
