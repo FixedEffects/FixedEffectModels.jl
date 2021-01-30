@@ -1,6 +1,6 @@
 using CSV, DataFrames, Test
 using FixedEffectModels
-using FixedEffectModels: parse_fixedeffect, _multiply
+using FixedEffectModels: parse_fixedeffect, _parse_fixedeffect, _multiply
 using FixedEffects
 import Base: ==
 
@@ -12,13 +12,13 @@ import Base: ==
     df = DataFrame(csvfile)
     # Any table type supporting the Tables.jl interface should work
     for data in [df, csvfile]
-    	@test parse_fixedeffect(data, term(:Price)) === nothing
-        @test parse_fixedeffect(data, ConstantTerm(1)) === nothing
-        @test parse_fixedeffect(data, fe(:State)) == (FixedEffect(data.State), :fe_State)
+    	@test _parse_fixedeffect(data, term(:Price)) === nothing
+        @test _parse_fixedeffect(data, ConstantTerm(1)) === nothing
+        @test _parse_fixedeffect(data, fe(:State)) == (FixedEffect(data.State), :fe_State)
         
-    	@test parse_fixedeffect(data, fe(:State)&term(:Year)) ==
+    	@test _parse_fixedeffect(data, fe(:State)&term(:Year)) ==
             (FixedEffect(data.State, interaction=_multiply(data, [:Year])), Symbol("fe_State&Year"))
-        @test parse_fixedeffect(data, fe(:State)&fe(:Year)) ==
+        @test _parse_fixedeffect(data, fe(:State)&fe(:Year)) ==
             (FixedEffect(data.State, data.Year), Symbol("fe_State&fe_Year"))
 
         @test parse_fixedeffect(data, ()) == (FixedEffect[], Symbol[], ())

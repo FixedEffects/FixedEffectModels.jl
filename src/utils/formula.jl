@@ -59,12 +59,22 @@ has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 fesymbol(t::FixedEffectTerm) = t.x
 fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
 
+"""
+    parse_fixedeffect(data, formula::FormulaTerm)
+    parse_fixedeffect(data, ts::NTuple{N, AbstractTerm})
 
-function parse_fixedeffect(table, @nospecialize(formula::FormulaTerm))
+Construct any `FixedEffect` specified with a `FixedEffectTerm`.
+
+# Returns
+- `Vector{FixedEffect}`: a collection of all `FixedEffect`s constructed.
+- `Vector{Symbol}`: names assigned to the fixed effects (can be used as column names).
+- `FormulaTerm` or `NTuple{N, AbstractTerm}`: `formula` or `ts` without any term related to fixed effects (an intercept may be explicitly omitted if necessary).
+"""
+function parse_fixedeffect(data, @nospecialize(formula::FormulaTerm))
     fes = FixedEffect[]
     ids = Symbol[]
     for term in eachterm(formula.rhs)
-        result = parse_fixedeffect(table, term)
+        result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
             push!(ids, result[2])
@@ -81,11 +91,11 @@ function parse_fixedeffect(table, @nospecialize(formula::FormulaTerm))
 end
 
 # Method for external packages
-function parse_fixedeffect(table, @nospecialize(ts::NTuple{N, AbstractTerm})) where N
+function parse_fixedeffect(data, @nospecialize(ts::NTuple{N, AbstractTerm})) where N
     fes = FixedEffect[]
     ids = Symbol[]
     for term in eachterm(ts)
-        result = parse_fixedeffect(table, term)
+        result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
             push!(ids, result[2])
@@ -101,37 +111,37 @@ function parse_fixedeffect(table, @nospecialize(ts::NTuple{N, AbstractTerm})) wh
     return fes, ids, ts
 end
 
-# Constructors from dataframe + Term
-function parse_fixedeffect(table, t::AbstractTerm)
+# Construct FixedEffect from a generic term
+function _parse_fixedeffect(data, t::AbstractTerm)
     if has_fe(t)
         st = fesymbol(t)
-        return FixedEffect(Tables.getcolumn(table, st)), Symbol(:fe_, st)
+        return FixedEffect(Tables.getcolumn(data, st)), Symbol(:fe_, st)
     end
 end
 
-# Constructors from dataframe + InteractionTerm
-function parse_fixedeffect(table, t::InteractionTerm)
+# Construct FixedEffect from an InteractionTerm
+function _parse_fixedeffect(data, t::InteractionTerm)
     fes = (x for x in t.terms if has_fe(x))
     interactions = (x for x in t.terms if !has_fe(x))
     if !isempty(fes)
         # x1&x2 from (x1&x2)*id
         fe_names = [fesymbol(x) for x in fes]
-        v1 = _multiply(table, Symbol.(interactions))
-        fe = FixedEffect((Tables.getcolumn(table, fe_name) for fe_name in fe_names)...; interaction = v1)
+        v1 = _multiply(data, Symbol.(interactions))
+        fe = FixedEffect((Tables.getcolumn(data, fe_name) for fe_name in fe_names)...; interaction = v1)
         interactions = string.(interactions)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], interactions)
         return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
     end
 end
 
-function _multiply(table, ss::AbstractVector)
+function _multiply(data, ss::AbstractVector)
     if isempty(ss)
-        return uweights(size(table, 1))
+        return uweights(size(data, 1))
     elseif length(ss) == 1
         # in case it has missing (for some reason *(missing) not defined))
         # do NOT use ! since it would modify the vector
-        return convert(AbstractVector{Float64}, replace(Tables.getcolumn(table, ss[1]), missing => 0))
+        return convert(AbstractVector{Float64}, replace(Tables.getcolumn(data, ss[1]), missing => 0))
     else
-        return convert(AbstractVector{Float64}, replace!(.*((Tables.getcolumn(table, x) for x in ss)...), missing => 0))
+        return convert(AbstractVector{Float64}, replace!(.*((Tables.getcolumn(data, x) for x in ss)...), missing => 0))
     end
 end
