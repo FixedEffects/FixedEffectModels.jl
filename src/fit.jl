@@ -359,12 +359,17 @@ function reg(
     #p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_), F)
     p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
     # Compute Fstat of First Stage
-    if has_iv
-        Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
+    if has_iv 
+        if size(Xendo_res, 2) < 1000
+            Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
+            r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method, size(X, 2), dof_absorb)
-        p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
-        F_kp = r_kp / size(Z_res, 2)
+            p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
+            F_kp = r_kp / size(Z_res, 2)
+        else
+            p_kp = NaN
+            F_kp = NaN
+        end
     end
     ##############################################################################
     ##
