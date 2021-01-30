@@ -360,7 +360,7 @@ function reg(
     p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
     # Compute Fstat of First Stage
     if has_iv 
-        if (size(Xendo_res, 2) > 200) & (vcov_method !isa Vcov.SimpleCovariance)
+        if (size(Xendo_res, 2) > 200) & !(vcov_method isa Vcov.SimpleCovariance)
             # requires too much memory
             p_kp = NaN
             F_kp = NaN
