@@ -65,9 +65,52 @@ function partial_out(
     fes, ids, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
 
-
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
+  
+    if has_fes
+        # in case some FixedEffect does not have interaction, remove the intercept
+        if any(isa(fe.interaction, UnitWeights) for fe in fes)
+            formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
+            has_fes_intercept = true
+        end
+    end
+    
+    # Extract Y
+    vars = unique(StatsModels.termvars(formula))
+    subdf = Tables.columntable(disallowmissing!(df[esample, vars]))
+    formula_y = FormulaTerm(ConstantTerm(0), (ConstantTerm(0), eachterm(formula.lhs)...))
+    formula_y_schema = apply_schema(formula_y, schema(formula_y, subdf, contrasts), StatisticalModel)
+    Y = modelmatrix(formula_y_schema, subdf)
+    
+    # Extract X
+    formula_x = FormulaTerm(ConstantTerm(0), formula.rhs)
+    formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
+    X = modelmatrix(formula_x_schema, subdf)
+    
+    # added in PR #109 to handle cases where formula terms introduce missings
+    # to be removed when fixed in StatsModels
+    esample2 = trues(size(Y, 1))
+    for c in eachcol(Y)
+        esample2 .&= .!ismissing.(c)
+    end
+    if size(X, 2) > 0 # X can have zero rows if all regressors are fixed effects
+        for c in eachcol(X)
+            esample2 .&= .!ismissing.(c)
+        end
+    end
+    
+    if any(!, esample2)
+        esample = esample2
+        Y = Y[esample,:]
+        X = X[esample,:]
+        nobs = sum(esample)
+    end
+    
+    # Disallow missings
+    Y = convert(Matrix{Float64}, Y)
+    X = convert(Matrix{Float64}, X)
+    
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
@@ -85,14 +128,8 @@ function partial_out(
         fes = FixedEffect[fe[esample] for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
     end
-
+    
     # Compute residualized Y
-    vars = unique(StatsModels.termvars(formula))
-    subdf = Tables.columntable(disallowmissing!(df[esample, vars]))
-    formula_y = FormulaTerm(ConstantTerm(0), (ConstantTerm(0), eachterm(formula.lhs)...))
-    formula_y_schema = apply_schema(formula_y, schema(formula_y, subdf, contrasts), StatisticalModel)
-    Y = convert(Matrix{Float64}, modelmatrix(formula_y_schema, subdf))
-
     ynames = coefnames(formula_y_schema)[2]
     if !isa(ynames, Vector)
         ynames = [ynames]
@@ -107,9 +144,6 @@ function partial_out(
     end
 
     # Compute residualized X
-    formula_x = FormulaTerm(ConstantTerm(0), formula.rhs)
-    formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
-    X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
     if has_fes
         X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
@@ -149,3 +183,4 @@ function partial_out(
     end
     return out, esample, iterations, convergeds
 end
+

@@ -130,27 +130,15 @@ function reg(
     if nobs == N
         esample = Colon()
     end
-
-    # Compute weights
-    if has_weights
-        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
-        all(isfinite, weights) || throw("Weights are not finite")
-    else
-        weights = uweights(nobs)
-    end
-
-    # Compute feM, an AbstractFixedEffectSolver
+    
     has_intercept = hasintercept(formula)
     has_fe_intercept = false
     if has_fes
         if any(fe.interaction isa UnitWeights for fe in fes)
             has_fe_intercept = true
         end
-        fes = FixedEffect[fe[esample] for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
     end
-    # Compute data for std errors
-    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
+    
     ##############################################################################
     ##
     ## Dataframe --> Matrix
@@ -162,13 +150,22 @@ function reg(
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(formula_schema, subdf))
-    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+    y = response(formula_schema, subdf)
 
+    # added in PR #109 to handle cases where formula terms introduce missings
+    # to be removed when fixed in StatsModels
+    esample2 = .!ismissing.(y)
+    
     # Obtain X
-    Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
-    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
-
+    Xexo = modelmatrix(formula_schema, subdf)
+    
+    # PR #109, to be removed when fixed in StatsModels
+    if size(Xexo, 2) > 0
+        for c in eachcol(Xexo)
+            esample2 .&= .!ismissing.(c)
+        end
+    end
+    
     response_name, coef_names = coefnames(formula_schema)
     if !(coef_names isa Vector)
         coef_names = typeof(coef_names)[coef_names]
@@ -177,15 +174,38 @@ function reg(
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
-        Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
-        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+        Xendo = modelmatrix(formula_endo_schema, subdf)
+        
+        # PR #109, to be removed when fixed in StatsModels
+        if size(Xendo, 2) > 0
+            for c in eachcol(Xendo)
+                esample2 .&= .!ismissing.(c)
+            end
+        end
+            
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
 
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
-        Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
+        Z = modelmatrix(formula_iv_schema, subdf)
+        
+        for c in eachcol(Z)
+            esample2 .&= .!ismissing.(c)
+        end
+        
+        # PR #109, to be removed when fixed in StatsModels
+        if any(esample2 .== false)
+            Xendo = Xendo[esample2,:]
+            Z = Z[esample2,:]
+        end
+        
+        Xendo = convert(Matrix{Float64}, Xendo)
+        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+
+        Z = convert(Matrix{Float64}, Z)
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
+                
         if size(Z, 2) < size(Xendo, 2)
             throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
@@ -193,6 +213,50 @@ function reg(
         # modify formula to use in predict
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
     end
+    
+    esample0 = esample == Colon() ? trues(size(df,1)) : copy(esample)
+    
+    # PR #109, to be removed when fixed in StatsModels
+    if any(esample2 .== false)
+        if any(esample0 .== 0)
+            throw(ArgumentError("You passed a dataset missing observations and used formula terms that introduce missings. This is not yet supported."))
+        end
+        Xexo = Xexo[esample2,:]
+        y = y[esample2]
+        esample = copy(esample0)
+        esample[esample] .= esample2
+        nobs = sum(esample2)
+    end
+
+    y = convert(Vector{Float64}, y)
+    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+
+    Xexo = convert(Matrix{Float64}, Xexo)  
+    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+    
+    # Compute weights
+    if has_weights
+        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+    else
+        weights = uweights(nobs)
+    end
+    all(isfinite, weights) || throw("Weights are not finite")
+    sqrtw = sqrt.(weights)
+
+    # Compute feM, an AbstractFixedEffectSolver
+    has_intercept = hasintercept(formula)
+    has_fe_intercept = false
+    if has_fes
+        if any(fe.interaction isa UnitWeights for fe in fes)
+              has_fe_intercept = true
+        end
+        fes = FixedEffect[fe[esample] for fe in fes]
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
+    end
+    # Compute data for std errors
+    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
+
+  
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
     # create unitilaized
