@@ -16,7 +16,9 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `tol::Real` Tolerance. Default to 1e-8 if `double_precision = true`, 1e-6 otherwise.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
-
+* `progress_bar::Bool = true`: Should the regression show a progressbar
+* `dof_add::Integer = 0`: 
+* `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows 
 
 
 ### Details
