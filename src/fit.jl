@@ -16,7 +16,9 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `tol::Real` Tolerance. Default to 1e-8 if `double_precision = true`, 1e-6 otherwise.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
-
+* `progress_bar::Bool = true`: Should the regression show a progressbar
+* `dof_add::Integer = 0`: 
+* `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows 
 
 
 ### Details
@@ -373,12 +375,18 @@ function reg(
     #p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_), F)
     p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
     # Compute Fstat of First Stage
-    if has_iv
-        Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
+    if has_iv 
+        if (size(Xendo_res, 2) > 200) & !(vcov_method isa Vcov.SimpleCovariance)
+            # requires too much memory
+            p_kp = NaN
+            F_kp = NaN
+         else
+            Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
+            r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method, size(X, 2), dof_absorb)
-        p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
-        F_kp = r_kp / size(Z_res, 2)
+            p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
+            F_kp = r_kp / size(Z_res, 2)
+        end
     end
     ##############################################################################
     ##
