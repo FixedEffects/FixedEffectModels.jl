@@ -261,7 +261,6 @@ function reg(
             coef_names = vcat(coef_names[1:size(Xendo, 2)], coefendo_names[.!baseall[(size(Z, 2)+1):end]], coefendo_names[baseall[(size(Z, 2)+1):end]])
         end
 
-
         # get linearly independent columns
         # note that I do it after residualizing
         baseall = basecol(Xexo, Z, Xendo)
