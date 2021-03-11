@@ -259,8 +259,6 @@ function reg(
             Xexo = hcat(Xexo, getcols(Xendo, .!baseall[(size(Z, 2)+1):end]))
             Xendo = getcols(Xendo, baseall[(size(Z, 2)+1):end])
             coef_names = vcat(coef_names[1:size(Xendo, 2)], coefendo_names[.!baseall[(size(Z, 2)+1):end]], coefendo_names[baseall[(size(Z, 2)+1):end]])
-            @show size(Xexo, 2), size(Xendo, 2)
-            @show coef_names
         end
 
 
