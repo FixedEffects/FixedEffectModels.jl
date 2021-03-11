@@ -189,7 +189,6 @@ function reg(
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
-        _, coefiv_names = coefnames(formula_iv_schema)
         if size(Z, 2) < size(Xendo, 2)
             throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
         end
