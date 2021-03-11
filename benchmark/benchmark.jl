@@ -9,6 +9,9 @@ x1 = 5 * cos.(id1) + 5 * sin.(id2) + randn(N)
 x2 =  cos.(id1) +  sin.(id2) + randn(N)
 y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
+# first time
+@time reg(df, @formula(y ~ x1 + x2))
+# 14s
 @time reg(df, @formula(y ~ x1 + x2))
 # 0.582029 seconds (852 allocations: 535.311 MiB, 18.28% gc time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))

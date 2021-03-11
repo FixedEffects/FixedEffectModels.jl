@@ -28,6 +28,12 @@ end
 ## 
 ##############################################################################
 crossprod(A::AbstractMatrix) = A'A
+function crossprod(A::AbstractMatrix, B::AbstractMatrix)
+    u11, u12, u22 = A'A, A'B, B'B
+    hvcat(2, u11, u12, 
+             u12', u22)
+end
+
 function crossprod(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     u11, u12, u13 = A'A, A'B, A'C
     u22, u23 = B'B, B'C

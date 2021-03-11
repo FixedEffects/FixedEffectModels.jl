@@ -38,6 +38,7 @@ df.YearC = categorical(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
 """
+
 function reg(
     @nospecialize(df),
     @nospecialize(formula::FormulaTerm),
@@ -250,16 +251,25 @@ function reg(
 
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv
+
+        # put endo that are collinear as exo
+        baseall = basecol(Z, Xendo)
+        if !all(baseall)
+            Xexo = hcat(Xexo, getcols(Xendo, .!baseall[(size(Z, 2)+1):end]))
+            Xendo = getcols(Xendo, baseall[(size(Z, 2)+1):end])
+            coef_names = vcat(coef_names[1:size(Xendo, 2)], coefendo_names[.!baseall[(size(Z, 2)+1):end]], coefendo_names[baseall[(size(Z, 2)+1):end]])
+        end
+
         # get linearly independent columns
         # note that I do it after residualizing
-        baseall = basecol(Z, Xexo, Xendo)
-        basecolXexo = baseall[(size(Z, 2)+1):(size(Z, 2) + size(Xexo, 2))]
-        basecolXendo = baseall[(size(Z, 2) + size(Xexo, 2) + 1):end]
-        Z = getcols(Z, baseall[1:size(Z, 2)])
+        baseall = basecol(Xexo, Z, Xendo)
+        basecolXexo = baseall[1:size(Xexo, 2)]
+        basecolZ = baseall[(size(Xexo, 2)+1):(size(Xexo, 2) + size(Z, 2))]
+        basecolXendo = baseall[(size(Xexo, 2) + size(Z, 2) + 1):end]
         Xexo = getcols(Xexo, basecolXexo)
+        Z = getcols(Z, basecolZ)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
-
         # Build
         newZ = hcat(Xexo, Z)
         Pi = cholesky!(Symmetric(newZ' * newZ)) \ (newZ' * Xendo)
