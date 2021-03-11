@@ -263,6 +263,13 @@ m = @formula y ~ log(x1_zero)
 
 
 
+# this should returns the same thing as y ~  (x1 + zz1 ~ x2 + z1)
+#m = @formula y ~  (x1 + zz2 ~ x2 + z1)
+#x = reg(df, m)
+#@test coef(x)[2] != 0.0
+
+
+
 
 # Make sure all coefficients are estimated
 using Random
