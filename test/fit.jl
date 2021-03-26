@@ -475,6 +475,16 @@ x = reg(df, m)
 m = @formula w ~ z1 + x1
 x = reg(df, m)
 @test x.p ≈ 3.369423076033613e-14 atol = 1e-4
+
+
+
+
+# Fstat  https://github.com/FixedEffects/FixedEffectModels.jl/issues/150
+df_example = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Ftest.csv")))
+x = reg(df_example, @formula(Y ~ fe(id) + (X1 + X2 ~ Z1 + Z2) ), Vcov.robust() )
+@test x.F_kp ≈ 14.5348449357 atol = 1e-4
+
+
 ##############################################################################
 ##
 ## F_kp r_kp statistics for IV. Difference degrees of freedom.
