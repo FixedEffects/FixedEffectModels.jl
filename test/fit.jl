@@ -484,16 +484,6 @@ df_example = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "..
 x = reg(df_example, @formula(Y ~ fe(id) + (X1 + X2 ~ Z1 + Z2) ), Vcov.robust() )
 @test x.F_kp ≈ 14.5348449357 atol = 1e-4
 
-reg(df_example, @formula(Y ~ fe(id) + (X1 + X2 ~ Z1eps + Z2eps) ), Vcov.robust() )
-instructions = ["ivreg2 Y (X1 X2 = Z1 Z2) id, robust";]
-dfOut = StataCall.stataCall(instructions, df_example);
-instructions = ["ivreghdfe Y (X1 X2 = Z1 Z2), absorb(id) robust";]
-dfOut = StataCall.stataCall(instructions, df_example);
-instructions = ["ivreg2 Y (X1 X2 = Z1eps Z2eps) id, robust";]
-dfOut = StataCall.stataCall(instructions, df_example);
-
-
-
 
 ##############################################################################
 ##
