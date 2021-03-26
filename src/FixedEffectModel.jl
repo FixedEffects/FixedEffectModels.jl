@@ -161,13 +161,13 @@ function top(x::FixedEffectModel)
             "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
             "R2" format_scientific(x.r2);
             "R2 Adjusted" format_scientific(x.adjr2);
-            "F Statistic" sprint(show, x.F, context = :compact => true);
+            "F-Stat" sprint(show, x.F, context = :compact => true);
             "p-value" format_scientific(x.p);
             ]
     if has_iv(x)
         out = vcat(out, 
-            ["First Stage F-stat (KP)" sprint(show, x.F_kp, context = :compact => true);
-            "First Stage p-val (KP)" format_scientific(x.p_kp);
+            ["F-Stat (First Stage)" sprint(show, x.F_kp, context = :compact => true);
+            "p-value (First Stage)" format_scientific(x.p_kp);
             ])
     end
     if has_fe(x)
@@ -186,6 +186,7 @@ function Base.show(io::IO, x::FixedEffectModel)
     ctop = top(x)
     cc = coef(x)
     se = stderror(x)
+    yname = responsename(x)
     coefnms = coefnames(x)
     conf_int = confint(x)
     # put (intercept) last
@@ -209,7 +210,7 @@ function Base.show(io::IO, x::FixedEffectModel)
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
     if length(rownms) > 0
-        rnwidth = max(4,maximum([length(nm) for nm in rownms]) + 1)
+        rnwidth = max(4, maximum(length(nm) for nm in rownms) + 1, length(yname) + 1)
         else
             # if only intercept, rownms is empty collection, so previous would return error
         rnwidth = 4
@@ -255,7 +256,7 @@ function Base.show(io::IO, x::FixedEffectModel)
         end
     end
     println(io,"=" ^totalwidth)
-    println(io," " ^ rnwidth *
+    println(io, rpad(string(yname), rnwidth) *
             join([lpad(string(colnms[i]), widths[i]) for i = 1:nc], ""))
     println(io,"-" ^totalwidth)
     for i in 1:nr
