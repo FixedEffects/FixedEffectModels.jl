@@ -269,20 +269,15 @@ x = reg(df, m)
 @test iszero(coef(x)[2])
 
 
-df.zz1 = df.z1
-m = @formula y ~ zz1 + (x1 ~ x2 + z1)
-x = reg(df, m)
-@test iszero(coef(x)[2])
-
 
 
 
 # Make sure all coefficients are estimated
-using Random
-Random.seed!(0)
-df_r = DataFrame(x1 = randn(10000) * 100)
-df_r.x2 = df_r.x1.^4
-result = reg(df_r, @formula(x1 ~ x2 ))
+#using Random
+#Random.seed!(0)
+#df_r = DataFrame(x1 = randn(10000) * 100)
+#df_r.x2 = df_r.x1.^4
+#result = reg(df_r, @formula(x1 ~ x2 ))
 #@test sum(abs.(coef(result)) .> 0)  == 2
 
 ##############################################################################
