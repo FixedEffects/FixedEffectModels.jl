@@ -191,9 +191,6 @@ function reg(
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
-        if size(Z, 2) < size(Xendo, 2)
-            throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
-        end
 
         # modify formula to use in predict
         formula = FormulaTerm(formula.lhs, (tuple(eachterm(formula.rhs)..., (term for term in eachterm(formula_endo.rhs) if term != ConstantTerm(0))...)))
@@ -229,7 +226,7 @@ function reg(
         iterations = maximum(iterations)
         converged = all(convergeds)
         if converged == false
-            @warn "Convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
+            @info "Convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
         end
 
         tss_partial = tss(y, has_intercept | has_fe_intercept, weights)
@@ -257,29 +254,29 @@ function reg(
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv
 
-        # put endo that are collinear as exo
-        baseZ = basecol(Z)
-        if !all(baseZ)
-            Z = getcols(Z, !baseZ)
-        end
-
-        # put endo that are collinear as exo
-        baseall = basecol(Z, Xendo)
+        # put endo that are collinear with instrument as exogeneous
+        baseall = [basecol(Z, Xendo[:, j:j])[end] for j in 1:size(Xendo, 2)]
         if !all(baseall)
-            Xexo = hcat(Xexo, getcols(Xendo, .!baseall[(size(Z, 2)+1):end]))
-            Xendo = getcols(Xendo, baseall[(size(Z, 2)+1):end])
-            coef_names = vcat(coef_names[1:size(Xendo, 2)], coefendo_names[.!baseall[(size(Z, 2)+1):end]], coefendo_names[baseall[(size(Z, 2)+1):end]])
+            coef_names = vcat(coef_names[1:size(Xexo, 2)], coefendo_names[.!baseall], coefendo_names[baseall])
+            Xexo = hcat(Xexo, getcols(Xendo, .!baseall))
+            Xendo = getcols(Xendo, baseall)
+            out = join(coefendo_names[.!baseall], " ")
+            @info "Endogenous variable(s) collinear with instruments. Var(s) now exogenous: $(out)"
         end
 
         # get linearly independent columns
         # note that I do it after residualizing
-        baseall = basecol(Z, Xexo, Xendo)
-        basecolZ = baseall[1:size(Z, 2)]
-        basecolXexo = baseall[(size(Z, 2)+1):(size(Xexo, 2) + size(Z, 2))]
+        baseall = basecol(Xexo, Z, Xendo)
+        basecolXexo = baseall[1:size(Xexo, 2)]
+        basecolZ = baseall[(size(Xexo, 2)+1):(size(Xexo, 2) + size(Z, 2))]
         basecolXendo = baseall[(size(Xexo, 2) + size(Z, 2) + 1):end]
         Z = getcols(Z, basecolZ)
         Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
+
+        if size(Z, 2) < size(Xendo, 2)
+            throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
+        end
         basecoef = vcat(basecolXexo, basecolXendo)
         # Build
         newZ = hcat(Xexo, Z)
@@ -301,6 +298,12 @@ function reg(
         X = Xexo
         basecoef = basecolXexo
     end
+
+    if !all(basecoef)
+        out = join(coef_names[.!basecoef], " ")
+        @info "Collinearities detected. Var(s) dropped: $(out)"
+    end
+
 
     ##############################################################################
     ##
@@ -379,7 +382,7 @@ function reg(
             p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
             F_kp = r_kp / size(Z_res, 2)
         catch
-            @warn "ranktest failed ; first-stage statistics not estimated"
+            @info "ranktest failed ; first-stage statistics not estimated"
             p_kp, F_kp = NaN, NaN
         end
     end

@@ -246,7 +246,7 @@ df.x12 = df.x1
 m = @formula y ~ x1 + x12
 x = reg(df, m)
 @test coef(x) ≈ [139.7344639806166,-0.22974688593485126,0.0] atol = 1e-4
-#
+
 ## iv
 df.x22 = df.x2
 m = @formula y ~ x22 + x2 + (x1 ~ z1)
@@ -254,14 +254,27 @@ x = reg(df, m)
 @test iszero(coef(x)[2]) || iszero(coef(x)[3])
 
 
-##
+## iv with iv used as endo variable
 df.zz1 = df.z1
-m = @formula y ~ zz1 + (x1 ~ x2 + z1)
+m = @formula y ~ (zz1 + x1 ~ x2 + z1)
 x = reg(df, m)
-@test !iszero(coef(x)[2])
 
 # catch when IV underidentified 
 @test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x1 + (x2 + w ~ x2)))
+@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x2 + (w ~ x2)))
+
+df.zz1 = df.z1
+m = @formula y ~ zz1 + (x1 ~ x2 + z1)
+x = reg(df, m)
+@test iszero(coef(x)[2])
+
+
+df.zz1 = df.z1
+m = @formula y ~ zz1 + (x1 ~ x2 + z1)
+x = reg(df, m)
+@test iszero(coef(x)[2])
+
+
 
 
 # Make sure all coefficients are estimated
