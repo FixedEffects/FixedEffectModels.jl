@@ -17,6 +17,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
 * `progress_bar::Bool = true`: Should the regression show a progressbar
+* `first_stage::Bool = true`: Should the first-stage F-stat and p-value be computed?
 * `dof_add::Integer = 0`: 
 * `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows 
 
@@ -54,7 +55,8 @@ function reg(
     @nospecialize(drop_singletons::Bool = true),
     @nospecialize(progress_bar::Bool = true),
     @nospecialize(dof_add::Integer = 0),
-    @nospecialize(subset::Union{Nothing, AbstractVector} = nothing))
+    @nospecialize(subset::Union{Nothing, AbstractVector} = nothing), 
+    @nospecialize(first_stage::Bool = true))
 
     df = DataFrame(df; copycols = false)
     N = size(df, 1)
@@ -242,6 +244,9 @@ function reg(
             Z .= Z .* sqrtw
         end
     end
+    
+
+
 
     ##############################################################################
     ##
@@ -253,6 +258,12 @@ function reg(
     if has_iv
 
         # put endo that are collinear as exo
+        baseZ = basecol(Z)
+        if !all(baseZ)
+            Z = getcols(Z, !baseZ)
+        end
+
+        # put endo that are collinear as exo
         baseall = basecol(Z, Xendo)
         if !all(baseall)
             Xexo = hcat(Xexo, getcols(Xendo, .!baseall[(size(Z, 2)+1):end]))
@@ -262,12 +273,12 @@ function reg(
 
         # get linearly independent columns
         # note that I do it after residualizing
-        baseall = basecol(Xexo, Z, Xendo)
-        basecolXexo = baseall[1:size(Xexo, 2)]
-        basecolZ = baseall[(size(Xexo, 2)+1):(size(Xexo, 2) + size(Z, 2))]
+        baseall = basecol(Z, Xexo, Xendo)
+        basecolZ = baseall[1:size(Z, 2)]
+        basecolXexo = baseall[(size(Z, 2)+1):(size(Xexo, 2) + size(Z, 2))]
         basecolXendo = baseall[(size(Xexo, 2) + size(Z, 2) + 1):end]
-        Xexo = getcols(Xexo, basecolXexo)
         Z = getcols(Z, basecolZ)
+        Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
         # Build
@@ -331,24 +342,46 @@ function reg(
     ##
     ##############################################################################
     # Compute degrees of freedom
-    dof_absorb = 0
+    dof_fes = 0
     if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
             if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.refs) for v in values(vcov_method.clusters))
-                dof_absorb += 1 # if fe is nested you still lose 1 degree of freedom
+                dof_fes += 1 # if fe is nested you still lose 1 degree of freedom
             else
                 #only count groups that exists
-                dof_absorb += nunique(fe)
+                dof_fes += nunique(fe)
             end
         end
     end
-    _n_coefs = size(X, 2) + dof_absorb + dof_add
-    dof_residual_ = max(1, nobs - _n_coefs)
+    dof_residual_ = max(1, nobs - size(X, 2) - dof_fes - dof_add)
 
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
         nclusters = Vcov.nclusters(vcov_method)
+    end
+
+
+    # Compute standard error
+    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual_)
+    matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
+
+    # Compute Fstat
+    F = Fstat(coef, matrix_vcov, has_intercept)
+    df_FStat_ = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
+    p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
+    # Compute Fstat of First Stage
+    if has_iv && first_stage
+        Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
+        try 
+            r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
+                              vcov_method, size(X, 2), dof_fes)
+            p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
+            F_kp = r_kp / size(Z_res, 2)
+        catch
+            @warn "ranktest failed ; first-stage statistics not estimated"
+            p_kp, F_kp = NaN, NaN
+        end
     end
 
     # Compute rss, tss, r2, r2 adjusted
@@ -360,36 +393,6 @@ function reg(
         r2_within = 1 - rss / tss_partial
     end
 
-
-    # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual_)
-    matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
-
-    # Compute Fstat
-    F = Fstat(coef, matrix_vcov, has_intercept)
-    df_FStat_ = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
-    #p = ccdf(FDist(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_), F)
-    p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
-    # Compute Fstat of First Stage
-    if has_iv 
-        if (size(Xendo_res, 2) > 200) & !(vcov_method isa Vcov.SimpleCovariance)
-            # requires too much memory
-            p_kp = NaN
-            F_kp = NaN
-        else
-            Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-            try
-                r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
-                                      vcov_method, size(X, 2), dof_absorb)
-                p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
-                F_kp = r_kp / size(Z_res, 2)
-            catch
-                @warn "Standard errors for IV not estimated; ranktest failed"
-                p_kp = NaN
-                F_kp = NaN
-            end
-        end
-    end
     ##############################################################################
     ##
     ## Return regression result
