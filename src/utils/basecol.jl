@@ -60,7 +60,10 @@ function basecol(X::AbstractMatrix...; factorization = :Cholesky)
         r = sum(diag(cholm.factors) .> size(X[1],1)^2 * eps())
         # used to be r = rank(cholm) but does not work wiht very high regressors at the same time as intercept
     end
-    invpermute!(1:size(cholm, 1) .<= r, cholm.piv)
+    r = min(rank(cholm), r)
+    output = fill(false, size(cholm, 2))
+    output[cholm.piv[1:r]] .= true
+    return output
 end
 
 function getcols(X::AbstractMatrix,  basecolX::AbstractVector)

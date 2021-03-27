@@ -244,6 +244,9 @@ function reg(
             Z .= Z .* sqrtw
         end
     end
+    
+
+
 
     ##############################################################################
     ##
@@ -255,6 +258,12 @@ function reg(
     if has_iv
 
         # put endo that are collinear as exo
+        baseZ = basecol(Z)
+        if !all(baseZ)
+            Z = getcols(Z, !baseZ)
+        end
+
+        # put endo that are collinear as exo
         baseall = basecol(Z, Xendo)
         if !all(baseall)
             Xexo = hcat(Xexo, getcols(Xendo, .!baseall[(size(Z, 2)+1):end]))
@@ -264,12 +273,12 @@ function reg(
 
         # get linearly independent columns
         # note that I do it after residualizing
-        baseall = basecol(Xexo, Z, Xendo)
-        basecolXexo = baseall[1:size(Xexo, 2)]
-        basecolZ = baseall[(size(Xexo, 2)+1):(size(Xexo, 2) + size(Z, 2))]
+        baseall = basecol(Z, Xexo, Xendo)
+        basecolZ = baseall[1:size(Z, 2)]
+        basecolXexo = baseall[(size(Z, 2)+1):(size(Xexo, 2) + size(Z, 2))]
         basecolXendo = baseall[(size(Xexo, 2) + size(Z, 2) + 1):end]
-        Xexo = getcols(Xexo, basecolXexo)
         Z = getcols(Z, basecolZ)
+        Xexo = getcols(Xexo, basecolXexo)
         Xendo = getcols(Xendo, basecolXendo)
         basecoef = vcat(basecolXexo, basecolXendo)
         # Build
