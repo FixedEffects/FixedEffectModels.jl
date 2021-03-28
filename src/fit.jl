@@ -266,9 +266,9 @@ function reg(
 
         # get linearly independent columns
         # note that I do it after residualizing
-        baseall = basecol(Xexo, Z, Xendo)
-        basecolXexo = baseall[1:size(Xexo, 2)]
-        basecolZ = baseall[(size(Xexo, 2)+1):(size(Xexo, 2) + size(Z, 2))]
+        baseall = basecol(Z, Xexo, Xendo)
+        basecolZ = baseall[1:size(Z, 2)]
+        basecolXexo = baseall[(size(Z, 2)+1):(size(Xexo, 2) + size(Z, 2))]
         basecolXendo = baseall[(size(Xexo, 2) + size(Z, 2) + 1):end]
         Z = getcols(Z, basecolZ)
         Xexo = getcols(Xexo, basecolXexo)
