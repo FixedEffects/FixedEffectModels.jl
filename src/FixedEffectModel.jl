@@ -210,12 +210,12 @@ function Base.show(io::IO, x::FixedEffectModel)
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
     if length(rownms) > 0
-        rnwidth = max(4, maximum(length(nm) for nm in rownms) + 1, length(yname) + 1)
+        rnwidth = max(4, maximum(length(nm) for nm in rownms) + 2, length(yname) + 2)
         else
             # if only intercept, rownms is empty collection, so previous would return error
         rnwidth = 4
     end
-    rownms = [rpad(nm,rnwidth) for nm in rownms]
+    rownms = [rpad(nm,rnwidth-1) * "|" for nm in rownms]
     widths = [length(cn)::Int for cn in colnms]
     str = [sprint(show, mat[i,j]; context=:compact => true) for i in 1:nr, j in 1:nc]
     if pvc != 0                         # format the p-values column
@@ -256,7 +256,7 @@ function Base.show(io::IO, x::FixedEffectModel)
         end
     end
     println(io,"=" ^totalwidth)
-    println(io, rpad(string(yname), rnwidth) *
+    println(io, rpad(string(yname), rnwidth-1) * "|" *
             join([lpad(string(colnms[i]), widths[i]) for i = 1:nc], ""))
     println(io,"-" ^totalwidth)
     for i in 1:nr

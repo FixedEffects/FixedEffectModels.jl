@@ -46,25 +46,40 @@ end
 ##############################################################################
 ##
 ## Returns base of [A B C ...]
+## Important: it must be the case that it returns the in order, that is [A B A] returns [true true false] not [false true true]
 ## 
-## TODO: You could protect against roundoff error by using a controlled sum algorithm (similar to sum_kbn) to compute elements of X'X, then converting to BigFloat before factoring.
-##
 ##
 ##############################################################################
-
 # rank(A) == rank(A'A)
-function basecol(X::AbstractMatrix...; factorization = :Cholesky)
-    cholm = cholesky!(Symmetric(crossprod(X...)), Val(true); tol = -1, check = false)
-    r = 0
-    if size(cholm, 1) > 0
-        r = sum(diag(cholm.factors) .> size(X[1],1)^2 * eps())
-        # used to be r = rank(cholm) but does not work wiht very high regressors at the same time as intercept
-    end
-    r = min(rank(cholm), r)
-    output = fill(false, size(cholm, 2))
-    output[cholm.piv[1:r]] .= true
-    return output
+function basecol(X::AbstractMatrix...)
+    invXX = invsym!(crossprod(X...))
+    return diag(invXX) .> 0
 end
+
+# generalized 2inverse (the one used by Stata)
+function invsym!(X::AbstractMatrix)
+    # The C value adjusts the check to the relative scale of the variable. The C value is equal to the corrected sum of squares for the variable, unless the corrected sum of squares is 0, in which case C is 1. If you specify the NOINT option but not the ABSORB statement, PROC GLM uses the uncorrected sum of squares instead. The default value of the SINGULAR= option, 107, might be too small, but this value is necessary in order to handle the high-degree polynomials used in the literature to compare regression routin
+    tols = max.(diag(X), 1)
+    for j in 1:size(X, 1)
+        d = X[j,j]
+        if abs(d) < tols[j] * sqrt(eps())
+            X[j,:] .= 0
+            X[:,j] .= 0
+        else
+            X[j,:] = X[j,:] ./ d
+            for i in 1:size(X, 1)
+                if (i != j)
+                    X[i,:] .= X[i,:] .- X[i,j] .* X[j,:]
+                    X[i,j] = -X[i,j] / d
+                end
+            end
+            X[j,j] = 1/d
+        end
+    end
+    return X
+end
+
+
 
 function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
