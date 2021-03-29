@@ -251,33 +251,45 @@ function reg(
     ##
     ##############################################################################
 
-    # Compute linearly independent columns + create the Xhat matrix
     if has_iv
+        # Compute linearly independent columns + create the Xhat matrix
+    	
+        # first pass: remove colinear variables in Xendo
+    	basis_endo = basecol(Xendo)
+    	Xendo = getcols(Xendo, basis_endo)
 
-        # put endo that are collinear with instrument as exogeneous
-        baseall = [basecol(Z, Xendo[:, j:j])[end] for j in 1:size(Xendo, 2)]
-        if !all(baseall)
-            coef_names = vcat(coef_names[1:size(Xexo, 2)], coefendo_names[.!baseall], coefendo_names[baseall])
-            Xexo = hcat(Xexo, getcols(Xendo, .!baseall))
-            Xendo = getcols(Xendo, baseall)
-            out = join(coefendo_names[.!baseall], " ")
-            @info "Endogenous variable(s) collinear with instruments. Var(s) now exogenous: $(out)"
+    	# second pass: remove colinear variable in Xexo, Z, and Xendo
+    	basis = basecol(Xexo, Z, Xendo)
+        basis_Xexo = basis[1:size(Xexo, 2)]
+        basis_Z = basis[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
+        basis_endo_small = basis[(size(Xexo, 2) + size(Z, 2) + 1):end]
+        if !all(basis_endo_small)
+            # if adding Xexo and Z makes Xendo collinar
+            # consider these variables are exogeneous
+            Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
+            Xendo = getcols(Xendo, basis_endo_small)
+
+            # out returns false for endo collinear with instruments
+            basis_endo2 = trues(length(basis_endo))
+            basis_endo2[basis_endo] = basis_endo_small
+
+            # TODO: I should probably change formula in this case so that predict still works 
+            coef_names = vcat(coef_names[1:length(basis_Xexo)], coefendo_names[.!basis_endo2], coefendo_names[basis_endo2])
+
+            out = join(coefendo_names[.!basis_endo2], " ")
+            @info "Endogeneous var(s) are collinear with instruments. Var(s) recategorized as exogenous: $(out)"
+
+            # third pass
+            basis = basecol(Xexo, Z, Xendo)
+            basis_Xexo = basis[1:size(Xexo, 2)]
+            basis_Z = basis[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
 
-        # get linearly independent columns
-        # note that I do it after residualizing
-        baseall = basecol(Z, Xexo, Xendo)
-        basecolZ = baseall[1:size(Z, 2)]
-        basecolXexo = baseall[(size(Z, 2)+1):(size(Xexo, 2) + size(Z, 2))]
-        basecolXendo = baseall[(size(Xexo, 2) + size(Z, 2) + 1):end]
-        Z = getcols(Z, basecolZ)
-        Xexo = getcols(Xexo, basecolXexo)
-        Xendo = getcols(Xendo, basecolXendo)
+    	Xexo = getcols(Xexo, basis_Xexo)
+    	Z = getcols(Z, basis_Z)
+        size(Z, 2) >= size(Xendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
+        basis_coef = vcat(basis_Xexo, basis_endo[basis_endo_small])
 
-        if size(Z, 2) < size(Xendo, 2)
-            throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
-        end
-        basecoef = vcat(basecolXexo, basecolXendo)
         # Build
         newZ = hcat(Xexo, Z)
         Pi = cholesky!(Symmetric(newZ' * newZ)) \ (newZ' * Xendo)
@@ -292,15 +304,15 @@ function reg(
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
-        basecolXexo = basecol(Xexo)
-        Xexo = getcols(Xexo, basecolXexo)
+        basis_Xexo = basecol(Xexo)
+        Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo
-        basecoef = basecolXexo
+        basis_coef = basis_Xexo
     end
 
-    if !all(basecoef)
-        out = join(coef_names[.!basecoef], " ")
+    if !all(basis_coef)
+        out = join(coef_names[.!basis_coef], " ")
         @info "Collinearities detected. Var(s) dropped: $(out)"
     end
 
@@ -331,7 +343,7 @@ function reg(
 
     augmentdf = DataFrame()
     if save_fe
-        oldX = getcols(oldX, basecoef)
+        oldX = getcols(oldX, basis_coef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for j in eachindex(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
@@ -402,10 +414,10 @@ function reg(
     ##
     ##############################################################################
     # add omitted variables
-    if !all(basecoef)
-        newcoef = zeros(length(basecoef))
-        newmatrix_vcov = fill(NaN, (length(basecoef), length(basecoef)))
-        newindex = [searchsortedfirst(cumsum(basecoef), i) for i in 1:length(coef)]
+    if !all(basis_coef)
+        newcoef = zeros(length(basis_coef))
+        newmatrix_vcov = fill(NaN, (length(basis_coef), length(basis_coef)))
+        newindex = [searchsortedfirst(cumsum(basis_coef), i) for i in 1:length(coef)]
         for i in eachindex(newindex)
             newcoef[newindex[i]] = coef[i]
             for j in eachindex(newindex)
