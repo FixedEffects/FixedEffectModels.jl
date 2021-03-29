@@ -273,9 +273,11 @@ function reg(
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
 
-            # TODO: I should probably change formula in this case so that predict still works 
+            # TODO: I should probably also change formula in this case so that predict still works 
             coef_names = vcat(coef_names[1:length(basis_Xexo)], coefendo_names[.!basis_endo2], coefendo_names[basis_endo2])
-
+            if savefe
+                oldX = hcat(oldX[1:length(basis_Xexo)], oldX[:, (length(basis_Xexo)+1):end][.!basisendo2], oldX[:, (length(basis_Xexo)+1):end][!basisendo2])
+            end
             out = join(coefendo_names[.!basis_endo2], " ")
             @info "Endogeneous var(s) are collinear with instruments. Var(s) recategorized as exogenous: $(out)"
 
