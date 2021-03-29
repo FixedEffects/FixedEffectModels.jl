@@ -264,8 +264,7 @@ function reg(
         basis_Z = basis[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         basis_endo_small = basis[(size(Xexo, 2) + size(Z, 2) + 1):end]
         if !all(basis_endo_small)
-            # if adding Xexo and Z makes Xendo collinar
-            # consider these variables are exogeneous
+            # if adding Xexo and Z makes Xendo collinar, consider these variables are exogeneous
             Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
             Xendo = getcols(Xendo, basis_endo_small)
 
@@ -273,13 +272,19 @@ function reg(
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
 
+            # Change coef_names and oldX
             # TODO: I should probably also change formula in this case so that predict still works 
-            coef_names = vcat(coef_names[1:length(basis_Xexo)], coefendo_names[.!basis_endo2], coefendo_names[basis_endo2])
+            coef_names = vcat(coef_names[1:length(basis_Xexo)], 
+                              coef_names[(length(basis_Xexo)+1):end][.!basis_endo2], 
+                              coef_names[(length(basis_Xexo)+1):end][basis_endo2])
             if save_fe
-                oldX = hcat(oldX[:, 1:length(basis_Xexo)], oldX[:, (length(basis_Xexo)+1):end][.!basisendo2], oldX[:, (length(basis_Xexo)+1):end][!basisendo2])
+                oldX = hcat(oldX[:, 1:length(basis_Xexo)], 
+                            oldX[:, (length(basis_Xexo)+1):end][.!basisendo2], 
+                            oldX[:, (length(basis_Xexo)+1):end][!basisendo2])
             end
+
             out = join(coefendo_names[.!basis_endo2], " ")
-            @info "Endogeneous var(s) are collinear with instruments. Var(s) recategorized as exogenous: $(out)"
+            @info "Endogeneous vars are collinear with instruments. Var(s) recategorized as exogenous: $(out)"
 
             # third pass
             basis = basecol(Xexo, Z, Xendo)
