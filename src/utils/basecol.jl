@@ -58,12 +58,10 @@ end
 
 # generalized 2inverse (the one used by Stata)
 function invsym!(X::AbstractMatrix)
-    # SThe C value adjusts the check to the relative scale of the variable. The C value is equal to the corrected sum of squares for the variable, unless the corrected sum of squares is 0, in which case C is 1. If you specify the NOINT option but not the ABSORB statement, PROC GLM uses the uncorrected sum of squares instead.
+    # The C value adjusts the check to the relative scale of the variable. The C value is equal to the corrected sum of squares for the variable, unless the corrected sum of squares is 0, in which case C is 1. If you specify the NOINT option but not the ABSORB statement, PROC GLM uses the uncorrected sum of squares instead. The default value of the SINGULAR= option, 107, might be too small, but this value is necessary in order to handle the high-degree polynomials used in the literature to compare regression routin
     tols = max.(diag(X), 1)
-    @show tols
     for j in 1:size(X, 1)
         d = X[j,j]
-        @show d
         if abs(d) < tols[j] * sqrt(eps())
             X[j,:] .= 0
             X[:,j] .= 0

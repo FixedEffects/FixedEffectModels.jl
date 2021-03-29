@@ -268,7 +268,7 @@ x2 = reg(df, m)
 
 # catch when IV underidentified 
 @test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x1 + (x2 + w ~ x2)))
-@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x2 + (w ~ x2)))
+@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x1 + (w ~ x1)))
 
 
 
