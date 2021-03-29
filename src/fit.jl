@@ -250,10 +250,8 @@ function reg(
     ## Get Linearly Independent Components of Matrix
     ##
     ##############################################################################
-
-    if has_iv
-        # Compute linearly independent columns + create the Xhat matrix
-    	
+    # Compute linearly independent columns + create the Xhat matrix
+    if has_iv    	
         # first pass: remove colinear variables in Xendo
     	basis_endo = basecol(Xendo)
     	Xendo = getcols(Xendo, basis_endo)
