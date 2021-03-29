@@ -284,7 +284,7 @@ function reg(
             end
 
             out = join(coefendo_names[.!basis_endo2], " ")
-            @info "Endogeneous vars are collinear with instruments. Var(s) recategorized as exogenous: $(out)"
+            @info "Endogeneous vars are collinear with ivs. Var(s) recategorized as exogenous: $(out)"
 
             # third pass
             basis = basecol(Xexo, Z, Xendo)
@@ -294,7 +294,7 @@ function reg(
 
     	Xexo = getcols(Xexo, basis_Xexo)
     	Z = getcols(Z, basis_Z)
-        size(Z, 2) >= size(Xendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneneous variables")
+        size(Z, 2) >= size(Xendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
         basis_coef = vcat(basis_Xexo, basis_endo[basis_endo_small])
 
         # Build
