@@ -315,10 +315,6 @@ function reg(
         basis_coef = basis_Xexo
     end
 
-    #if !all(basis_coef)
-    #	out = join(coef_names[.!basis_coef], " ")
-    #    push!(msg, "Collinearities detected.", "Var(s) dropped: $(out)")
-    #end
     ##############################################################################
     ##
     ## Do the regression
