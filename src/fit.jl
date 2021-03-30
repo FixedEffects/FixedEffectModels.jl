@@ -280,7 +280,8 @@ function reg(
                             oldX[:, (length(basis_Xexo)+1):end][.!basisendo2], 
                             oldX[:, (length(basis_Xexo)+1):end][!basisendo2])
             end
-            println("Endogeneous vars are collinear with ivs. Var(s) recategorized as exogenous: ", join(coefendo_names[.!basis_endo2], " "))
+            out = join(coefendo_names[.!basis_endo2], " ")
+            @info "Endogeneous vars are collinear with ivs. Var(s) recategorized as exogenous: $(out)"
                                     
             # third pass
             basis = basecol(Xexo, Z, Xendo)
@@ -313,11 +314,6 @@ function reg(
         X = Xexo
         basis_coef = basis_Xexo
     end
-
-    if !all(basis_coef)
-        println("Collinearities detected. Var(s) dropped: ", join(coef_names[.!basis_coef], " "))
-    end
-
 
     ##############################################################################
     ##
