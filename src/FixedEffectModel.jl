@@ -40,6 +40,9 @@ struct FixedEffectModel <: RegressionModel
     # for IV
     F_kp::Union{Float64, Nothing}           # First Stage F statistics KP
     p_kp::Union{Float64, Nothing}           # First Stage p value KP
+
+    # msg
+    msg::Vector{String}
 end
 
 has_iv(x::FixedEffectModel) = x.F_kp !== nothing
@@ -233,6 +236,9 @@ function Base.show(io::IO, x::FixedEffectModel)
     end
     widths .+= 1
     totalwidth = sum(widths) + rnwidth
+    for msg in x.msg
+        println(msg)
+    end
     if length(ctitle) > 0
         halfwidth = div(totalwidth - length(ctitle), 2)
         println(io, " " ^ halfwidth * string(ctitle) * " " ^ halfwidth)

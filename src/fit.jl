@@ -250,6 +250,7 @@ function reg(
     ## Get Linearly Independent Components of Matrix
     ##
     ##############################################################################
+    msg = String[]
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv    	
         # first pass: remove colinear variables in Xendo
@@ -281,7 +282,7 @@ function reg(
                             oldX[:, (length(basis_Xexo)+1):end][!basisendo2])
             end
             out = join(coefendo_names[.!basis_endo2], " ")
-            @info "Endogeneous vars are collinear with ivs. Var(s) recategorized as exogenous: $(out)"
+            push!(msg, "Endogenous vars collinear with ivs", "Recategorized as exogenous: $(out)")
                                     
             # third pass
             basis = basecol(Xexo, Z, Xendo)
@@ -315,6 +316,10 @@ function reg(
         basis_coef = basis_Xexo
     end
 
+    if !all(basis_coef)
+    	out = join(coef_names[.!basis_coef], " ")
+        push!(msg, "Collinearities detected.", "Var(s) dropped: $(out)")
+    end
     ##############################################################################
     ##
     ## Do the regression
@@ -428,5 +433,5 @@ function reg(
     if esample == Colon()
         esample = trues(N)
     end
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp, msg)
 end
