@@ -339,7 +339,7 @@ function reg(
 
     augmentdf = DataFrame()
     if save_fe
-        oldX = getcols(oldX, basis_coef[invperm(perm)])
+        oldX = getcols(oldX[:, perm], basis_coef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for j in eachindex(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
