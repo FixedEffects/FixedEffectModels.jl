@@ -68,18 +68,16 @@ function invsym!(X::AbstractMatrix)
         else
             X[j,:] = X[j,:] ./ d
             for i in 1:size(X, 1)
-                if (i != j)
+                if i != j
                     X[i,:] .= X[i,:] .- X[i,j] .* X[j,:]
                     X[i,j] = -X[i,j] / d
                 end
             end
-            X[j,j] = 1/d
+            X[j,j] = 1 / d
         end
     end
     return X
 end
-
-
 
 function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
