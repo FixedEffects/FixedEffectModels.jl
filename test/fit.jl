@@ -257,14 +257,15 @@ x = reg(df, m)
 
 ## endogeneous variables collinear with instruments are reclassified
 df.zz1 = df.z1
-m = @formula y ~ (zz1 + x1 ~ x2 + z1)
-x = reg(df, m)
-@test coefnames(x) ==  ["(Intercept)", "zz1", "x1"]
-
 m = @formula y ~ zz1 + (x1 ~ x2 + z1)
-x2 = reg(df, m)
+x = reg(df, m)
+
+m2 = @formula y ~ (zz1 + x1 ~ x2 + z1)
+x2 = reg(df, m2)
 @test coefnames(x) == coefnames(x2)
-@test coef(x) == coef(x2)
+@test coef(x) ≈ coef(x2)
+@test vcov(x) ≈ vcov(x2)
+
 
 # catch when IV underidentified 
 @test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(y ~ x1 + (x2 + w ~ x2)))

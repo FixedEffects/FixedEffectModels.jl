@@ -252,6 +252,7 @@ function reg(
     ##############################################################################
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv    	
+        perm = 1:(size(Xexo, 2) + size(Xendo, 2))
         # first pass: remove colinear variables in Xendo
     	basis_endo = basecol(Xendo)
     	Xendo = getcols(Xendo, basis_endo)
@@ -272,14 +273,10 @@ function reg(
 
             # Change coef_names and oldX
             # TODO: I should probably also change formula in this case so that predict still works 
-            coef_names = vcat(coef_names[1:length(basis_Xexo)], 
-                              coef_names[(length(basis_Xexo)+1):end][.!basis_endo2], 
-                              coef_names[(length(basis_Xexo)+1):end][basis_endo2])
-            if save_fe
-                oldX = hcat(oldX[:, 1:length(basis_Xexo)], 
-                            oldX[:, (length(basis_Xexo)+1):end][.!basisendo2], 
-                            oldX[:, (length(basis_Xexo)+1):end][!basisendo2])
-            end
+            ans = 1:length(basis_endo)
+            ans = vcat(ans[.!basis_endo2], ans[basis_endo2])
+            perm = vcat(1:length(basis_Xexo), length(basis_Xexo) .+ ans)
+
             out = join(coefendo_names[.!basis_endo2], " ")
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
@@ -308,6 +305,7 @@ function reg(
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
+        perm = 1:size(Xexo, 2)
         basis_Xexo = basecol(Xexo)
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
@@ -341,7 +339,7 @@ function reg(
 
     augmentdf = DataFrame()
     if save_fe
-        oldX = getcols(oldX, basis_coef)
+        oldX = getcols(oldX[:, perm], basis_coef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for j in eachindex(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
@@ -423,8 +421,21 @@ function reg(
             end
         end
         coef = newcoef
-        matrix_vcov = newmatrix_vcov
+        matrix_vcov = Symmetric(newmatrix_vcov)
     end
+    if any(perm[i] != i for i in perm)
+        _invperm = invperm(perm)
+        coef = coef[_invperm]
+        newmatrix_vcov = zeros(size(matrix_vcov))
+        for i in 1:size(newmatrix_vcov, 1)
+            for j in 1:size(newmatrix_vcov, 1)
+                newmatrix_vcov[i, j] = matrix_vcov[_invperm[i], _invperm[j]]
+            end
+        end
+        matrix_vcov = Symmetric(newmatrix_vcov)
+    end
+
+
     if esample == Colon()
         esample = trues(N)
     end

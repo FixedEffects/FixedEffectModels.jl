@@ -60,6 +60,11 @@ model = @formula Sales ~ CPI + (Price ~ Pimin)
 result = reg(df, model)
 @test residuals(result, df)[1:3] ≈ [ -33.047390, -30.9518422, -28.1371048] atol = 1e-4
 
+# iv with exo after endo
+model = @formula Sales ~ (Price ~ Pimin) + CPI
+result = reg(df, model)
+@test residuals(result, df)[1:3] ≈ [ -33.047390, -30.9518422, -28.1371048] atol = 1e-4
+
 # iv and weights
 model = @formula Sales ~ CPI + (Price ~ Pimin)
 result = reg(df, model, weights = :Pop)
@@ -108,6 +113,42 @@ model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = :fe)
 @test residuals(result) === nothing
 @test "fe_State" ∈ names(fe(result))
+
+
+# iv recategorized
+df.Pimin2 = df.Pimin
+m = @formula Sales ~ (Pimin2 + Price ~ NDI + Pimin)
+result = reg(df, m)
+yhat = predict(result, df)
+res = residuals(result, df)
+
+m2 = @formula Sales ~ Pimin2 + (Price ~ NDI + Pimin)
+result2 = reg(df, m2)
+yhat2 = predict(result2, df)
+res2 = residuals(result2, df)
+@test yhat ≈ yhat2
+@test res ≈ res2
+
+m3 = @formula Sales ~ Pimin2 + (Price ~ NDI)
+result3 = reg(df, m3)
+yhat3 = predict(result3, df)
+res3 = residuals(result3, df)
+@test yhat ≈ yhat3
+@test res ≈ res3
+
+m4 = @formula Sales ~ (Price + Pimin2 ~ NDI + Pimin)
+result4 = reg(df, m4)
+yhat4 = predict(result4, df)
+res4 = residuals(result4, df)
+@test yhat ≈ yhat4
+@test res ≈ res4
+
+m5 = @formula Sales ~ (Price ~ NDI + Pimin) +  Pimin2
+result5 = reg(df, m5)
+yhat5 = predict(result5, df)
+res5 = residuals(result5, df)
+@test yhat ≈ yhat5
+@test res ≈ res5
 
 
 
