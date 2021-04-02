@@ -254,14 +254,14 @@ function reg(
     if has_iv    	
         perm = 1:(size(Xexo, 2) + size(Xendo, 2))
         # first pass: remove colinear variables in Xendo
-    	basis_endo = basecol(Xendo)
+    	basis_endo = basis(eachcol(Xendo)...)
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
-    	basis = basecol(Xexo, Z, Xendo)
-        basis_Xexo = basis[1:size(Xexo, 2)]
-        basis_Z = basis[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
-        basis_endo_small = basis[(size(Xexo, 2) + size(Z, 2) + 1):end]
+    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
+        basis_Xexo = basis_all[1:size(Xexo, 2)]
+        basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
+        basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinar, consider these variables are exogeneous
             Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
@@ -281,9 +281,9 @@ function reg(
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            basis = basecol(Xexo, Z, Xendo)
-            basis_Xexo = basis[1:size(Xexo, 2)]
-            basis_Z = basis[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
+            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
+            basis_Xexo = basis_all[1:size(Xexo, 2)]
+            basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
 
     	Xexo = getcols(Xexo, basis_Xexo)
@@ -306,7 +306,7 @@ function reg(
     else
         # get linearly independent columns
         perm = 1:size(Xexo, 2)
-        basis_Xexo = basecol(Xexo)
+        basis_Xexo = basis(eachcol(Xexo)...)
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo

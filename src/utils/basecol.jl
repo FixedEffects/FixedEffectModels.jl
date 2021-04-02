@@ -22,26 +22,6 @@ function Base.view(c::Combination, ::Colon, j)
     view(c.A[index], :, newj)
 end
 
-##############################################################################
-##
-## Crossprod computes [A B C ...]' [A B C ...] without forming it
-## 
-##############################################################################
-crossprod(A::AbstractMatrix) = A'A
-function crossprod(A::AbstractMatrix, B::AbstractMatrix)
-    u11, u12, u22 = A'A, A'B, B'B
-    hvcat(2, u11, u12, 
-             u12', u22)
-end
-
-function crossprod(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
-    u11, u12, u13 = A'A, A'B, A'C
-    u22, u23 = B'B, B'C
-    u33 = C'C
-    hvcat(3, u11,  u12,  u13, 
-             u12', u22,  u23, 
-             u13', u23', u33)
-end
 
 ##############################################################################
 ##
@@ -51,10 +31,26 @@ end
 ##
 ##############################################################################
 # rank(A) == rank(A'A)
-function basecol(X::AbstractMatrix...)
-    invXX = invsym!(crossprod(X...))
+function basis(xs::AbstractVector...)
+    invXX = invsym!(crossprod(xs...))
     return diag(invXX) .> 0
 end
+
+function crossprod(xs::AbstractVector...)
+    XX = zeros(length(xs), length(xs))
+    for i in 1:length(xs)
+        for j in 1:i
+            XX[i, j] = xs[i]' * xs[j]
+        end  
+    end
+    for i in 1:length(xs)
+        for j in (i+1):length(xs)
+            XX[i, j] = XX[j, i]
+        end  
+    end
+    return XX
+end
+
 
 # generalized 2inverse (the one used by Stata)
 function invsym!(X::AbstractMatrix)
