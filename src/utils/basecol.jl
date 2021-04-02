@@ -30,13 +30,12 @@ end
 ## 
 ##
 ##############################################################################
-# rank(A) == rank(A'A)
-function basis(xs::AbstractVector...)
-    invXX = invsym!(crossprod(xs...))
+function basis(@nospecialize(xs::AbstractVector...))
+    invXX = invsym!(crossprod(collect(xs)))
     return diag(invXX) .> 0
 end
 
-function crossprod(xs::AbstractVector...)
+function crossprod(xs::Vector{<:AbstractVector})
     XX = zeros(length(xs), length(xs))
     for i in 1:length(xs)
         for j in 1:i
@@ -51,8 +50,7 @@ function crossprod(xs::AbstractVector...)
     return XX
 end
 
-
-# generalized 2inverse (the one used by Stata)
+# generalized 2inverse
 function invsym!(X::AbstractMatrix)
     # The C value adjusts the check to the relative scale of the variable. The C value is equal to the corrected sum of squares for the variable, unless the corrected sum of squares is 0, in which case C is 1. If you specify the NOINT option but not the ABSORB statement, PROC GLM uses the uncorrected sum of squares instead. The default value of the SINGULAR= option, 107, might be too small, but this value is necessary in order to handle the high-degree polynomials used in the literature to compare regression routin
     tols = max.(diag(X), 1)
