@@ -22,26 +22,6 @@ function Base.view(c::Combination, ::Colon, j)
     view(c.A[index], :, newj)
 end
 
-##############################################################################
-##
-## Crossprod computes [A B C ...]' [A B C ...] without forming it
-## 
-##############################################################################
-crossprod(A::AbstractMatrix) = A'A
-function crossprod(A::AbstractMatrix, B::AbstractMatrix)
-    u11, u12, u22 = A'A, A'B, B'B
-    hvcat(2, u11, u12, 
-             u12', u22)
-end
-
-function crossprod(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
-    u11, u12, u13 = A'A, A'B, A'C
-    u22, u23 = B'B, B'C
-    u33 = C'C
-    hvcat(3, u11,  u12,  u13, 
-             u12', u22,  u23, 
-             u13', u23', u33)
-end
 
 ##############################################################################
 ##
@@ -50,13 +30,27 @@ end
 ## 
 ##
 ##############################################################################
-# rank(A) == rank(A'A)
-function basecol(X::AbstractMatrix...)
-    invXX = invsym!(crossprod(X...))
+function basis(@nospecialize(xs::AbstractVector...))
+    invXX = invsym!(crossprod(collect(xs)))
     return diag(invXX) .> 0
 end
 
-# generalized 2inverse (the one used by Stata)
+function crossprod(xs::Vector{<:AbstractVector})
+    XX = zeros(length(xs), length(xs))
+    for i in 1:length(xs)
+        for j in 1:i
+            XX[i, j] = xs[i]' * xs[j]
+        end  
+    end
+    for i in 1:length(xs)
+        for j in (i+1):length(xs)
+            XX[i, j] = XX[j, i]
+        end  
+    end
+    return XX
+end
+
+# generalized 2inverse
 function invsym!(X::AbstractMatrix)
     # The C value adjusts the check to the relative scale of the variable. The C value is equal to the corrected sum of squares for the variable, unless the corrected sum of squares is 0, in which case C is 1. If you specify the NOINT option but not the ABSORB statement, PROC GLM uses the uncorrected sum of squares instead. The default value of the SINGULAR= option, 107, might be too small, but this value is necessary in order to handle the high-degree polynomials used in the literature to compare regression routin
     tols = max.(diag(X), 1)
