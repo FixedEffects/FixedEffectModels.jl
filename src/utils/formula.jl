@@ -69,17 +69,20 @@ Construct any `FixedEffect` specified with a `FixedEffectTerm`.
 
 # Returns
 - `Vector{FixedEffect}`: a collection of all `FixedEffect`s constructed.
-- `Vector{Symbol}`: names assigned to the fixed effects (can be used as column names).
+- `Vector{Symbol}`: names assigned to the fixed effect estimates (can be used as column names).
+- `Vector{Symbol}`: names of original fixed effects.
 - `FormulaTerm` or `NTuple{N, AbstractTerm}`: `formula` or `ts` without any term related to fixed effects (an intercept may be explicitly omitted if necessary).
 """
 function parse_fixedeffect(data, @nospecialize(formula::FormulaTerm))
     fes = FixedEffect[]
     ids = Symbol[]
-    for term in eachterm(formula.rhs)
+    fekeys = Symbol[]
+     for term in eachterm(formula.rhs)
         result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
             push!(ids, result[2])
+            append!(fekeys, result[3])
         end
     end
     if !isempty(fes)
@@ -89,18 +92,20 @@ function parse_fixedeffect(data, @nospecialize(formula::FormulaTerm))
             formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
         end
     end
-    return fes, ids, formula
+    return fes, ids, unique(fekeys), formula
 end
 
 # Method for external packages
 function parse_fixedeffect(data, @nospecialize(ts::NTuple{N, AbstractTerm})) where N
     fes = FixedEffect[]
     ids = Symbol[]
+    fekeys = Symbol[]
     for term in eachterm(ts)
         result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
             push!(ids, result[2])
+            append!(fekeys, result[3])
         end
     end
     if !isempty(fes)
@@ -110,19 +115,19 @@ function parse_fixedeffect(data, @nospecialize(ts::NTuple{N, AbstractTerm})) whe
             ts = Tuple(term for term in eachterm(ts) if !has_fe(term))
         end
     end
-    return fes, ids, ts
+    return fes, ids, unique(fekeys), ts
 end
 
 # Construct FixedEffect from a generic term
-function _parse_fixedeffect(data, t::AbstractTerm)
+function _parse_fixedeffect(data, @nospecialize(t::AbstractTerm))
     if has_fe(t)
         st = fesymbol(t)
-        return FixedEffect(Tables.getcolumn(data, st)), Symbol(:fe_, st)
+        return FixedEffect(Tables.getcolumn(data, st)), Symbol(:fe_, st), [st]
     end
 end
 
 # Construct FixedEffect from an InteractionTerm
-function _parse_fixedeffect(data, t::InteractionTerm)
+function _parse_fixedeffect(data, @nospecialize(t::InteractionTerm))
     fes = (x for x in t.terms if has_fe(x))
     interactions = (x for x in t.terms if !has_fe(x))
     if !isempty(fes)
@@ -132,7 +137,7 @@ function _parse_fixedeffect(data, t::InteractionTerm)
         fe = FixedEffect((Tables.getcolumn(data, fe_name) for fe_name in fe_names)...; interaction = v1)
         interactions = string.(interactions)
         s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], interactions)
-        return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s))
+        return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s)), fe_names
     end
 end
 
@@ -140,7 +145,7 @@ function _multiply(data, ss::AbstractVector)
     if isempty(ss)
         return uweights(size(data, 1))
     elseif length(ss) == 1
-        # in case it has missing (for some reason *(missing) not defined))
+        # in case it has missing (for some reason *(missing) not defined) iv VERSION < 1.6
         # do NOT use ! since it would modify the vector
         return convert(AbstractVector{Float64}, replace(Tables.getcolumn(data, ss[1]), missing => 0))
     else

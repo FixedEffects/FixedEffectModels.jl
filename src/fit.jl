@@ -118,7 +118,7 @@ function reg(
         esample .&= BitArray(!ismissing(x) && x for x in subset)
     end
     esample .&= Vcov.completecases(df, vcov)
-    fes, ids, formula = parse_fixedeffect(df, formula)
+    fes, ids, fekeys, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
     if has_fes
         if drop_singletons
@@ -341,6 +341,9 @@ function reg(
     if save_fe
         oldX = getcols(oldX[:, perm], basis_coef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
+        for fekey in fekeys
+            augmentdf[!, fekey] = df[:, fekey]
+        end
         for j in eachindex(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
             augmentdf[esample, ids[j]] = newfes[j]
@@ -439,5 +442,5 @@ function reg(
     if esample == Colon()
         esample = trues(N)
     end
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

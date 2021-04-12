@@ -62,7 +62,7 @@ function partial_out(
     convergeds = Bool[]
 
     # Build fixedeffects, an array of AbtractFixedEffects
-    fes, ids, formula = parse_fixedeffect(df, formula)
+    fes, ids, ids_fes, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
 
 
