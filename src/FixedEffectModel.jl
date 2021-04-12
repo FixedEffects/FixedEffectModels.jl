@@ -14,6 +14,8 @@ struct FixedEffectModel <: RegressionModel
     esample::BitVector      # Is the row of the original dataframe part of the estimation sample?
     residuals::Union{AbstractVector, Nothing}
     fe::DataFrame
+    fekeys::Vector{Symbol}
+
 
     coefnames::Vector       # Name of coefficients
     yname::Union{String, Symbol} # Name of dependent variable
@@ -106,9 +108,24 @@ function StatsBase.residuals(x::FixedEffectModel)
     x.residuals
 end
    
-function fe(x::FixedEffectModel)
+
+"""
+   fe(x::FixedEffectModel; keepkeys = false)
+
+Return a DataFrame with fixed effects estimates.
+The output is aligned with the original DataFrame used in `reg`.
+
+### Keyword arguments
+* `keepkeys::Bool' : Should the returned DataFrame include the original variables used to defined groups? Default to false
+"""
+
+function fe(x::FixedEffectModel; keepkeys = false)
    !has_fe(x) && throw("fe() is not defined for fixed effect models without fixed effects")
-   x.fe
+   if keepkeys
+       x.fe
+   else
+      x.fe[!, (length(x.fekeys)+1):end]
+   end
 end
 
 

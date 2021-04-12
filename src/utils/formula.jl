@@ -76,13 +76,13 @@ Construct any `FixedEffect` specified with a `FixedEffectTerm`.
 function parse_fixedeffect(data, @nospecialize(formula::FormulaTerm))
     fes = FixedEffect[]
     ids = Symbol[]
-    ids_fes = Symbol[]
+    fekeys = Symbol[]
      for term in eachterm(formula.rhs)
         result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
             push!(ids, result[2])
-            append!(ids_fes, result[3])
+            append!(fekeys, result[3])
         end
     end
     if !isempty(fes)
@@ -92,20 +92,20 @@ function parse_fixedeffect(data, @nospecialize(formula::FormulaTerm))
             formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
         end
     end
-    return fes, ids, unique(ids_fes), formula
+    return fes, ids, unique(fekeys), formula
 end
 
 # Method for external packages
 function parse_fixedeffect(data, @nospecialize(ts::NTuple{N, AbstractTerm})) where N
     fes = FixedEffect[]
     ids = Symbol[]
-    ids_fes = Symbol[]
+    fekeys = Symbol[]
     for term in eachterm(ts)
         result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
             push!(ids, result[2])
-            append!(ids_fes, result[3])
+            append!(fekeys, result[3])
         end
     end
     if !isempty(fes)
@@ -115,7 +115,7 @@ function parse_fixedeffect(data, @nospecialize(ts::NTuple{N, AbstractTerm})) whe
             ts = Tuple(term for term in eachterm(ts) if !has_fe(term))
         end
     end
-    return fes, ids, unique(ids_fes), ts
+    return fes, ids, unique(fekeys), ts
 end
 
 # Construct FixedEffect from a generic term
