@@ -164,7 +164,6 @@ model2 = @formula Sales ~ Price
 result2 = reg(df, model2, weights = :Pop)
 @test r2(result1) ≈ r2(result2)
 
-methods_vec = [:lsmr, :lsmr_threads, :lsmr_cores]
 
 
 model = @formula Sales ~ Price + fe(Year)

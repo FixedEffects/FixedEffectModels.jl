@@ -118,7 +118,7 @@ function reg(
         esample .&= BitArray(!ismissing(x) && x for x in subset)
     end
     esample .&= Vcov.completecases(df, vcov)
-    fes, ids, formula = parse_fixedeffect(df, formula)
+    fes, ids, ids_fes, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
     if has_fes
         if drop_singletons
@@ -341,6 +341,11 @@ function reg(
     if save_fe
         oldX = getcols(oldX[:, perm], basis_coef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
+
+        for fename in ids_fes
+            augmentdf[!, fename] = deepcopy(df[!, fename])
+        end
+
         for j in eachindex(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
             augmentdf[esample, ids[j]] = newfes[j]
