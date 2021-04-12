@@ -341,14 +341,12 @@ function reg(
     if save_fe
         oldX = getcols(oldX[:, perm], basis_coef)
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
-
-        for fename in ids_fes
-            augmentdf[!, fename] = deepcopy(df[!, fename])
-        end
-
         for j in eachindex(fes)
             augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
             augmentdf[esample, ids[j]] = newfes[j]
+        end
+        for fename in ids_fes
+            augmentdf[!, fename] = deepcopy(df[!, fename])
         end
     end
 
