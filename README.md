@@ -9,6 +9,13 @@ Its objective is similar to the Stata command [`reghdfe`](https://github.com/ser
 ## Installation
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
 
+## Benchmarks
+The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package tends to be much faster than these two options. 
+
+Performances are similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf) (note: use `tol = 1e-6, drop_singletons = false` to match the default options of `feols`).
+
+![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
+
 ## Syntax
 
 ```julia
@@ -64,6 +71,8 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 - The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
+- The option `nthreads` selects the number of threads to use in the estimation. Default to `Threads.nthreads()`.
+
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
 - The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g.
@@ -96,8 +105,6 @@ using CUDA, FixedEffectModels
 df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :gpu, double_precision = false)
 ```
-
-
 
 
 ## Solution Method

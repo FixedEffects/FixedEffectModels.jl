@@ -163,7 +163,8 @@ function reg(
     ##############################################################################
     exo_vars = unique(StatsModels.termvars(formula))
     subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
-    formula_schema = apply_schema(formula, schema(formula, subdf, contrasts), FixedEffectModel, has_fe_intercept)
+    s = schema(formula, subdf, contrasts)
+    formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
 
     # Obtain y
     # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
@@ -318,7 +319,7 @@ function reg(
     ## Do the regression
     ##
     ##############################################################################
-   
+
     crossx = cholesky!(Symmetric(Xhat' * Xhat))
     coef = crossx \ (Xhat' * y)
 

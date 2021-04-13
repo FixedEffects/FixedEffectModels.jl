@@ -1,9 +1,10 @@
 
 module FixedEffectModels
 
-if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
-	@eval Base.Experimental.@optlevel 1
-end
+# slows down tss
+#if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
+#	@eval Base.Experimental.@optlevel 1
+#end
 
 using DataFrames
 using FixedEffects
