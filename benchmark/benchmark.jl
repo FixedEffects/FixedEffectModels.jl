@@ -15,13 +15,13 @@ df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 @time reg(df, @formula(y ~ x1 + x2))
 # 0.582029 seconds (852 allocations: 535.311 MiB, 18.28% gc time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
-# 0.809652 seconds (1.55 k allocations: 649.821 MiB, 14.40% gc time)
+# 0.759032 seconds (631 allocations: 728.437 MiB, 4.89% gc time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
-# 1.655732 seconds (1.21 k allocations: 734.353 MiB, 16.88% gc time)
+# 1.452800 seconds (231.14 k allocations: 908.415 MiB, 3.40% gc time, 9.72% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)), Vcov.cluster(:id1))
-#  2.113248 seconds (499.66 k allocations: 811.751 MiB, 15.08% gc time)
+# 1.785358 seconds (231.43 k allocations: 952.060 MiB, 8.22% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-# 3.553678 seconds (1.36 k allocations: 1005.101 MiB, 10.55% gc time))
+# 3.058090 seconds (331.56 k allocations: 1.005 GiB, 2.08% gc time, 5.89% compilation time)
 
 
 # More complicated setup
