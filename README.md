@@ -2,19 +2,16 @@
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables.
 
-Its objective is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package tends to be much faster than these two options.
-
-![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
-
 ## Installation
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
 
 ## Benchmarks
 The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R function [`felm`](https://cran.r-project.org/web/packages/lfe/lfe.pdf). The package tends to be much faster than these two options. 
 
-Performances are similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf) (note: use `tol = 1e-6, drop_singletons = false` to match the default options of `feols`).
-
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
+
+
+Performances are roughly similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf) (note: use `tol = 1e-6, drop_singletons = false` to match the default options of `feols`).
 
 ## Syntax
 
