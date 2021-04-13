@@ -90,6 +90,10 @@ function reg(
     end
     save_residuals = (save == :residuals) | (save == :all)
 
+    if method == :cpu && nthreads > Threads.nthreads()
+        @warn "Keyword argument nthreads = $(nthreads) is ignored (Julia was started with only $(Threads.nthreads()) threads)."
+        nthreads = Threads.nthreads()
+    end
     ##############################################################################
     ##
     ## Construct new dataframe after removing missing values

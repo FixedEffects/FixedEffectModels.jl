@@ -11,7 +11,7 @@ The objective of the package is similar to the Stata command [`reghdfe`](https:/
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
 
-Performances are roughly similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf) (note: use `tol = 1e-6, drop_singletons = false` to match the default options of `feols`).
+Performances are roughly similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf) (note: use `tol = 1e-6, drop_singletons = false` to match the default options of `feols`). The main difference is that `FixedEffectModels` can also run the demeaning operation on a GPU (with `method = :gpu`).
 
 ## Syntax
 
@@ -65,18 +65,17 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	```julia
 	weights = :Pop
 	```
-
+- The option `contrasts` specifies particular contrasts for a dummy variable in the formula, e.g.
+	```julia
+	reg(df, @formula(Sales ~ Year); contrasts = Dict(:Year => DummyCoding(base = 80)))
+	```
 - The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
-- The option `nthreads` selects the number of threads to use in the estimation. Default to `Threads.nthreads()`.
+-
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
-- The option `contrasts` specifies particular contrasts for categorical variables in the formula, e.g.
-	```julia
-	df.YearC = categorical(df.Year)
-	reg(df, @formula(Sales ~ YearC); contrasts = Dict(:YearC => DummyCoding(base = 80)))
-	```
+
 ## Output
 `reg` returns a light object. It is composed of
 
@@ -92,7 +91,12 @@ Methods such as `predict`, `residuals` are still defined but require to specify 
 You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
 
 
-## GPU
+## Performances
+
+### MultiThreads
+By default, `FixedEffectModels` uses as many threads as `Threads.nthreads()`.  Use the option `nthreads` to select the number of threads to use in the estimation. Default to `Threads.nthreads()`.
+
+
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
 
 To use GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`. For maximum speed, set the floating point precision to `Float32` with `double_precision = false`.
