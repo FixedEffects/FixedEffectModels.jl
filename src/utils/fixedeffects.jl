@@ -29,7 +29,7 @@ function nunique(fe::FixedEffect)
     @inbounds @simd for ref in fe.refs
         out[ref] += 1
     end
-    sum(x -> x > 0, out)
+    sum(>(0), out)
 end
 
 
