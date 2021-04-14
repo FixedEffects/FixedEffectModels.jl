@@ -13,7 +13,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
 * `nthreads::Integer` Number of threads to use in the estimation. If `method = :cpu`, defaults to `Threads.nthreads()`. If `method = :gpu`, defaults to 256.
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
-* `tol::Real` Tolerance. Default to 1e-8 if `double_precision = true`, 1e-6 otherwise.
+* `tol::Real` Tolerance. Default to 1e-6.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
 * `progress_bar::Bool = true`: Should the regression show a progressbar
