@@ -226,7 +226,7 @@ function reg(
             Xall = Combination(y, Xexo)
         end
 
-        _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
+         _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
         iterations = maximum(iterations)
         converged = all(convergeds)
