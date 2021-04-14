@@ -95,8 +95,9 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 
 ### Pre-Group Variables
 You can use `PooledArrays.jl` or `CategoricalArrays.jl` to pre-group variables.
+
 ```julia
-using DataFrames, CategoricalArrays
+using DataFrames, CategoricalArrays, FixedEffectModels
 N = 10_000_000
 id1 = rand(1:div(N, 10), N)
 df = DataFrame(y = rand(N), x = rand(N), id1 = id1)
@@ -104,7 +105,7 @@ df = DataFrame(y = rand(N), x = rand(N), id1 = id1)
 # 1.830952 seconds (219.15 k allocations: 1.041 GiB, 5.71% gc time, 7.33% compilation time)
 df.cid1 = categorical(id1)
 @time reg(df, @formula(y ~ x + fe(cid1)))
-#   1.345775 seconds (219.09 k allocations: 1019.541 MiB, 10.17% compilation time)
+# 1.345775 seconds (219.09 k allocations: 1019.541 MiB, 10.17% compilation time)
 ```
 
 ### MultiThreads
