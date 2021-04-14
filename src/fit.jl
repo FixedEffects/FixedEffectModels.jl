@@ -50,7 +50,7 @@ function reg(
     @nospecialize(method::Symbol = :cpu),
     @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
     @nospecialize(double_precision::Bool = true),
-    @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
+    @nospecialize(tol::Real = 1e-6),
     @nospecialize(maxiter::Integer = 10000),
     @nospecialize(drop_singletons::Bool = true),
     @nospecialize(progress_bar::Bool = true),
