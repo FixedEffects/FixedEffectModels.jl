@@ -1,4 +1,4 @@
-using DataFrames, FixedEffectModels, Random
+using DataFrames, FixedEffectModels, Random, CategoricalArrays
 
 # Very simple setup
 N = 10000000
@@ -42,15 +42,15 @@ df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 n = 10_000_000
 nb_dum = [div(n,20), floor(Int, sqrt(n)), floor(Int, n^.33)]
 N = nb_dum.^3
-id1 = rand(1:nb_dum[1], n)
-id2 = rand(1:nb_dum[2], n)
-id3 = rand(1:nb_dum[3], n)
+id1 = categorical(rand(1:nb_dum[1], n))
+id2 = categorical(rand(1:nb_dum[2], n))
+id3 = categorical(rand(1:nb_dum[3], n))
 X1 = rand(n)
 ln_y = 3 .* X1 .+ rand(n) 
 df = DataFrame(X1 = X1, ln_y = ln_y, id1 = id1, id2 = id2, id3 = id3)
-@time reg(df, @formula(ln_y~X1 + fe(id1)))
-#  1.361091 seconds (219.04 k allocations: 731.777 MiB, 10.70% compilation time)
-@time reg(df, @formula(ln_y~X1 + fe(id1) + fe(id2)))
-#   2.589 seconds (284.42 k allocations: 847.170 MiB, 5.56% compilation time)
-@time reg(df, @formula(ln_y~X1 + fe(id1) + fe(id2) + fe(id3)))
-#  3.0547 seconds (380.25 k allocations: 967.478 MiB, 2.44% gc time, 6.26% compilation time)
+@time reg(df, @formula(ln_y ~ X1 + fe(id1)), Vcov.cluster(:id1))
+# 1.058386 seconds (219.24 k allocations: 751.826 MiB, 13.05% compilation time)
+@time reg(df, @formula(ln_y ~ X1 + fe(id1) + fe(id2)), Vcov.cluster(:id1))
+# 2.895223 seconds (284.28 k allocations: 870.782 MiB, 1.73% gc time, 5.97% compilation time)
+@time reg(df, @formula(ln_y ~ X1 + fe(id1) + fe(id2) + fe(id3)), Vcov.cluster(:id1))
+# 3.191483 seconds (380.10 k allocations: 991.134 MiB, 6.88% compilation time)

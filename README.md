@@ -55,23 +55,29 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year))
 	```
 
+- The option `contrasts` specifies that a column should be understood as a set of dummy variables:
+	```julia
+	reg(df, @formula(Sales ~ Price + Year); contrasts = Dict(:Year => DummyCoding()))
+	```
+	You can specify different base levels 
+	```julia
+	reg(df, @formula(Sales ~ Price + Year); contrasts = Dict(:Year => DummyCoding(base = 80)))
+	```
+
+
+- The option `weights` specifies a variable for weights
+	```julia
+	weights = :Pop
+	```
+
 - Standard errors are indicated with the prefix `Vcov` (with the package [Vcov](http://github.com/matthieugomez/Vcov.jl))
 	```julia
 	Vcov.robust()
 	Vcov.cluster(:State)
 	Vcov.cluster(:State, :Year)
 	```
-- The option `weights` specifies a variable for weights
-	```julia
-	weights = :Pop
-	```
-- The option `contrasts` specifies particular contrasts for a dummy variable in the formula, e.g.
-	```julia
-	reg(df, @formula(Sales ~ Year); contrasts = Dict(:Year => DummyCoding(base = 80)))
-	```
-- The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
--
+- The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
@@ -93,20 +99,6 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 
 ## Performances
 
-### Pre-Group Variables
-You can use `PooledArrays.jl` or `CategoricalArrays.jl` to pre-group variables.
-
-```julia
-using DataFrames, CategoricalArrays, FixedEffectModels
-N = 10_000_000
-id1 = rand(1:div(N, 10), N)
-df = DataFrame(y = rand(N), x = rand(N), id1 = id1)
-@time reg(df, @formula(y ~ x + fe(id1)))
-# 1.830952 seconds (219.15 k allocations: 1.041 GiB, 5.71% gc time, 7.33% compilation time)
-df.cid1 = categorical(id1)
-@time reg(df, @formula(y ~ x + fe(cid1)))
-# 1.345775 seconds (219.09 k allocations: 1019.541 MiB, 10.17% compilation time)
-```
 
 ### MultiThreads
 `FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`). That being said, multithreading does not usually make a big difference.

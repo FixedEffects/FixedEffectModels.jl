@@ -226,7 +226,7 @@ function reg(
             Xall = Combination(y, Xexo)
         end
 
-         _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
+        _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
         iterations = maximum(iterations)
         converged = all(convergeds)
@@ -447,5 +447,6 @@ function reg(
     if esample == Colon()
         esample = trues(N)
     end
+
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

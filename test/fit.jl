@@ -79,6 +79,7 @@ x = reg(df, m)
 m = @formula y ~ z1 + x1&x2&fe(id1)
 x = reg(df, m)
 @test coef(x)  ≈  [122.98713, 0.30933] atol = 1e-4
+# SSR does not work well here
 m = @formula y ~ z1 + (x1&x2)*fe(id1)
 x = reg(df, m)
 @test coef(x) ≈   [0.421406, 0.0] atol = 1e-4
@@ -612,11 +613,13 @@ x = reg(df, m, weights = :w)
 @test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 
 ## the last two ones test an ill conditioned model matrix
+# SSR does not work well here
 m = @formula y ~ x1 + fe(id1) + fe(id1)&id2
 x = reg(df, m)
 @test coef(x)  ≈   [- 0.122354] atol = 1e-4
 @test x.iterations <= 30
 
+# SSR does not work well here
 m = @formula y ~ x1 + fe(id1) + fe(id1)&id2
 x = reg(df, m, weights = :w)
 @test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
