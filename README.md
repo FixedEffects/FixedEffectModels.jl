@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/FixedEffects/FixedEffectModels.jl.svg?branch=master)](https://travis-ci.com/FixedEffects/FixedEffectModels.jl)
+[![Build status](https://github.com/FixedEffects/FixedEffectModels.jl/workflows/CI/badge.svg)](https://github.com/FixedEffects/FixedEffectModels.jl/actions)
 
 This package estimates linear models with high dimensional categorical variables and/or instrumental variables.
 
@@ -11,7 +11,7 @@ The objective of the package is similar to the Stata command [`reghdfe`](https:/
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
 
-Performances are roughly similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf) (note: use `tol = 1e-6, drop_singletons = false` to match the default options of `feols`). The main difference is that `FixedEffectModels` can also run the demeaning operation on a GPU (with `method = :gpu`).
+Performances are roughly similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf). The main difference is that `FixedEffectModels` can also run the demeaning operation on a GPU (with `method = :gpu`).
 
 ## Syntax
 
@@ -55,23 +55,29 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year))
 	```
 
+- The option `contrasts` specifies that a column should be understood as a set of dummy variables:
+	```julia
+	reg(df, @formula(Sales ~ Price + Year); contrasts = Dict(:Year => DummyCoding()))
+	```
+	You can specify different base levels 
+	```julia
+	reg(df, @formula(Sales ~ Price + Year); contrasts = Dict(:Year => DummyCoding(base = 80)))
+	```
+
+
+- The option `weights` specifies a variable for weights
+	```julia
+	weights = :Pop
+	```
+
 - Standard errors are indicated with the prefix `Vcov` (with the package [Vcov](http://github.com/matthieugomez/Vcov.jl))
 	```julia
 	Vcov.robust()
 	Vcov.cluster(:State)
 	Vcov.cluster(:State, :Year)
 	```
-- The option `weights` specifies a variable for weights
-	```julia
-	weights = :Pop
-	```
-- The option `contrasts` specifies particular contrasts for a dummy variable in the formula, e.g.
-	```julia
-	reg(df, @formula(Sales ~ Year); contrasts = Dict(:Year => DummyCoding(base = 80)))
-	```
-- The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
--
+- The option `save` can be set to one of the following:  `none` (default) to save nothing `:residuals` to save residuals, `:fe` to save fixed effects. You can access the result with `residuals()` and `fe()`
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
@@ -93,10 +99,11 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 
 ## Performances
 
+
 ### MultiThreads
-By default, `FixedEffectModels` uses as many threads as `Threads.nthreads()`.  Use the option `nthreads` to select the number of threads to use in the estimation. Default to `Threads.nthreads()`.
+`FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`). That being said, multithreading does not usually make a big difference.
 
-
+### GPU
 The package has support for GPUs (Nvidia) (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
 
 To use GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`. For maximum speed, set the floating point precision to `Float32` with `double_precision = false`.

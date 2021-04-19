@@ -13,7 +13,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
 * `nthreads::Integer` Number of threads to use in the estimation. If `method = :cpu`, defaults to `Threads.nthreads()`. If `method = :gpu`, defaults to 256.
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
-* `tol::Real` Tolerance. Default to 1e-8 if `double_precision = true`, 1e-6 otherwise.
+* `tol::Real` Tolerance. Default to 1e-6.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
 * `progress_bar::Bool = true`: Should the regression show a progressbar
@@ -50,7 +50,7 @@ function reg(
     @nospecialize(method::Symbol = :cpu),
     @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
     @nospecialize(double_precision::Bool = true),
-    @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
+    @nospecialize(tol::Real = 1e-6),
     @nospecialize(maxiter::Integer = 10000),
     @nospecialize(drop_singletons::Bool = true),
     @nospecialize(progress_bar::Bool = true),
@@ -447,5 +447,6 @@ function reg(
     if esample == Colon()
         esample = trues(N)
     end
+
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula, contrasts, nobs, dof_residual_,  rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

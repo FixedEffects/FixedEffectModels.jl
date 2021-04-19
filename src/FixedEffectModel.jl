@@ -191,7 +191,6 @@ function top(x::FixedEffectModel)
         out = vcat(out, 
             ["R2 within" format_scientific(x.r2_within);
            "Iterations" sprint(show, x.iterations, context = :compact => true);
-             "Converged" sprint(show, x.converged, context = :compact => true);
              ])
     end
     return out
