@@ -337,7 +337,7 @@ function reg(
     if save_residuals
         residuals2 = Vector{Union{Float64, Missing}}(missing, N)
         if has_weights
-            residuals .= residuals ./ sqrt.(weights)
+            residuals2 .= residuals ./ sqrt.(weights)
         end
         residuals2[esample] = residuals
     end
