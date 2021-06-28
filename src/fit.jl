@@ -337,9 +337,10 @@ function reg(
     if save_residuals
         residuals2 = Vector{Union{Float64, Missing}}(missing, N)
         if has_weights
-            residuals2 .= residuals ./ sqrt.(weights)
+            residuals2[esample] .= residuals ./ sqrt.(weights)
+        else
+            residuals2[esample] .= residuals
         end
-        residuals2[esample] = residuals
     end
 
     augmentdf = DataFrame()
