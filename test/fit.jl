@@ -449,6 +449,10 @@ x = reg(df, m)
 @test r2(x) ≈ 0.0969 atol = 1e-4
 @test adjr2(x) ≈ 0.09622618 atol = 1e-4
 
+df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+x = reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), save = :residuals, weights = :Pop)
+@test r2(x) ≈ 0.802777 atol = 1e-4
+
 ##############################################################################
 ##
 ## F Stat
