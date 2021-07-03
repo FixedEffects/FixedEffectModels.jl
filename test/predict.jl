@@ -96,6 +96,10 @@ model = @formula Sales ~ CPI + (Price ~ Pimin) + fe(State)
 result = reg(df, model, save = true)
 @test residuals(result)[1:3] ≈ [ -16.925748, -14.835710, -12.017037] atol = 1e-4
 
+#r2 with weights when saving residuals
+m = @formula Sales ~ Price
+result = reg(df, save = :residuals, weights = :Pop, m)
+@test r2(result) ≈ 0.24654260 atol = 1e-4
 
 
 # test different arguments for the keyword argument save
