@@ -72,16 +72,13 @@ end
 
 # predict, residuals, modelresponse
 function StatsBase.predict(x::FixedEffectModel, df)
-    fes = if has_fe(x)
-            sum(Matrix(leftjoin(df, unique(x.fe), on = x.fekeys, makeunique = true)[!, end-length(x.fekeys)+1:end]), dims = 2)
-        else zeros(nrow(df))
-    end
+    has_fe(x) && throw("predict is not defined for fixed effect models. To access the fixed effects, run `reg` with the option save = :fe, and access fixed effects with `fe()`")
     df = StatsModels.columntable(df)
     formula_schema = apply_schema(x.formula_predict, schema(x.formula_predict, df, x.contrasts), StatisticalModel)
     cols, nonmissings = StatsModels.missing_omit(df, MatrixTerm(formula_schema.rhs))
     new_x = modelmatrix(formula_schema, cols)
     out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(df)))
-    out[nonmissings] = new_x * x.coef .+ fes[nonmissings]
+    out[nonmissings] = new_x * x.coef
     return out
 end
 
@@ -110,7 +107,7 @@ function StatsBase.residuals(x::FixedEffectModel)
     !has_fe(x) && throw("To access residuals,  use residuals(x, df::AbstractDataFrame")
     x.residuals
 end
-
+   
 
 """
    fe(x::FixedEffectModel; keepkeys = false)
@@ -185,13 +182,13 @@ function top(x::FixedEffectModel)
             "p-value" format_scientific(x.p);
             ]
     if has_iv(x)
-        out = vcat(out,
+        out = vcat(out, 
             ["F-Stat (First Stage)" sprint(show, x.F_kp, context = :compact => true);
             "p-value (First Stage)" format_scientific(x.p_kp);
             ])
     end
     if has_fe(x)
-        out = vcat(out,
+        out = vcat(out, 
             ["R2 within" format_scientific(x.r2_within);
            "Iterations" sprint(show, x.iterations, context = :compact => true);
              ])
@@ -302,3 +299,4 @@ function StatsModels.apply_schema(t::FormulaTerm, schema::StatsModels.Schema, Mo
     FormulaTerm(apply_schema(t.lhs, schema.schema, StatisticalModel),
                 StatsModels.collect_matrix_terms(apply_schema(t.rhs, schema, StatisticalModel)))
 end
+
