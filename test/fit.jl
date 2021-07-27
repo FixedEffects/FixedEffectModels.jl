@@ -1,8 +1,7 @@
-using CUDA, FixedEffectModels, CSV, DataFrames, LinearAlgebra, Test
+using CUDA, FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
 df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 df.StateC = categorical(df.State)
 df.YearC = categorical(df.Year)
-df.mState = div.(df.State, Ref(10))
 
 
 ##############################################################################
@@ -25,7 +24,6 @@ x = reg(df, m)
 @test coef(x) ≈ [139.72674,-0.2296683205] atol = 1e-4
 
 
-
 # absorb
 m = @formula Sales ~ Price + fe(State)
 x = reg(df, m)
@@ -41,7 +39,9 @@ x = reg(df, m)
 m = @formula Sales ~ Price + fe(State)*Year
 x = reg(df, m)
 @test coef(x) ≈  [-0.53470, 0.0] atol = 1e-4
+
 #@test isempty(coef(reg(df, @formula(Sales ~ 0), @fe(State*Price))))
+df.mState = div.(df.State, 10)
 m = @formula Sales ~ Price + fe(mState)&fe(Year)
 x = reg(df, m)
 @test coef(x)  ≈  [-1.44255] atol = 1e-4
@@ -273,11 +273,9 @@ NDI = reg(df, m2)
 
 
 # Make sure all coefficients are estimated
-using Random
-Random.seed!(0)
-df_r = DataFrame(Price = randn(10000) * 100)
-df_r.NDI = df_r.Price.^4
-result = reg(df_r, @formula(Price ~ NDI ))
+p = [100.0, -40.0, 30.0, 20.0]
+df_r = DataFrame(y = p, x = p.^4)
+result = reg(df_r, @formula(y ~ x))
 @test sum(abs.(coef(result)) .> 0)  == 2
 
 ##############################################################################
