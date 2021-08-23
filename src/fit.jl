@@ -366,7 +366,7 @@ function reg(
     if has_fes
         for fe in fes
             # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.refs) for v in values(vcov_method.clusters))
+            if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.groups) for v in values(vcov_method.clusters))
                 dof_fes += 1 # if fe is nested you still lose 1 degree of freedom
             else
                 #only count groups that exists
