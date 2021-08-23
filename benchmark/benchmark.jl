@@ -15,14 +15,13 @@ df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 @time reg(df, @formula(y ~ x1 + x2))
 # 0.582029 seconds (852 allocations: 535.311 MiB, 18.28% gc time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
-# 0.759032 seconds (631 allocations: 728.437 MiB, 4.89% gc time)
+#   0.621690 seconds (693 allocations: 768.945 MiB, 7.69% gc time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
-# 1.316560 seconds (230.66 k allocations: 908.386 MiB, 4.28% gc time, 11.84% compilation time)
+# 1.143941 seconds (245.39 k allocations: 942.937 MiB, 12.93% gc time, 14.99% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)), Vcov.cluster(:id1))
 # 1.501165 seconds (230.94 k allocations: 952.029 MiB, 0.84% gc time, 10.66% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-# 3.058090 seconds (331.56 k allocations: 1.005 GiB, 2.08% gc time, 5.89% compilation time)
-
+# 2.255812 seconds (351.74 k allocations: 1.076 GiB, 3.98% gc time, 12.93% compilation time)
 
 # More complicated setup
 N = 800000 # number of observations
@@ -35,7 +34,7 @@ x2 =  cos.(id1) +  sin.(id2) + randn(N)
 y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-#   3.190288 seconds (393.89 k allocations: 109.614 MiB, 3.63% gc time, 9.75% compilation time)
+#   2.762903 seconds (420.25 k allocations: 114.147 MiB, 7.85% compilation time)
 
 
 +# fixest
