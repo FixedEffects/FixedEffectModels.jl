@@ -128,7 +128,6 @@ function StatsBase.residuals(x::FixedEffectModel)
     x.residuals
 end
 
-
 """
    fe(x::FixedEffectModel; keepkeys = false)
 
@@ -202,13 +201,13 @@ function top(x::FixedEffectModel)
             "p-value" format_scientific(x.p);
             ]
     if has_iv(x)
-        out = vcat(out,
+        out = vcat(out, 
             ["F-Stat (First Stage)" sprint(show, x.F_kp, context = :compact => true);
             "p-value (First Stage)" format_scientific(x.p_kp);
             ])
     end
     if has_fe(x)
-        out = vcat(out,
+        out = vcat(out, 
             ["R2 within" format_scientific(x.r2_within);
            "Iterations" sprint(show, x.iterations, context = :compact => true);
              ])
