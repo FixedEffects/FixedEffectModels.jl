@@ -128,6 +128,7 @@ function StatsBase.residuals(x::FixedEffectModel)
     x.residuals
 end
 
+
 """
    fe(x::FixedEffectModel; keepkeys = false)
 
@@ -318,3 +319,4 @@ function StatsModels.apply_schema(t::FormulaTerm, schema::StatsModels.Schema, Mo
     FormulaTerm(apply_schema(t.lhs, schema.schema, StatisticalModel),
                 StatsModels.collect_matrix_terms(apply_schema(t.rhs, schema, StatisticalModel)))
 end
+
