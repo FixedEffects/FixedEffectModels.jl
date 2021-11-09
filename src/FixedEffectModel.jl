@@ -72,16 +72,33 @@ end
 
 # predict, residuals, modelresponse
 function StatsBase.predict(x::FixedEffectModel, df)
+    # Require DataFrame input as we are using leftjoin and select from DataFrames here
+    df isa AbstractDataFrame || throw("Predict requires an input of type DataFrame")
+    
     fes = if has_fe(x)
-            sum(Matrix(leftjoin(df, unique(x.fe), on = x.fekeys, makeunique = true)[!, end-length(x.fekeys)+1:end]), dims = 2)
-        else zeros(nrow(df))
+        # Make sure there are FEs saved
+        nrow(x.fe) > 0 || throw("No estimates for fixed effects found. Model needs to be estimated with save = :fe or :all for prediction to work.")
+
+        # Join FE estimates onto data and sum row-wise
+        combine(
+            leftjoin(select(df, x.fekeys), unique(x.fe); 
+                on = x.fekeys, makeunique = true, matchmissing = :equal),
+            AsTable(Not(x.fekeys)) => sum)
+    else 
+        nothing
     end
+    
     df = StatsModels.columntable(df)
-    formula_schema = apply_schema(x.formula_predict, schema(x.formula_predict, df, x.contrasts), StatisticalModel)
-    cols, nonmissings = StatsModels.missing_omit(df, MatrixTerm(formula_schema.rhs))
+    cols, nonmissings = StatsModels.missing_omit(df, MatrixTerm(x.formula_predict.rhs))
+    formula_schema = apply_schema(x.formula_predict.rhs, schema(x.formula_predict.rhs, cols, x.contrasts), StatisticalModel)
     new_x = modelmatrix(formula_schema, cols)
     out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(df)))
-    out[nonmissings] = new_x * x.coef .+ fes[nonmissings]
+    out[nonmissings] = new_x * x.coef 
+
+    if !isnothing(fes)
+        out[nonmissings] .+= fes[nonmissings, 1]
+    end
+
     return out
 end
 
