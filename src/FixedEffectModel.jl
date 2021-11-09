@@ -128,7 +128,6 @@ function StatsBase.residuals(x::FixedEffectModel)
     x.residuals
 end
 
-
 """
    fe(x::FixedEffectModel; keepkeys = false)
 
