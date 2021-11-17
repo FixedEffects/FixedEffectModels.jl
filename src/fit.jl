@@ -171,7 +171,7 @@ function reg(
     formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
 
     # Obtain y
-    # for a Vector{Float64}, conver(Vector{Float64}, y) aliases y
+    # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
     y = convert(Vector{Float64}, response(formula_schema, subdf))
     all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
 
