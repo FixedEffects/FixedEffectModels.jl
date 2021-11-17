@@ -45,9 +45,9 @@ function partial_out(
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
     end
     formula, formula_endo, formula_iv = parse_iv(f)
-    has_iv = formula_iv != nothing
+    has_iv = formula_iv !== nothing
     has_iv && throw("partial_out does not support instrumental variables")
-    has_weights = weights != nothing
+    has_weights = weights !== nothing
 
 
     # create a dataframe without missing values & negative weights
