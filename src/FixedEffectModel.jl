@@ -20,7 +20,7 @@ struct FixedEffectModel <: RegressionModel
     coefnames::Vector       # Name of coefficients
     yname::Union{String, Symbol} # Name of dependent variable
     formula::FormulaTerm        # Original formula
-    formula_predict::FormulaTerm
+    formula_schema::FormulaTerm # Schema for predict
     contrasts::Dict
 
     nobs::Int64             # Number of observations
@@ -44,88 +44,79 @@ struct FixedEffectModel <: RegressionModel
     p_kp::Union{Float64, Nothing}           # First Stage p value KP
 end
 
-has_iv(x::FixedEffectModel) = x.F_kp !== nothing
-has_fe(x::FixedEffectModel) = has_fe(x.formula)
+has_iv(m::FixedEffectModel) = m.F_kp !== nothing
+has_fe(m::FixedEffectModel) = has_fe(m.formula)
 
 
 # Check API at  https://github.com/JuliaStats/StatsBase.jl/blob/11a44398bdc16a00060bc6c2fb65522e4547f159/src/statmodels.jl
 # fields
-StatsBase.coef(x::FixedEffectModel) = x.coef
-StatsBase.coefnames(x::FixedEffectModel) = x.coefnames
-StatsBase.responsename(x::FixedEffectModel) = x.yname
-StatsBase.vcov(x::FixedEffectModel) = x.vcov
-StatsBase.nobs(x::FixedEffectModel) = x.nobs
-StatsBase.dof_residual(x::FixedEffectModel) = x.dof_residual
-StatsBase.r2(x::FixedEffectModel) = x.r2
-StatsBase.adjr2(x::FixedEffectModel) = x.adjr2
-StatsBase.islinear(x::FixedEffectModel) = true
-StatsBase.deviance(x::FixedEffectModel) = x.tss
-StatsBase.rss(x::FixedEffectModel) = x.rss
-StatsBase.mss(x::FixedEffectModel) = deviance(x) - rss(x)
+StatsBase.coef(m::FixedEffectModel) = m.coef
+StatsBase.coefnames(m::FixedEffectModel) = m.coefnames
+StatsBase.responsename(m::FixedEffectModel) = m.yname
+StatsBase.vcov(m::FixedEffectModel) = m.vcov
+StatsBase.nobs(m::FixedEffectModel) = m.nobs
+StatsBase.dof_residual(m::FixedEffectModel) = m.dof_residual
+StatsBase.r2(m::FixedEffectModel) = m.r2
+StatsBase.adjr2(m::FixedEffectModel) = m.adjr2
+StatsBase.islinear(m::FixedEffectModel) = true
+StatsBase.deviance(m::FixedEffectModel) = m.tss
+StatsBase.rss(m::FixedEffectModel) = m.rss
+StatsBase.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 
 
-function StatsBase.confint(x::FixedEffectModel; level::Real = 0.95)
-    scale = tdistinvcdf(dof_residual(x), 1 - (1 - level) / 2)
-    se = stderror(x)
-    hcat(x.coef -  scale * se, x.coef + scale * se)
+function StatsBase.confint(m::FixedEffectModel; level::Real = 0.95)
+    scale = tdistinvcdf(dof_residual(m), 1 - (1 - level) / 2)
+    se = stderror(m)
+    hcat(m.coef -  scale * se, m.coef + scale * se)
 end
 
 # predict, residuals, modelresponse
-function StatsBase.predict(x::FixedEffectModel, df)
+function StatsBase.predict(m::FixedEffectModel, t)
     # Require DataFrame input as we are using leftjoin and select from DataFrames here
-    df isa AbstractDataFrame || throw("Predict requires an input of type DataFrame")
-    
-    fes = if has_fe(x)
-        # Make sure there are FEs saved
-        nrow(x.fe) > 0 || throw("No estimates for fixed effects found. Model needs to be estimated with save = :fe or :all for prediction to work.")
-
-        # Join FE estimates onto data and sum row-wise
-        combine(
-            leftjoin(select(df, x.fekeys), unique(x.fe); 
-                on = x.fekeys, makeunique = true, matchmissing = :equal),
-            AsTable(Not(x.fekeys)) => sum)
-    else 
-        nothing
+    # Make sure fes are saved
+    if has_fe(m) 
+        !isempty(m.fe) || throw("No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work.")
     end
-    
-    df = StatsModels.columntable(df)
-    cols, nonmissings = StatsModels.missing_omit(df, MatrixTerm(x.formula_predict.rhs))
-    formula_schema = apply_schema(x.formula_predict.rhs, schema(x.formula_predict.rhs, cols, x.contrasts), StatisticalModel)
-    new_x = modelmatrix(formula_schema, cols)
-    out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(df)))
-    out[nonmissings] = new_x * x.coef 
+    ct = StatsModels.columntable(t)
+    cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
+    Xnew = modelmatrix(m.formula_schema, cols)
+    out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(ct)))
+    out[nonmissings] = Xnew * m.coef 
 
-    if !isnothing(fes)
+    # Join FE estimates onto data and sum row-wise
+    if has_fe(m)
+        df = DataFrame(t)
+        fes = leftjoin(select(df, m.fekeys), unique(m.fe); on = m.fekeys, makeunique = true, matchmissing = :equal)
+        fes = combine(fes, AsTable(Not(m.fekeys)) => sum)
         out[nonmissings] .+= fes[nonmissings, 1]
     end
 
     return out
 end
 
-function StatsBase.residuals(x::FixedEffectModel, df)
-    df = StatsModels.columntable(df)
-    if !has_fe(x)
-        formula_schema = apply_schema(x.formula_predict, schema(x.formula_predict, df, x.contrasts), StatisticalModel)
-        cols, nonmissings = StatsModels.missing_omit(df, formula_schema)
-        new_x = modelmatrix(formula_schema, cols)
-        y = response(formula_schema, df)
+function StatsBase.residuals(m::FixedEffectModel, t)
+    if has_fe(m)
+         m.residuals !== nothing || throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
+        residuals(m)
+    else
+        ct = StatsModels.columntable(t)
+        cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
+        Xnew = modelmatrix(m.formula_schema, cols)
+        y = response(m.formula_schema, ct)
         if all(nonmissings)
-            out =  y -  new_x * x.coef
+            out =  y -  Xnew * m.coef
         else
-            out = Vector{Union{Float64, Missing}}(missing,  length(Tables.rows(df)))
-            out[nonmissings] = y -  new_x * x.coef
+            out = Vector{Union{Float64, Missing}}(missing,  length(Tables.rows(ct)))
+            out[nonmissings] = y -  Xnew * m.coef
         end
         return out
-    else
-        typeof(x.residuals) == Nothing && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
-       residuals(x)
-   end
+    end
 end
 
 
-function StatsBase.residuals(x::FixedEffectModel)
-    !has_fe(x) && throw("To access residuals,  use residuals(x, df::AbstractDataFrame")
-    x.residuals
+function StatsBase.residuals(m::FixedEffectModel)
+    has_fe(m) || throw("To access residuals,  use residuals(x, t) where t is a Table")
+    m.residuals
 end
 
 """
@@ -138,21 +129,21 @@ The output is aligned with the original DataFrame used in `reg`.
 * `keepkeys::Bool' : Should the returned DataFrame include the original variables used to defined groups? Default to false
 """
 
-function fe(x::FixedEffectModel; keepkeys = false)
-   !has_fe(x) && throw("fe() is not defined for fixed effect models without fixed effects")
+function fe(m::FixedEffectModel; keepkeys = false)
+   !has_fe(m) && throw("fe() is not defined for fixed effect models without fixed effects")
    if keepkeys
-       x.fe
+       m.fe
    else
-      x.fe[!, (length(x.fekeys)+1):end]
+      m.fe[!, (length(m.fekeys)+1):end]
    end
 end
 
 
-function StatsBase.coeftable(x::FixedEffectModel; level = 0.95)
-    cc = coef(x)
-    se = stderror(x)
-    coefnms = coefnames(x)
-    conf_int = confint(x; level = level)
+function StatsBase.coeftable(m::FixedEffectModel; level = 0.95)
+    cc = coef(m)
+    se = stderror(m)
+    coefnms = coefnames(m)
+    conf_int = confint(m; level = level)
     # put (intercept) last
     if !isempty(coefnms) && ((coefnms[1] == Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)"))
         newindex = vcat(2:length(cc), 1)
@@ -163,7 +154,7 @@ function StatsBase.coeftable(x::FixedEffectModel; level = 0.95)
     end
     tt = cc ./ se
     CoefTable(
-        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(x)), abs2.(tt)), conf_int[:, 1:2]),
+        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(m)), abs2.(tt)), conf_int[:, 1:2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4)
 end
@@ -175,9 +166,9 @@ end
 ##
 ##############################################################################
 
-function title(x::FixedEffectModel)
-    iv = has_iv(x)
-    fe = has_fe(x)
+function title(m::FixedEffectModel)
+    iv = has_iv(m)
+    fe = has_fe(m)
     if !iv & !fe
         return "Linear Model"
     elseif iv & !fe
@@ -191,39 +182,39 @@ end
 
 format_scientific(x) = @sprintf("%.3f", x)
 
-function top(x::FixedEffectModel)
+function top(m::FixedEffectModel)
     out = [
-            "Number of obs" sprint(show, nobs(x), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(x) - dof_residual(x), context = :compact => true);
-            "R2" format_scientific(x.r2);
-            "R2 Adjusted" format_scientific(x.adjr2);
-            "F-Stat" sprint(show, x.F, context = :compact => true);
-            "p-value" format_scientific(x.p);
+            "Number of obs" sprint(show, nobs(m), context = :compact => true);
+            "Degrees of freedom" sprint(show, nobs(m) - dof_residual(m), context = :compact => true);
+            "R2" format_scientific(r2(m));
+            "R2 Adjusted" format_scientific(adjr2(m));
+            "F-Stat" sprint(show, m.F, context = :compact => true);
+            "p-value" format_scientific(m.p);
             ]
-    if has_iv(x)
+    if has_iv(m)
         out = vcat(out, 
-            ["F-Stat (First Stage)" sprint(show, x.F_kp, context = :compact => true);
-            "p-value (First Stage)" format_scientific(x.p_kp);
+            ["F-Stat (First Stage)" sprint(show, m.F_kp, context = :compact => true);
+            "p-value (First Stage)" format_scientific(m.p_kp);
             ])
     end
-    if has_fe(x)
+    if has_fe(m)
         out = vcat(out, 
-            ["R2 within" format_scientific(x.r2_within);
-           "Iterations" sprint(show, x.iterations, context = :compact => true);
+            ["R2 within" format_scientific(m.r2_within);
+           "Iterations" sprint(show, m.iterations, context = :compact => true);
              ])
     end
     return out
 end
 
 
-function Base.show(io::IO, x::FixedEffectModel)
-    ctitle = title(x)
-    ctop = top(x)
-    cc = coef(x)
-    se = stderror(x)
-    yname = responsename(x)
-    coefnms = coefnames(x)
-    conf_int = confint(x)
+function Base.show(io::IO, m::FixedEffectModel)
+    ctitle = title(m)
+    ctop = top(m)
+    cc = coef(m)
+    se = stderror(m)
+    yname = responsename(m)
+    coefnms = coefnames(m)
+    conf_int = confint(m)
     # put (intercept) last
     if !isempty(coefnms) && ((coefnms[1] == Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)"))
         newindex = vcat(2:length(cc), 1)
@@ -233,13 +224,11 @@ function Base.show(io::IO, x::FixedEffectModel)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
-    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(x)), abs2.(tt)), conf_int[:, 1:2])
+    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(m)), abs2.(tt)), conf_int[:, 1:2])
     nr, nc = size(mat)
     colnms = ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%"]
     rownms = ["$(coefnms[i])" for i = 1:length(cc)]
     pvc = 4
-
-
     # print
     if length(rownms) == 0
         rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]

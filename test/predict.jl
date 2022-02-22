@@ -1,7 +1,8 @@
-using CUDA, FixedEffectModels, DataFrames, CSV, Test
+using FixedEffectModels, DataFrames, CategoricalArrays, CSV, Test
 
 df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 
+df.StateC = categorical(df.State)
 
 ##############################################################################
 ##
@@ -21,11 +22,16 @@ model = @formula Sales ~ CPI + (Price ~ Pimin)
 result = reg(df, model)
 coeftable(result)
 show(result)
-
 predict(result, df)
 residuals(result, df)
 @test  nobs(result) == 1380
 @test vcov(result)[1] ≈ 3.5384578251636785
+
+# predict with interactions
+model = @formula Sales ~ CPI * Pop
+result = reg(df, model)
+@test predict(result, df)[1] ≈ 131.92991
+
 
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model)
@@ -34,12 +40,40 @@ model = @formula Sales ~ CPI + (Price ~ Pimin) + fe(State)
 result = reg(df, model)
 show(result)
 
-## Tests for predict method
-# Test that only DataFrame is accepted
-@test_throws "Predict requires an input of type DataFrame" predict(result, Matrix(df))
 
+model = @formula Sales ~ Price + StateC
+result = reg(df, model)
+@test predict(result, df)[1] ≈ 115.9849874
+
+model = @formula Sales ~ Price + fe(State)
+result = reg(df, model, save = :fe)
+@test predict(result, df)[1] ≈ 115.9849874
+
+model = @formula Sales ~ Price * Pop + StateC
+result = reg(df, model)
+@test predict(result, df)[1] ≈ 115.643985352
+
+model = @formula Sales ~ Price * Pop + fe(State)
+result = reg(df, model, save = :fe)
+@test predict(result, df)[1] ≈ 115.643985352
+
+model = @formula Sales ~ Price + Pop + Price & Pop + StateC
+result = reg(df, model)
+@test predict(result, df)[1] ≈ 115.643985352
+
+model = @formula Sales ~ Price + Pop + Price & Pop + fe(State)
+result = reg(df, model, save = :fe)
+@test predict(result, df)[1] ≈ 115.643985352
+
+
+
+
+
+## Tests for predict method
 # Test that predicting from model without saved FE test throws
-@test_throws "No estimates for fixed effects found. Model needs to be estimated with save = :fe or :all for prediction to work." predict(result, df)
+model = @formula Sales ~ Price + fe(State)
+result = reg(df, model)
+@test_throws "No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work." predict(result, df)
 
 # Test basic functionality - adding 1 to price should increase prediction by coef
 model = @formula Sales ~ Price + fe(State)
