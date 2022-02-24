@@ -85,7 +85,7 @@ function StatsBase.predict(m::FixedEffectModel, t)
 
     # Join FE estimates onto data and sum row-wise
     if has_fe(m)
-        df = DataFrame(t)
+        df = DataFrame(t; copycols = false)
         fes = leftjoin(select(df, m.fekeys), unique(m.fe); on = m.fekeys, makeunique = true, matchmissing = :equal)
         fes = combine(fes, AsTable(Not(m.fekeys)) => sum)
         out[nonmissings] .+= fes[nonmissings, 1]
