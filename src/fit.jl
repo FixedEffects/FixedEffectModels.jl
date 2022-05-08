@@ -298,7 +298,7 @@ function reg(
 
         # Build
         newZ = hcat(Xexo, Z)
-        Pi = cholesky!(Symmetric(newZ' * newZ)) \ (newZ' * Xendo)
+        Pi = ldiv!(cholesky!(Symmetric(newZ'newZ)), newZ'Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
         X = hcat(Xexo, Xendo)
 
@@ -306,7 +306,7 @@ function reg(
         ## partial out Xendo in place wrt (Xexo, Z)
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
         ## partial out Z in place wrt Xexo
-        Pi2 = cholesky!(Symmetric(Xexo' * Xexo)) \ (Xexo' * Z)
+        Pi2 = ldiv!(cholesky!(Symmetric(Xexo'Xexo)), Xexo'Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
@@ -324,8 +324,8 @@ function reg(
     ##
     ##############################################################################
 
-    crossx = cholesky!(Symmetric(Xhat' * Xhat))
-    coef = crossx \ (Xhat' * y)
+    crossx = cholesky!(Symmetric(Xhat'Xhat))
+    coef = ldiv!(crossx, Xhat'y)
 
     ##############################################################################
     ##
