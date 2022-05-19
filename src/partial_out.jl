@@ -121,10 +121,9 @@ function partial_out(
     end
     # Compute residuals
     if size(X, 2) > 0
-        residuals = Y .- X * (X \ Y)
-    else
-        residuals = Y
+        mul!(Y, X, X\Y, -1.0, 1.0)
     end
+    residuals = Y
 
     # rescale residuals
     if has_weights
