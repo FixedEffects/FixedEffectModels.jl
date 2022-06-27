@@ -24,7 +24,9 @@ struct FixedEffectModel <: RegressionModel
     contrasts::Dict
 
     nobs::Int64             # Number of observations
-    dof_residual::Int64      # nobs - degrees of freedoms
+    dof::Int64              # Number parameters estimated - has_intercept
+    dof_residual::Int64     # nobs - degrees of freedoms
+    dof_tstat::Int64        # dof used for t-test and F-stat
 
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
@@ -54,7 +56,9 @@ StatsAPI.coefnames(m::FixedEffectModel) = m.coefnames
 StatsAPI.responsename(m::FixedEffectModel) = m.yname
 StatsAPI.vcov(m::FixedEffectModel) = m.vcov
 StatsAPI.nobs(m::FixedEffectModel) = m.nobs
+StatsAPI.dof(m::FixedEffectModel) = m.dof
 StatsAPI.dof_residual(m::FixedEffectModel) = m.dof_residual
+Vcov.dof_tstat(m::FixedEffectModel) = m.dof_tstat
 StatsAPI.r2(m::FixedEffectModel) = m.r2
 StatsAPI.adjr2(m::FixedEffectModel) = m.adjr2
 StatsAPI.islinear(m::FixedEffectModel) = true
@@ -64,7 +68,7 @@ StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 
 
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
-    scale = tdistinvcdf(dof_residual(m), 1 - (1 - level) / 2)
+    scale = tdistinvcdf(dof_tstat(m), 1 - (1 - level) / 2)
     se = stderror(m)
     hcat(m.coef -  scale * se, m.coef + scale * se)
 end
@@ -153,7 +157,7 @@ function StatsAPI.coeftable(m::FixedEffectModel; level = 0.95)
     end
     tt = cc ./ se
     CoefTable(
-        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(m)), abs2.(tt)), conf_int[:, 1:2]),
+        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_tstat(m)), abs2.(tt)), conf_int[:, 1:2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4)
 end
@@ -184,7 +188,7 @@ format_scientific(x) = @sprintf("%.3f", x)
 function top(m::FixedEffectModel)
     out = [
             "Number of obs" sprint(show, nobs(m), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(m) - dof_residual(m), context = :compact => true);
+            "Degrees of freedom" sprint(show, dof(m), context = :compact => true);
             "R2" format_scientific(r2(m));
             "R2 Adjusted" format_scientific(adjr2(m));
             "F-Stat" sprint(show, m.F, context = :compact => true);
@@ -223,7 +227,7 @@ function Base.show(io::IO, m::FixedEffectModel)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
-    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_residual(m)), abs2.(tt)), conf_int[:, 1:2])
+    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(dof_stat(m)), abs2.(tt)), conf_int[:, 1:2])
     nr, nc = size(mat)
     colnms = ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%"]
     rownms = ["$(coefnms[i])" for i = 1:length(cc)]
