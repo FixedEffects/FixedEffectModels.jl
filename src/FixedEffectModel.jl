@@ -24,8 +24,9 @@ struct FixedEffectModel <: RegressionModel
     contrasts::Dict
 
     nobs::Int64             # Number of observations
-    dof_residual::Int64      # nobs - degrees of freedoms
-    df_FStat::Int64
+    dof::Int64              # Number parameters estimated - has_intercept
+    dof_residual::Int64     # nobs - degrees of freedoms
+    dof_tstat::Int64        # dof used for t-test and F-stat
 
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
@@ -49,30 +50,31 @@ has_iv(m::FixedEffectModel) = m.F_kp !== nothing
 has_fe(m::FixedEffectModel) = has_fe(m.formula)
 
 
-# Check API at  https://github.com/JuliaStats/StatsBase.jl/blob/11a44398bdc16a00060bc6c2fb65522e4547f159/src/statmodels.jl
-# fields
-StatsBase.coef(m::FixedEffectModel) = m.coef
-StatsBase.coefnames(m::FixedEffectModel) = m.coefnames
-StatsBase.responsename(m::FixedEffectModel) = m.yname
-StatsBase.vcov(m::FixedEffectModel) = m.vcov
-StatsBase.nobs(m::FixedEffectModel) = m.nobs
-StatsBase.dof_residual(m::FixedEffectModel) = m.dof_residual
-StatsBase.r2(m::FixedEffectModel) = m.r2
-StatsBase.adjr2(m::FixedEffectModel) = m.adjr2
-StatsBase.islinear(m::FixedEffectModel) = true
-StatsBase.deviance(m::FixedEffectModel) = m.tss
-StatsBase.rss(m::FixedEffectModel) = m.rss
-StatsBase.mss(m::FixedEffectModel) = deviance(m) - rss(m)
+
+StatsAPI.coef(m::FixedEffectModel) = m.coef
+StatsAPI.coefnames(m::FixedEffectModel) = m.coefnames
+StatsAPI.responsename(m::FixedEffectModel) = m.yname
+StatsAPI.vcov(m::FixedEffectModel) = m.vcov
+StatsAPI.nobs(m::FixedEffectModel) = m.nobs
+StatsAPI.dof(m::FixedEffectModel) = m.dof
+StatsAPI.dof_residual(m::FixedEffectModel) = m.dof_residual
+Vcov.dof_tstat(m::FixedEffectModel) = m.dof_tstat
+StatsAPI.r2(m::FixedEffectModel) = m.r2
+StatsAPI.adjr2(m::FixedEffectModel) = m.adjr2
+StatsAPI.islinear(m::FixedEffectModel) = true
+StatsAPI.deviance(m::FixedEffectModel) = m.tss
+StatsAPI.rss(m::FixedEffectModel) = m.rss
+StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 
 
-function StatsBase.confint(m::FixedEffectModel; level::Real = 0.95)
-    scale = tdistinvcdf(m.df_FStat, 1 - (1 - level) / 2)
+function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
+    scale = tdistinvcdf(Vcov.dof_tstat(m), 1 - (1 - level) / 2)
     se = stderror(m)
     hcat(m.coef -  scale * se, m.coef + scale * se)
 end
 
 # predict, residuals, modelresponse
-function StatsBase.predict(m::FixedEffectModel, t)
+function StatsAPI.predict(m::FixedEffectModel, t)
     # Require DataFrame input as we are using leftjoin and select from DataFrames here
     # Make sure fes are saved
     if has_fe(m) 
@@ -95,7 +97,7 @@ function StatsBase.predict(m::FixedEffectModel, t)
     return out
 end
 
-function StatsBase.residuals(m::FixedEffectModel, t)
+function StatsAPI.residuals(m::FixedEffectModel, t)
     if has_fe(m)
          m.residuals !== nothing || throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
         residuals(m)
@@ -115,7 +117,7 @@ function StatsBase.residuals(m::FixedEffectModel, t)
 end
 
 
-function StatsBase.residuals(m::FixedEffectModel)
+function StatsAPI.residuals(m::FixedEffectModel)
     has_fe(m) || throw("To access residuals,  use residuals(x, t) where t is a Table")
     m.residuals
 end
@@ -140,7 +142,7 @@ function fe(m::FixedEffectModel; keepkeys = false)
 end
 
 
-function StatsBase.coeftable(m::FixedEffectModel; level = 0.95)
+function StatsAPI.coeftable(m::FixedEffectModel; level = 0.95)
     cc = coef(m)
     se = stderror(m)
     coefnms = coefnames(m)
@@ -155,7 +157,7 @@ function StatsBase.coeftable(m::FixedEffectModel; level = 0.95)
     end
     tt = cc ./ se
     CoefTable(
-        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(m.df_FStat), abs2.(tt)), conf_int[:, 1:2]),
+        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(Vcov.dof_tstat(m)), abs2.(tt)), conf_int[:, 1:2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4)
 end
@@ -186,7 +188,7 @@ format_scientific(x) = @sprintf("%.3f", x)
 function top(m::FixedEffectModel)
     out = [
             "Number of obs" sprint(show, nobs(m), context = :compact => true);
-            "Degrees of freedom" sprint(show, nobs(m) - dof_residual(m), context = :compact => true);
+            "Degrees of freedom" sprint(show, dof(m), context = :compact => true);
             "R2" format_scientific(r2(m));
             "R2 Adjusted" format_scientific(adjr2(m));
             "F-Stat" sprint(show, m.F, context = :compact => true);
@@ -225,7 +227,7 @@ function Base.show(io::IO, m::FixedEffectModel)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
-    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(m.df_FStat), abs2.(tt)), conf_int[:, 1:2])
+    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(Vcov.dof_tstat(m)), abs2.(tt)), conf_int[:, 1:2])
     nr, nc = size(mat)
     colnms = ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%"]
     rownms = ["$(coefnms[i])" for i = 1:length(cc)]

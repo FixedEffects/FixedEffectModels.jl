@@ -375,6 +375,8 @@ function reg(
         end
     end
     dof_residual_ = max(1, nobs - size(X, 2) - dof_fes - dof_add)
+    dof_ = max(1, size(X, 2) - (has_intercept | has_fe_intercept))
+
 
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
@@ -388,8 +390,8 @@ function reg(
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
-    df_FStat_ = max(1, Vcov.df_FStat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
-    p = fdistccdf(max(length(coef) - (has_intercept | has_fe_intercept), 1), df_FStat_, F)
+    dof_tstat_ = max(1, Vcov.dof_tstat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
+    p = fdistccdf(dof_, dof_tstat_, F)
     # Compute Fstat of First Stage
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
@@ -449,5 +451,5 @@ function reg(
         esample = trues(N)
     end
 
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_residual_, df_FStat_, rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_residual_, dof_tstat_, rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

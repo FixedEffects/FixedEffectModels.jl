@@ -12,6 +12,7 @@ using LinearAlgebra
 using Printf
 using Reexport
 using Statistics
+using StatsAPI
 using StatsBase
 using StatsFuns
 @reexport using StatsModels
