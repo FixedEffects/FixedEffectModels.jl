@@ -140,26 +140,15 @@ function reg(
         esample = Colon()
     end
 
-    # Compute weights
-    if has_weights
-        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
-        all(isfinite, weights) || throw("Weights are not finite")
-    else
-        weights = uweights(nobs)
-    end
 
-    # Compute feM, an AbstractFixedEffectSolver
     has_intercept = hasintercept(formula)
     has_fe_intercept = false
     if has_fes
         if any(fe.interaction isa UnitWeights for fe in fes)
             has_fe_intercept = true
         end
-        fes = FixedEffect[fe[esample] for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
     end
-    # Compute data for std errors
-    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
+
     ##############################################################################
     ##
     ## Dataframe --> Matrix
@@ -200,6 +189,28 @@ function reg(
         # modify formula to use in predict
         formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
     end
+
+    # Compute weights
+    if has_weights
+        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
+        all(isfinite, weights) || throw("Weights are not finite")
+    else
+        weights = uweights(nobs)
+    end
+
+    # Compute feM, an AbstractFixedEffectSolver
+    has_intercept = hasintercept(formula)
+    has_fe_intercept = false
+    if has_fes
+        if any(fe.interaction isa UnitWeights for fe in fes)
+            has_fe_intercept = true
+        end
+        fes = FixedEffect[fe[esample] for fe in fes]
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
+    end
+    # Compute data for std errors
+    vcov_method = Vcov.materialize(view(df, esample, :), vcov)
+
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
     # create unitilaized
