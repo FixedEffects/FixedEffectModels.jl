@@ -164,7 +164,15 @@ function reg(
 
     # Obtain X
     _Xexo_ = modelmatrix(formula_schema, subdf)
-   
+
+    esample2 = .!ismissing.(_y_)
+    
+    # PR #109, to be removed when fixed in StatsModels
+    if size(_Xexo_, 2) > 0
+        for c in eachcol(_Xexo_)
+            esample2 .&= .!ismissing.(c)
+        end
+    end
 
     response_name, coef_names = coefnames(formula_schema)
     if !(coef_names isa Vector)
@@ -183,6 +191,24 @@ function reg(
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         _Z_ = modelmatrix(formula_iv_schema, subdf)
 
+        # PR #109, to be removed when fixed in StatsModels
+        if size(_Xendo_, 2) > 0
+            for c in eachcol(_Xendo_)
+                esample2 .&= .!ismissing.(c)
+            end
+        end
+
+        # PR #109, to be removed when fixed in StatsModels
+        for c in eachcol(_Z_)
+            esample2 .&= .!ismissing.(c)
+        end
+
+        # PR #109, to be removed when fixed in StatsModels
+        if !all(esample2)
+            _Xendo_ = _Xendo_[esample2,:]
+            _Z_ = _Z_[esample2,:]
+        end
+
         # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
         Xendo = convert(Matrix{Float64}, _Xendo_)
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
@@ -192,6 +218,22 @@ function reg(
 
         # modify formula to use in predict
         formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
+    end
+
+    # PR #109, to be removed when fixed in StatsModels
+    if !all(esample2)
+        if esample != Colon() && !all(esample)
+            throw(ArgumentError("You passed a dataset missing with observations and used formula terms that introduce missings. This is not yet supported."))
+        end            
+        _y_ = _y_[esample2]
+        _Xexo_ = _Xexo_[esample2,:]
+
+        if esample == Colon()
+            esample = esample2
+        else
+            esample .&= esample2
+        end
+        nobs = sum(esample)
     end
 
     # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
