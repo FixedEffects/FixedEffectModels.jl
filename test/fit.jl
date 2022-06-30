@@ -296,7 +296,10 @@ end
     m1 = @formula y ~ (x1 ~ lag(z1)) + fe(id1)
     test_lags(m0, m1, "iv: _ ~ (_ ~ lag)")
   
-    # NOTE: The case where the df contains missings and the formula contains missings cannot be handled yet. The case with :x1_m1 would actually work, but the case with :x1_m2 would not. This because the missings in x1_m1 and x1_m2 are removed BEFORE the the lag is applied.
+    # NOTE: The case where the df contains missings and the formula contains missings cannot be handled yet. 
+    # The case with :x1_m1 would actually work, but the case with :x1_m2 would not.
+    # This because the missings in x1_m1 and x1_m2 are removed BEFORE the lag is applied.
+    # See https://github.com/JuliaStats/StatsModels.jl/pull/153.
      
     m0 = @formula y_lagged ~ x1_m1 + fe(id1)
     m1 = @formula lag(y) ~ x1_m1 + fe(id1)

@@ -223,7 +223,7 @@ function reg(
     # PR #109, to be removed when fixed in StatsModels
     if !all(esample2)
         if esample != Colon() && !all(esample)
-            throw(ArgumentError("You passed a dataset missing with observations and used formula terms that introduce missings. This is not yet supported."))
+            throw(ArgumentError("You passed a dataset with missing observations and used formula terms that introduce missings. This is not yet supported. See https://github.com/JuliaStats/StatsModels.jl/pull/153."))
         end            
         _y_ = _y_[esample2]
         _Xexo_ = _Xexo_[esample2,:]
@@ -231,7 +231,7 @@ function reg(
         if esample == Colon()
             esample = esample2
         else
-            esample .&= esample2
+            esample[esample] .= esample2
         end
         nobs = sum(esample)
     end
