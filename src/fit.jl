@@ -160,13 +160,11 @@ function reg(
     formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
 
     # Obtain y
-    # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(formula_schema, subdf))
-    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+    _y_ = response(formula_schema, subdf)
 
     # Obtain X
-    Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
-    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+    _Xexo_ = modelmatrix(formula_schema, subdf)
+   
 
     response_name, coef_names = coefnames(formula_schema)
     if !(coef_names isa Vector)
@@ -176,19 +174,32 @@ function reg(
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
-        Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
-        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+        _Xendo_ = modelmatrix(formula_endo_schema, subdf)
+  
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
 
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
-        Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
+        _Z_ = modelmatrix(formula_iv_schema, subdf)
+
+        # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
+        Xendo = convert(Matrix{Float64}, _Xendo_)
+        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+
+        Z = convert(Matrix{Float64}, _Z_)
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
 
         # modify formula to use in predict
         formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
     end
+
+    # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
+    y = convert(Vector{Float64}, _y_)
+    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+
+    Xexo = convert(Matrix{Float64}, _Xexo_)  
+    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
 
     # Compute weights
     if has_weights
