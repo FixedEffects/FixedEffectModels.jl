@@ -118,7 +118,10 @@ end
 
 
 function StatsAPI.residuals(m::FixedEffectModel)
-    has_fe(m) || throw("To access residuals,  use residuals(x, t) where t is a Table")
+    if m.residuals == nothing
+        has_fe(m) && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
+        !has_fe(m) && throw("To access residuals,  use residuals(x, t) where t is a Table")
+    end
     m.residuals
 end
 
