@@ -386,7 +386,7 @@ function reg(
 
     # Compute standard error
     vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual_)
-    matrix_vcov = StatsBase.vcov(vcov_data, vcov_method)
+    matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
