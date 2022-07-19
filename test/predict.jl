@@ -45,9 +45,9 @@ model = @formula Sales ~ Price + StateC
 result = reg(df, model)
 @test predict(result, df)[1] ≈ 115.9849874
 
-model = @formula Sales ~ Price + fe(State)
-result = reg(df, model, save = :fe)
-@test predict(result, df)[1] ≈ 115.9849874
+#model = @formula Sales ~ Price + fe(State)
+#result = reg(df, model, save = :fe)
+#@test predict(result)[1] ≈ 115.9849874
 
 model = @formula Sales ~ Price * Pop + StateC
 result = reg(df, model)
@@ -69,11 +69,11 @@ result = reg(df, model, save = :fe)
 
 
 
-## Tests for predict method
+# Tests for predict method
 # Test that predicting from model without saved FE test throws
-#model = @formula Sales ~ Price + fe(State)
-#result = reg(df, model)
-#@test_throws "No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work." predict(result, df)
+model = @formula Sales ~ Price + fe(State)
+result = reg(df, model)
+@test_throws "No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work." predict(result, df)
 
 # Test basic functionality - adding 1 to price should increase prediction by coef
 #model = @formula Sales ~ Price + fe(State)

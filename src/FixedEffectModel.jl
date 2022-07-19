@@ -76,7 +76,7 @@ function StatsAPI.predict(m::FixedEffectModel, t)
     # Require DataFrame input as we are using leftjoin and select from DataFrames here
     # Make sure fes are saved
     if has_fe(m) 
-        throw("Predict does not work with fixed effects. Save the fixed effect manually with save = true, and access them using the function fe() on the result.")
+        throw("To predict in a fixed effect regression, run `reg` with the option save = true, and then access predicted values using `fe().")
     end
     ct = StatsModels.columntable(t)
     cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
@@ -98,8 +98,7 @@ end
 
 function StatsAPI.residuals(m::FixedEffectModel, t)
     if has_fe(m)
-         m.residuals !== nothing || throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
-        residuals(m)
+         throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
     else
         ct = StatsModels.columntable(t)
         cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
