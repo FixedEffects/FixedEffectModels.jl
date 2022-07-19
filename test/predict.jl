@@ -53,17 +53,17 @@ model = @formula Sales ~ Price * Pop + StateC
 result = reg(df, model)
 @test predict(result, df)[1] ≈ 115.643985352
 
-model = @formula Sales ~ Price * Pop + fe(State)
-result = reg(df, model, save = :fe)
-@test predict(result, df)[1] ≈ 115.643985352
+#model = @formula Sales ~ Price * Pop + fe(State)
+#result = reg(df, model, save = :fe)
+#@test predict(result, df)[1] ≈ 115.643985352
 
 model = @formula Sales ~ Price + Pop + Price & Pop + StateC
 result = reg(df, model)
 @test predict(result, df)[1] ≈ 115.643985352
 
-model = @formula Sales ~ Price + Pop + Price & Pop + fe(State)
-result = reg(df, model, save = :fe)
-@test predict(result, df)[1] ≈ 115.643985352
+#model = @formula Sales ~ Price + Pop + Price & Pop + fe(State)
+#result = reg(df, model, save = :fe)
+#@test predict(result, df)[1] ≈ 115.643985352
 
 
 
