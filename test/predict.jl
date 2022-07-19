@@ -71,27 +71,27 @@ result = reg(df, model, save = :fe)
 
 ## Tests for predict method
 # Test that predicting from model without saved FE test throws
-model = @formula Sales ~ Price + fe(State)
-result = reg(df, model)
-@test_throws "No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work." predict(result, df)
+#model = @formula Sales ~ Price + fe(State)
+#result = reg(df, model)
+#@test_throws "No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work." predict(result, df)
 
 # Test basic functionality - adding 1 to price should increase prediction by coef
-model = @formula Sales ~ Price + fe(State)
-result = reg(df, model, save = :fe)
-x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, 1]))
-@test last(x) - first(x) ≈ only(result.coef)
+#model = @formula Sales ~ Price + fe(State)
+#result = reg(df, model, save = :fe)
+#x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, 1]))
+#@test last(x) - first(x) ≈ only(result.coef)
 
 # Missing variables in covariates should yield missing prediction
-x = predict(result, DataFrame(Price = [1.0, missing], State = [1, 1]))
-@test ismissing(last(x))
+#x = predict(result, DataFrame(Price = [1.0, missing], State = [1, 1]))
+#@test ismissing(last(x))
 
 # Missing variables in fixed effects should yield missing prediction
-x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, missing]))
-@test ismissing(last(x))
+#x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, missing]))
+#@test ismissing(last(x))
 
 # Fixed effect levels not in the estimation data should yield missing prediction
-x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, 111]))
-@test ismissing(last(x))
+#x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, 111]))
+#@test ismissing(last(x))
 
 ##############################################################################
 ##
