@@ -172,7 +172,6 @@ result = reg(df, model, save = :residuals)
 
 model = @formula Sales ~ Price + fe(State)
 result = reg(df, model, save = :fe)
-@test residuals(result) === nothing
 @test "fe_State" ∈ names(fe(result))
 
 
