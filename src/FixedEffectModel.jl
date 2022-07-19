@@ -76,7 +76,7 @@ function StatsAPI.predict(m::FixedEffectModel, t)
     # Require DataFrame input as we are using leftjoin and select from DataFrames here
     # Make sure fes are saved
     if has_fe(m) 
-        !isempty(m.fe) || throw("No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work.")
+        throw("Predict does not work with fixed effects. Save the fixed effect manually with save = true, and access them using the function fe() on the result.")
     end
     ct = StatsModels.columntable(t)
     cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
@@ -85,12 +85,13 @@ function StatsAPI.predict(m::FixedEffectModel, t)
     out[nonmissings] = Xnew * m.coef 
 
     # Join FE estimates onto data and sum row-wise
-    if has_fe(m)
-        df = DataFrame(t; copycols = false)
-        fes = leftjoin(select(df, m.fekeys), unique(m.fe); on = m.fekeys, makeunique = true, matchmissing = :equal)
-        fes = combine(fes, AsTable(Not(m.fekeys)) => sum)
-        out[nonmissings] .+= fes[nonmissings, 1]
-    end
+    # This code does not work propertly with missing or with interacted fixed effect, so deleted
+    #if has_fe(m)
+    #    df = DataFrame(t; copycols = false)
+    #    fes = leftjoin(select(df, m.fekeys), unique(m.fe); on = m.fekeys, makeunique = true, #matchmissing = :equal)
+    #    fes = combine(fes, AsTable(Not(m.fekeys)) => sum)
+    #    out[nonmissings] .+= fes[nonmissings, 1]
+    #end
 
     return out
 end
