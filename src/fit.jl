@@ -38,11 +38,36 @@ reg(df, @formula(Sales ~ NDI), Vcov.cluster(:State , :Year))
 df.YearC = categorical(df.Year)
 reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 80)))
 ```
-"""
 
-function reg(
-    @nospecialize(df),
+### Alias
+`reg` is an alias for the more typical StatsAPI `fit`
+```julia
+using RDatasets, FixedEffectModels
+df = dataset("plm", "Cigar")
+fit(FixedEffectModel, @formula(Sales ~ NDI + fe(State) + fe(State)&Year), df)
+"""
+function reg(@nospecialize(df),     
     @nospecialize(formula::FormulaTerm),
+    @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
+    @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
+    @nospecialize(weights::Union{Symbol, Nothing} = nothing),
+    @nospecialize(save::Union{Bool, Symbol} = :none),
+    @nospecialize(method::Symbol = :cpu),
+    @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
+    @nospecialize(double_precision::Bool = true),
+    @nospecialize(tol::Real = 1e-6),
+    @nospecialize(maxiter::Integer = 10000),
+    @nospecialize(drop_singletons::Bool = true),
+    @nospecialize(progress_bar::Bool = true),
+    @nospecialize(dof_add::Integer = 0),
+    @nospecialize(subset::Union{Nothing, AbstractVector} = nothing), 
+    @nospecialize(first_stage::Bool = true))
+    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, dof_add = dof_add, subset = subset, first_stage = first_stage)
+end
+    
+function StatsAPI.fit(::Type{FixedEffectModel},     
+    @nospecialize(formula::FormulaTerm),
+    @nospecialize(df),
     @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
     @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
     @nospecialize(weights::Union{Symbol, Nothing} = nothing),
