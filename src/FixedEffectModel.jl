@@ -66,7 +66,7 @@ StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 
 
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
-    scale = tdistinvcdf(Vcov.dof_residual(m), 1 - (1 - level) / 2)
+    scale = tdistinvcdf(StatsAPI.dof_residual(m), 1 - (1 - level) / 2)
     se = stderror(m)
     hcat(m.coef -  scale * se, m.coef + scale * se)
 end
@@ -158,7 +158,7 @@ function StatsAPI.coeftable(m::FixedEffectModel; level = 0.95)
     end
     tt = cc ./ se
     CoefTable(
-        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(Vcov.dof_residual(m)), abs2.(tt)), conf_int[:, 1:2]),
+        hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(StatsAPI.dof_residual(m)), abs2.(tt)), conf_int[:, 1:2]),
         ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4)
 end
@@ -228,7 +228,7 @@ function Base.show(io::IO, m::FixedEffectModel)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
-    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(Vcov.dof_residual(m)), abs2.(tt)), conf_int[:, 1:2])
+    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(StatsAPI.dof_residual(m)), abs2.(tt)), conf_int[:, 1:2])
     nr, nc = size(mat)
     colnms = ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%"]
     rownms = ["$(coefnms[i])" for i = 1:length(cc)]
