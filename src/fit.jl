@@ -415,7 +415,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
-    dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method, has_intercept | has_fe_intercept))
+    dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
     # Compute Fstat of First Stage
     if has_iv && first_stage
