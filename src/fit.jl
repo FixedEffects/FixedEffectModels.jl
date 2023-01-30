@@ -16,10 +16,10 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `tol::Real` Tolerance. Default to 1e-6.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
-* `progress_bar::Bool = true`: Should the regression show a progressbar
+* `progress_bar::Bool = true`: Should the regression show a progressbar?
 * `first_stage::Bool = true`: Should the first-stage F-stat and p-value be computed?
 * `dof_add::Integer = 0`: 
-* `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows 
+* `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows. 
 
 
 ### Details
