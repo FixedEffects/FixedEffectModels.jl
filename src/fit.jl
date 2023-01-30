@@ -16,10 +16,10 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `tol::Real` Tolerance. Default to 1e-6.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
-* `progress_bar::Bool = true`: Should the regression show a progressbar
+* `progress_bar::Bool = true`: Should the regression show a progressbar?
 * `first_stage::Bool = true`: Should the first-stage F-stat and p-value be computed?
 * `dof_add::Integer = 0`: 
-* `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows 
+* `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows. 
 
 
 ### Details
@@ -415,7 +415,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
-    dof_tstat_ = max(1, Vcov.dof_tstat(vcov_data, vcov_method, has_intercept | has_fe_intercept))
+    dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
     # Compute Fstat of First Stage
     if has_iv && first_stage
