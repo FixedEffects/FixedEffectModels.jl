@@ -3,7 +3,7 @@
 
 Code to reproduce this graph:
 
-  Julia 1.9 (FixedEffectModels.jl, v1.8.2)
+  FixedEffectModels.jl v1.8.2 (Julia 1.9)
   ```julia
   using DataFrames, CategoricalArrays, FixedEffectModels
   N = 10000000
@@ -27,7 +27,7 @@ Code to reproduce this graph:
   ````
 
 
-  R 4.2.2 (fixest, 0.8.4)
+  fixest v0.8.4 (R 4.2.2)
   ```R
   library(fixest)
   N = 10000000
@@ -58,7 +58,7 @@ Code to reproduce this graph:
   ```
 
 
-  R 4.2.2 (lfe, 2.8-8)
+  lfe v2.8-8 (R 4.2.2)
   ```R
   library(lfe)
   N = 10000000
@@ -88,7 +88,7 @@ Code to reproduce this graph:
   #> 59.119   0.889  59.946 
 
 
-  Stata (reghdfe  version 5.2.9 06aug2018)
+  reghdfe  version 5.6.8 03mar2019 (Stata 16.1)
   ```
   clear all
   local N = 10000000
@@ -103,13 +103,13 @@ Code to reproduce this graph:
 
   set rmsg on
   reg y x1 x2
-  #> r; t=1.20
-  areg y x1 x2, a(id1)
-  #>r; t=15.51
+  #> r; t=0.61
+  reghdfe y x1 x2, a(id1)
+  #>r; t=4.64
   reghdfe y x1 x2, a(id1 id2)
-  #> r; t=49.38
+  #> r; t==22.99
   reg y x1 x2, cl(id1)
-  #> r; t=11.15
+  #> r; t=8.28
   ivreg2 y x1 x2, cluster(id1 id2)
-  #> r; t=118.67 
+  #> r; t=70.44
   ````
