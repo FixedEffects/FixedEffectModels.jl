@@ -13,9 +13,6 @@ The objective of the package is similar to the Stata command [`reghdfe`](https:/
 
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
 
-
-Performances are roughly similar to the newer R function [`feols`](https://cran.r-project.org/web/packages/fixest/fixest.pdf). 
-
 ## Syntax
 
 ```julia
