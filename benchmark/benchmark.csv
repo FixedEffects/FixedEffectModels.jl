@@ -1,1 +1,1 @@
-Order,Command,Julia,R,Stata1,simple,0.601445,1.843,1.22,1 hd fe,1.624446 ,14.831,15.513,2 hd fe,3.639817,10.626,49.384, 1 cluster,1.462648,9.255,11.155, 2 cluster,7.187382,96.958,118.67
+Order,Command,Julia (FixedEffectModels),R (fixest),R (lfe),Stata (reghdfe)1,simple,0.35,0.317,1.843, 1.22,1 hd fe,0.463 ,0.704 ,14.831, 15.513,2 hd fe,1.00,1.297 ,10.626, 49.384, 1 cluster se,0.38058,0.700 ,9.255, 11.155, 2 clusters se,0.765,1.803,96.958, 59.946 
