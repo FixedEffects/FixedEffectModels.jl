@@ -6,15 +6,20 @@
 
 eachterm(@nospecialize(x::AbstractTerm)) = (x,)
 eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
-TermOrTerms = Union{AbstractTerm, NTuple{N, AbstractTerm} where N}
-hasintercept(@nospecialize(t::TermOrTerms)) =
-    InterceptTerm{true}() ∈ terms(t) ||
-    ConstantTerm(1) ∈ terms(t)
-omitsintercept(@nospecialize(f::FormulaTerm)) = omitsintercept(f.rhs)
-omitsintercept(@nospecialize(t::TermOrTerms)) =
-    InterceptTerm{false}() ∈ terms(t) ||
-    ConstantTerm(0) ∈ terms(t) ||
-    ConstantTerm(-1) ∈ terms(t)
+# copied from StatsModels
+const TermOrTerms = Union{AbstractTerm, Tuple{AbstractTerm, Vararg{AbstractTerm}}}
+const TupleTerm = Tuple{TermOrTerms, Vararg{TermOrTerms}}
+hasintercept(f::FormulaTerm) = hasintercept(f.rhs)
+hasintercept(t::AbstractTerm) = t == InterceptTerm{true}() || t == ConstantTerm(1)
+hasintercept(t::TupleTerm) = any(hasintercept, t)
+hasintercept(t::MatrixTerm) = hasintercept(t.terms)
+omitsintercept(f::FormulaTerm) = omitsintercept(f.rhs)
+omitsintercept(t::AbstractTerm) =
+    t == InterceptTerm{false}() ||
+    t == ConstantTerm(0) ||
+    t == ConstantTerm(-1)
+omitsintercept(t::TupleTerm) = any(omitsintercept, t)
+omitsintercept(t::MatrixTerm) = omitsintercept(t.terms)
 ##############################################################################
 ##
 ## Parse IV
@@ -59,7 +64,7 @@ has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 
 fesymbol(t::FixedEffectTerm) = t.x
-fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
+fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args[1])
 
 """
     parse_fixedeffect(data, formula::FormulaTerm)
