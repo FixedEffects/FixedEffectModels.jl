@@ -6,7 +6,7 @@ This package estimates linear models with high dimensional categorical variables
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
 
 ## Benchmarks
-The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` or `lfe`. It also tends to be a bit faster than `fixest` (depending on the exact command). For complicated models, `FixedEffectModels` can also be runned on NVIDIA GPUs for even faster performances (see below)
+The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` or `lfe`. It also tends to be a bit faster than `fixest` (depending on the exact command). For complicated models, `FixedEffectModels` can also be runned on Nvidia GPUs for even faster performances (see below)
 
 
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
@@ -97,14 +97,13 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 
 ## Performances
 
-
 ### MultiThreads
 `FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`).
 
-### GPU
-The package has support for NVIDIA GPUs  (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
+### Nvidia GPU
+The package has support for Nvidia GPUs  (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
 
-If you have a NVIDIA GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`. For maximum speed, set the floating point precision to `Float32` with `double_precision = false`.
+If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`. For maximum speed, set the floating point precision to `Float32` with `double_precision = false`.
 
 ```julia
 using CUDA, FixedEffectModels
