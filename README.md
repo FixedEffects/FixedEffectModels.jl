@@ -6,7 +6,7 @@ This package estimates linear models with high dimensional categorical variables
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
 
 ## Benchmarks
-The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` or `lfe`. It tends to be slightly faster than `fixest`, depending on the exact command.
+The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` or `lfe`. It also tends to be a bit faster than `fixest` (depending on the exact command).
 
 `FixedEffectModels` can also be runned on GPUs for better performances (see below)
 
