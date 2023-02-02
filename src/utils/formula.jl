@@ -6,20 +6,7 @@
 
 eachterm(@nospecialize(x::AbstractTerm)) = (x,)
 eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
-# copied from StatsModels
-const TermOrTerms = Union{AbstractTerm, Tuple{AbstractTerm, Vararg{AbstractTerm}}}
-const TupleTerm = Tuple{TermOrTerms, Vararg{TermOrTerms}}
-hasintercept(f::FormulaTerm) = hasintercept(f.rhs)
-hasintercept(t::AbstractTerm) = t == InterceptTerm{true}() || t == ConstantTerm(1)
-hasintercept(t::TupleTerm) = any(hasintercept, t)
-hasintercept(t::MatrixTerm) = hasintercept(t.terms)
-omitsintercept(f::FormulaTerm) = omitsintercept(f.rhs)
-omitsintercept(t::AbstractTerm) =
-    t == InterceptTerm{false}() ||
-    t == ConstantTerm(0) ||
-    t == ConstantTerm(-1)
-omitsintercept(t::TupleTerm) = any(omitsintercept, t)
-omitsintercept(t::MatrixTerm) = omitsintercept(t.terms)
+
 ##############################################################################
 ##
 ## Parse IV

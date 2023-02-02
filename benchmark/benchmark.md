@@ -3,7 +3,7 @@
 
 Code to reproduce this graph:
 
-  FixedEffectModels.jl v1.8.2 (Julia 1.9)
+  FixedEffectModels.jl v1.9.0 (Julia 1.9)
   ```julia
   using DataFrames, CategoricalArrays, FixedEffectModels
   N = 10000000

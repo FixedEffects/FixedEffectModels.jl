@@ -255,7 +255,7 @@ function Base.show(io::IO, m::FixedEffectModel)
         Base.print_matrix_row(io, mat, A, i, 1:size(mat, 2), "  ")
         i != size(mat, 1) && println(io)
     end
-    print(io, '\n', repeat('=', totwidth))
+    println(io, '\n', repeat('=', totwidth))
     nothing
 end
  
