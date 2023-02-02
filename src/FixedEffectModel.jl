@@ -170,40 +170,24 @@ end
 ##
 ##############################################################################
 
-function title(m::FixedEffectModel)
-    iv = has_iv(m)
-    fe = has_fe(m)
-    if !iv & !fe
-        return "Linear Model"
-    elseif iv & !fe
-        return "IV Model"
-    elseif !iv & fe
-        return "Fixed Effect Model"
-    elseif iv & fe
-        return "IV Fixed Effect Model"
-    end
-end
-
-format_scientific(x) = @sprintf("%.3f", x)
-
 function top(m::FixedEffectModel)
     out = [
             "Number of obs" sprint(show, nobs(m), context = :compact => true);
             "Degrees of freedom" sprint(show, dof(m), context = :compact => true);
-            "R2" format_scientific(r2(m));
-            "R2 Adjusted" format_scientific(adjr2(m));
-            "F-Stat" sprint(show, m.F, context = :compact => true);
-            "p-value" format_scientific(m.p);
+            "R²" @sprintf("%.3f",r2(m));
+            "R² Adjusted" @sprintf("%.3f",adjr2(m));
+            "F-statistic" sprint(show, m.F, context = :compact => true);
+            "p-value" @sprintf("%.3f",m.p);
             ]
     if has_iv(m)
         out = vcat(out, 
-            ["F-Stat (First Stage)" sprint(show, m.F_kp, context = :compact => true);
-            "p-value (First Stage)" format_scientific(m.p_kp);
+            ["F-statistic (First stage)" sprint(show, m.F_kp, context = :compact => true);
+            "p-value (First stage)" @sprintf("%.3f",m.p_kp);
             ])
     end
     if has_fe(m)
         out = vcat(out, 
-            ["R2 within" format_scientific(m.r2_within);
+            ["R² Within" @sprintf("%.3f",m.r2_within);
            "Iterations" sprint(show, m.iterations, context = :compact => true);
              ])
     end
@@ -211,92 +195,70 @@ function top(m::FixedEffectModel)
 end
 
 
+
+import StatsBase: NoQuote, PValue
 function Base.show(io::IO, m::FixedEffectModel)
-    ctitle = title(m)
-    ctop = top(m)
-    cc = coef(m)
-    se = stderror(m)
-    yname = responsename(m)
-    coefnms = coefnames(m)
-    conf_int = confint(m)
-    # put (intercept) last
-    if !isempty(coefnms) && ((coefnms[1] == Symbol("(Intercept)")) || (coefnms[1] == "(Intercept)"))
-        newindex = vcat(2:length(cc), 1)
-        cc = cc[newindex]
-        se = se[newindex]
-        conf_int = conf_int[newindex, :]
-        coefnms = coefnms[newindex]
-    end
-    tt = cc ./ se
-    mat = hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(StatsAPI.dof_residual(m)), abs2.(tt)), conf_int[:, 1:2])
-    nr, nc = size(mat)
-    colnms = ["Estimate","Std.Error","t value", "Pr(>|t|)", "Lower 95%", "Upper 95%"]
-    rownms = ["$(coefnms[i])" for i = 1:length(cc)]
-    pvc = 4
-    # print
+    ct = coeftable(m)
+    #copied from show(iio,cf::Coeftable)
+    cols = ct.cols; rownms = ct.rownms; colnms = ct.colnms;
+    nc = length(cols)
+    nr = length(cols[1])
     if length(rownms) == 0
-        rownms = AbstractString[lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
+        rownms = [lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
     end
-    if length(rownms) > 0
-        rnwidth = max(4, maximum(length(nm) for nm in rownms) + 2, length(yname) + 2)
-        else
-            # if only intercept, rownms is empty collection, so previous would return error
-        rnwidth = 4
+    mat = [j == 1 ? NoQuote(rownms[i]) :
+           j-1 == ct.pvalcol ? NoQuote(sprint(show, PValue(cols[j-1][i]))) :
+           j-1 in ct.teststatcol ? TestStat(cols[j-1][i]) :
+           cols[j-1][i] isa AbstractString ? NoQuote(cols[j-1][i]) : cols[j-1][i]
+           for i in 1:nr, j in 1:nc+1]
+    io = IOContext(io, :compact=>true, :limit=>false)
+    A = Base.alignment(io, mat, 1:size(mat, 1), 1:size(mat, 2),
+                       typemax(Int), typemax(Int), 3)
+    nmswidths = pushfirst!(length.(colnms), 0)
+    A = [nmswidths[i] > sum(A[i]) ? (A[i][1]+nmswidths[i]-sum(A[i]), A[i][2]) : A[i]
+         for i in 1:length(A)]
+    totwidth = sum(sum.(A)) + 2 * (length(A) - 1)
+
+
+    #intert my stuff which requires totwidth
+    ctitle = string(typeof(m))
+    halfwidth = div(totwidth - length(ctitle), 2)
+    print(io, " " ^ halfwidth * ctitle * " " ^ halfwidth)
+
+    ctop = top(m)
+    for i in 1:size(ctop, 1)
+        ctop[i, 1] = ctop[i, 1] * ":"
     end
-    rownms = [rpad(nm,rnwidth-1) * "|" for nm in rownms]
-    widths = [length(cn)::Int for cn in colnms]
-    str = [sprint(show, mat[i,j]; context=:compact => true) for i in 1:nr, j in 1:nc]
-    if pvc != 0                         # format the p-values column
-        for i in 1:nr
-            str[i, pvc] = format_scientific(mat[i, pvc])
-        end
-    end
-    for j in 1:nc
-        for i in 1:nr
-            lij = length(str[i, j])
-            if lij > widths[j]
-                widths[j] = lij
-            end
-        end
-    end
-    widths .+= 1
-    totalwidth = sum(widths) + rnwidth
-    if length(ctitle) > 0
-        halfwidth = div(totalwidth - length(ctitle), 2)
-        println(io, " " ^ halfwidth * string(ctitle) * " " ^ halfwidth)
-    end
-    if length(ctop) > 0
-        for i in 1:size(ctop, 1)
-            ctop[i, 1] = ctop[i, 1] * ":"
-        end
-        println(io, "=" ^totalwidth)
-        halfwidth = div(totalwidth, 2) - 1
-        interwidth = 2 +  mod(totalwidth, 2)
-        for i in 1:(div(size(ctop, 1) - 1, 2)+1)
-            print(io, ctop[2*i-1, 1])
-            print(io, lpad(ctop[2*i-1, 2], halfwidth - length(ctop[2*i-1, 1])))
-            print(io, " " ^interwidth)
-            if size(ctop, 1) >= 2*i
-                print(io, ctop[2*i, 1])
-                print(io, lpad(ctop[2*i, 2], halfwidth - length(ctop[2*i, 1])))
-            end
-            println(io)
-        end
-    end
-    println(io,"=" ^totalwidth)
-    println(io, rpad(string(yname), rnwidth-1) * "|" *
-            join([lpad(string(colnms[i]), widths[i]) for i = 1:nc], ""))
-    println(io,"-" ^totalwidth)
-    for i in 1:nr
-        print(io, rownms[i])
-        for j in 1:nc
-            print(io, lpad(str[i,j],widths[j]))
+    println(io, '\n', repeat('=', totwidth))
+    halfwidth = div(totwidth, 2) - 1
+    interwidth = 2 +  mod(totwidth, 2)
+    for i in 1:(div(size(ctop, 1) - 1, 2)+1)
+        print(io, ctop[2*i-1, 1])
+        print(io, lpad(ctop[2*i-1, 2], halfwidth - length(ctop[2*i-1, 1])))
+        print(io, " " ^interwidth)
+        if size(ctop, 1) >= 2*i
+            print(io, ctop[2*i, 1])
+            print(io, lpad(ctop[2*i, 2], halfwidth - length(ctop[2*i, 1])))
         end
         println(io)
     end
-    println(io,"=" ^totalwidth)
-end
 
+   
+    # rest of coeftable code
+    println(io, repeat('─', totwidth))
+    print(io, repeat(' ', sum(A[1])))
+    for j in 1:length(colnms)
+        print(io, "  ", lpad(colnms[j], sum(A[j+1])))
+    end
+    println(io, '\n', repeat('─', totwidth))
+    for i in 1:size(mat, 1)
+        Base.print_matrix_row(io, mat, A, i, 1:size(mat, 2), "  ")
+        i != size(mat, 1) && println(io)
+    end
+    print(io, '\n', repeat('=', totwidth))
+    nothing
+end
+ 
 
 ##############################################################################
 ##

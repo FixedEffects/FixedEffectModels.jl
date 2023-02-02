@@ -15,7 +15,7 @@ Code to reproduce this graph:
   y= 3 .* x1 .+ 2 .* x2 .+ sin.(id1) .+ cos.(id2).^2 .+ randn(N)
   df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2, y = y)
   @time reg(df, @formula(y ~ x1 + x2))
-  # 0.357360 seconds (450 allocations: 691.441 MiB, 4.09% gc time)
+  # 0.338749 seconds (450 allocations: 691.441 MiB, 2.30% gc time)
   @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
   #  0.463058 seconds (1.00 k allocations: 929.129 MiB, 13.31% gc time)
   @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
@@ -39,7 +39,6 @@ Code to reproduce this graph:
     x2 =  runif(N)
   )
   df[, "y"] =  3 * df[, "x1"] + 2 * df[, "x2"] + sin(as.numeric(df[, "id1"])) + cos(as.numeric(df[, "id2"])) + runif(N)
-
   system.time(feols(y ~ x1 + x2, df))
   #>      user  system elapsed 
   #>     0.280   0.036   0.317 
