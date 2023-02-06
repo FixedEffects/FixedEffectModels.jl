@@ -250,7 +250,7 @@ function Base.show(io::IO, m::FixedEffectModel)
     end
    
     # rest of coeftable code
-    println(io, repeat('─', totwidth))
+    println(io, repeat('=', totwidth))
     print(io, repeat(' ', sum(A[1])))
     for j in 1:length(colnms)
         print(io, "  ", lpad(colnms[j], sum(A[j+1])))
