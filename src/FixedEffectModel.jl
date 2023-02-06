@@ -63,7 +63,7 @@ StatsAPI.islinear(m::FixedEffectModel) = true
 StatsAPI.deviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
 StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
-
+#StatsModels.formula(m::FixedEffectModel) = m.formula
 
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
     scale = tdistinvcdf(StatsAPI.dof_residual(m), 1 - (1 - level) / 2)
@@ -72,17 +72,22 @@ function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
 end
 
 # predict, residuals, modelresponse
-function StatsAPI.predict(m::FixedEffectModel, t)
-    # Require DataFrame input as we are using leftjoin and select from DataFrames here
-    # Make sure fes are saved
-    if has_fe(m) 
-        throw("To predict in a fixed effect regression, run `reg` with the option save = true, and then access predicted values using `fe().")
-    end
-    ct = StatsModels.columntable(t)
-    cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
+
+
+function StatsAPI.predict(m::FixedEffectModel, data)
+    Tables.istable(data) ||
+          throw(ArgumentError("expected second argument to be a Table, got $(typeof(data))"))
+    has_fe(m) &&
+        throw("To predict for a model with high-dimensional fixed effects, run `reg` with the option save = true, and then access predicted values using `fe().")
+    cdata = StatsModels.columntable(data)
+    cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
     Xnew = modelmatrix(m.formula_schema, cols)
-    out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(ct)))
-    out[nonmissings] = Xnew * m.coef 
+    if all(nonmissings)
+        out = Xnew * m.coef
+    else
+        out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(cdata)))
+        out[nonmissings] = Xnew * m.coef 
+    end
 
     # Join FE estimates onto data and sum row-wise
     # This code does not work propertly with missing or with interacted fixed effect, so deleted
@@ -96,29 +101,29 @@ function StatsAPI.predict(m::FixedEffectModel, t)
     return out
 end
 
-function StatsAPI.residuals(m::FixedEffectModel, t)
-    if has_fe(m)
-         throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
+function StatsAPI.residuals(m::FixedEffectModel, data)
+    Tables.istable(data) ||
+      throw(ArgumentError("expected second argument to be a Table, got $(typeof(data))"))
+    has_fe(m) &&
+     throw("To access residuals for a model with high-dimensional fixed effects,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`.")
+    cdata = StatsModels.columntable(data)
+    cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
+    Xnew = modelmatrix(m.formula_schema, cols)
+    y = response(m.formula_schema, cdata)
+    if all(nonmissings)
+        out =  y -  Xnew * m.coef
     else
-        ct = StatsModels.columntable(t)
-        cols, nonmissings = StatsModels.missing_omit(ct, MatrixTerm(m.formula_schema.rhs))
-        Xnew = modelmatrix(m.formula_schema, cols)
-        y = response(m.formula_schema, ct)
-        if all(nonmissings)
-            out =  y -  Xnew * m.coef
-        else
-            out = Vector{Union{Float64, Missing}}(missing,  length(Tables.rows(ct)))
-            out[nonmissings] = y -  Xnew * m.coef
-        end
-        return out
+        out = Vector{Union{Float64, Missing}}(missing,  length(Tables.rows(cdata)))
+        out[nonmissings] = y -  Xnew * m.coef
     end
+    return out
 end
 
 
 function StatsAPI.residuals(m::FixedEffectModel)
     if m.residuals === nothing
         has_fe(m) && throw("To access residuals in a fixed effect regression,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`")
-        !has_fe(m) && throw("To access residuals,  use residuals(x, t) where t is a Table")
+        !has_fe(m) && throw("To access residuals,  use residuals(m, data) where `m` is an estimated FixedEffectModel and  `data` is a Table")
     end
     m.residuals
 end
@@ -175,20 +180,22 @@ function top(m::FixedEffectModel)
             "Number of obs" sprint(show, nobs(m), context = :compact => true);
             "Degrees of freedom" sprint(show, dof(m), context = :compact => true);
             "R²" @sprintf("%.3f",r2(m));
-            "R² Adjusted" @sprintf("%.3f",adjr2(m));
+            "R² adjusted" @sprintf("%.3f",adjr2(m));
             "F-statistic" sprint(show, m.F, context = :compact => true);
-            "p-value" @sprintf("%.3f",m.p);
+            "P-value" @sprintf("%.3f",m.p);
             ]
     if has_iv(m)
         out = vcat(out, 
-            ["F-statistic (First stage)" sprint(show, m.F_kp, context = :compact => true);
-            "p-value (First stage)" @sprintf("%.3f",m.p_kp);
+            [
+                "F-statistic (first stage)" sprint(show, m.F_kp, context = :compact => true);
+                "P-value (first stage)" @sprintf("%.3f",m.p_kp);
             ])
     end
     if has_fe(m)
         out = vcat(out, 
-            ["R² Within" @sprintf("%.3f",m.r2_within);
-           "Iterations" sprint(show, m.iterations, context = :compact => true);
+            [
+                "R² within" @sprintf("%.3f",m.r2_within);
+                "Iterations" sprint(show, m.iterations, context = :compact => true);
              ])
     end
     return out
@@ -224,7 +231,6 @@ function Base.show(io::IO, m::FixedEffectModel)
     ctitle = string(typeof(m))
     halfwidth = div(totwidth - length(ctitle), 2)
     print(io, " " ^ halfwidth * ctitle * " " ^ halfwidth)
-
     ctop = top(m)
     for i in 1:size(ctop, 1)
         ctop[i, 1] = ctop[i, 1] * ":"
@@ -242,7 +248,6 @@ function Base.show(io::IO, m::FixedEffectModel)
         end
         println(io)
     end
-
    
     # rest of coeftable code
     println(io, repeat('─', totwidth))
