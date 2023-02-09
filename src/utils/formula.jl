@@ -40,13 +40,14 @@ struct FixedEffectTerm <: AbstractTerm
     x::Symbol
 end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
-fe(x::Term) = FixedEffectTerm(Symbol(x))
+fe(x::Term) = fe(Symbol(x))
 fe(s::Symbol) = FixedEffectTerm(s)
 
 has_fe(::FixedEffectTerm) = true
 has_fe(::FunctionTerm{typeof(fe)}) = true
-has_fe(t::InteractionTerm) = any(has_fe(x) for x in t.terms)
+has_fe(@nospecialize(t::InteractionTerm)) = any(has_fe(x) for x in t.terms)
 has_fe(::AbstractTerm) = false
+
 has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 
