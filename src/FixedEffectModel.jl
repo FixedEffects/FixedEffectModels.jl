@@ -18,7 +18,7 @@ struct FixedEffectModel <: RegressionModel
 
 
     coefnames::Vector       # Name of coefficients
-    yname::Union{String, Symbol} # Name of dependent variable
+    responsename::Union{String, Symbol} # Name of dependent variable
     formula::FormulaTerm        # Original formula
     formula_schema::FormulaTerm # Schema for predict
     contrasts::Dict
@@ -52,7 +52,7 @@ has_fe(m::FixedEffectModel) = has_fe(m.formula)
 
 StatsAPI.coef(m::FixedEffectModel) = m.coef
 StatsAPI.coefnames(m::FixedEffectModel) = m.coefnames
-StatsAPI.responsename(m::FixedEffectModel) = m.yname
+StatsAPI.responsename(m::FixedEffectModel) = m.responsename
 StatsAPI.vcov(m::FixedEffectModel) = m.vcov
 StatsAPI.nobs(m::FixedEffectModel) = m.nobs
 StatsAPI.dof(m::FixedEffectModel) = m.dof
