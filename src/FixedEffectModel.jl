@@ -63,7 +63,7 @@ StatsAPI.islinear(m::FixedEffectModel) = true
 StatsAPI.deviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
 StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
-#StatsModels.formula(m::FixedEffectModel) = m.formula
+StatsModels.formula(m::FixedEffectModel) = m.formula_schema
 
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
     scale = tdistinvcdf(StatsAPI.dof_residual(m), 1 - (1 - level) / 2)
