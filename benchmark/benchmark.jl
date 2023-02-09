@@ -1,5 +1,6 @@
-using DataFrames, FixedEffectModels, Random, CategoricalArrays
-
+using DataFrames, Random, CategoricalArrays
+@time using  FixedEffectModels
+#  12s precompiling
 # Very simple setup
 N = 10000000
 K = 100
@@ -11,7 +12,7 @@ y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 # first time
 @time reg(df, @formula(y ~ x1 + x2))
-# 14s
+# 4s
 @time reg(df, @formula(y ~ x1 + x2))
 # 0.497374 seconds (450 allocations: 691.441 MiB, 33.18% gc time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
