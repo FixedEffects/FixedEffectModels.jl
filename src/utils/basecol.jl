@@ -76,3 +76,24 @@ end
 function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
 end
+
+
+##############################################################################
+# Check whether a variable is likely collinear with the fixed effects
+##############################################################################
+@inline function sumofsquares(@nospecialize(xs::AbstractVector...))
+    [x' * x for x in xs]
+end
+@inline function iscollinear_fe(tssratio; tol)
+    tssratio .< tol
+end
+
+function find_cols_exo(n_exo)
+    2:n_exo+1
+end
+function find_cols_endo(n_exo, n_endo)
+    n_exo+2:n_exo+n_endo+1
+end
+function find_cols_z(n_exo, n_endo, n_z)
+    n_exo+n_endo+2:n_exo+n_endo+n_z+1
+end
