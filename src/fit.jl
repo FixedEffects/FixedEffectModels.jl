@@ -165,6 +165,109 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         esample = Colon()
     end
 
+
+    has_intercept = hasintercept(formula)
+    has_fe_intercept = false
+    if has_fes
+        if any(fe.interaction isa UnitWeights for fe in fes)
+            has_fe_intercept = true
+        end
+    end
+
+    ##############################################################################
+    ##
+    ## Dataframe --> Matrix
+    ##
+    ##############################################################################
+    exo_vars = unique(StatsModels.termvars(formula))
+    subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
+    s = schema(formula, subdf, contrasts)
+    formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
+
+    # Obtain y
+    _y_ = response(formula_schema, subdf)
+
+    # Obtain X
+    _Xexo_ = modelmatrix(formula_schema, subdf)
+
+    esample2 = .!ismissing.(_y_)
+    
+    # PR #109, to be removed when fixed in StatsModels
+    if size(_Xexo_, 2) > 0
+        for c in eachcol(_Xexo_)
+            esample2 .&= .!ismissing.(c)
+        end
+    end
+
+    response_name, coef_names = coefnames(formula_schema)
+    if !(coef_names isa Vector)
+        coef_names = typeof(coef_names)[coef_names]
+    end
+
+    if has_iv
+        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
+        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
+        _Xendo_ = modelmatrix(formula_endo_schema, subdf)
+  
+        _, coefendo_names = coefnames(formula_endo_schema)
+        append!(coef_names, coefendo_names)
+
+        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
+        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
+        _Z_ = modelmatrix(formula_iv_schema, subdf)
+
+        # PR #109, to be removed when fixed in StatsModels
+        if size(_Xendo_, 2) > 0
+            for c in eachcol(_Xendo_)
+                esample2 .&= .!ismissing.(c)
+            end
+        end
+
+        # PR #109, to be removed when fixed in StatsModels
+        for c in eachcol(_Z_)
+            esample2 .&= .!ismissing.(c)
+        end
+
+        # PR #109, to be removed when fixed in StatsModels
+        if !all(esample2)
+            _Xendo_ = _Xendo_[esample2,:]
+            _Z_ = _Z_[esample2,:]
+        end
+
+        # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
+        Xendo = convert(Matrix{Float64}, _Xendo_)
+        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+
+        Z = convert(Matrix{Float64}, _Z_)
+        all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
+
+        # modify formula to use in predict
+        formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
+    end
+
+    # PR #109, to be removed when fixed in StatsModels
+    if !all(esample2)
+        if esample != Colon() && !all(esample)
+            throw(ArgumentError("You passed a dataset with missing observations and used formula terms that introduce missings. This is not yet supported. See https://github.com/JuliaStats/StatsModels.jl/pull/153."))
+        end            
+        _y_ = _y_[esample2]
+        _Xexo_ = _Xexo_[esample2,:]
+
+        if esample == Colon()
+            esample = esample2
+        else
+            esample[esample] .= esample2
+        end
+        nobs = sum(esample)
+    end
+
+    # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
+    y = convert(Vector{Float64}, _y_)
+    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+
+    Xexo = convert(Matrix{Float64}, _Xexo_)  
+    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
@@ -185,46 +288,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
     # Compute data for std errors
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
-    ##############################################################################
-    ##
-    ## Dataframe --> Matrix
-    ##
-    ##############################################################################
-    exo_vars = unique(StatsModels.termvars(formula))
-    subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
-    s = schema(formula, subdf, contrasts)
-    formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
 
-    # Obtain y
-    # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(formula_schema, subdf))
-    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
-
-    # Obtain X
-    Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
-    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
-
-    response_name, coef_names = coefnames(formula_schema)
-    if !(coef_names isa Vector)
-        coef_names = typeof(coef_names)[coef_names]
-    end
-
-    if has_iv
-        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
-        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
-        Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
-        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
-        _, coefendo_names = coefnames(formula_endo_schema)
-        append!(coef_names, coefendo_names)
-
-        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
-        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
-        Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
-        all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
-
-        # modify formula to use in predict
-        formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
-    end
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
     # create unitilaized
