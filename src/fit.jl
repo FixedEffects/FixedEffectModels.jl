@@ -238,7 +238,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # create unitilaized
     iterations, converged, r2_within = nothing, nothing, nothing
     F_kp, p_kp = nothing, nothing
-    collinear_fe = trues(length(var_names_all))
+    collinear_fe = falses(length(var_names_all))
 
     if has_fes
         # used to compute tss even without save_fe
