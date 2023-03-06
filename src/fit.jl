@@ -262,13 +262,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # compute 2-norm (sum of squares) for each variable 
         # (to see if they are collinear with the fixed effects)
-        sumsquares_pre = [x' * x for x in eachcol(Xall)]
+        sumsquares_pre = [sum(abs2, x) for x in eachcol(Xall)]
 
         # partial out fixed effects
         _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
         # re-compute 2-norm (sum of squares) for each variable
-        sumsquares_post = [x' * x for x in eachcol(Xall)]
+        sumsquares_post = [sum(abs2, x) for x in eachcol(Xall)]
 
         # mark variables that are likely to be collinear with the fixed effects
         collinear_tol = min(1e-6, tol / 10)
