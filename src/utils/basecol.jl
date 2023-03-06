@@ -79,14 +79,8 @@ end
 
 
 ##############################################################################
-# Check whether a variable is likely collinear with the fixed effects
+# Auxiliary functions to find columns of exogeneous, endogenous and IV variables
 ##############################################################################
-@inline function sumofsquares(@nospecialize(xs::AbstractVector...))
-    [x' * x for x in xs]
-end
-@inline function iscollinear_fe(tssratio; tol)
-    tssratio .< tol
-end
 
 function find_cols_exo(n_exo)
     2:n_exo+1
