@@ -209,6 +209,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         coef_names = typeof(coef_names)[coef_names]
     end
 
+    # collect all variable names (outcome, exo [, endo, iv])
+    var_names_all = [response_name; coef_names]
+
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
@@ -216,20 +219,26 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
         _, coefendo_names = coefnames(formula_endo_schema)
         append!(coef_names, coefendo_names)
+        append!(var_names_all, coefendo_names)
 
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
+        _, coefnames_iv = coefnames(formula_iv_schema)
+        append!(var_names_all, coefnames_iv)
+    
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
 
         # modify formula to use in predict
         formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
     end
+
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
     # create unitilaized
     iterations, converged, r2_within = nothing, nothing, nothing
     F_kp, p_kp = nothing, nothing
+    collinear_fe = falses(length(var_names_all))
 
     if has_fes
         # used to compute tss even without save_fe
@@ -251,8 +260,28 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             Xall = Combination(y, Xexo)
         end
 
+        # compute 2-norm (sum of squares) for each variable 
+        # (to see if they are collinear with the fixed effects)
+        sumsquares_pre = [sum(abs2, x) for x in eachcol(Xall)]
+
+        # partial out fixed effects
         _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
+        # re-compute 2-norm (sum of squares) for each variable
+        sumsquares_post = [sum(abs2, x) for x in eachcol(Xall)]
+
+        # mark variables that are likely to be collinear with the fixed effects
+        collinear_tol = min(1e-6, tol / 10)
+        collinear_fe = (sumsquares_post ./ sumsquares_pre) .< tol
+        for i in findall(collinear_fe)
+            if i == 1
+                @info "Dependent variable $(var_names_all[1]) is probably perfectly explained by fixed effects (tol = $collinear_tol)."
+            else
+                @info "RHS-variable $(var_names_all[i]) is probably collinear with the fixed effects (tol = $collinear_tol)."
+            end
+        end
+
+        # convergence info
         iterations = maximum(iterations)
         converged = all(convergeds)
         if converged == false
@@ -282,18 +311,28 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##############################################################################
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv    	
-        perm = 1:(size(Xexo, 2) + size(Xendo, 2))
+        n_exo = size(Xexo, 2)
+        n_endo = size(Xendo, 2)
+        n_z = size(Z, 2)
+        perm = 1:(n_exo + n_endo)
+
         # first pass: remove colinear variables in Xendo
-    	basis_endo = basis(eachcol(Xendo)...)
+        notcollinear_fe_endo = collinear_fe[find_cols_endo(n_exo, n_endo)] .== false
+    	basis_endo = basis(eachcol(Xendo)...) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
+        notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
+        notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
+        notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
+
     	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
-        basis_Xexo = basis_all[1:size(Xexo, 2)]
-        basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
-        basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
+        basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
+        basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
+        basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
+
         if !all(basis_endo_small)
-            # if adding Xexo and Z makes Xendo collinar, consider these variables are exogeneous
+            # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
             Xendo = getcols(Xendo, basis_endo_small)
 
@@ -335,8 +374,10 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
-        perm = 1:size(Xexo, 2)
-        basis_Xexo = basis(eachcol(Xexo)...)
+        n_exo = size(Xexo, 2)
+        perm = 1:n_exo
+        notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
+        basis_Xexo = basis(eachcol(Xexo)...) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo

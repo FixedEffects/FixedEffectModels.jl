@@ -4,7 +4,8 @@ tests = [
 		 "formula.jl",
 		 "fit.jl", 
 		 "predict.jl", 
-		 "partial_out.jl"
+		 "partial_out.jl",
+		 "collinearity.jl"
 		]
 
 println("Running tests:")

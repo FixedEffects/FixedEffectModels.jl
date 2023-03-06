@@ -76,3 +76,18 @@ end
 function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
 end
+
+
+##############################################################################
+# Auxiliary functions to find columns of exogeneous, endogenous and IV variables
+##############################################################################
+
+function find_cols_exo(n_exo)
+    2:n_exo+1
+end
+function find_cols_endo(n_exo, n_endo)
+    n_exo+2:n_exo+n_endo+1
+end
+function find_cols_z(n_exo, n_endo, n_z)
+    n_exo+n_endo+2:n_exo+n_endo+n_z+1
+end
