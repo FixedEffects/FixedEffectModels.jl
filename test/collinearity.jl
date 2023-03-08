@@ -1,4 +1,4 @@
-using DataFrames, CSV, FixedEffectModels, Random, StatsBase, Test
+using DataFrames, CSV, FixedEffectModels, Random, Statistics, Test
 
 @testset "collinearity_with_fixedeffects" begin
 
