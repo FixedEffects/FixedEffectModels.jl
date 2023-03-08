@@ -1,6 +1,7 @@
 using FixedEffectModels, Test
 
-@testset "formula" include("formula.jl")
-@testset "fit" include("fit.jl")
-@testset "predict" include("predict.jl")
-@testset "partial out" include("partial_out.jl")
+@testset "formula" begin include("formula.jl") end
+@testset "fit" begin include("fit.jl") end
+@testset "predict" begin include("predict.jl") end
+@testset "partial out" begin include("partial_out.jl") end
+@testset "collinearity" begin include("partial_out.jl") end
