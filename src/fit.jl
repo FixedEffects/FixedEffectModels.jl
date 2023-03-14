@@ -93,7 +93,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##############################################################################
 
     formula_origin = formula
-    if  !StatsModels.omitsintercept(formula) & !StatsModels.hasintercept(formula)
+    if  !omitsintercept(formula) & !hasintercept(formula)
         formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
     end
     formula, formula_endo, formula_iv = parse_iv(formula)
@@ -174,7 +174,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # Compute feM, an AbstractFixedEffectSolver
-    has_intercept = StatsModels.hasintercept(formula)
+    has_intercept = hasintercept(formula)
     has_fe_intercept = false
     if has_fes
         if any(fe.interaction isa UnitWeights for fe in fes)
