@@ -4,8 +4,9 @@ using FixedEffectModels: parse_fixedeffect, _parse_fixedeffect, _multiply
 using FixedEffects
 import Base: ==
 
-==(x::FixedEffect{R,I}, y::FixedEffect{R,I}) where {R,I} =
+function ==(x::FixedEffect, y::FixedEffect)
     x.refs == y.refs && x.interaction == y.interaction && x.n == y.n
+end
 
 csvfile = CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))
 df = DataFrame(csvfile)
