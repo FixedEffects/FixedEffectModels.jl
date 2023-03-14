@@ -1,27 +1,7 @@
-using FixedEffectModels
+using FixedEffectModels, Test
 
-tests = [
-		 "formula.jl",
-		 "fit.jl", 
-		 "predict.jl", 
-		 "partial_out.jl",
-		 "collinearity.jl"
-		]
-
-println("Running tests:")
-
-
-for test in tests
-	try
-		include(test)
-		println("\t\033[1m\033[32mPASSED\033[0m: $(test)")
-	 catch e
-	 	println("\t\033[1m\033[31mFAILED\033[0m: $(test)")
-	 	showerror(stdout, e, backtrace())
-	 	rethrow(e)
-	 end
-end
-
-
-using Test
-@test Vcov.pinvertible(Symmetric([1.0 1.0; 1.0 1.0])) ≈ [1.0 1.0; 1.0 1.0]
+@testset "formula" begin include("formula.jl") end
+@testset "fit" begin include("fit.jl") end
+@testset "predict" begin include("predict.jl") end
+@testset "partial out" begin include("partial_out.jl") end
+@testset "collinearity" begin include("collinearity.jl") end

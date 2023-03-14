@@ -6,15 +6,7 @@
 
 eachterm(@nospecialize(x::AbstractTerm)) = (x,)
 eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
-TermOrTerms = Union{AbstractTerm, NTuple{N, AbstractTerm} where N}
-hasintercept(@nospecialize(t::TermOrTerms)) =
-    InterceptTerm{true}() ∈ terms(t) ||
-    ConstantTerm(1) ∈ terms(t)
-omitsintercept(@nospecialize(f::FormulaTerm)) = omitsintercept(f.rhs)
-omitsintercept(@nospecialize(t::TermOrTerms)) =
-    InterceptTerm{false}() ∈ terms(t) ||
-    ConstantTerm(0) ∈ terms(t) ||
-    ConstantTerm(-1) ∈ terms(t)
+
 ##############################################################################
 ##
 ## Parse IV
@@ -48,18 +40,19 @@ struct FixedEffectTerm <: AbstractTerm
     x::Symbol
 end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
-fe(x::Term) = FixedEffectTerm(Symbol(x))
+fe(x::Term) = fe(Symbol(x))
 fe(s::Symbol) = FixedEffectTerm(s)
 
 has_fe(::FixedEffectTerm) = true
 has_fe(::FunctionTerm{typeof(fe)}) = true
-has_fe(t::InteractionTerm) = any(has_fe(x) for x in t.terms)
+has_fe(@nospecialize(t::InteractionTerm)) = any(has_fe(x) for x in t.terms)
 has_fe(::AbstractTerm) = false
+
 has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 
 fesymbol(t::FixedEffectTerm) = t.x
-fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args_parsed[1])
+fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args[1])
 
 """
     parse_fixedeffect(data, formula::FormulaTerm)

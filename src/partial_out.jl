@@ -9,7 +9,7 @@ Partial out variables in a Dataframe
 * `maxiter::Integer`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real`: Tolerance
-* `align::Bool`: Should the returned DataFrame align with the original DataFrame in case of missing values? Default to true
+* `align::Bool`: Should the returned DataFrame align with the original DataFrame in case of missing values? Default to true.
 
 ### Returns
 * `::DataFrame`: a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.

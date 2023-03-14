@@ -46,22 +46,22 @@ using RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 fit(FixedEffectModel, @formula(Sales ~ NDI + fe(State) + fe(State)&Year), df)
 """
-function reg(@nospecialize(df),     
-    @nospecialize(formula::FormulaTerm),
-    @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
-    @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
-    @nospecialize(weights::Union{Symbol, Nothing} = nothing),
-    @nospecialize(save::Union{Bool, Symbol} = :none),
-    @nospecialize(method::Symbol = :cpu),
-    @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
-    @nospecialize(double_precision::Bool = true),
-    @nospecialize(tol::Real = 1e-6),
-    @nospecialize(maxiter::Integer = 10000),
-    @nospecialize(drop_singletons::Bool = true),
-    @nospecialize(progress_bar::Bool = true),
-    @nospecialize(dof_add::Integer = 0),
-    @nospecialize(subset::Union{Nothing, AbstractVector} = nothing), 
-    @nospecialize(first_stage::Bool = true))
+function reg(df,     
+    formula::FormulaTerm,
+    vcov::CovarianceEstimator = Vcov.simple();
+    contrasts::Dict = Dict{Symbol, Any}(),
+    weights::Union{Symbol, Nothing} = nothing,
+    save::Union{Bool, Symbol} = :none,
+    method::Symbol = :cpu,
+    nthreads::Integer = method == :cpu ? Threads.nthreads() : 256,
+    double_precision::Bool = true,
+    tol::Real = 1e-6,
+    maxiter::Integer = 10000,
+    drop_singletons::Bool = true,
+    progress_bar::Bool = true,
+    dof_add::Integer = 0,
+    subset::Union{Nothing, AbstractVector} = nothing, 
+    first_stage::Bool = true)
     StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, dof_add = dof_add, subset = subset, first_stage = first_stage)
 end
     
@@ -230,7 +230,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
 
         # modify formula to use in predict
-        formula_schema = FormulaTerm(formula_schema.lhs, (tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
+        formula_schema = FormulaTerm(formula_schema.lhs, MatrixTerm(tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
     end
 
     # compute tss now before potentially demeaning y

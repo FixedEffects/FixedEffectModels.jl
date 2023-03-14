@@ -1,16 +1,13 @@
 
 module FixedEffectModels
 
-# slows down tss
-#if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
-#	@eval Base.Experimental.@optlevel 1
-#end
 
 using DataFrames
 using FixedEffects
 using LinearAlgebra
 using Printf
 using Reexport
+using SnoopPrecompile 
 using Statistics
 using StatsAPI
 using StatsBase
@@ -38,14 +35,15 @@ has_iv,
 has_fe,
 Vcov
 
-if ccall(:jl_generating_output, Cint, ()) == 1   # if we're precompiling the package
-    let
-        df = DataFrame(x1 = [1.0, 2.0, 3.0, 4.0], x2 = [1.0, 2.0, 4.0, 4.0], y = [3.0, 4.0, 4.0, 5.0], id = [1, 1, 2, 2])
-        reg(df, @formula(y ~ x1 + x2))
-        reg(df, @formula(y ~ x1 + fe(id)))
-        reg(df, @formula(y ~ x1), Vcov.cluster(:id))
-    end 
+
+@precompile_all_calls begin
+    df = DataFrame(x1 = [1.0, 2.0, 3.0, 4.0], x2 = [1.0, 2.0, 4.0, 4.0], y = [3.0, 4.0, 4.0, 5.0], id = [1, 1, 2, 2])
+    reg(df, @formula(y ~ x1 + x2))
+    reg(df, @formula(y ~ x1 + fe(id)))
+    reg(df, @formula(y ~ 1), Vcov.cluster(:id))
 end
+
+
 
 
 end
