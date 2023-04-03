@@ -105,7 +105,7 @@ function StatsAPI.residuals(m::FixedEffectModel, data)
     Tables.istable(data) ||
       throw(ArgumentError("expected second argument to be a Table, got $(typeof(data))"))
     has_fe(m) &&
-     throw("To access residuals for a model with high-dimensional fixed effects,  run `reg` with the option save = :residuals, and then access residuals with `residuals()`.")
+     throw("To access residuals for a model with high-dimensional fixed effects,  run `m = reg(..., save = :residuals)` and then access residuals with `residuals(m)`.")
     cdata = StatsModels.columntable(data)
     cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
     Xnew = modelmatrix(m.formula_schema, cols)
