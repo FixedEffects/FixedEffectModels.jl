@@ -45,6 +45,7 @@ reg(df, @formula(Sales ~ YearC), contrasts = Dict(:YearC => DummyCoding(base = 8
 using RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 fit(FixedEffectModel, @formula(Sales ~ NDI + fe(State) + fe(State)&Year), df)
+```
 """
 function reg(df,     
     formula::FormulaTerm,
