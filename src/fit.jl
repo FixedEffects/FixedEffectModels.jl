@@ -9,7 +9,7 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Keyword arguments
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `weights::Union{Nothing, Symbol}` A symbol to refer to a columns for weights
-* `save::Symbol`: Should residuals and eventual estimated fixed effects saved in a dataframe? Default to `:none` Use `save = :residuals` to only save residuals, `save = :fe` to only save fixed effects, `save = :all` for both. Once saved, they can then be accessed using `residuals()` or `fe()`. The returned DataFrame is automatically aligned with the original DataFrame.
+* `save::Symbol`: Should residuals and eventual estimated fixed effects saved in a dataframe? Default to `:none` Use `save = :residuals` to only save residuals, `save = :fe` to only save fixed effects, `save = :all` for both. Once saved, they can then be accessed using `residuals(m)` or `fe(m)` where `m` is the object returned by the estimation. The returned DataFrame is automatically aligned with the original DataFrame.
 * `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
 * `nthreads::Integer` Number of threads to use in the estimation. If `method = :cpu`, defaults to `Threads.nthreads()`. If `method = :gpu`, defaults to 256.
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
