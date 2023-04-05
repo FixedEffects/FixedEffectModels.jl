@@ -75,7 +75,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	Vcov.cluster(:State, :Year)
 	```
 
-- The option `save` can be set to one of the following:  `:none` (default) to save nothing, `:residuals` to save residuals, `:fe` to save fixed effects, and `:all` to save both. You can then access the saved output by calling the functions `residuals()` and `fe()` on the estimated model. The saved output is aligned with the original dataframe used in the estimation.
+- The option `save` can be set to one of the following:  `:none` (default) to save nothing, `:residuals` to save residuals, `:fe` to save fixed effects, and `:all` to save both. Once saved, they can then be accessed using `residuals(m)` or `fe(m)` where `m` is the estimated model (the object returned by the function `reg`). Both residuals and fixed effects are aligned with the original dataframe used to estimate the model.
 
 - The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
 
