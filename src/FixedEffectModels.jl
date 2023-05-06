@@ -7,7 +7,7 @@ using FixedEffects
 using LinearAlgebra
 using Printf
 using Reexport
-using SnoopPrecompile 
+using PrecompileTools 
 using Statistics
 using StatsAPI
 using StatsBase
