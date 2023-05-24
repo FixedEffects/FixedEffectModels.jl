@@ -236,8 +236,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
-    # create unitilaized
-    iterations, converged, r2_within = nothing, nothing, nothing
+    # initalize fields
+    iterations, converged, r2_within = 0, true, nothing
     F_kp, p_kp = nothing, nothing
     collinear_fe = falses(length(var_names_all))
 
@@ -441,22 +441,20 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             end
         end
     end
-    dof_residual_ = max(1, nobs - size(X, 2) - dof_fes - dof_add)
-    dof_ = max(1, size(X, 2) - (has_intercept | has_fe_intercept))
-
 
     nclusters = nothing
     if vcov isa Vcov.ClusterCovariance
         nclusters = Vcov.nclusters(vcov_method)
     end
 
-
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, dof_residual_)
+    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes - dof_add)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
+    # dof_ is the number of estimated coefficients beyond the intercept.
+    dof_ = size(X, 2) - has_intercept
     dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
     # Compute Fstat of First Stage
@@ -477,7 +475,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     rss = sum(abs2, residuals)
     mss = tss_total - rss
     r2 = 1 - rss / tss_total
-    adjr2 = 1 - rss / tss_total * (nobs - (has_intercept | has_fe_intercept)) / dof_residual_
+    adjr2 = 1 - rss / tss_total * (nobs - (has_intercept | has_fe_intercept)) / max(nobs - size(X, 2) - dof_fes - dof_add, 1)
     if has_fes
         r2_within = 1 - rss / tss_partial
     end

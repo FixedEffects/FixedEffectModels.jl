@@ -24,9 +24,8 @@ struct FixedEffectModel <: RegressionModel
     contrasts::Dict
 
     nobs::Int64             # Number of observations
-    dof::Int64              # Number parameters estimated - has_intercept
-    dof_residual::Int64        # dof used for t-test and F-stat. nobs - degrees of freedoms with simple std
-
+    dof::Int64              # Number parameters estimated - has_intercept. Used for p-value of F-stat.
+    dof_residual::Int64     # dof used for t-test and p-value of F-stat. nobs - degrees of freedoms with simple std
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
     r2::Float64             # R squared
@@ -36,8 +35,8 @@ struct FixedEffectModel <: RegressionModel
     p::Float64              # p value for the F statistics
 
     # for FE
-    iterations::Union{Int, Nothing}         # Number of iterations
-    converged::Union{Bool, Nothing}         # Has the demeaning algorithm converged?
+    iterations::Int         # Number of iterations
+    converged::Bool         # Has the demeaning algorithm converged?
     r2_within::Union{Float64, Nothing}      # within r2 (with fixed effect
 
     # for IV
@@ -178,7 +177,9 @@ end
 function top(m::FixedEffectModel)
     out = [
             "Number of obs" sprint(show, nobs(m), context = :compact => true);
-            "Degrees of freedom" sprint(show, dof(m), context = :compact => true);
+            "Converged" m.converged;
+            "dof (model)" sprint(show, dof(m), context = :compact => true);
+            "dof (residuals)" sprint(show, dof_residual(m), context = :compact => true);
             "R²" @sprintf("%.3f",r2(m));
             "R² adjusted" @sprintf("%.3f",adjr2(m));
             "F-statistic" sprint(show, m.F, context = :compact => true);
