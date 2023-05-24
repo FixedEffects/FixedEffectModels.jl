@@ -17,17 +17,18 @@ The objective of the package is similar to the Stata command [`reghdfe`](https:/
 using DataFrames, RDatasets, FixedEffectModels
 df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weights = :Pop)
-# =====================================================================
-# Number of obs:               1380   Degrees of freedom:            32
-# R2:                         0.803   R2 Adjusted:                0.798
-# F Statistic:              13.3382   p-value:                    0.001
-# R2 within:                  0.139   Iterations:                     6
-# Converged:                   true
-# =====================================================================
-#         Estimate  Std.Error  t value Pr(>|t|)   Lower 95%   Upper 95%
-# ---------------------------------------------------------------------
-# NDI  -0.00526264 0.00144097 -3.65216    0.000 -0.00808942 -0.00243586
-# =====================================================================
+                            FixedEffectModel                            
+=========================================================================
+Number of obs:                 1380   Converged:                     true
+dof (model):                      1   dof (residuals):                 45
+R²:                           0.803   R² adjusted:                  0.798
+F-statistic:                13.3382   P-value:                      0.001
+R² within:                    0.139   Iterations:                       5
+=========================================================================
+        Estimate  Std. Error    t-stat  Pr(>|t|)   Lower 95%    Upper 95%
+─────────────────────────────────────────────────────────────────────────
+NDI  -0.00526264  0.00144097  -3.65216    0.0007  -0.0081649  -0.00236038
+=========================================================================
 ```
 
 
