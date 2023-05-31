@@ -37,10 +37,10 @@ Vcov
 
 
 @compile_workload begin
-    df = DataFrame(x1 = [1.0, 2.0, 3.0, 4.0], x2 = [1.0, 2.0, 4.0, 4.0], y = [3.0, 4.0, 4.0, 5.0], id = [1, 1, 2, 2])
+    df = DataFrame(x1 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], x2 = [1.0, 2.0, 4.0, 4.0, 3.0, 5.0], y = [3.0, 4.0, 4.0, 5.0, 1.0, 2.0], id = [1, 1, 2, 2, 3, 3])
     reg(df, @formula(y ~ x1 + x2))
     reg(df, @formula(y ~ x1 + fe(id)))
-    reg(df, @formula(y ~ 1), Vcov.cluster(:id))
+    reg(df, @formula(y ~ x1), Vcov.cluster(:id))
 end
 
 
