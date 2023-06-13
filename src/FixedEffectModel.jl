@@ -24,7 +24,7 @@ struct FixedEffectModel <: RegressionModel
     contrasts::Dict
 
     nobs::Int64             # Number of observations
-    dof::Int64              # Number parameters estimated - has_intercept. Used for p-value of F-stat.
+    dof::Int64              # Number parameters estimated + fixed effects - has_intercept.
     dof_residual::Int64     # dof used for t-test and p-value of F-stat. nobs - degrees of freedoms with simple std
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
