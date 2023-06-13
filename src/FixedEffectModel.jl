@@ -64,6 +64,25 @@ StatsAPI.rss(m::FixedEffectModel) = m.rss
 StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 StatsModels.formula(m::FixedEffectModel) = m.formula_schema
 
+function StatsAPI.loglikelihood(m::FixedEffectModel)
+    n = nobs(m)
+    -n/2 * (log(2π * rss(m) / n) + 1)
+end
+
+function StatsAPI.nullloglikelihood(m::FixedEffectModel)
+    n = nobs(m)
+    -n/2 * (log(2π * deviance(m) / n) + 1)
+end
+
+# Stata reghdfe reports nullloglikelood after fixed effects are dealt with
+# and some of R fixest estimates also use loglikelihood with only fixed
+# effects in the regression
+function nullloglikelihood_within(m::FixedEffectModel)
+    n = nobs(m)
+    tss_within = rss(m) / (1 - m.r2_within)
+    -n/2 * (log(2π * tss_within / n) + 1)
+end
+
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
     scale = tdistinvcdf(StatsAPI.dof_residual(m), 1 - (1 - level) / 2)
     se = stderror(m)
