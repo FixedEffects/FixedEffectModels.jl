@@ -429,7 +429,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##
     ##############################################################################
     # Compute degrees of freedom
-    dof_model_and_fes = 0
+    dof_fes_total = 0
     dof_fes = 0
     if has_fes
         for fe in fes
@@ -440,7 +440,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                 #only count groups that exists
                 dof_fes += nunique(fe)
             end
-            dof_model_and_fes += nunique(fe)
+            dof_fes_total += nunique(fe)
         end
     end
 
@@ -457,7 +457,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     F = Fstat(coef, matrix_vcov, has_intercept)
     # dof_ is the number of estimated coefficients beyond the intercept.
     dof_ = size(X, 2) - has_intercept
-    dof_model_and_fes += dof_ - has_fe_intercept
     dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
     # Compute Fstat of First Stage
@@ -478,7 +477,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     rss = sum(abs2, residuals)
     mss = tss_total - rss
     r2 = 1 - rss / tss_total
-    adjr2 = 1 - rss / tss_total * (nobs - (has_intercept | has_fe_intercept)) / max(nobs - size(X, 2) - dof_fes - dof_add, 1)
+    adjr2 = 1 - rss / tss_total * (nobs - (has_intercept | has_fe_intercept)) / max(nobs - size(X, 2) - dof_fes_total - dof_add, 1)
     if has_fes
         r2_within = 1 - rss / tss_partial
     end
@@ -518,5 +517,5 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     if esample == Colon()
         esample = trues(N)
     end
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_model_and_fes, dof_tstat_, rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_fes_total, dof_tstat_, rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

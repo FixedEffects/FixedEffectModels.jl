@@ -458,6 +458,10 @@ end
 	x = reg(df, m)
 	@test r2(x) ≈ 0.0969 atol = 1e-4
 	@test adjr2(x) ≈ 0.09622618 atol = 1e-4
+	m = @formula Sales ~ Price + Pimin + fe(State)
+	x = reg(df, m, Vcov.cluster(:State))
+	@test r2(x) ≈ 0.77472 atol = 1e-4
+	@test adjr2(x) ≈ 0.766768 atol = 1e-4
 
 
 	##############################################################################
@@ -590,7 +594,7 @@ end
 	@test nullloglikelihood(x) ≈ -6696.1387 atol = 1e-4
 	@test nullloglikelihood_within(x) ≈ -5891.2836 atol = 1e-4
 	@test r2(x, :McFadden) ≈ 0.15358 atol = 1e-4 # Pseudo R2 in R fixest
-	@test adjr2(x, :McFadden) ≈ 0.14656 atol = 1e-4
+	@test adjr2(x, :McFadden) ≈ 0.14641 atol = 1e-4
 
 end
 

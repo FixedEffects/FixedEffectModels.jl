@@ -24,7 +24,8 @@ struct FixedEffectModel <: RegressionModel
     contrasts::Dict
 
     nobs::Int64             # Number of observations
-    dof::Int64              # Number parameters estimated + fixed effects - has_intercept.
+    dof::Int64              # Number parameters estimated - has_intercept. Used for p-value of F-stat.
+    dof_fes::Int64          # Number of fixed effects
     dof_residual::Int64     # dof used for t-test and p-value of F-stat. nobs - degrees of freedoms with simple std
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
@@ -63,6 +64,7 @@ StatsAPI.deviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
 StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 StatsModels.formula(m::FixedEffectModel) = m.formula_schema
+dof_fe(m::FixedEffectModel) = m.dof_fes
 
 function StatsAPI.loglikelihood(m::FixedEffectModel)
     n = nobs(m)
@@ -81,6 +83,22 @@ function nullloglikelihood_within(m::FixedEffectModel)
     n = nobs(m)
     tss_within = rss(m) / (1 - m.r2_within)
     -n/2 * (log(2π * tss_within / n) + 1)
+end
+
+function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol)
+    k = dof(model) + dof_fe(model)
+    if variant == :McFadden
+        ll = loglikelihood(model)
+        ll0 = nullloglikelihood(model)
+        1 - (ll - k)/ll0
+    elseif variant == :devianceratio
+        n = nobs(model)
+        dev  = deviance(model)
+        dev0 = nulldeviance(model)
+        1 - (dev*(n-1))/(dev0*(n-k))
+    else
+        throw(ArgumentError("variant must be one of :McFadden or :devianceratio"))
+    end
 end
 
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
