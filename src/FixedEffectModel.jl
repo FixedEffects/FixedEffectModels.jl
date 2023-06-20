@@ -64,7 +64,7 @@ StatsAPI.deviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
 StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
 StatsModels.formula(m::FixedEffectModel) = m.formula_schema
-dof_fe(m::FixedEffectModel) = m.dof_fes
+dof_fes(m::FixedEffectModel) = m.dof_fes
 
 function StatsAPI.loglikelihood(m::FixedEffectModel)
     n = nobs(m)
@@ -86,7 +86,7 @@ function nullloglikelihood_within(m::FixedEffectModel)
 end
 
 function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol)
-    k = dof(model) + dof_fe(model)
+    k = dof(model) + dof_fes(model) - has_fe(model)
     if variant == :McFadden
         ll = loglikelihood(model)
         ll0 = nullloglikelihood(model)
