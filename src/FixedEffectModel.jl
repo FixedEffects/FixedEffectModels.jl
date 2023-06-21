@@ -29,8 +29,6 @@ struct FixedEffectModel <: RegressionModel
     dof_residual::Int64     # dof used for t-test and p-value of F-stat. nobs - degrees of freedoms with simple std
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
-    r2::Float64             # R squared
-    adjr2::Float64          # R squared adjusted
 
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
@@ -57,8 +55,28 @@ StatsAPI.vcov(m::FixedEffectModel) = m.vcov
 StatsAPI.nobs(m::FixedEffectModel) = m.nobs
 StatsAPI.dof(m::FixedEffectModel) = m.dof
 StatsAPI.dof_residual(m::FixedEffectModel) = m.dof_residual
-StatsAPI.r2(m::FixedEffectModel) = m.r2
-StatsAPI.adjr2(m::FixedEffectModel) = m.adjr2
+function StatsAPI.r2(model::FixedEffectModel, variant::Symbol=:devianceratio)
+    loglikbased = (:McFadden, :CoxSnell, :Nagelkerke)
+    if variant in loglikbased
+        ll = loglikelihood(model)
+        ll0 = nullloglikelihood(model)
+        if variant == :McFadden
+            1 - ll/ll0
+        elseif variant == :CoxSnell
+            1 - exp(2 * (ll0 - ll) / nobs(model))
+        elseif variant == :Nagelkerke
+            (1 - exp(2 * (ll0 - ll) / nobs(model))) / (1 - exp(2 * ll0 / nobs(model)))
+        end
+    elseif variant == :devianceratio
+        dev = rss(model)
+        dev0 = deviance(model)
+        1 - dev / dev0
+    else
+        throw(ArgumentError("variant must be one of $(join(loglikbased, ", ")) or :devianceratio"))
+    end
+end
+
+
 StatsAPI.islinear(m::FixedEffectModel) = true
 StatsAPI.deviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
@@ -85,17 +103,23 @@ function nullloglikelihood_within(m::FixedEffectModel)
     -n/2 * (log(2π * tss_within / n) + 1)
 end
 
-function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol)
-    k = dof(model) + dof_fes(model) - has_fe(model)
+function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol=:devianceratio)
+    #dof(model) = parameters - has_intercept
+    #dof_fes(model) = total degrees of freedom for all fixed effects, including the intercept
+    has_int = hasintercept(formula(model))
+    k = dof(model) + dof_fes(model) + has_int
     if variant == :McFadden
+        # there seems to be some inconsistency as to whether the intercept is included in the dof
+        # these values match R fixest
+        k = k - has_int - has_fe(model)
         ll = loglikelihood(model)
         ll0 = nullloglikelihood(model)
         1 - (ll - k)/ll0
     elseif variant == :devianceratio
         n = nobs(model)
-        dev  = deviance(model)
-        dev0 = nulldeviance(model)
-        1 - (dev*(n-1))/(dev0*(n-k))
+        dev  = rss(model)
+        dev0 = deviance(model)
+        1 - (dev*(n - (has_int | has_fe(model)))) / (dev0 * max(n - k, 1))
     else
         throw(ArgumentError("variant must be one of :McFadden or :devianceratio"))
     end
