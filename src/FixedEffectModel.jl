@@ -55,43 +55,23 @@ StatsAPI.vcov(m::FixedEffectModel) = m.vcov
 StatsAPI.nobs(m::FixedEffectModel) = m.nobs
 StatsAPI.dof(m::FixedEffectModel) = m.dof
 StatsAPI.dof_residual(m::FixedEffectModel) = m.dof_residual
-function StatsAPI.r2(model::FixedEffectModel, variant::Symbol=:devianceratio)
-    loglikbased = (:McFadden, :CoxSnell, :Nagelkerke)
-    if variant in loglikbased
-        ll = loglikelihood(model)
-        ll0 = nullloglikelihood(model)
-        if variant == :McFadden
-            1 - ll/ll0
-        elseif variant == :CoxSnell
-            1 - exp(2 * (ll0 - ll) / nobs(model))
-        elseif variant == :Nagelkerke
-            (1 - exp(2 * (ll0 - ll) / nobs(model))) / (1 - exp(2 * ll0 / nobs(model)))
-        end
-    elseif variant == :devianceratio
-        dev = rss(model)
-        dev0 = deviance(model)
-        1 - dev / dev0
-    else
-        throw(ArgumentError("variant must be one of $(join(loglikbased, ", ")) or :devianceratio"))
-    end
-end
-
-
+StatsAPI.r2(m::FixedEffectModel) = r2(m, :devianceratio)
 StatsAPI.islinear(m::FixedEffectModel) = true
-StatsAPI.deviance(m::FixedEffectModel) = m.tss
+StatsAPI.deviance(m::FixedEffectModel) = rss(m)
+StatsAPI.nulldeviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
-StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
+StatsAPI.mss(m::FixedEffectModel) = nulldeviance(m) - rss(m)
 StatsModels.formula(m::FixedEffectModel) = m.formula_schema
 dof_fes(m::FixedEffectModel) = m.dof_fes
 
 function StatsAPI.loglikelihood(m::FixedEffectModel)
     n = nobs(m)
-    -n/2 * (log(2π * rss(m) / n) + 1)
+    -n/2 * (log(2π * deviance(m) / n) + 1)
 end
 
 function StatsAPI.nullloglikelihood(m::FixedEffectModel)
     n = nobs(m)
-    -n/2 * (log(2π * deviance(m) / n) + 1)
+    -n/2 * (log(2π * nulldeviance(m) / n) + 1)
 end
 
 # Stata reghdfe reports nullloglikelood after fixed effects are dealt with
@@ -99,7 +79,7 @@ end
 # effects in the regression
 function nullloglikelihood_within(m::FixedEffectModel)
     n = nobs(m)
-    tss_within = rss(m) / (1 - m.r2_within)
+    tss_within = deviance(m) / (1 - m.r2_within)
     -n/2 * (log(2π * tss_within / n) + 1)
 end
 
@@ -117,8 +97,8 @@ function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol=:devianceratio)
         1 - (ll - k)/ll0
     elseif variant == :devianceratio
         n = nobs(model)
-        dev  = rss(model)
-        dev0 = deviance(model)
+        dev  = deviance(model)
+        dev0 = nulldeviance(model)
         1 - (dev*(n - (has_int | has_fe(model)))) / (dev0 * max(n - k, 1))
     else
         throw(ArgumentError("variant must be one of :McFadden or :devianceratio"))

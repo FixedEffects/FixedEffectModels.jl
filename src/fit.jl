@@ -18,7 +18,6 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `drop_singletons::Bool = true`: Should singletons be dropped?
 * `progress_bar::Bool = true`: Should the regression show a progressbar?
 * `first_stage::Bool = true`: Should the first-stage F-stat and p-value be computed?
-* `dof_add::Integer = 0`: 
 * `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows. 
 
 
@@ -450,13 +449,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes - dof_add)
+    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
     # dof_ is the number of estimated coefficients beyond the intercept.
-    dof_ = size(X, 2) - has_intercept + dof_add
+    dof_ = size(X, 2) - has_intercept
     dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
     # Compute Fstat of First Stage

@@ -25,7 +25,7 @@ include("fit.jl")
 include("partial_out.jl")
 
 # Export from StatsBase
-export coef, coefnames, coeftable, responsename, vcov, stderror, nobs, dof_residual, r2, adjr2, islinear, deviance, rss, mss, confint, predict, residuals, fit,
+export coef, coefnames, coeftable, responsename, vcov, stderror, nobs, dof_residual, r2, adjr2, islinear, deviance, nulldeviance, rss, mss, confint, predict, residuals, fit,
     loglikelihood, nullloglikelihood, dof_fes
 
 export reg,
