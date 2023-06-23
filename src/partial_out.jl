@@ -18,7 +18,8 @@ Partial out variables in a Dataframe
 
 ### Details
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-The regression model is estimated on only the rows where *none* of the dependent variables is missing. With the option `add_mean = true`, the mean of the initial variable is added to the residuals.
+The regression model is estimated on only the rows where *none* of the dependent variables is missing. 
+Finally, with the option `add_mean = true`, the mean of the initial variable is added to the residuals.
 
 ### Examples
 ```julia
