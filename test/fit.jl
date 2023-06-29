@@ -1,5 +1,5 @@
 using CUDA, FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
-
+using FixedEffectModels: nullloglikelihood_within
 
 
 ##############################################################################
@@ -458,6 +458,10 @@ end
 	x = reg(df, m)
 	@test r2(x) ≈ 0.0969 atol = 1e-4
 	@test adjr2(x) ≈ 0.09622618 atol = 1e-4
+	m = @formula Sales ~ Price + Pimin + fe(State)
+	x = reg(df, m, Vcov.cluster(:State))
+	@test r2(x) ≈ 0.77472 atol = 1e-4
+	@test adjr2(x) ≈ 0.766768 atol = 1e-4
 
 
 	##############################################################################
@@ -561,6 +565,37 @@ end
 	m = @formula Sales ~ (Price ~ Pimin + CPI)
 	x = reg(df, m, Vcov.cluster(:State, :Year))
 	@test x.F_kp  ≈ 2873.1405 atol = 1e-4
+
+	############################################
+	##
+	## loglikelihood and related
+	##
+	## tested with clusters since those should not
+	## affect the results
+	############################################
+
+	m = @formula(Sales ~ Price)
+	x = reg(df, m, Vcov.cluster(:State))
+	@test loglikelihood(x) ≈ -6625.8266 atol = 1e-4
+	@test nullloglikelihood(x) ≈ -6696.1387 atol = 1e-4
+	@test r2(x, :McFadden) ≈ 0.01050 atol = 1e-4 # Pseudo R2 in R fixest
+	@test adjr2(x, :McFadden) ≈ 0.01035 atol = 1e-4
+
+	m = @formula(Sales ~ Price + Pimin)
+	x = reg(df, m, Vcov.cluster(:State))
+	@test loglikelihood(x) ≈ -6598.6300 atol = 1e-4
+	@test nullloglikelihood(x) ≈ -6696.1387 atol = 1e-4
+	@test r2(x, :McFadden) ≈ 0.01456 atol = 1e-4 # Pseudo R2 in R fixest
+	@test adjr2(x, :McFadden) ≈ 0.01426 atol = 1e-4
+
+	m = @formula(Sales ~ Price + Pimin + fe(State))
+	x = reg(df, m, Vcov.cluster(:State))
+	@test loglikelihood(x) ≈ -5667.7629 atol = 1e-4
+	@test nullloglikelihood(x) ≈ -6696.1387 atol = 1e-4
+	@test nullloglikelihood_within(x) ≈ -5891.2836 atol = 1e-4
+	@test r2(x, :McFadden) ≈ 0.15358 atol = 1e-4 # Pseudo R2 in R fixest
+	@test adjr2(x, :McFadden) ≈ 0.14656 atol = 1e-4
+
 end
 
 

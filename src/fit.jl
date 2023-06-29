@@ -18,7 +18,6 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `drop_singletons::Bool = true`: Should singletons be dropped?
 * `progress_bar::Bool = true`: Should the regression show a progressbar?
 * `first_stage::Bool = true`: Should the first-stage F-stat and p-value be computed?
-* `dof_add::Integer = 0`: 
 * `subset::Union{Nothing, AbstractVector} = nothing`: select specific rows. 
 
 
@@ -429,6 +428,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##
     ##############################################################################
     # Compute degrees of freedom
+    dof_fes_total = 0
     dof_fes = 0
     if has_fes
         for fe in fes
@@ -439,6 +439,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                 #only count groups that exists
                 dof_fes += nunique(fe)
             end
+            dof_fes_total += nunique(fe)
         end
     end
 
@@ -448,7 +449,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes - dof_add)
+    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
 
     # Compute Fstat
@@ -471,11 +472,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
     end
 
-    # Compute rss, tss, r2, r2 adjusted
+    # Compute rss, tss
     rss = sum(abs2, residuals)
     mss = tss_total - rss
-    r2 = 1 - rss / tss_total
-    adjr2 = 1 - rss / tss_total * (nobs - (has_intercept | has_fe_intercept)) / max(nobs - size(X, 2) - dof_fes - dof_add, 1)
     if has_fes
         r2_within = 1 - rss / tss_partial
     end
@@ -515,6 +514,5 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     if esample == Colon()
         esample = trues(N)
     end
-
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_tstat_, rss, tss_total, r2, adjr2, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_fes_total, dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

@@ -25,11 +25,10 @@ struct FixedEffectModel <: RegressionModel
 
     nobs::Int64             # Number of observations
     dof::Int64              # Number parameters estimated - has_intercept. Used for p-value of F-stat.
+    dof_fes::Int64          # Number of fixed effects
     dof_residual::Int64     # dof used for t-test and p-value of F-stat. nobs - degrees of freedoms with simple std
     rss::Float64            # Sum of squared residuals
     tss::Float64            # Total sum of squares
-    r2::Float64             # R squared
-    adjr2::Float64          # R squared adjusted
 
     F::Float64              # F statistics
     p::Float64              # p value for the F statistics
@@ -56,13 +55,55 @@ StatsAPI.vcov(m::FixedEffectModel) = m.vcov
 StatsAPI.nobs(m::FixedEffectModel) = m.nobs
 StatsAPI.dof(m::FixedEffectModel) = m.dof
 StatsAPI.dof_residual(m::FixedEffectModel) = m.dof_residual
-StatsAPI.r2(m::FixedEffectModel) = m.r2
-StatsAPI.adjr2(m::FixedEffectModel) = m.adjr2
+StatsAPI.r2(m::FixedEffectModel) = r2(m, :devianceratio)
 StatsAPI.islinear(m::FixedEffectModel) = true
-StatsAPI.deviance(m::FixedEffectModel) = m.tss
+StatsAPI.deviance(m::FixedEffectModel) = rss(m)
+StatsAPI.nulldeviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
-StatsAPI.mss(m::FixedEffectModel) = deviance(m) - rss(m)
+StatsAPI.mss(m::FixedEffectModel) = nulldeviance(m) - rss(m)
 StatsModels.formula(m::FixedEffectModel) = m.formula_schema
+dof_fes(m::FixedEffectModel) = m.dof_fes
+
+function StatsAPI.loglikelihood(m::FixedEffectModel)
+    n = nobs(m)
+    -n/2 * (log(2π * deviance(m) / n) + 1)
+end
+
+function StatsAPI.nullloglikelihood(m::FixedEffectModel)
+    n = nobs(m)
+    -n/2 * (log(2π * nulldeviance(m) / n) + 1)
+end
+
+# Stata reghdfe reports nullloglikelood after fixed effects are dealt with
+# and some of R fixest estimates also use loglikelihood with only fixed
+# effects in the regression
+function nullloglikelihood_within(m::FixedEffectModel)
+    n = nobs(m)
+    tss_within = deviance(m) / (1 - m.r2_within)
+    -n/2 * (log(2π * tss_within / n) + 1)
+end
+
+function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol=:devianceratio)
+    #dof(model) = parameters - has_intercept
+    #dof_fes(model) = total degrees of freedom for all fixed effects, including the intercept
+    has_int = hasintercept(formula(model))
+    k = dof(model) + dof_fes(model) + has_int
+    if variant == :McFadden
+        # there seems to be some inconsistency as to whether the intercept is included in the dof
+        # these values match R fixest
+        k = k - has_int - has_fe(model)
+        ll = loglikelihood(model)
+        ll0 = nullloglikelihood(model)
+        1 - (ll - k)/ll0
+    elseif variant == :devianceratio
+        n = nobs(model)
+        dev  = deviance(model)
+        dev0 = nulldeviance(model)
+        1 - (dev*(n - (has_int | has_fe(model)))) / (dev0 * max(n - k, 1))
+    else
+        throw(ArgumentError("variant must be one of :McFadden or :devianceratio"))
+    end
+end
 
 function StatsAPI.confint(m::FixedEffectModel; level::Real = 0.95)
     scale = tdistinvcdf(StatsAPI.dof_residual(m), 1 - (1 - level) / 2)
