@@ -100,7 +100,7 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 `FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`).
 
 ### GPUs
-The package has an experimenet support for GPUs. This can make the package an order of magnitude faster for complicated problems.
+The package has an experimental support for GPUs. This can make the package an order of magnitude faster for complicated problems.
 
 If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :CUDA`.
 
