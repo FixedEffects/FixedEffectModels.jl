@@ -111,7 +111,7 @@ df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :CUDA)
 ```
 
-The package also supports Apple GPUs with `Metal.jl`, although I could not get an increase in perfomances
+The package also supports Apple GPUs with `Metal.jl`, although it does not really improve perfomances
 ```julia
 using Metal, FixedEffectModels
 @assert Metal.functional()
