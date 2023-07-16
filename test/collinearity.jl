@@ -30,4 +30,17 @@ using DataFrames, CSV, FixedEffectModels, Random, Statistics, Test
   @test rr.coef[1] ≈ 0.0
   @test isnan(stderror(rr)[1])
 
+
+
+  df = DataFrame(
+      [36.9302  44.5105;
+       39.4935  44.5044;
+       38.946   44.5072;
+       37.8005  44.5098;
+       37.2613  44.5103;
+       35.3885  44.5109;], 
+       :auto
+  )
+  rr = reg(df, @formula(x1 ~ x2))
+  @test all(!isnan, stderror(rr))
 end

@@ -1,4 +1,4 @@
-using CUDA, FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
+using CUDA, Metal, FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
 using FixedEffectModels: nullloglikelihood_within
 
 
@@ -662,8 +662,11 @@ end
 	@test x.iterations <= 50
 
 	methods_vec = [:cpu]
-	if FixedEffectModels.FixedEffects.has_CUDA()
-		push!(methods_vec, :gpu)
+	if CUDA.functional()
+		push!(methods_vec, :CUA)
+	end
+	if Metal.functional()
+		push!(methods_vec, :Metal)
 	end
 	for method in methods_vec
 		# same thing with float32 precision

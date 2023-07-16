@@ -318,7 +318,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # first pass: remove colinear variables in Xendo
         notcollinear_fe_endo = collinear_fe[find_cols_endo(n_exo, n_endo)] .== false
-    	basis_endo = basis(eachcol(Xendo)...) .* notcollinear_fe_endo
+    	basis_endo = basis(eachcol(Xendo)...; has_intercept = false) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
@@ -326,7 +326,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
-    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
+    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
@@ -350,7 +350,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
+            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
@@ -377,7 +377,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
         notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
-        basis_Xexo = basis(eachcol(Xexo)...) .* notcollinear_fe_exo
+        basis_Xexo = basis(eachcol(Xexo)...; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo
