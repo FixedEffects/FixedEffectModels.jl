@@ -303,7 +303,7 @@ end
 
 	methods_vec = [:cpu]
 	if CUDA.functional()
-		push!(methods_vec, :CUA)
+		push!(methods_vec, :CUDA)
 	end
 	if Metal.functional()
 		push!(methods_vec, :Metal)

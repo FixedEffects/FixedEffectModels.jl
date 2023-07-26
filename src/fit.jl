@@ -86,6 +86,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     df = DataFrame(df; copycols = false)
     N = size(df, 1)
 
+    if method == :gpu
+        info("method = :gpu is deprecated. Use method = :CUDA or method = :Metal")
+        method = :CUDA
+    end
+
     ##############################################################################
     ##
     ## Parse formula
