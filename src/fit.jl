@@ -10,9 +10,9 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `contrasts::Dict = Dict()` An optional Dict of contrast codings for each categorical variable in the `formula`.  Any unspecified variables will have `DummyCoding`.
 * `weights::Union{Nothing, Symbol}` A symbol to refer to a columns for weights
 * `save::Symbol`: Should residuals and eventual estimated fixed effects saved in a dataframe? Default to `:none` Use `save = :residuals` to only save residuals, `save = :fe` to only save fixed effects, `save = :all` for both. Once saved, they can then be accessed using `residuals(m)` or `fe(m)` where `m` is the object returned by the estimation. The returned DataFrame is automatically aligned with the original DataFrame.
-* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
-* `nthreads::Integer` Number of threads to use in the estimation. If `method = :cpu`, defaults to `Threads.nthreads()`. If `method = :gpu`, defaults to 256.
-* `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
+* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  use :CUDA or :Metal  (in this case, you need to import the respective package before importing FixedEffectModels)
+* `nthreads::Integer` Number of threads to use in the estimation. If `method = :cpu`, defaults to `Threads.nthreads()`. Otherwise, defaults to 256.
+* `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true if `method =:cpu' and false if `method = :CUDA` or `method = :Metal`.
 * `tol::Real` Tolerance. Default to 1e-6.
 * `maxiter::Integer = 10000`: Maximum number of iterations
 * `drop_singletons::Bool = true`: Should singletons be dropped?
@@ -54,7 +54,7 @@ function reg(df,
     save::Union{Bool, Symbol} = :none,
     method::Symbol = :cpu,
     nthreads::Integer = method == :cpu ? Threads.nthreads() : 256,
-    double_precision::Bool = true,
+    double_precision::Bool = method == :cpu,
     tol::Real = 1e-6,
     maxiter::Integer = 10000,
     drop_singletons::Bool = true,
@@ -85,6 +85,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     df = DataFrame(df; copycols = false)
     N = size(df, 1)
+
+    if method == :gpu
+        info("method = :gpu is deprecated. Use method = :CUDA or method = :Metal")
+        method = :CUDA
+    end
 
     ##############################################################################
     ##
@@ -318,7 +323,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # first pass: remove colinear variables in Xendo
         notcollinear_fe_endo = collinear_fe[find_cols_endo(n_exo, n_endo)] .== false
-    	basis_endo = basis(eachcol(Xendo)...) .* notcollinear_fe_endo
+    	basis_endo = basis(eachcol(Xendo)...; has_intercept = false) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
@@ -326,7 +331,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
-    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
+    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
@@ -350,7 +355,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...)
+            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
@@ -377,7 +382,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
         notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
-        basis_Xexo = basis(eachcol(Xexo)...) .* notcollinear_fe_exo
+        basis_Xexo = basis(eachcol(Xexo)...; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo

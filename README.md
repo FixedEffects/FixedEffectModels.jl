@@ -78,7 +78,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 - The option `save` can be set to one of the following:  `:none` (default) to save nothing, `:residuals` to save residuals, `:fe` to save fixed effects, and `:all` to save both. Once saved, they can then be accessed using `residuals(m)` or `fe(m)` where `m` is the estimated model (the object returned by the function `reg`). Both residuals and fixed effects are aligned with the original dataframe used to estimate the model.
 
-- The option `method` can be set to one of the following: `:cpu`, `:gpu` (see Performances below).
+- The option `method` can be set to one of the following: `:cpu`, `:CUDA`, or `:Metal` (see Performances below).
 
 
 ## Output
@@ -99,16 +99,26 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 ### MultiThreads
 `FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`).
 
-### Nvidia GPU
-The package has support for Nvidia GPUs  (thanks to Paul Schrimpf). This can make the package an order of magnitude faster for complicated problems.
+### GPUs
+The package has an experimental support for GPUs. This can make the package an order of magnitude faster for complicated problems.
 
-If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :gpu`. For maximum speed, set the floating point precision to `Float32` with `double_precision = false`.
+If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :CUDA`.
 
 ```julia
 using CUDA, FixedEffectModels
+@assert CUDA.functional()
 df = dataset("plm", "Cigar")
-reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :gpu, double_precision = false)
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :CUDA)
 ```
+
+The package also supports Apple GPUs with `Metal.jl`, although it does not really improve perfomances
+```julia
+using Metal, FixedEffectModels
+@assert Metal.functional()
+df = dataset("plm", "Cigar")
+reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :Metal)
+```
+
 
 
 ## Solution Method

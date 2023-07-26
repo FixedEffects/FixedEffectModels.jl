@@ -302,8 +302,11 @@ end
 	@test fe(result)[1, :fe_Year] + fe(result)[1, :fe_State] ≈ 158.91798 atol = 1e-4
 
 	methods_vec = [:cpu]
-	if FixedEffectModels.FixedEffects.has_CUDA()
-		push!(methods_vec, :gpu)
+	if CUDA.functional()
+		push!(methods_vec, :CUDA)
+	end
+	if Metal.functional()
+		push!(methods_vec, :Metal)
 	end
 	for method in methods_vec
 		local model = @formula Sales ~ Price + fe(Year)

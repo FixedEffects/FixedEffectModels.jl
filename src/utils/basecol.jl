@@ -30,8 +30,8 @@ end
 ## 
 ##
 ##############################################################################
-function basis(@nospecialize(xs::AbstractVector...))
-    invXX = invsym!(crossprod(collect(xs)))
+function basis(@nospecialize(xs::AbstractVector...); has_intercept = false)
+    invXX = invsym!(crossprod(collect(xs)); has_intercept = has_intercept)
     return diag(invXX) .> 0
 end
 
@@ -51,7 +51,7 @@ function crossprod(xs::Vector{<:AbstractVector})
 end
 
 # generalized 2inverse
-function invsym!(X::AbstractMatrix)
+function invsym!(X::AbstractMatrix; has_intercept = false)
     # The C value adjusts the check to the relative scale of the variable. The C value is equal to the corrected sum of squares for the variable, unless the corrected sum of squares is 0, in which case C is 1. If you specify the NOINT option but not the ABSORB statement, PROC GLM uses the uncorrected sum of squares instead. The default value of the SINGULAR= option, 107, might be too small, but this value is necessary in order to handle the high-degree polynomials used in the literature to compare regression routin
     tols = max.(diag(X), 1)
     for j in 1:size(X, 1)
@@ -68,6 +68,9 @@ function invsym!(X::AbstractMatrix)
                 end
             end
             X[j,j] = 1 / d
+        end
+        if has_intercept && j == 1
+            tols = max.(diag(X), 1)
         end
     end
     return X
