@@ -14,7 +14,6 @@ using FixedEffectModels, DataFrames, CategoricalArrays, CSV, Test
 	residuals(result, df)
 	@test responsename(result) == "Sales"
 
-
 	model = @formula Sales ~ CPI + (Price ~ Pimin)
 	result = reg(df, model)
 	coeftable(result)
@@ -38,62 +37,147 @@ using FixedEffectModels, DataFrames, CategoricalArrays, CSV, Test
 	show(result)
 end
 
-@testset "predict" begin
+@testset "Predict" begin
+    # Simple - one binary FE
+    df = DataFrame(x = rand(100), g = rand(["a", "b"], 100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ (df.g .== "b")
+    m = reg(df, @formula(y ~ x + fe(g)); save = :fe)
+    pred = predict(m, df)
+    @test pred ≈ df.y
 
-	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
-	df.StateC = categorical(df.State)
+    # One group only 
+    df = DataFrame(x = rand(100), g = "a")
+    df.y = 1.0 .+ 0.5 .* df.x
+    m = reg(df, @formula(y ~ x + fe(g)); save = :fe)
+    pred = predict(m, df)
+    @test pred ≈ df.y
 
-	model = @formula Sales ~ Price + StateC
-	result = reg(df, model)
-	@test predict(result, df)[1] ≈ 115.9849874
+    # Two groups and predict df has a level that's missing from model
+    df = DataFrame(x = rand(100), g = rand(["a", "b"], 100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ (df.g .== "b")
+    m = reg(df, @formula(y ~ x + fe(g)); save = :fe)
+    pred = predict(m, DataFrame(x = [1.0, 2.0], g = ["a", "c"]))
+    @test ismissing(pred[2])
 
-	#model = @formula Sales ~ Price + fe(State)
-	#result = reg(df, model, save = :fe)
-	#@test predict(result)[1] ≈ 115.9849874
+    # Two groups + missing observation of FE
+    df = DataFrame(x = rand(100), g = [missing; rand(["a", "b"], 99)])
+    df.y = 1.0 .+ 0.5 .* df.x .+ isequal.(df.g, "b")
+    m = reg(df, @formula(y ~ x + fe(g)), save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Union{Missing, Float64}}
+    @test ismissing(pred[1])
+    @test pred[2:end] ≈ df.y[2:end]
 
-	model = @formula Sales ~ Price * Pop + StateC
-	result = reg(df, model)
-	@test predict(result, df)[1] ≈ 115.643985352
+    # Two groups + missing observation of non-FE
+    df = DataFrame(x = [missing; rand(99)], g = rand(["a", "b"], 100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ isequal.(df.g, "b")
+    m = reg(df, @formula(y ~ x + fe(g)), save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Union{Missing, Float64}}
+    @test ismissing(pred[1])
+    @test pred[2] ≈ df.y[2]
 
-	#model = @formula Sales ~ Price * Pop + fe(State)
-	#result = reg(df, model, save = :fe)
-	#@test predict(result, df)[1] ≈ 115.643985352
+    # Two groups + two FEs
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = rand(["c", "d"], 100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ isequal.(df.g1, "b") .+ (df.g2 .== "d") * 2
+    m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)); save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Float64}
+    @test pred ≈ df.y
 
-	model = @formula Sales ~ Price + Pop + Price & Pop + StateC
-	result = reg(df, model)
-	@test predict(result, df)[1] ≈ 115.643985352
+    # Two groups + two FEs, missing one FE
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = [missing; rand(["c", "d"], 99)])
+    df.y = 1.0 .+ 0.5 .* df.x .+ isequal.(df.g1, "b") .+ isequal.(df.g2,"d") * 2
+    m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)); save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Union{Missing, Float64}}
+    @test ismissing(pred[1])
+    @test pred[2:end] ≈ df.y[2:end]
 
-	#model = @formula Sales ~ Price + Pop + Price & Pop + fe(State)
-	#result = reg(df, model, save = :fe)
-	#@test predict(result, df)[1] ≈ 115.643985352
+    # Three FEs, "middle" one missing
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = [missing; rand(["c", "d"], 99)],
+                    g3 = rand(["e", "f"], 100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ isequal.(df.g1, "b") .+ isequal.(df.g2, "d") * 2 .+
+            isequal.(df.g3, "e")
+    m = reg(df, @formula(y ~ x + fe(g1) + fe(g2) + fe(g3)); save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Union{Missing, Float64}}
+    @test ismissing(pred[1])
+    @test pred[2:end] ≈ df.y[2:end]
 
+    # Interactive FE 
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = rand(["c", "d"], 100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ (df.g1 .== "b") .+ (df.g1 .== "b" .&& df.g2 .== "d")
+    m = reg(df, @formula(y ~ x + fe(g1)&fe(g2)); save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Float64}
+    @test pred ≈ df.y
 
+    # Interactive FE + missing 
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = [missing; rand(["c", "d"], 99)])
+    df.y = 1.0 .+ 0.5 .* df.x .+ (df.g1 .== "b") .+ (isequal.(df.g1, "b") .&& isequal.(df.g2, "d"))
+    m6 = reg(df, @formula(y ~ x + fe(g1)&fe(g2)); save = :fe)
+    pred = predict(m, df)
+    @test pred isa Vector{Union{Missing, Float64}}
+    @test length(pred) == nrow(df)
+    @test ismissing(pred[1])
+    @test pred[2:end] ≈ df.y[2:end]
 
+    # Interaction with continuous variable
+    df = DataFrame(x = rand(100), g = rand(["a", "b"], 100), z = rand(100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ 2.0 .* (df.g .== "b") .* df.z 
+    m = reg(df, @formula(y ~ x + fe(g)&z); save = :fe)
+    @test_throws ArgumentError pred = predict(m, df)
+    #@test pred ≈ df.y # Once implemented
 
+    # Interaction with continuous variable, FE missing 
+    df = DataFrame(x = rand(100), g = [missing; rand(["a", "b"], 99)], z = rand(100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ 2.0 .* (df.g .== "b") .* df.z 
+    m = reg(df, @formula(y ~ x + fe(g)&z); save = :fe)
+    @test_throws ArgumentError pred = predict(m, df)
+    #@test pred ≈ df.y
 
-	# Tests for predict method
-	# Test that predicting from model without saved FE test throws
-	model = @formula Sales ~ Price + fe(State)
-	result = reg(df, model)
-	@test_throws "No estimates for fixed effects found. Fixed effects need to be estimated using the option save = :fe or :all for prediction to work." predict(result, df)
+    # Interaction with continuous variable, cont var missing
+    df = DataFrame(x = rand(100), g = rand(["a", "b"], 100), z = [missing; rand(99)])
+    df.y = 1.0 .+ 0.5 .* df.x .+ 2.0 .* (df.g .== "b") .* df.z 
+    m = reg(df, @formula(y ~ x + fe(g)&z); save = :fe)
+    @test_throws ArgumentError pred = predict(m, df)
+    #@test pred ≈ df.y
 
-	# Test basic functionality - adding 1 to price should increase prediction by coef
-	#model = @formula Sales ~ Price + fe(State)
-	#result = reg(df, model, save = :fe)
-	#x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, 1]))
-	#@test last(x) - first(x) ≈ only(result.coef)
+    # Regular FE + another FE interacted with continuous variable
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = rand(["c", "d"], 100), z = rand(100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ 2.0 .* (df.g2 .== "b") .* df.z  .+ 3.0 .* (df.g1 .== "b")
+    m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)&z); save = :fe)
+    @test_throws ArgumentError pred = predict(m, df)
+    #@test pred ≈ df.y
 
-	# Missing variables in covariates should yield missing prediction
-	#x = predict(result, DataFrame(Price = [1.0, missing], State = [1, 1]))
-	#@test ismissing(last(x))
+    # Two continuous/FE interactions
+    m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)&z + fe(g1)&x); save = :fe)
+    @test_throws ArgumentError pred = predict(m, df)
 
-	# Missing variables in fixed effects should yield missing prediction
-	#x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, missing]))
-	#@test ismissing(last(x))
+    # Regular FE + interacted FE + FE/continuous interaction
+    df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = rand(["c", "d"], 100), 
+        g3 = rand(["e", "f"], 100), g4 = rand(["g", "h"], 100), z = rand(100))
+    df.y = 1.0 .+ 0.5 .* df.x .+ 2.0 .* (df.g1 .== "b") .+ 3.0 .* (df.g2 .== "d") .* (df.g3 .== "f") .+
+        4.0 .* (df.g4 .== "h") .* df.z
+    m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)&fe(g3) + fe(g4)&z))
+    @test_throws ArgumentError pred = predict(m, df)
+end
 
-	# Fixed effect levels not in the estimation data should yield missing prediction
-	#x = predict(result, DataFrame(Price = [1.0, 2.0], State = [1, 111]))
-	#@test ismissing(last(x))
+@testset "Continuous/FE detection" begin
+    # Regular interaction is fine as handled by StatsModels
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + y&z)) == false
+    
+    # FE/FE interaction also works
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + fe(y)&fe(z))) == false
+
+    # Interaction of FEs with continuous variable requires special handling, currently not implemented
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + fe(y)&z)) == true
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + y&fe(z))) == true
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + fe(y)&fe(z)&a)) == true
+
+    # Interaction of continuous with non-FE function term again handled by StatsModels
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + y^2&z)) == false
 end
 
 
@@ -176,7 +260,6 @@ end
 	model = @formula Sales ~ Price + fe(State)
 	result = reg(df, model, save = :fe)
 	@test "fe_State" ∈ names(fe(result))
-
 
 	# iv recategorized
 	df.Pimin2 = df.Pimin
