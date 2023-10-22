@@ -113,12 +113,31 @@ end
 
 # predict, residuals, modelresponse
 
+# Utility functions for checking whether FE/continuous interactions are in formula
+# These are currently not supported in predict
+function is_cont_fe_int(x) 
+    x isa InteractionTerm || return false
+    any(x -> isa(x, Term), x.terms) && any(x -> isa(x, FunctionTerm{typeof(fe), Vector{Term}}), x.terms)
+end
+
+# Does the formula have InteractionTerms?
+function has_cont_fe_interaction(x::FormulaTerm)
+    if x.rhs isa Term # only one term
+        is_cont_fe_int(x)
+    elseif hasfield(typeof(x.rhs), :lhs) # Is an IV term
+        false # Is this correct?
+    else
+        any(is_cont_fe_int, x.rhs)
+    end
+end
 
 function StatsAPI.predict(m::FixedEffectModel, data)
     Tables.istable(data) ||
           throw(ArgumentError("expected second argument to be a Table, got $(typeof(data))"))
-    has_fe(m) &&
-        throw("To predict for a model with high-dimensional fixed effects, run `reg` with the option save = true, and then access predicted values using `fe().")
+
+    has_cont_fe_interaction(m.formula) && 
+        throw(ArgumentError("Interaction of fixed effect and continuous variable detected in formula; this is currently not supported in `predict`"))
+
     cdata = StatsModels.columntable(data)
     cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
     Xnew = modelmatrix(m.formula_schema, cols)
@@ -130,13 +149,25 @@ function StatsAPI.predict(m::FixedEffectModel, data)
     end
 
     # Join FE estimates onto data and sum row-wise
-    # This code does not work propertly with missing or with interacted fixed effect, so deleted
-    #if has_fe(m)
-    #    df = DataFrame(t; copycols = false)
-    #    fes = leftjoin(select(df, m.fekeys), unique(m.fe); on = m.fekeys, makeunique = true, #matchmissing = :equal)
-    #    fes = combine(fes, AsTable(Not(m.fekeys)) => sum)
-    #    out[nonmissings] .+= fes[nonmissings, 1]
-    #end
+    # This does not account for FEs interacted with continuous variables - to be implemented
+    if has_fe(m)
+        nrow(fe(m)) > 0 || throw(ArgumentError("Model has no estimated fixed effects. To store estimates of fixed effects, run `reg` the option save = :fe"))
+
+        df = DataFrame(data; copycols = false)
+        fes = leftjoin(select(df, m.fekeys), dropmissing(unique(m.fe)); on = m.fekeys, 
+                            makeunique = true, matchmissing = :equal, order = :left)
+        fes = combine(fes, AsTable(Not(m.fekeys)) => sum)
+        
+        if any(ismissing, Matrix(select(df, m.fekeys))) || any(ismissing, Matrix(fes))
+            out = allowmissing(out)
+        end
+        
+        out[nonmissings] .+= fes[nonmissings, 1]
+        
+        if any(.!nonmissings)
+            out[.!nonmissings] .= missing
+        end
+    end
 
     return out
 end
