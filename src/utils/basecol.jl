@@ -13,6 +13,8 @@ function Combination(A::Union{AbstractVector{T}, AbstractMatrix{T}}...) where {T
     Combination{T}(A, cumsum([size(x, 2) for x in A]))
 end
 
+Combination() = error("`Combination` requires at least one argument")
+
 Base.size(c::Combination) = (size(c.A[1], 1), c.cumlength[end])
 Base.size(c::Combination, i::Integer) = size(c)[i]
 
