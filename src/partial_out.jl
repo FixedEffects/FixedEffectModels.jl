@@ -112,7 +112,7 @@ function partial_out(
     formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
     X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
     if has_fes
-        X, b, c = solve_residuals!(X, feM; maxiter = maxiter, tol = tol, progress_bar = false)
+        _, b, c = solve_residuals!(eachcol(X), feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
@@ -122,7 +122,7 @@ function partial_out(
     end
     # Compute residuals
     if size(X, 2) > 0
-        mul!(Y, X, X\Y, -1.0, 1.0)
+        mul!(Y, X, X \ Y, -1.0, 1.0)
     end
     residuals = Y
 

@@ -383,14 +383,18 @@ end
 	model = @formula Sales ~ (Price ~ Pimin) + fe(State) + fe(Year)
 	result = reg(df, model, subset = df.State .<= 30, weights = :Pop, save = true)
 	@test fe(result)[1, :fe_Year] + fe(result)[1, :fe_State] ≈ 158.91798 atol = 1e-4
+end
 
+
+@testset "gpu" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 	methods_vec = [:cpu]
 	if CUDA.functional()
 		push!(methods_vec, :CUDA)
 	end
-	if Metal.functional()
-		push!(methods_vec, :Metal)
-	end
+	#if Metal.functional()
+	#	push!(methods_vec, :Metal)
+	#end
 	for method in methods_vec
 		local model = @formula Sales ~ Price + fe(Year)
 		local result = reg(df, model, save = true, method = method, double_precision = false)

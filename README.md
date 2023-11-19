@@ -32,7 +32,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 ```
 
 
--  A typical formula is composed of one dependent variable, exogeneous variables, endogeneous variables, instrumental variables, and a set of high-dimensional fixed effects.
+-  A typical formula is composed of one dependent variable, exogenous variables, endogenous variables, instrumental variables, and a set of high-dimensional fixed effects.
 
 	```julia
 	dependent variable ~ exogenous variables + (endogenous variables ~ instrumental variables) + fe(fixedeffect variable)
@@ -49,7 +49,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 	reg(df, @formula(Sales ~ (Price ~ Pimin)))
 	```
 
-	To construct formula programatically, use
+	To construct formula programmatically, use
 	```julia
 	reg(df, term(:Sales) ~ term(:NDI) + fe(:State) + fe(:Year))
 	```
@@ -111,7 +111,7 @@ df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :CUDA)
 ```
 
-The package also supports Apple GPUs with `Metal.jl`, although it does not really improve perfomances
+The package also supports Apple GPUs with `Metal.jl`, although I could not find a way to get better performance
 ```julia
 using Metal, FixedEffectModels
 @assert Metal.functional()

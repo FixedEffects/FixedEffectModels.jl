@@ -259,21 +259,20 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # initialize iterations and converged
         iterations = Int[]
         convergeds = Bool[]
+        cols = vcat(eachcol(y), eachcol(Xexo))
         if has_iv
-            Xall = Combination(y, Xexo, Xendo, Z)
-        else
-            Xall = Combination(y, Xexo)
+            append!(cols, eachcol(Xendo), eachcol(Z))
         end
 
         # compute 2-norm (sum of squares) for each variable 
         # (to see if they are collinear with the fixed effects)
-        sumsquares_pre = [sum(abs2, x) for x in eachcol(Xall)]
+        sumsquares_pre = [sum(abs2, x) for x in cols]
 
         # partial out fixed effects
-        _, iterations, convergeds = solve_residuals!(Xall, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
+        _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
         # re-compute 2-norm (sum of squares) for each variable
-        sumsquares_post = [sum(abs2, x) for x in eachcol(Xall)]
+        sumsquares_post = [sum(abs2, x) for x in cols]
 
         # mark variables that are likely to be collinear with the fixed effects
         collinear_tol = min(1e-6, tol / 10)

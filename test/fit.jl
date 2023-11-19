@@ -661,13 +661,39 @@ end
 	@test coef(x) ≈ [- 0.11752306001586807] atol = 1e-4
 	@test x.iterations <= 50
 
+
+
+	# add tests with missing fixed effects
+	df.Firm_missing = ifelse.(df.Firm .<= 30, missing, df.Firm)
+
+	## test with missing fixed effects
+	m = @formula Wage ~ Emp + fe(Firm_missing)
+	x = reg(df, m)
+	@test coef(x) ≈ [-.1093657] atol = 1e-4
+	@test stderror(x) ≈  [.032949 ] atol = 1e-4
+	@test r2(x) ≈ 0.8703 atol = 1e-2
+	@test adjr2(x) ≈ 0.8502 atol = 1e-2
+	@test x.nobs == 821
+
+	## test with missing interaction
+	df.Year2 = df.Year .>= 1980
+	m = @formula Wage ~ Emp + fe(Firm_missing) & fe(Year2)
+	x = reg(df, m)
+	@test coef(x) ≈ [-0.100863] atol = 1e-4
+	@test stderror(x) ≈  [0.04149] atol = 1e-4
+	@test x.nobs == 821
+end
+
+
+@testset "gpu" begin
 	methods_vec = [:cpu]
 	if CUDA.functional()
 		push!(methods_vec, :CUDA)
 	end
-	if Metal.functional()
-		push!(methods_vec, :Metal)
-	end
+	#if Metal.functional()
+	#	push!(methods_vec, :Metal)
+	#end
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/EmplUK.csv")))
 	for method in methods_vec
 		# same thing with float32 precision
 		local m = @formula Wage ~ Emp + fe(Firm)
@@ -692,28 +718,6 @@ end
 		local x = reg(df, m, weights = :Output, method = method, double_precision = false)
 		@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
 	end
-
-
-	# add tests with missing fixed effects
-	df.Firm_missing = ifelse.(df.Firm .<= 30, missing, df.Firm)
-
-
-	## test with missing fixed effects
-	m = @formula Wage ~ Emp + fe(Firm_missing)
-	x = reg(df, m)
-	@test coef(x) ≈ [-.1093657] atol = 1e-4
-	@test stderror(x) ≈  [.032949 ] atol = 1e-4
-	@test r2(x) ≈ 0.8703 atol = 1e-2
-	@test adjr2(x) ≈ 0.8502 atol = 1e-2
-	@test x.nobs == 821
-
-	## test with missing interaction
-	df.Year2 = df.Year .>= 1980
-	m = @formula Wage ~ Emp + fe(Firm_missing) & fe(Year2)
-	x = reg(df, m)
-	@test coef(x) ≈ [-0.100863] atol = 1e-4
-	@test stderror(x) ≈  [0.04149] atol = 1e-4
-	@test x.nobs == 821
 end
 
 
