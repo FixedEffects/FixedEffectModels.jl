@@ -45,7 +45,7 @@ end
 
 has_iv(m::FixedEffectModel) = m.F_kp !== nothing
 has_fe(m::FixedEffectModel) = has_fe(m.formula)
-Fstat(m::FixedEffectModel) = m.F
+F(m::FixedEffectModel) = m.F
 iterations(m::FixedEffectModel) = m.iterations
 converged(m::FixedEffectModel) = m.converged
 esample(m::FixedEffectModel) = m.esample
