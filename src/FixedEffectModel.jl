@@ -45,8 +45,12 @@ end
 
 has_iv(m::FixedEffectModel) = m.F_kp !== nothing
 has_fe(m::FixedEffectModel) = has_fe(m.formula)
-
-
+Fstat(m::FixedEffectModel) = m.F
+iterations(m::FixedEffectModel) = m.iterations
+converged(m::FixedEffectModel) = m.converged
+esample(m::FixedEffectModel) = m.esample
+r2_within(m::FixedEffectModel) = m.r2_within
+nclusters(m::FixedEffectModel) = m.nclusters
 
 StatsAPI.coef(m::FixedEffectModel) = m.coef
 StatsAPI.coefnames(m::FixedEffectModel) = m.coefnames
