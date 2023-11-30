@@ -10,7 +10,6 @@ function crossprod(x1, x2, x3)
     Symmetric(hvcat(3, x1'x1, x1'x2, x1'x3, 
                        zeros(size(x2, 2), size(x1, 2)), x2'x2, x2'x3, 
                        zeros(size(x3, 2), size(x1, 2)), zeros(size(x3, 2), size(x2, 2)), x3'x3))
-
 end
 
 # generalized 2inverse

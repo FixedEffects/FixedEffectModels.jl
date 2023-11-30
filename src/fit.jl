@@ -330,6 +330,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         notcollinear_fe_z = collinear_fe[(n_exo+n_endo+2):(n_exo+n_endo+n_z+1)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
+
     	basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
@@ -393,7 +394,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
-
+    
     crossx = Xhat' * Xhat
     Xy = Symmetric(hvcat(2, crossx, Xhat'y, zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
