@@ -330,7 +330,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
-    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
+    	basis_all = basis(Xexo, Z, eachcol(Xendo)...; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
@@ -354,7 +354,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
+            basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
@@ -381,7 +381,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
         notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
-        basis_Xexo = basis(eachcol(Xexo)...; has_intercept = has_intercept) .* notcollinear_fe_exo
+        basis_Xexo = basis(Xexo; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo
@@ -393,11 +393,10 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
-
-    Xy = crossprod(vcat(eachcol(Xhat), eachcol(y)))
-    crossx = Xy[1:(end-1),(1:(end-1))]
+    crossx = Xhat' * Xhat
+    Xy = Symmetric(hvcat(2, crossx, Xhat'y, zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
-    invcrossx = Symmetric(.- Xy[1:(end-1),(1:(end-1))])
+    invcrossx = Symmetric(.- Xy[1:(end-1),1:(end-1)])
     coef = Xy[1:(end-1),end]
 
     ##############################################################################
