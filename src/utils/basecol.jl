@@ -1,13 +1,16 @@
 # create the matrix X'X
-function crossprod(xs...)
-    idx = vcat(0, cumsum(size(x, 2) for x in xs))
-    XX = zeros(idx[end], idx[end])
-    for i in 1:length(xs)
-        for j in i:length(xs)
-            XX[(idx[i]+1):idx[i+1], (idx[j]+1):idx[j+1]] .= xs[i]' * xs[j]
-        end  
-    end
-    return Symmetric(XX, :U)
+crossprod(x1) = Symmetric(x1'x1)
+
+function crossprod(x1, x2)
+    Symmetric(hvcat(2, x1'x1, x1'x2, 
+                       zeros(size(x2, 2), size(x1, 2)), x2'x2))
+end
+
+function crossprod(x1, x2, x3)
+    Symmetric(hvcat(3, x1'x1, x1'x2, x1'x3, 
+                       zeros(size(x2, 2), size(x1, 2)), x2'x2, x2'x3, 
+                       zeros(size(x3, 2), size(x1, 2)), zeros(size(x3, 2), size(x2, 2)), x3'x3))
+
 end
 
 # generalized 2inverse

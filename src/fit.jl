@@ -322,7 +322,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # first pass: remove colinear variables in Xendo
         notcollinear_fe_endo = collinear_fe[find_cols_endo(n_exo, n_endo)] .== false
-    	basis_endo = basis(eachcol(Xendo)...; has_intercept = false) .* notcollinear_fe_endo
+    	basis_endo = basis(Xendo; has_intercept = false) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
@@ -330,7 +330,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
-    	basis_all = basis(Xexo, Z, eachcol(Xendo)...; has_intercept = has_intercept)
+    	basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
@@ -393,6 +393,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
+
     crossx = Xhat' * Xhat
     Xy = Symmetric(hvcat(2, crossx, Xhat'y, zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
