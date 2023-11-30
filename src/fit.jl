@@ -321,16 +321,17 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         perm = 1:(n_exo + n_endo)
 
         # first pass: remove colinear variables in Xendo
-        notcollinear_fe_endo = collinear_fe[find_cols_endo(n_exo, n_endo)] .== false
-    	basis_endo = basis(eachcol(Xendo)...; has_intercept = false) .* notcollinear_fe_endo
+        notcollinear_fe_endo = collinear_fe[(n_exo+2):(n_exo+n_endo+1)] .== false
+    	basis_endo = basis(Xendo; has_intercept = false) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
-        notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
-        notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
+        notcollinear_fe_exo = collinear_fe[2:(n_exo+1)] .== false
+        notcollinear_fe_z = collinear_fe[(n_exo+n_endo+2):(n_exo+n_endo+n_z+1)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
-    	basis_all = basis(Xexo, Z, eachcol(Xendo)...; has_intercept = has_intercept)
+
+    	basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
@@ -380,7 +381,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # get linearly independent columns
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
-        notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
+        notcollinear_fe_exo = collinear_fe[2:(n_exo+1)] .== false
         basis_Xexo = basis(Xexo; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
@@ -393,6 +394,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
+    
     crossx = Xhat' * Xhat
     Xy = Symmetric(hvcat(2, crossx, Xhat'y, zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
@@ -466,15 +468,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # Compute Fstat of First Stage
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        #try 
+        try 
             r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                               vcov_method, size(X, 2), dof_fes)
             p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
             F_kp = r_kp / size(Z_res, 2)
-       # catch
-       #     @info "ranktest failed ; first-stage statistics not estimated"
-       #     p_kp, F_kp = NaN, NaN
-       # end
+        catch
+            @info "ranktest failed ; first-stage statistics not estimated"
+            p_kp, F_kp = NaN, NaN
+        end
     end
 
     # Compute rss, tss

@@ -1,13 +1,15 @@
 # create the matrix X'X
-function crossprod(xs...)
-    idx = vcat(0, cumsum(size(x, 2) for x in xs))
-    XX = zeros(idx[end], idx[end])
-    for i in 1:length(xs)
-        for j in i:length(xs)
-            XX[(idx[i]+1):idx[i+1], (idx[j]+1):idx[j+1]] .= xs[i]' * xs[j]
-        end  
-    end
-    return Symmetric(XX, :U)
+crossprod(x1) = Symmetric(x1'x1)
+
+function crossprod(x1, x2)
+    Symmetric(hvcat(2, x1'x1, x1'x2, 
+                       zeros(size(x2, 2), size(x1, 2)), x2'x2))
+end
+
+function crossprod(x1, x2, x3)
+    Symmetric(hvcat(3, x1'x1, x1'x2, x1'x3, 
+                       zeros(size(x2, 2), size(x1, 2)), x2'x2, x2'x3, 
+                       zeros(size(x3, 2), size(x1, 2)), zeros(size(x3, 2), size(x2, 2)), x3'x3))
 end
 
 # generalized 2inverse
@@ -47,7 +49,6 @@ function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
 end
 
-
 function ls_solve(X, y::AbstractVector)
     Xy = crossprod(X, y)
     invsym!(Xy, diagonal = 1:size(X, 2))
@@ -58,18 +59,4 @@ function ls_solve(X, Y::AbstractMatrix)
     XY = crossprod(X, Y)
     invsym!(XY, diagonal = 1:size(X, 2))
     return XY[1:size(X, 2),(end-size(Y, 2)+1):end]
-end
-
-##############################################################################
-# Auxiliary functions to find columns of exogeneous, endogenous and IV variables
-##############################################################################
-
-function find_cols_exo(n_exo)
-    2:n_exo+1
-end
-function find_cols_endo(n_exo, n_endo)
-    n_exo+2:n_exo+n_endo+1
-end
-function find_cols_z(n_exo, n_endo, n_z)
-    n_exo+n_endo+2:n_exo+n_endo+n_z+1
 end
