@@ -468,15 +468,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # Compute Fstat of First Stage
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        #try 
+        try 
             r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                               vcov_method, size(X, 2), dof_fes)
             p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
             F_kp = r_kp / size(Z_res, 2)
-       # catch
-       #     @info "ranktest failed ; first-stage statistics not estimated"
-       #     p_kp, F_kp = NaN, NaN
-       # end
+        catch
+            @info "ranktest failed ; first-stage statistics not estimated"
+            p_kp, F_kp = NaN, NaN
+        end
     end
 
     # Compute rss, tss
