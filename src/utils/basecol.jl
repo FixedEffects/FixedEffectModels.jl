@@ -49,7 +49,6 @@ function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
 end
 
-
 function ls_solve(X, y::AbstractVector)
     Xy = crossprod(X, y)
     invsym!(Xy, diagonal = 1:size(X, 2))
