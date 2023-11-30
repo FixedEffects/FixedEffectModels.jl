@@ -366,7 +366,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # Build
         newZ = hcat(Xexo, Z)
-        Pi = ldiv!(cholesky!(Symmetric(newZ'newZ)), newZ'Xendo)
+        Pi = ls_solve(newZ, Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
         X = hcat(Xexo, Xendo)
 
@@ -374,7 +374,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         ## partial out Xendo in place wrt (Xexo, Z)
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
         ## partial out Z in place wrt Xexo
-        Pi2 = ldiv!(cholesky!(Symmetric(Xexo'Xexo)), Xexo'Z)
+        Pi2 = ls_solve(Xexo, Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
@@ -394,8 +394,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##
     ##############################################################################
 
-    crossx = cholesky!(Symmetric(Xhat'Xhat))
-    coef = ldiv!(crossx, Xhat'y)
+    Xy = crossprod(vcat(eachcol(Xhat), eachcol(y)))
+    crossx = Xy[1:(end-1),(1:(end-1))]
+    invsym!(Xy; diagonal = 1:size(Xhat, 2))
+    invcrossx = Symmetric(.- Xy[1:(end-1),(1:(end-1))])
+    coef = Xy[1:(end-1),end]
 
     ##############################################################################
     ##
@@ -453,9 +456,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes)
+    vcov_data = Vcov.VcovData(Xhat, crossx, invcrossx, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
-
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
     # dof_ is the number of estimated coefficients beyond the intercept.
@@ -465,15 +467,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # Compute Fstat of First Stage
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        try 
+        #try 
             r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                               vcov_method, size(X, 2), dof_fes)
             p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
             F_kp = r_kp / size(Z_res, 2)
-        catch
-            @info "ranktest failed ; first-stage statistics not estimated"
-            p_kp, F_kp = NaN, NaN
-        end
+       # catch
+       #     @info "ranktest failed ; first-stage statistics not estimated"
+       #     p_kp, F_kp = NaN, NaN
+       # end
     end
 
     # Compute rss, tss
