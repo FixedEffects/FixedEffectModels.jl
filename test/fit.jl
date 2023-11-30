@@ -1,6 +1,6 @@
-using CUDA, Metal, FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
+using FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
 using FixedEffectModels: nullloglikelihood_within
-
+using CUDA, Metal
 
 ##############################################################################
 ##
@@ -723,7 +723,6 @@ end
 
 @testset "missings" begin
 
-	# Missing
 	df1 = DataFrame(a=[1.0, 2.0, 3.0, 4.0], b=[5.0, 7.0, 11.0, 13.0])
 	df2 = DataFrame(a=[1.0, missing, 3.0, 4.0], b=[5.0, 7.0, 11.0, 13.0])
 	x = reg(df1, @formula(a ~ b))
@@ -742,7 +741,3 @@ end
 	x = reg(df1, @formula(a ~ b + fe(c)))
 	@test coef(x) ≈ [0.5] atol = 1e-4
 end
-
-
-
-

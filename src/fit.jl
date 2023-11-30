@@ -330,7 +330,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
-    	basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
+    	basis_all = basis(Xexo, Z, eachcol(Xendo)...; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
@@ -354,7 +354,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            basis_all = basis(eachcol(Xexo)..., eachcol(Z)..., eachcol(Xendo)...; has_intercept = has_intercept)
+            basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
@@ -366,7 +366,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # Build
         newZ = hcat(Xexo, Z)
-        Pi = ldiv!(cholesky!(Symmetric(newZ'newZ)), newZ'Xendo)
+        Pi = ls_solve(newZ, Xendo)
         Xhat = hcat(Xexo, newZ * Pi)
         X = hcat(Xexo, Xendo)
 
@@ -374,14 +374,14 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         ## partial out Xendo in place wrt (Xexo, Z)
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
         ## partial out Z in place wrt Xexo
-        Pi2 = ldiv!(cholesky!(Symmetric(Xexo'Xexo)), Xexo'Z)
+        Pi2 = ls_solve(Xexo, Z)
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
         notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
-        basis_Xexo = basis(eachcol(Xexo)...; has_intercept = has_intercept) .* notcollinear_fe_exo
+        basis_Xexo = basis(Xexo; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
         X = Xexo
@@ -393,9 +393,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
-
-    crossx = cholesky!(Symmetric(Xhat'Xhat))
-    coef = ldiv!(crossx, Xhat'y)
+    crossx = Xhat' * Xhat
+    Xy = Symmetric(hvcat(2, crossx, Xhat'y, zeros(size(Xhat, 2))', [0.0]))
+    invsym!(Xy; diagonal = 1:size(Xhat, 2))
+    invcrossx = Symmetric(.- Xy[1:(end-1),1:(end-1)])
+    coef = Xy[1:(end-1),end]
 
     ##############################################################################
     ##
@@ -453,9 +455,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, residuals, nobs - size(X, 2) - dof_fes)
+    vcov_data = Vcov.VcovData(Xhat, crossx, invcrossx, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
-
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
     # dof_ is the number of estimated coefficients beyond the intercept.
@@ -465,15 +466,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # Compute Fstat of First Stage
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        try 
+        #try 
             r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
                               vcov_method, size(X, 2), dof_fes)
             p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
             F_kp = r_kp / size(Z_res, 2)
-        catch
-            @info "ranktest failed ; first-stage statistics not estimated"
-            p_kp, F_kp = NaN, NaN
-        end
+       # catch
+       #     @info "ranktest failed ; first-stage statistics not estimated"
+       #     p_kp, F_kp = NaN, NaN
+       # end
     end
 
     # Compute rss, tss
