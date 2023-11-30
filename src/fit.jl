@@ -321,13 +321,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         perm = 1:(n_exo + n_endo)
 
         # first pass: remove colinear variables in Xendo
-        notcollinear_fe_endo = collinear_fe[find_cols_endo(n_exo, n_endo)] .== false
+        notcollinear_fe_endo = collinear_fe[(n_exo+2):(n_exo+n_endo+1)] .== false
     	basis_endo = basis(Xendo; has_intercept = false) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
-        notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
-        notcollinear_fe_z = collinear_fe[find_cols_z(n_exo, n_endo, n_z)] .== false
+        notcollinear_fe_exo = collinear_fe[2:(n_exo+1)] .== false
+        notcollinear_fe_z = collinear_fe[(n_exo+n_endo+2):(n_exo+n_endo+n_z+1)] .== false
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
 
     	basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
@@ -380,7 +380,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # get linearly independent columns
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
-        notcollinear_fe_exo = collinear_fe[find_cols_exo(n_exo)] .== false
+        notcollinear_fe_exo = collinear_fe[2:(n_exo+1)] .== false
         basis_Xexo = basis(Xexo; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
         Xhat = Xexo
