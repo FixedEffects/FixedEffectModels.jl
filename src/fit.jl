@@ -349,7 +349,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
 
-            # Change coef_names and oldX
             # TODO: I should probably also change formula in this case so that predict still works 
             ans = 1:length(basis_endo)
             ans = vcat(ans[.!basis_endo2], ans[basis_endo2])
@@ -368,15 +367,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
         if !all(basis_Xexo)
         	Xexo = Xexo[:, basis_Xexo]
+            XexoXexo = XexoXexo[basis_Xexo, basis_Xexo]
+            XexoXendo = XexoXendo[basis_Xexo, :]
         end
         if !all(basis_Z)
         	Z = Z[:, basis_Z]
+            ZZ = ZZ[basis_Z, basis_Z]
+            ZXendo = ZXendo[basis_Z, :]
         end
-        @views XexoXexo = XexoXexo[basis_Xexo, basis_Xexo]
-        @views XexoXendo = XexoXendo[basis_Xexo, :]
-        @views ZZ = ZZ[basis_Z, basis_Z]
-        @views ZXendo = ZXendo[basis_Z, :]
-        @views XexoZ = XexoZ[basis_Xexo, basis_Z]
+        XexoZ = XexoZ[basis_Xexo, basis_Z]
         size(ZXendo, 1) >= size(ZXendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
         basis_coef = vcat(basis_Xexo, basis_endo[basis_endo_small])
 
@@ -384,7 +383,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         newZ = hcat(Xexo, Z)
         # now create Pi = newZ \ Xendo
         newZnewZ = hvcat(2,  XexoXexo, XexoZ, 
-                           XexoZ', ZZ)
+                             XexoZ', ZZ)
         newZXendo = vcat(XexoXendo, ZXendo)
         Pi = ls_solve!(Symmetric(hvcat(2, newZnewZ, newZXendo,
                                 zeros(size(newZXendo')), zeros(size(Xendo, 2), size(Xendo, 2)))), 
