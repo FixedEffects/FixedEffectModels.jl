@@ -334,10 +334,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                            zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                            zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
     	basis_all = basis!(XexoZXendo; has_intercept = has_intercept)
-        basis_Xexo = basis_all[1:size(Xexo, 2)]
-        basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
-        basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
-
+        basis_Xexo, basis_Z, basis_endo_small = basis_all[1:size(Xexo, 2)], basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))], basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, Xendo[:, .!basis_endo_small])
