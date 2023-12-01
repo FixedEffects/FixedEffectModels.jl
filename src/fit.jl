@@ -215,7 +215,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # collect all variable names (outcome, exo [, endo, iv])
-    var_names_all = [response_name; coef_names]
+    var_names_all = vcat(response_name, coef_names)
 
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
@@ -281,7 +281,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             if i == 1
                 @info "Dependent variable $(var_names_all[1]) is probably perfectly explained by fixed effects (tol = $collinear_tol)."
             else
-                @info "RHS-variable $(var_names_all[i]) is probably collinear with the fixed effects (tol = $collinear_tol)."
+                @info "RHS-variable $(var_names_all[i]) is collinear with the fixed effects (tol = $collinear_tol)."
+                # set to zero so that removed when taking basis
+                cols[i] .= 0.0
             end
         end
 
@@ -305,9 +307,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
     end
     
-
-
-
     ##############################################################################
     ##
     ## Get Linearly Independent Components of Matrix
@@ -315,19 +314,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##############################################################################
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv    	
-        n_exo = size(Xexo, 2)
-        n_endo = size(Xendo, 2)
-        n_z = size(Z, 2)
-        perm = 1:(n_exo + n_endo)
+        perm = 1:(size(Xexo, 2) +size(Xendo, 2))
 
-        # first pass: remove colinear variables in Xendo
-        notcollinear_fe_endo = .!collinear_fe[(n_exo+2):(n_exo+n_endo+1)]
+        # first pass: remove collinear variables in Xendo
         XendoXendo = Symmetric(Xendo' * Xendo)
-    	basis_endo = basis(XendoXendo; has_intercept = false) .* notcollinear_fe_endo
+    	basis_endo = basis(XendoXendo; has_intercept = false)
     	Xendo = getcols(Xendo, basis_endo)
         XendoXendo = getrowscols(XendoXendo, basis_endo)
 
-    	# second pass: remove colinear variable in Xexo, Z, and Xendo
+    	# second pass: remove collinear variable in Xexo, Z, and Xendo
         XexoXexo = Xexo'Xexo
         XexoZ = Xexo'Z
         XexoXendo = Xexo'Xendo
@@ -337,18 +332,19 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                            zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                            zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
     	basis_all = basis(XexoZXendo; has_intercept = has_intercept)
-
-        notcollinear_fe_exo = .!collinear_fe[2:(n_exo+1)]
-        notcollinear_fe_z = .!collinear_fe[(n_exo+n_endo+2):(n_exo+n_endo+n_z+1)]
-        notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
-        basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
-        basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
-        basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
+        basis_Xexo = basis_all[1:size(Xexo, 2)]
+        basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
+        basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
+            XexoXexo = Xexo'Xexo
+            XexoZ = Xexo'Z
             Xendo = getcols(Xendo, basis_endo_small)
- 
+            XexoXendo = Xexo'Xendo
+            ZXendo = Z'Xendo
+            XendoXendo = Xendo'Xendo
+
             # out returns false for endo collinear with instruments
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
@@ -363,11 +359,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            XexoXexo = Xexo'Xexo
-            XexoZ = Xexo'Z
-            XexoXendo = Xexo'Xendo
-            ZXendo = Z'Xendo
-            XendoXendo = Xendo'Xendo
             XexoZXendo = Symmetric(hvcat(3, XexoXexo, XexoZ, XexoXendo, 
                                zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                                zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
@@ -377,17 +368,17 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
     	Xexo = getcols(Xexo, basis_Xexo)
     	Z = getcols(Z, basis_Z)
+        XexoXexo = XexoXexo[basis_Xexo, basis_Xexo]
+        XexoXendo = XexoXendo[basis_Xexo, :]
+        ZZ = ZZ[basis_Z, basis_Z]
+        ZXendo = ZXendo[basis_Z, :]
+        XexoZ = XexoZ[basis_Xexo, basis_Z]
         size(Z, 2) >= size(Xendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
         basis_coef = vcat(basis_Xexo, basis_endo[basis_endo_small])
 
         # Build
         newZ = hcat(Xexo, Z)
         # now create Pi = newZ \ Xendo
-        XexoXexo = Xexo'Xexo
-        XexoZ = Xexo'Z
-        XexoXendo = Xexo'Xendo
-        ZXendo = Z'Xendo
-        ZZ = Z'Z
         newZnewZ = Symmetric(hvcat(2,  XexoXexo, XexoZ, 
                            XexoZ', ZZ))
         newZXendo = vcat(XexoXendo, ZXendo)
@@ -408,11 +399,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
-        n_exo = size(Xexo, 2)
-        perm = 1:n_exo
-        notcollinear_fe_exo = .!collinear_fe[2:(n_exo+1)]
-        XexoXexo = Symmetric(Xexo'Xexo)
-        basis_Xexo = basis(XexoXexo; has_intercept = has_intercept) .* notcollinear_fe_exo
+        perm = 1:size(Xexo, 2)
+        XexoXexo = Xexo'Xexo
+        basis_Xexo = basis(Symmetric(XexoXexo); has_intercept = has_intercept)
         Xexo = getcols(Xexo, basis_Xexo)
         XexoXexo = Symmetric(getrowscols(XexoXexo, basis_Xexo))
         Xhat = Xexo
