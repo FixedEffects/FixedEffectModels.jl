@@ -250,6 +250,10 @@ using CUDA, Metal
 	x = reg(df, m)
 	@test iszero(coef(x)[2]) || iszero(coef(x)[3])
 
+	m = @formula Sales ~  (Price + Price2 ~ Pimin + NDI)
+	x = reg(df, m)
+	@test iszero(coef(x)[2]) || iszero(coef(x)[3])
+
 
 	## endogeneous variables collinear with instruments are reclassified
 	df.zPimin = df.Pimin

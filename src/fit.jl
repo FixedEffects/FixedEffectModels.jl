@@ -335,6 +335,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                            zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
     	basis_all = basis!(XexoZXendo; has_intercept = has_intercept)
         basis_Xexo, basis_Z, basis_endo_small = basis_all[1:size(Xexo, 2)], basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))], basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
+        # basis_endo_small has same length as number of basis_endo who are true
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, Xendo[:, .!basis_endo_small])
@@ -348,22 +349,20 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             # out returns false for endo collinear with instruments
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
-
             # TODO: I should probably also change formula in this case so that predict still works 
             ans = 1:length(basis_endo)
             ans = vcat(ans[.!basis_endo2], ans[basis_endo2])
             perm = vcat(1:length(basis_Xexo), length(basis_Xexo) .+ ans)
-
+            # there are basis_endo - basis_endo_small in endo
             out = join(coefendo_names[.!basis_endo2], " ")
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
-                                    
+            
             # third pass
             XexoZXendo = Symmetric(hvcat(3, XexoXexo, XexoZ, XexoXendo, 
                                zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                                zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
             basis_all = basis!(XexoZXendo; has_intercept = has_intercept)
-            basis_Xexo = basis_all[1:size(Xexo, 2)]
-            basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
+            basis_Xexo, basis_Z, basis_endo_small2 = basis_all[1:size(Xexo, 2)], basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))], basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
         end
         if !all(basis_Xexo)
         	Xexo = Xexo[:, basis_Xexo]
@@ -377,7 +376,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
         XexoZ = XexoZ[basis_Xexo, basis_Z]
         size(ZXendo, 1) >= size(ZXendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
-        basis_coef = vcat(basis_Xexo, basis_endo[basis_endo_small])
+        # basis_endo is true for stuff non colinear
+        # I need to have same vector but removeing the true that have been reclassified as exo and replace them by nothing.  so i need to create a vector equal to false if non endo and non basis_endo_small, which is basis_endo2
+        basis_endo2 = trues(length(basis_endo))
+        basis_endo2[basis_endo] = basis_endo_small
+        basis_coef = vcat(basis_Xexo, basis_endo[basis_endo2])
 
         # Build
         newZ = hcat(Xexo, Z)
