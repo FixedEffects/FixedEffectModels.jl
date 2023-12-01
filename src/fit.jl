@@ -319,8 +319,10 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # first pass: remove collinear variables in Xendo
         XendoXendo = Xendo' * Xendo
     	basis_endo = basis!(Symmetric(deepcopy(XendoXendo)); has_intercept = false)
-    	Xendo = getcols(Xendo, basis_endo)
-        XendoXendo = getrowscols(XendoXendo, basis_endo)
+        if !all(basis_endo)
+        	Xendo = Xendo[:, basis_endo]
+            XendoXendo = XendoXendo[basis_endo, basis_endo]
+        end
 
     	# second pass: remove collinear variable in Xexo, Z, and Xendo
         XexoXexo = Xexo'Xexo
@@ -338,8 +340,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
-            Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
-            Xendo = getcols(Xendo, basis_endo_small)
+            Xexo = hcat(Xexo, Xendo[:, .!basis_endo_small])
+            Xendo = Xendo[:, basis_endo_small]
             XexoXexo = Xexo'Xexo
             XexoZ = Xexo'Z
             XexoXendo = Xexo'Xendo
@@ -367,14 +369,18 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
-    	Xexo = getcols(Xexo, basis_Xexo)
-    	Z = getcols(Z, basis_Z)
-        XexoXexo = XexoXexo[basis_Xexo, basis_Xexo]
-        XexoXendo = XexoXendo[basis_Xexo, :]
-        ZZ = ZZ[basis_Z, basis_Z]
-        ZXendo = ZXendo[basis_Z, :]
-        XexoZ = XexoZ[basis_Xexo, basis_Z]
-        size(Z, 2) >= size(Xendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
+        if !all(basis_Xexo)
+        	Xexo = Xexo[:, basis_Xexo]
+        end
+        if !all(basis_Z)
+        	Z = Z[:, basis_Z]
+        end
+        @views XexoXexo = XexoXexo[basis_Xexo, basis_Xexo]
+        @views XexoXendo = XexoXendo[basis_Xexo, :]
+        @views ZZ = ZZ[basis_Z, basis_Z]
+        @views ZXendo = ZXendo[basis_Z, :]
+        @views XexoZ = XexoZ[basis_Xexo, basis_Z]
+        size(ZXendo, 1) >= size(ZXendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
         basis_coef = vcat(basis_Xexo, basis_endo[basis_endo_small])
 
         # Build
@@ -384,7 +390,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                            XexoZ', ZZ)
         newZXendo = vcat(XexoXendo, ZXendo)
         Pi = ls_solve!(Symmetric(hvcat(2, newZnewZ, newZXendo,
-                                zeros(size(Xendo, 2), size(newZ, 2)), zeros(size(Xendo, 2), size(Xendo, 2)))), size(newZnewZ, 2))
+                                zeros(size(newZXendo')), zeros(size(Xendo, 2), size(Xendo, 2)))), 
+                       size(newZnewZ, 2))
         newnewZ = newZ * Pi
         Xhat = hcat(Xexo, newnewZ)
         XhatXhat = Symmetric(hvcat(2,  XexoXexo, Xexo'newnewZ, 
@@ -403,10 +410,12 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         perm = 1:size(Xexo, 2)
         XexoXexo = Xexo'Xexo
         basis_Xexo = basis!(Symmetric(deepcopy(XexoXexo)); has_intercept = has_intercept)
-        Xexo = getcols(Xexo, basis_Xexo)
-        XexoXexo = getrowscols(XexoXexo, basis_Xexo)
+        if !all(basis_Xexo)
+            Xexo = Xexo[:, basis_Xexo]
+            XexoXexo = XexoXexo[basis_Xexo, basis_Xexo]
+        end
         Xhat = Xexo
-        XhatXhat = XexoXexo
+        XhatXhat = Symmetric(XexoXexo)
         X = Xexo
         basis_coef = basis_Xexo
     end
@@ -440,7 +449,10 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     augmentdf = DataFrame()
     if save_fe
-        oldX = getcols(oldX[:, perm], basis_coef)
+        oldX = oldX[:, perm]
+        if !all(basis_coef)
+            oldX = oldX[:, basis_coef]
+        end
         newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
         for fekey in fekeys
             augmentdf[!, fekey] = df[:, fekey]

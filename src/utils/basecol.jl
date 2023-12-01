@@ -32,14 +32,10 @@ function basis!(XX::Symmetric; has_intercept = false)
     return diag(invXX) .< 0
 end
 
-function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
-    sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
-end
 
-function getrowscols(XX::AbstractMatrix,  basecolX::AbstractVector)
-    sum(basecolX) == size(XX, 2) ? XX : XX[basecolX, basecolX]
-end
-
+#solve X \ y. Take as input the matrix [X'X, X'y
+#                                        y'X, y'y]
+# (but only upper matters)
 function ls_solve!(Xy::Symmetric, nx)
     if nx > 0
         invsym!(Xy, diagonal = 1:nx)
