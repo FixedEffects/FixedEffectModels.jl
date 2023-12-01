@@ -1,17 +1,3 @@
-# create the matrix X'X
-crossprod(x1) = Symmetric(x1'x1)
-
-function crossprod(x1, x2)
-    Symmetric(hvcat(2, x1'x1, x1'x2, 
-                       zeros(size(x2, 2), size(x1, 2)), x2'x2))
-end
-
-function crossprod(x1, x2, x3)
-    Symmetric(hvcat(3, x1'x1, x1'x2, x1'x3, 
-                       zeros(size(x2, 2), size(x1, 2)), x2'x2, x2'x3, 
-                       zeros(size(x3, 2), size(x1, 2)), zeros(size(x3, 2), size(x2, 2)), x3'x3))
-end
-
 # generalized 2inverse
 #actually return minus the symmetric
 function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal = 1:size(X, 2))
@@ -38,25 +24,23 @@ function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal
     return X
 end
 
-## Returns base of [A B C ...]
-## Important: it must be the case that it returns the in order, that is [A B A] returns [true true false] not [false true true]
-function basis(xs...; has_intercept = false)
-    invXX = invsym!(crossprod(xs...); has_intercept = has_intercept, setzeros = true)
+## Returns base of X = [A B C ...]. Takes as input the matrix X'X (actuallyjust its right upper-triangular)
+## Important: it must be the case that colinear are first columbs in the bsae in the order of columns
+## that is [A B A] returns [true true false] not [false true true]
+function basis!(XX::Symmetric; has_intercept = false)
+    invXX = invsym!(XX; has_intercept = has_intercept, setzeros = true)
     return diag(invXX) .< 0
 end
 
-function getcols(X::AbstractMatrix,  basecolX::AbstractVector)
-    sum(basecolX) == size(X, 2) ? X : X[:, basecolX]
-end
 
-function ls_solve(X, y::AbstractVector)
-    Xy = crossprod(X, y)
-    invsym!(Xy, diagonal = 1:size(X, 2))
-    return Xy[1:size(X, 2),end]
-end
-
-function ls_solve(X, Y::AbstractMatrix)
-    XY = crossprod(X, Y)
-    invsym!(XY, diagonal = 1:size(X, 2))
-    return XY[1:size(X, 2),(end-size(Y, 2)+1):end]
+#solve X \ y. Take as input the matrix [X'X, X'y
+#                                        y'X, y'y]
+# (but only upper matters)
+function ls_solve!(Xy::Symmetric, nx)
+    if nx > 0
+        invsym!(Xy, diagonal = 1:nx)
+        return Xy[1:nx, (nx+1):end]
+    else
+        return zeros(Float64, 0, size(Xy, 2) - nx)
+    end
 end

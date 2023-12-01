@@ -12,19 +12,21 @@ y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 # first time
 @time reg(df, @formula(y ~ x1 + x2))
-# 3.5s
+# 1.823s
 @time reg(df, @formula(y ~ x1 + x2))
-# 0.497374 seconds (450 allocations: 691.441 MiB, 33.18% gc time)
+# 0.353469 seconds (441 allocations: 691.439 MiB, 3.65% gc time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
-# 1.898018 seconds (7.10 M allocations: 1.220 GiB, 8.20% gc time, 4.46% compilation time)
+# 0.763999 seconds (2.96 M allocations: 967.418 MiB, 2.29% gc time, 54.39% compilation time: 5% of which was recompilation)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
-# 0.605172 seconds (591 allocations: 768.939 MiB, 42.38% gc time)
+# 0.401544 seconds (622 allocations: 768.943 MiB, 3.52% gc time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
 # 0.893835 seconds (1.03 k allocations: 929.130 MiB, 54.19% gc time)
+@time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
+#   0.474160 seconds (1.13 k allocations: 933.340 MiB, 1.74% gc time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)), Vcov.cluster(:id1))
-# 1.015078 seconds (1.18 k allocations: 1008.532 MiB, 56.50% gc time)
+#   0.598816 seconds (261.08 k allocations: 1.007 GiB, 8.29% gc time, 9.21% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-# 1.835464 seconds (4.02 k allocations: 1.057 GiB, 35.59% gc time)
+# 1.584573 seconds (489.64 k allocations: 1.094 GiB, 2.10% gc time, 8.53% compilation time)
 
 # More complicated setup
 N = 800000 # number of observations
@@ -38,6 +40,10 @@ y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
 # 2.504294 seconds (75.83 k allocations: 95.525 MiB, 0.23% gc time)
+# for some reason in 1.10 I now get worse time (iter 200)
+#  4.709078 seconds (108.98 k allocations: 101.417 MiB)
+
+
 
 
 +# fixest
