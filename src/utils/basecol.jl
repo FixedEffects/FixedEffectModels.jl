@@ -24,10 +24,11 @@ function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal
     return X
 end
 
-## Returns base of X = [A B C ...]. Takes as input the matrix X'X
-## Important: it must be the case that it returns the in order, that is [A B A] returns [true true false] not [false true true]
-function basis(XX; has_intercept = false)
-    invXX = invsym!(deepcopy(XX); has_intercept = has_intercept, setzeros = true)
+## Returns base of X = [A B C ...]. Takes as input the matrix X'X (actuallyjust its right upper-triangular)
+## Important: it must be the case that colinear are first columbs in the bsae in the order of columns
+## that is [A B A] returns [true true false] not [false true true]
+function basis!(XX::Symmetric; has_intercept = false)
+    invXX = invsym!(XX; has_intercept = has_intercept, setzeros = true)
     return diag(invXX) .< 0
 end
 
@@ -39,7 +40,7 @@ function getrowscols(XX::AbstractMatrix,  basecolX::AbstractVector)
     sum(basecolX) == size(XX, 2) ? XX : XX[basecolX, basecolX]
 end
 
-function ls_solve(Xy, nx)
+function ls_solve!(Xy::Symmetric, nx)
     if nx > 0
         invsym!(Xy, diagonal = 1:nx)
         return Xy[1:nx, (nx+1):end]

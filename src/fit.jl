@@ -317,8 +317,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         perm = 1:(size(Xexo, 2) +size(Xendo, 2))
 
         # first pass: remove collinear variables in Xendo
-        XendoXendo = Symmetric(Xendo' * Xendo)
-    	basis_endo = basis(XendoXendo; has_intercept = false)
+        XendoXendo = Xendo' * Xendo
+    	basis_endo = basis!(Symmetric(deepcopy(XendoXendo)); has_intercept = false)
     	Xendo = getcols(Xendo, basis_endo)
         XendoXendo = getrowscols(XendoXendo, basis_endo)
 
@@ -331,16 +331,17 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         XexoZXendo = Symmetric(hvcat(3, XexoXexo, XexoZ, XexoXendo, 
                            zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                            zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
-    	basis_all = basis(XexoZXendo; has_intercept = has_intercept)
+    	basis_all = basis!(XexoZXendo; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)]
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
+
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
+            Xendo = getcols(Xendo, basis_endo_small)
             XexoXexo = Xexo'Xexo
             XexoZ = Xexo'Z
-            Xendo = getcols(Xendo, basis_endo_small)
             XexoXendo = Xexo'Xendo
             ZXendo = Z'Xendo
             XendoXendo = Xendo'Xendo
@@ -362,7 +363,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             XexoZXendo = Symmetric(hvcat(3, XexoXexo, XexoZ, XexoXendo, 
                                zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                                zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
-            basis_all = basis(XexoZXendo; has_intercept = has_intercept)
+            basis_all = basis!(XexoZXendo; has_intercept = has_intercept)
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
@@ -379,10 +380,10 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # Build
         newZ = hcat(Xexo, Z)
         # now create Pi = newZ \ Xendo
-        newZnewZ = Symmetric(hvcat(2,  XexoXexo, XexoZ, 
-                           XexoZ', ZZ))
+        newZnewZ = hvcat(2,  XexoXexo, XexoZ, 
+                           XexoZ', ZZ)
         newZXendo = vcat(XexoXendo, ZXendo)
-        Pi = ls_solve(Symmetric(hvcat(2, newZnewZ, newZXendo,
+        Pi = ls_solve!(Symmetric(hvcat(2, newZnewZ, newZXendo,
                                 zeros(size(Xendo, 2), size(newZ, 2)), zeros(size(Xendo, 2), size(Xendo, 2)))), size(newZnewZ, 2))
         newnewZ = newZ * Pi
         Xhat = hcat(Xexo, newnewZ)
@@ -394,16 +395,16 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
         ## partial out Z in place wrt Xexo
         # Now create Pi2 = Xexo \ Z
-        Pi2 = ls_solve(Symmetric(hvcat(2, XexoXexo, XexoZ,
+        Pi2 = ls_solve!(Symmetric(hvcat(2, XexoXexo, XexoZ,
                                 zeros(size(Z, 2), size(Xexo, 2)), ZZ)), size(Xexo, 2))
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
         perm = 1:size(Xexo, 2)
         XexoXexo = Xexo'Xexo
-        basis_Xexo = basis(Symmetric(XexoXexo); has_intercept = has_intercept)
+        basis_Xexo = basis!(Symmetric(deepcopy(XexoXexo)); has_intercept = has_intercept)
         Xexo = getcols(Xexo, basis_Xexo)
-        XexoXexo = Symmetric(getrowscols(XexoXexo, basis_Xexo))
+        XexoXexo = getrowscols(XexoXexo, basis_Xexo)
         Xhat = Xexo
         XhatXhat = XexoXexo
         X = Xexo
@@ -415,7 +416,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
-    Xy = Symmetric(hvcat(2, deepcopy(XhatXhat), Xhat'y, zeros(size(Xhat, 2))', [0.0]))
+    Xy = Symmetric(hvcat(2, XhatXhat, Xhat'y, 
+                         zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
     invXhatXhat = Symmetric(.- Xy[1:(end-1),1:(end-1)])
     coef = Xy[1:(end-1),end]
