@@ -321,26 +321,34 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         perm = 1:(n_exo + n_endo)
 
         # first pass: remove colinear variables in Xendo
-        notcollinear_fe_endo = collinear_fe[(n_exo+2):(n_exo+n_endo+1)] .== false
-    	basis_endo = basis(Xendo; has_intercept = false) .* notcollinear_fe_endo
+        notcollinear_fe_endo = .!collinear_fe[(n_exo+2):(n_exo+n_endo+1)]
+        XendoXendo = Symmetric(Xendo' * Xendo)
+    	basis_endo = basis(XendoXendo; has_intercept = false) .* notcollinear_fe_endo
     	Xendo = getcols(Xendo, basis_endo)
+        XendoXendo = getrowscols(XendoXendo, basis_endo)
 
     	# second pass: remove colinear variable in Xexo, Z, and Xendo
-        notcollinear_fe_exo = collinear_fe[2:(n_exo+1)] .== false
-        notcollinear_fe_z = collinear_fe[(n_exo+n_endo+2):(n_exo+n_endo+n_z+1)] .== false
+        XexoXexo = Xexo'Xexo
+        XexoZ = Xexo'Z
+        XexoXendo = Xexo'Xendo
+        ZZ = Z'Z
+        ZXendo = Z'Xendo
+        XexoZXendo = Symmetric(hvcat(3, XexoXexo, XexoZ, XexoXendo, 
+                           zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
+                           zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
+    	basis_all = basis(XexoZXendo; has_intercept = has_intercept)
+
+        notcollinear_fe_exo = .!collinear_fe[2:(n_exo+1)]
+        notcollinear_fe_z = .!collinear_fe[(n_exo+n_endo+2):(n_exo+n_endo+n_z+1)]
         notcollinear_fe_endo_small = notcollinear_fe_endo[basis_endo]
-
-
-    	basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
         basis_Xexo = basis_all[1:size(Xexo, 2)] .* notcollinear_fe_exo
         basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))] .* notcollinear_fe_z
         basis_endo_small = basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end] .* notcollinear_fe_endo_small
-
         if !all(basis_endo_small)
             # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, getcols(Xendo, .!basis_endo_small))
             Xendo = getcols(Xendo, basis_endo_small)
-
+ 
             # out returns false for endo collinear with instruments
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
@@ -355,11 +363,18 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
                                     
             # third pass
-            basis_all = basis(Xexo, Z, Xendo; has_intercept = has_intercept)
+            XexoXexo = Xexo'Xexo
+            XexoZ = Xexo'Z
+            XexoXendo = Xexo'Xendo
+            ZXendo = Z'Xendo
+            XendoXendo = Xendo'Xendo
+            XexoZXendo = Symmetric(hvcat(3, XexoXexo, XexoZ, XexoXendo, 
+                               zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
+                               zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
+            basis_all = basis(XexoZXendo; has_intercept = has_intercept)
             basis_Xexo = basis_all[1:size(Xexo, 2)]
             basis_Z = basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))]
         end
-
     	Xexo = getcols(Xexo, basis_Xexo)
     	Z = getcols(Z, basis_Z)
         size(Z, 2) >= size(Xendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
@@ -367,24 +382,41 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
         # Build
         newZ = hcat(Xexo, Z)
-        Pi = ls_solve(newZ, Xendo)
-        Xhat = hcat(Xexo, newZ * Pi)
+        # now create Pi = newZ \ Xendo
+        XexoXexo = Xexo'Xexo
+        XexoZ = Xexo'Z
+        XexoXendo = Xexo'Xendo
+        ZXendo = Z'Xendo
+        ZZ = Z'Z
+        newZnewZ = Symmetric(hvcat(2,  XexoXexo, XexoZ, 
+                           XexoZ', ZZ))
+        newZXendo = vcat(XexoXendo, ZXendo)
+        Pi = ls_solve(Symmetric(hvcat(2, newZnewZ, newZXendo,
+                                zeros(size(Xendo, 2), size(newZ, 2)), zeros(size(Xendo, 2), size(Xendo, 2)))), size(newZnewZ, 2))
+        newnewZ = newZ * Pi
+        Xhat = hcat(Xexo, newnewZ)
+        XhatXhat = Symmetric(hvcat(2,  XexoXexo, Xexo'newnewZ, 
+                           zeros(size(newnewZ, 2), size(Xexo, 2)), newnewZ'newnewZ))
         X = hcat(Xexo, Xendo)
-
         # prepare residuals used for first stage F statistic
         ## partial out Xendo in place wrt (Xexo, Z)
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
         ## partial out Z in place wrt Xexo
-        Pi2 = ls_solve(Xexo, Z)
+        # Now create Pi2 = Xexo \ Z
+        Pi2 = ls_solve(Symmetric(hvcat(2, XexoXexo, XexoZ,
+                                zeros(size(Z, 2), size(Xexo, 2)), ZZ)), size(Xexo, 2))
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
         n_exo = size(Xexo, 2)
         perm = 1:n_exo
-        notcollinear_fe_exo = collinear_fe[2:(n_exo+1)] .== false
-        basis_Xexo = basis(Xexo; has_intercept = has_intercept) .* notcollinear_fe_exo
+        notcollinear_fe_exo = .!collinear_fe[2:(n_exo+1)]
+        XexoXexo = Symmetric(Xexo'Xexo)
+        basis_Xexo = basis(XexoXexo; has_intercept = has_intercept) .* notcollinear_fe_exo
         Xexo = getcols(Xexo, basis_Xexo)
+        XexoXexo = Symmetric(getrowscols(XexoXexo, basis_Xexo))
         Xhat = Xexo
+        XhatXhat = XexoXexo
         X = Xexo
         basis_coef = basis_Xexo
     end
@@ -394,11 +426,10 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
-    
-    crossx = Xhat' * Xhat
-    Xy = Symmetric(hvcat(2, crossx, Xhat'y, zeros(size(Xhat, 2))', [0.0]))
+    XhatXhat = XhatXhat
+    Xy = Symmetric(hvcat(2, deepcopy(XhatXhat), Xhat'y, zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
-    invcrossx = Symmetric(.- Xy[1:(end-1),1:(end-1)])
+    invXhatXhat = Symmetric(.- Xy[1:(end-1),1:(end-1)])
     coef = Xy[1:(end-1),end]
 
     ##############################################################################
@@ -457,7 +488,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     # Compute standard error
-    vcov_data = Vcov.VcovData(Xhat, crossx, invcrossx, residuals, nobs - size(X, 2) - dof_fes)
+    vcov_data = Vcov.VcovData(Xhat, XhatXhat, invXhatXhat, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
