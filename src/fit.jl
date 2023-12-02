@@ -424,7 +424,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Do the regression
     ##
     ##############################################################################
-    Xy = Symmetric(hvcat(2, XhatXhat, Xhat'y, 
+    # use X'Y instead of X'y because of https://github.com/FixedEffects/FixedEffectModels.jl/issues/249
+    Xy = Symmetric(hvcat(2, XhatXhat, Xhat'reshape(y, length(y), 1), 
                          zeros(size(Xhat, 2))', [0.0]))
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
     invXhatXhat = Symmetric(.- Xy[1:(end-1),1:(end-1)])

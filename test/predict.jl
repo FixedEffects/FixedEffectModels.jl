@@ -66,7 +66,7 @@ end
     pred = predict(m, df)
     @test pred isa Vector{Union{Missing, Float64}}
     @test ismissing(pred[1])
-    @test pred[2:end] ≈ df.y[2:end]
+    @test norm(pred[2:end] .- df.y[2:end]) < 1e-6
 
     # Two groups + missing observation of non-FE
     df = DataFrame(x = [missing; rand(99)], g = rand(["a", "b"], 100))
