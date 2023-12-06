@@ -46,8 +46,9 @@ function partial_out(
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
     end
     formula, formula_endo, formula_iv = parse_iv(f)
-    has_iv = formula_iv !== nothing
+    has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
     has_iv && throw("partial_out does not support instrumental variables")
+    formula, formula_fes = parse_fe(formula)
     has_weights = weights !== nothing
 
 
@@ -63,7 +64,7 @@ function partial_out(
     convergeds = Bool[]
 
     # Build fixedeffects, an array of AbtractFixedEffects
-    fes, ids, ids_fes, formula = parse_fixedeffect(df, formula)
+    fes, ids, ids_fes = parse_fixedeffect(df, formula_fes)
     has_fes = !isempty(fes)
 
 

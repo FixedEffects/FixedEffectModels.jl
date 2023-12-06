@@ -84,32 +84,19 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     @nospecialize(first_stage::Bool = true))
 
     df = DataFrame(df; copycols = false)
-    N = size(df, 1)
+    nrows = size(df, 1)
+
+    ##############################################################################
+    ##
+    ## Keyword Arguments
+    ##
+    ##############################################################################
 
     if method == :gpu
         info("method = :gpu is deprecated. Use method = :CUDA or method = :Metal")
         method = :CUDA
     end
 
-    ##############################################################################
-    ##
-    ## Parse formula
-    ##
-    ##############################################################################
-
-    formula_origin = formula
-    if  !omitsintercept(formula) & !hasintercept(formula)
-        formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
-    end
-    formula, formula_endo, formula_iv = parse_iv(formula)
-    has_iv = formula_iv !== nothing
-    has_weights = weights !== nothing
-
-    ##############################################################################
-    ##
-    ## Save keyword argument
-    ##
-    ##############################################################################
     if save == true
         save = :all
     elseif save == false
@@ -124,49 +111,67 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         @warn "Keyword argument nthreads = $(nthreads) is ignored (Julia was started with only $(Threads.nthreads()) threads)."
         nthreads = Threads.nthreads()
     end
+
     ##############################################################################
     ##
-    ## Construct new dataframe after removing missing values
+    ## Parse formula
     ##
     ##############################################################################
 
-    # create a dataframe without missing values & negative weights
-    vars = StatsModels.termvars(formula)
-    iv_vars = Symbol[]
-    endo_vars = Symbol[]
-    if has_iv
-        iv_vars = StatsModels.termvars(formula_iv)
-        endo_vars = StatsModels.termvars(formula_endo)
+    formula_origin = formula
+    if !omitsintercept(formula) & !hasintercept(formula)
+        formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
     end
-    # create a dataframe without missing values & negative weights
-    all_vars = unique(vcat(vars, endo_vars, iv_vars))
+    formula, formula_endo, formula_iv = parse_iv(formula)
+    has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    formula, formula_fes = parse_fe(formula)
+    has_fes = formula_fes != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    save_fes = (save == :fe) | ((save == :all) & has_fes)
+    has_weights = weights !== nothing
 
+    # Compute feM, an AbstractFixedEffectSolver
+    fes, feids, fekeys = parse_fixedeffect(df, formula_fes)
+
+    # Change Intercept of Formula
+    has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
+    # remove intercept if absrobed by fixed effects
+    if has_fe_intercept
+        formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}))...))
+    end
+    has_intercept = hasintercept(formula)
+    ##############################################################################
+    ##
+    ## Construct new dataframe after removing missing values & negative weights
+    ##
+    ##############################################################################
+
+    # Get all variables
+    exo_vars = unique(StatsModels.termvars(formula))
+    iv_vars = unique(StatsModels.termvars(formula_iv))
+    endo_vars = unique(StatsModels.termvars(formula_endo))
+    fe_vars = unique(StatsModels.termvars(formula_fes))
+    all_vars = unique(vcat(exo_vars, endo_vars, iv_vars, fe_vars))
+
+    # Create esample that returns obs used in estimation
     esample = completecases(df, all_vars)
     if has_weights
         esample .&= BitArray(!ismissing(x) && (x > 0) for x in df[!, weights])
     end
     if subset !== nothing
-        if length(subset) != N
-            throw("df has $(N) rows but the subset vector has $(length(subset)) elements")
+        if length(subset) != nrows
+            throw("df has $(nrows) rows but the subset vector has $(length(subset)) elements")
         end
         esample .&= BitArray(!ismissing(x) && x for x in subset)
     end
     esample .&= Vcov.completecases(df, vcov)
-    fes, ids, fekeys, formula = parse_fixedeffect(df, formula)
-    has_fes = !isempty(fes)
     #TODO: add tests + return n_singletons
     n_singletons = 0
     if drop_singletons
         n_singletons = drop_singletons!(esample, fes)
     end
-    save_fe = (save == :fe) | ((save == :all) & has_fes)
-
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
-
-    if nobs == N
-        esample = Colon()
-    end
+    (nobs < nrows) || (esample = Colon())
 
     # Compute weights
     if has_weights
@@ -175,14 +180,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     else
         weights = uweights(nobs)
     end
-
-    # Compute feM, an AbstractFixedEffectSolver
-    has_intercept = hasintercept(formula)
-    has_fe_intercept = false
     if has_fes
-        if any(fe.interaction isa UnitWeights for fe in fes)
-            has_fe_intercept = true
-        end
         fes = FixedEffect[fe[esample] for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
     end
@@ -193,7 +191,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-    exo_vars = unique(StatsModels.termvars(formula))
     subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
     s = schema(formula, subdf, contrasts)
     formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
@@ -244,8 +241,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     collinear_fe = falses(length(var_names_all))
 
     if has_fes
-        # used to compute tss even without save_fe
-        if save_fe
+        # used to compute tss even without save_fes
+        if save_fes
             oldy = deepcopy(y)
             if has_iv
                 oldX = hcat(Xexo, Xendo)
@@ -437,7 +434,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     residuals = y - X * coef
     residuals2 = nothing
     if save_residuals
-        residuals2 = Vector{Union{Float64, Missing}}(missing, N)
+        residuals2 = Vector{Union{Float64, Missing}}(missing, nrows)
         if has_weights
             residuals2[esample] .= residuals ./ sqrt.(weights)
         else
@@ -446,7 +443,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     end
 
     augmentdf = DataFrame()
-    if save_fe
+    if save_fes
         oldX = oldX[:, perm]
         if !all(basis_coef)
             oldX = oldX[:, basis_coef]
@@ -456,8 +453,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             augmentdf[!, fekey] = df[:, fekey]
         end
         for j in eachindex(fes)
-            augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
-            augmentdf[esample, ids[j]] = newfes[j]
+            augmentdf[!, feids[j]] = Vector{Union{Float64, Missing}}(missing, nrows)
+            augmentdf[esample, feids[j]] = newfes[j]
         end
     end
 
@@ -550,7 +547,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
 
     if esample == Colon()
-        esample = trues(N)
+        esample = trues(nrows)
     end
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_fes_total, dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

@@ -14,21 +14,22 @@ eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
 ##############################################################################
 
 function parse_iv(@nospecialize(f::FormulaTerm))
-	for term in eachterm(f.rhs)
-		if term isa FormulaTerm
-            both = intersect(eachterm(term.lhs), eachterm(term.rhs))
-            endos = setdiff(eachterm(term.lhs), both)
-            exos = setdiff(eachterm(term.rhs), both)
-            # otherwise empty collection. Later, there will be check
-            isempty(endos) && throw("There are no endogeneous variables")
-            length(exos) < length(endos) && throw("Model not identified. There must be at least as many instrumental variables as endogeneneous variables")
-			formula_endo = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), endos...))
-			formula_iv = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), exos...))
-            formula_exo = FormulaTerm(f.lhs, tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm))..., both...))
-            return formula_exo, formula_endo, formula_iv
-		end
-	end
-	return f, nothing, nothing
+    i = findfirst(x -> x isa FormulaTerm, eachterm(f.rhs))
+    if i !== nothing 
+        term = eachterm(f.rhs)[i]
+        both = intersect(eachterm(term.lhs), eachterm(term.rhs))
+        endos = setdiff(eachterm(term.lhs), both)
+        exos = setdiff(eachterm(term.rhs), both)
+        # otherwise empty collection. Later, there will be check
+        isempty(endos) && throw("There are no endogeneous variables")
+        length(exos) < length(endos) && throw("Model not identified. There must be at least as many instrumental variables as endogeneneous variables")
+		formula_endo = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), endos...))
+		formula_iv = FormulaTerm(ConstantTerm(0), tuple(ConstantTerm(0), exos...))
+        formula_exo = FormulaTerm(f.lhs, tuple((term for term in eachterm(f.rhs) if !isa(term, FormulaTerm))..., both...))
+        return formula_exo, formula_endo, formula_iv
+	else
+    	return f, FormulaTerm(ConstantTerm(0), ConstantTerm(0)), FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    end
 end
 
 ##############################################################################
@@ -47,12 +48,24 @@ has_fe(::FixedEffectTerm) = true
 has_fe(::FunctionTerm{typeof(fe)}) = true
 has_fe(@nospecialize(t::InteractionTerm)) = any(has_fe(x) for x in t.terms)
 has_fe(::AbstractTerm) = false
-
 has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
+
+function parse_fe(@nospecialize(f::FormulaTerm))
+    if any(has_fe(term) for term in eachterm(f.rhs)) 
+        formula_main = FormulaTerm(f.lhs, tuple(ConstantTerm(0), (term for term in eachterm(f.rhs) if !has_fe(term))...))
+        formula_fe = FormulaTerm(ConstantTerm(0), Tuple(term for term in eachterm(f.rhs) if has_fe(term)))
+        return formula_main, formula_fe
+    else
+        return f, FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    end
+end
 
 
 fesymbol(t::FixedEffectTerm) = t.x
 fesymbol(t::FunctionTerm{typeof(fe)}) = Symbol(t.args[1])
+
+
+
 
 """
     parse_fixedeffect(data, formula::FormulaTerm)
@@ -68,24 +81,17 @@ Construct any `FixedEffect` specified with a `FixedEffectTerm`.
 """
 function parse_fixedeffect(data, @nospecialize(formula::FormulaTerm))
     fes = FixedEffect[]
-    ids = Symbol[]
+    feids = Symbol[]
     fekeys = Symbol[]
-     for term in eachterm(formula.rhs)
+    for term in eachterm(formula.rhs)
         result = _parse_fixedeffect(data, term)
         if result !== nothing
             push!(fes, result[1])
-            push!(ids, result[2])
+            push!(feids, result[2])
             append!(fekeys, result[3])
         end
     end
-    if !isempty(fes)
-        if any(fe.interaction isa UnitWeights for fe in fes)
-            formula = FormulaTerm(formula.lhs, (InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}) && !has_fe(term))...))
-        else
-            formula = FormulaTerm(formula.lhs, Tuple(term for term in eachterm(formula.rhs) if !has_fe(term)))
-        end
-    end
-    return fes, ids, unique(fekeys), formula
+    return fes, feids, unique(fekeys)
 end
 
 # Method for external packages
@@ -108,7 +114,7 @@ function parse_fixedeffect(data, @nospecialize(ts::NTuple{N, AbstractTerm})) whe
             ts = Tuple(term for term in eachterm(ts) if !has_fe(term))
         end
     end
-    return fes, ids, unique(fekeys), ts
+    return fes, ids, unique(fekeys)
 end
 
 # Construct FixedEffect from a generic term
