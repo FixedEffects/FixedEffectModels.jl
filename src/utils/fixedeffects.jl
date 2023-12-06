@@ -12,7 +12,7 @@ function drop_singletons!(esample, fes::Vector{<:FixedEffect))
         end
         push!(ns, drop_singletons!(esample, fe))
     end
-    n_singletons = sum(ns)
+    return sum(ns)
 end
 
 
