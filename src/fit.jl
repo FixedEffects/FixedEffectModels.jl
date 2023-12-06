@@ -156,12 +156,16 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     has_fes = !isempty(fes)
     #TODO: add tests + return n_singletons
     n_singletons = 0
-    while has_fes && drop_singletons
-        ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
-        n_singletons += sum(ns)
-        if sum(ns) == first(ns)
-            break
+    if drop_singletons
+        ns = Int[]
+        for fe in Iterators.cycle(fes)
+            # break loop if number of singletons did not change since the last time fe was iterated on
+            if length(ns) >= length(fes) && sum(view(ns, end-length(fes)+1, end)) == ns[end-length(fes)+1]
+                break
+            end
+            push!(ns, drop_singletons!(esample, fe))
         end
+        n_singletons = sum(ns)
     end
     save_fe = (save == :fe) | ((save == :all) & has_fes)
 
