@@ -157,7 +157,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     #TODO: add tests + return n_singletons
     n_singletons = 0
     if drop_singletons
-        drop_singletons!(esample, fes)
+        n_singletons = drop_singletons!(esample, fes)
     end
     save_fe = (save == :fe) | ((save == :all) & has_fes)
 
