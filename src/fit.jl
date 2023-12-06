@@ -155,7 +155,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     fes, ids, fekeys, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
     n_singletons = 0
-    if drop_singletons
+    if has_fes && drop_singletons
         while true
             ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
             n_singletons += sum(ns)
