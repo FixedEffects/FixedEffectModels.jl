@@ -157,7 +157,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     n_singletons = 0
     if drop_singletons
         while true
-            ns = [drop_singletons!(esample, fe) for fe in fes]
+            ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
             n_singletons += sum(ns)
             if sum(ns) == first(ns)
                 break
