@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-function drop_singletons!(esample, fes::Vector{<:FixedEffect))
+function drop_singletons!(esample, fes::Vector{<:FixedEffect})
     ns = Int[]
     for fe in Iterators.cycle(fes)
         # break loop if number of singletons did not change since the last time fe was iterated on
