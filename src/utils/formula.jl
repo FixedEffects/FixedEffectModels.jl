@@ -52,7 +52,7 @@ has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 function parse_fe(@nospecialize(f::FormulaTerm))
     if any(has_fe(term) for term in eachterm(f.rhs)) 
-        formula_main = FormulaTerm(f.lhs, tuple(ConstantTerm(0), (term for term in eachterm(f.rhs) if !has_fe(term))...))
+        formula_main = FormulaTerm(f.lhs, Tuple(term for term in eachterm(f.rhs) if !has_fe(term)))
         formula_fe = FormulaTerm(ConstantTerm(0), Tuple(term for term in eachterm(f.rhs) if has_fe(term)))
         return formula_main, formula_fe
     else
