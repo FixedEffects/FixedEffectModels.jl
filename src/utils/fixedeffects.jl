@@ -3,6 +3,7 @@
 ## Drop Singletons
 ##
 ##############################################################################
+
 function drop_singletons!(esample, fes::Vector{<:FixedEffect))
     ns = Int[]
     for fe in Iterators.cycle(fes)
@@ -14,9 +15,6 @@ function drop_singletons!(esample, fes::Vector{<:FixedEffect))
     end
     return sum(ns)
 end
-
-
-
 
 function drop_singletons!(esample, fe::FixedEffect)
     n = 0
