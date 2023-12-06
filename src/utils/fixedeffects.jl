@@ -5,6 +5,7 @@
 ##############################################################################
 
 function drop_singletons!(esample, fe::FixedEffect)
+    n = 0
     cache = zeros(Int, fe.n)
     @inbounds for i in eachindex(esample)
         if esample[i]
@@ -12,10 +13,12 @@ function drop_singletons!(esample, fe::FixedEffect)
         end
     end
     @inbounds for i in eachindex(esample)
-        if esample[i]
-            esample[i] = cache[fe.refs[i]] > 1
+        if esample[i] && (cache[fe.refs[i]] == 1)
+            esample[i] = false
+            n += 1
         end
     end
+    return n
 end
 
 ##############################################################################

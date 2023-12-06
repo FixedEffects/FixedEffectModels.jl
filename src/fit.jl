@@ -154,11 +154,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     esample .&= Vcov.completecases(df, vcov)
     fes, ids, fekeys, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
-    if has_fes
-        if drop_singletons
-            for fe in fes
-                drop_singletons!(esample, fe)
-            end
+    #TODO: add tests + return n_singletons
+    n_singletons = 0
+    while has_fes && drop_singletons
+        ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
+        n_singletons += sum(ns)
+        if sum(ns) == first(ns)
+            break
         end
     end
     save_fe = (save == :fe) | ((save == :all) & has_fes)
