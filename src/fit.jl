@@ -155,12 +155,12 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     fes, ids, fekeys, formula = parse_fixedeffect(df, formula)
     has_fes = !isempty(fes)
     n_singletons = 0
-    oln_singletons = 0
     if drop_singletons
-        while n_singletons > oldn_singletons
-            oldn_singletons = n_singletons
-            for fe in fes
-                n_singletons += drop_singletons!(esample, fe)
+        while true
+            ns = [drop_singletons!(esample, fe) for fe in fes]
+            n_singletons += sum(ns)
+            if sum(ns) == first(ns)
+                break
             end
         end
     end
