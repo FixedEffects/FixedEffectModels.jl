@@ -156,13 +156,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     has_fes = !isempty(fes)
     #TODO: add tests + return n_singletons
     n_singletons = 0
-    if has_fes && drop_singletons
-        while true
-            ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
-            n_singletons += sum(ns)
-            if sum(ns) == first(ns)
-                break
-            end
+    while has_fes && drop_singletons
+        ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
+        n_singletons += sum(ns)
+        if sum(ns) == first(ns)
+            break
         end
     end
     save_fe = (save == :fe) | ((save == :all) & has_fes)
