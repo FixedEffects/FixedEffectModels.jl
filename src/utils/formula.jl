@@ -12,10 +12,10 @@ eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
 ## Parse IV
 ##
 ##############################################################################
-
+has_iv(@nospecialize(f::FormulaTerm)) = any(x -> x isa FormulaTerm, eachterm(f.rhs))
 function parse_iv(@nospecialize(f::FormulaTerm))
-    i = findfirst(x -> x isa FormulaTerm, eachterm(f.rhs))
-    if i !== nothing 
+    if has_iv(f)
+        i = findfirst(x -> x isa FormulaTerm, eachterm(f.rhs))
         term = eachterm(f.rhs)[i]
         both = intersect(eachterm(term.lhs), eachterm(term.rhs))
         endos = setdiff(eachterm(term.lhs), both)
@@ -51,7 +51,7 @@ has_fe(::AbstractTerm) = false
 has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 function parse_fe(@nospecialize(f::FormulaTerm))
-    if any(has_fe(term) for term in eachterm(f.rhs)) 
+    if has_fe(f)
         formula_main = FormulaTerm(f.lhs, Tuple(term for term in eachterm(f.rhs) if !has_fe(term)))
         formula_fe = FormulaTerm(ConstantTerm(0), Tuple(term for term in eachterm(f.rhs) if has_fe(term)))
         return formula_main, formula_fe

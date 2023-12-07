@@ -212,6 +212,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # collect all variable names (outcome, exo [, endo, iv])
     var_names_all = vcat(response_name, coef_names)
 
+    Xendo = Array{Float64}(undef, 0, 0)
+    Z = Array{Float64}(undef, 0, 0)
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
@@ -235,11 +237,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
-    # initalize fields
-    iterations, converged, r2_within = 0, true, nothing
-    F_kp, p_kp = nothing, nothing
-    collinear_fe = falses(length(var_names_all))
 
+    iterations, converged = 0, true
     if has_fes
         # used to compute tss even without save_fes
         if save_fes
@@ -251,14 +250,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             end
         end
 
-        # initialize iterations and converged
-        iterations = Int[]
-        convergeds = Bool[]
-        cols = vcat(eachcol(y), eachcol(Xexo))
-        if has_iv
-            append!(cols, eachcol(Xendo), eachcol(Z))
-        end
 
+        cols = vcat(eachcol(y), eachcol(Xexo),eachcol(Xendo), eachcol(Z))
         # compute 2-norm (sum of squares) for each variable 
         # (to see if they are collinear with the fixed effects)
         sumsquares_pre = [sum(abs2, x) for x in cols]
@@ -266,19 +259,16 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # partial out fixed effects
         _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
-        # re-compute 2-norm (sum of squares) for each variable
-        sumsquares_post = [sum(abs2, x) for x in cols]
-
-        # mark variables that are likely to be collinear with the fixed effects
-        collinear_tol = min(1e-6, tol / 10)
-        collinear_fe = (sumsquares_post ./ sumsquares_pre) .< tol
-        for i in findall(collinear_fe)
-            if i == 1
-                @info "Dependent variable $(var_names_all[1]) is probably perfectly explained by fixed effects (tol = $collinear_tol)."
-            else
-                @info "RHS-variable $(var_names_all[i]) is collinear with the fixed effects (tol = $collinear_tol)."
-                # set to zero so that removed when taking basis
-                cols[i] .= 0.0
+        # set variables that are likely to be collinear with the fixed effects to zero
+        for (i, col) in enumerate(cols)
+            if sum(abs2, col) < tol * sumsquares_pre[i]
+                if i == 1
+                    @info "Dependent variable $(var_names_all[1]) is probably perfectly explained by fixed effects."
+                else
+                    @info "RHS-variable $(var_names_all[i]) is collinear with the fixed effects."
+                    # set to zero so that removed when taking basis
+                    cols[i] .= 0.0
+                end
             end
         end
 
@@ -288,7 +278,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         if converged == false
             @info "Convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
         end
-
         tss_partial = tss(y, has_intercept | has_fe_intercept, weights)
     end
 
@@ -479,21 +468,22 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
     end
 
-    nclusters = nothing
-    if vcov isa Vcov.ClusterCovariance
-        nclusters = Vcov.nclusters(vcov_method)
-    end
+    nclusters = vcov isa Vcov.ClusterCovariance ?  Vcov.nclusters(vcov_method) : nothing
 
     # Compute standard error
     vcov_data = Vcov.VcovData(Xhat, XhatXhat, invXhatXhat, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
+   
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
+   
     # dof_ is the number of estimated coefficients beyond the intercept.
     dof_ = size(X, 2) - has_intercept
     dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
+    
     # Compute Fstat of First Stage
+    F_kp, p_kp = NaN, NaN
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         try 
@@ -503,16 +493,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             F_kp = r_kp / size(Z_res, 2)
         catch
             @info "ranktest failed ; first-stage statistics not estimated"
-            p_kp, F_kp = NaN, NaN
         end
     end
 
     # Compute rss, tss
     rss = sum(abs2, residuals)
     mss = tss_total - rss
-    if has_fes
-        r2_within = 1 - rss / tss_partial
-    end
+    r2_within = has_fes ?  1 - rss / tss_partial : 1 - rss / tss_total
 
     ##############################################################################
     ##
@@ -549,5 +536,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     if esample == Colon()
         esample = trues(nrows)
     end
+
     return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_fes_total, dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end
