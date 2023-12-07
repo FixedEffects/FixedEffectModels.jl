@@ -318,7 +318,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             # out returns false for endo collinear with instruments
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
-            # TODO: I should probably also change formula in this case so that predict still works 
             ans = 1:length(basis_endo)
             ans = vcat(ans[.!basis_endo2], ans[basis_endo2])
             perm = vcat(1:length(basis_Xexo), length(basis_Xexo) .+ ans)
