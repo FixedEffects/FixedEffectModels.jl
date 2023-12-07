@@ -438,24 +438,21 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##
     ##############################################################################
     # Compute degrees of freedom
-    dof_fes_total = 0
     dof_fes = 0
-    if has_fes
-        for fe in fes
-            # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.groups) for v in values(vcov_method.clusters))
-                dof_fes += 1 # if fe is nested you still lose 1 degree of freedom
-            else
-                #only count groups that exists
-                dof_fes += nunique(fe)
-            end
-            dof_fes_total += nunique(fe)
+    dof_fes_total = 0
+    for fe in fes
+        # adjust degree of freedom only if fe is not fully nested in a cluster variable:
+        if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.groups) for v in values(vcov_method.clusters))
+            dof_fes += 1 # if fe is nested you still lose 1 degree of freedom
+        else
+            #only count groups that exists
+            dof_fes += nunique(fe)
         end
+        dof_fes_total += nunique(fe)
     end
 
-    nclusters = vcov isa Vcov.ClusterCovariance ?  Vcov.nclusters(vcov_method) : nothing
-
     # Compute standard error
+    nclusters = vcov isa Vcov.ClusterCovariance ?  Vcov.nclusters(vcov_method) : nothing
     vcov_data = Vcov.VcovData(Xhat, XhatXhat, invXhatXhat, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
    
