@@ -131,10 +131,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     # Compute feM, an AbstractFixedEffectSolver
     fes, feids, fekeys = parse_fixedeffect(df, formula_fes)
-
-    # Change Intercept of Formula
     has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
-    # remove intercept if absrobed by fixed effects
+    # remove intercept if absorbed by fixed effects
     if has_fe_intercept
         formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}))...))
     end
@@ -204,29 +202,22 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
     all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
 
-    response_name, coef_names = coefnames(formula_schema)
-    if !(coef_names isa Vector)
-        coef_names = typeof(coef_names)[coef_names]
-    end
-
-    # collect all variable names (outcome, exo [, endo, iv])
-    var_names_all = vcat(response_name, coef_names)
+    response_name, coefnames_exo = coefnames(formula_schema)
 
     Xendo = Array{Float64}(undef, 0, 0)
     Z = Array{Float64}(undef, 0, 0)
+    coefnames_endo = typeof(coefnames)[]
+    coefnames_iv = typeof(coefnames)[]
     if has_iv
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
         all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
-        _, coefendo_names = coefnames(formula_endo_schema)
-        append!(coef_names, coefendo_names)
-        append!(var_names_all, coefendo_names)
+        _, coefnames_endo = coefnames(formula_endo_schema)
 
         subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         _, coefnames_iv = coefnames(formula_iv_schema)
-        append!(var_names_all, coefnames_iv)
     
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
         all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
@@ -234,7 +225,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # modify formula to use in predict
         formula_schema = FormulaTerm(formula_schema.lhs, MatrixTerm(tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
     end
-
+    coef_names = vcat(coefnames_exo, coefnames_endo)
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
 
@@ -251,7 +242,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
 
 
-        cols = vcat(eachcol(y), eachcol(Xexo),eachcol(Xendo), eachcol(Z))
+        cols = vcat(eachcol(y), eachcol(Xexo), eachcol(Xendo), eachcol(Z))
+        colnames = vcat(response_name, coefnames_exo, coefnames_endo, coefnames_iv)
         # compute 2-norm (sum of squares) for each variable 
         # (to see if they are collinear with the fixed effects)
         sumsquares_pre = [sum(abs2, x) for x in cols]
@@ -263,9 +255,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         for (i, col) in enumerate(cols)
             if sum(abs2, col) < tol * sumsquares_pre[i]
                 if i == 1
-                    @info "Dependent variable $(var_names_all[1]) is probably perfectly explained by fixed effects."
+                    @info "Dependent variable $(colnames[1]) is probably perfectly explained by fixed effects."
                 else
-                    @info "RHS-variable $(var_names_all[i]) is collinear with the fixed effects."
+                    @info "RHS-variable $(colnames[i]) is collinear with the fixed effects."
                     # set to zero so that removed when taking basis
                     cols[i] .= 0.0
                 end
@@ -338,7 +330,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             ans = vcat(ans[.!basis_endo2], ans[basis_endo2])
             perm = vcat(1:length(basis_Xexo), length(basis_Xexo) .+ ans)
             # there are basis_endo - basis_endo_small in endo
-            out = join(coefendo_names[.!basis_endo2], " ")
+            out = join(coefnames_endo[.!basis_endo2], " ")
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
             
             # third pass
