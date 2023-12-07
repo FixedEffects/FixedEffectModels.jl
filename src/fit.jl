@@ -204,8 +204,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     response_name, coefnames_exo = coefnames(formula_schema)
 
-    Xendo = Array{Float64}(undef, 0, 0)
-    Z = Array{Float64}(undef, 0, 0)
+    Xendo = Array{Float64}(undef, nobs, 0)
+    Z = Array{Float64}(undef, nobs, 0)
     coefnames_endo = typeof(coefnames)[]
     coefnames_iv = typeof(coefnames)[]
     if has_iv
@@ -234,13 +234,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # used to compute tss even without save_fes
         if save_fes
             oldy = deepcopy(y)
-            if has_iv
-                oldX = hcat(Xexo, Xendo)
-            else
-                oldX = deepcopy(Xexo)
-            end
+            oldX = hcat(Xexo, Xendo)
         end
-
 
         cols = vcat(eachcol(y), eachcol(Xexo), eachcol(Xendo), eachcol(Z))
         colnames = vcat(response_name, coefnames_exo, coefnames_endo, coefnames_iv)
@@ -252,8 +247,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
         # set variables that are likely to be collinear with the fixed effects to zero
-        for (i, col) in enumerate(cols)
-            if sum(abs2, col) < tol * sumsquares_pre[i]
+        for i in 1:length(cols)
+            if sum(abs2, cols[i]) < tol * sumsquares_pre[i]
                 if i == 1
                     @info "Dependent variable $(colnames[1]) is probably perfectly explained by fixed effects."
                 else
@@ -277,10 +272,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         sqrtw = sqrt.(weights)
         y .= y .* sqrtw
         Xexo .= Xexo .* sqrtw
-        if has_iv
-            Xendo .= Xendo .* sqrtw
-            Z .= Z .* sqrtw
-        end
+        Xendo .= Xendo .* sqrtw
+        Z .= Z .* sqrtw
     end
     
     ##############################################################################
@@ -290,7 +283,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ##############################################################################
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv    	
-        perm = 1:(size(Xexo, 2) +size(Xendo, 2))
+        perm = 1:(size(Xexo, 2)+size(Xendo, 2))
 
         # first pass: remove collinear variables in Xendo
         XendoXendo = Xendo' * Xendo
@@ -352,7 +345,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
         XexoZ = XexoZ[basis_Xexo, basis_Z]
         size(ZXendo, 1) >= size(ZXendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
-        # basis_endo is true for stuff non colinear
+        # basis_endo is true for stuff non collinear
         # I need to have same vector but removeing the true that have been reclassified as exo and replace them by nothing.  so i need to create a vector equal to false if non endo and non basis_endo_small, which is basis_endo2
         basis_endo2 = trues(length(basis_endo))
         basis_endo2[basis_endo] = basis_endo_small
