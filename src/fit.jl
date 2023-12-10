@@ -130,6 +130,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # Compute feM, an AbstractFixedEffectSolver
     fes, feids, fekeys = parse_fixedeffect(df, formula_fes)
     has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
+
     # remove intercept if absorbed by fixed effects
     if has_fe_intercept
         formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}))...))
@@ -414,12 +415,15 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     # Compute degrees of freedom
     ngroups_fes = [nunique(fe) for fe in subfes]
-    dof_fes = 0
-    for i in 1:length(subfes)
-        if (vcov isa Vcov.ClusterCovariance) && any(isnested(subfes[i], v.groups) for v in values(vcov_method.clusters))
-            dof_fes += 1
-        else
-            dof_fes += ngroups_fes[i]
+    dof_fes = sum(ngroups_fes)
+    if vcov isa Vcov.ClusterCovariance
+        dof_fes = 0
+        for i in 1:length(subfes)
+            if any(isnested(subfes[i], v.groups) for v in values(vcov_method.clusters))
+                dof_fes += 1
+            else
+                dof_fes += ngroups_fes[i]
+            end
         end
     end
 
