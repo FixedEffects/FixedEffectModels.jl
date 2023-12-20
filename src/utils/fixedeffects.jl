@@ -4,6 +4,18 @@
 ##
 ##############################################################################
 
+function drop_singletons!(esample, fes::Vector{<:FixedEffect})
+    ns = Int[]
+    for fe in Iterators.cycle(fes)
+        # break loop if number of singletons did not change since the last time fe was iterated on
+        if length(ns) >= length(fes) && sum(view(ns, (length(ns)-length(fes)+1):length(ns))) == ns[end-length(fes)+1]
+            break
+        end
+        push!(ns, drop_singletons!(esample, fe))
+    end
+    return sum(ns)
+end
+
 function drop_singletons!(esample, fe::FixedEffect)
     n = 0
     cache = zeros(Int, fe.n)

@@ -59,10 +59,9 @@ function reg(df,
     maxiter::Integer = 10000,
     drop_singletons::Bool = true,
     progress_bar::Bool = true,
-    dof_add::Integer = 0,
     subset::Union{Nothing, AbstractVector} = nothing, 
     first_stage::Bool = true)
-    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, dof_add = dof_add, subset = subset, first_stage = first_stage)
+    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
 end
     
 function StatsAPI.fit(::Type{FixedEffectModel},     
@@ -79,37 +78,23 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     @nospecialize(maxiter::Integer = 10000),
     @nospecialize(drop_singletons::Bool = true),
     @nospecialize(progress_bar::Bool = true),
-    @nospecialize(dof_add::Integer = 0),
     @nospecialize(subset::Union{Nothing, AbstractVector} = nothing), 
     @nospecialize(first_stage::Bool = true))
 
     df = DataFrame(df; copycols = false)
-    N = size(df, 1)
+    nrows = size(df, 1)
+
+    ##############################################################################
+    ##
+    ## Keyword Arguments
+    ##
+    ##############################################################################
 
     if method == :gpu
         info("method = :gpu is deprecated. Use method = :CUDA or method = :Metal")
         method = :CUDA
     end
 
-    ##############################################################################
-    ##
-    ## Parse formula
-    ##
-    ##############################################################################
-
-    formula_origin = formula
-    if  !omitsintercept(formula) & !hasintercept(formula)
-        formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
-    end
-    formula, formula_endo, formula_iv = parse_iv(formula)
-    has_iv = formula_iv !== nothing
-    has_weights = weights !== nothing
-
-    ##############################################################################
-    ##
-    ## Save keyword argument
-    ##
-    ##############################################################################
     if save == true
         save = :all
     elseif save == false
@@ -124,168 +109,151 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         @warn "Keyword argument nthreads = $(nthreads) is ignored (Julia was started with only $(Threads.nthreads()) threads)."
         nthreads = Threads.nthreads()
     end
+
     ##############################################################################
     ##
-    ## Construct new dataframe after removing missing values
+    ## Parse formula
     ##
     ##############################################################################
 
-    # create a dataframe without missing values & negative weights
-    vars = StatsModels.termvars(formula)
-    iv_vars = Symbol[]
-    endo_vars = Symbol[]
-    if has_iv
-        iv_vars = StatsModels.termvars(formula_iv)
-        endo_vars = StatsModels.termvars(formula_endo)
+    formula_origin = formula
+    if !omitsintercept(formula) & !hasintercept(formula)
+        formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
     end
-    # create a dataframe without missing values & negative weights
-    all_vars = unique(vcat(vars, endo_vars, iv_vars))
+    formula, formula_endo, formula_iv = parse_iv(formula)
+    has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    formula, formula_fes = parse_fe(formula)
+    has_fes = formula_fes != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    save_fes = (save == :fe) | ((save == :all) & has_fes)
+    has_weights = weights !== nothing
 
+    # Compute feM, an AbstractFixedEffectSolver
+    fes, feids, fekeys = parse_fixedeffect(df, formula_fes)
+    has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
+
+    # remove intercept if absorbed by fixed effects
+    if has_fe_intercept
+        formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}))...))
+    end
+    has_intercept = hasintercept(formula)
+
+    ##############################################################################
+    ##
+    ## Create boolean vector esample that is true for observations used in estimation
+    ##
+    ##############################################################################
+
+    # These vectors are used to remove missing + subdivide subdf when creating modell matirces
+    exo_vars = unique(StatsModels.termvars(formula))
+    iv_vars = unique(StatsModels.termvars(formula_iv))
+    endo_vars = unique(StatsModels.termvars(formula_endo))
+    fe_vars = unique(StatsModels.termvars(formula_fes))
+    all_vars = unique(vcat(exo_vars, endo_vars, iv_vars, fe_vars))
+
+    # Create esample that returns obs used in estimation
     esample = completecases(df, all_vars)
     if has_weights
         esample .&= BitArray(!ismissing(x) && (x > 0) for x in df[!, weights])
     end
     if subset !== nothing
-        if length(subset) != N
-            throw("df has $(N) rows but the subset vector has $(length(subset)) elements")
+        if length(subset) != nrows
+            throw("df has $(nrows) rows but the subset vector has $(length(subset)) elements")
         end
         esample .&= BitArray(!ismissing(x) && x for x in subset)
     end
     esample .&= Vcov.completecases(df, vcov)
-    fes, ids, fekeys, formula = parse_fixedeffect(df, formula)
-    has_fes = !isempty(fes)
-    #TODO: add tests + return n_singletons
+
     n_singletons = 0
-    while has_fes && drop_singletons
-        ns = Tuple(drop_singletons!(esample, fe) for fe in fes)
-        n_singletons += sum(ns)
-        if sum(ns) == first(ns)
-            break
-        end
+    if drop_singletons
+        n_singletons = drop_singletons!(esample, fes)
     end
-    save_fe = (save == :fe) | ((save == :all) & has_fes)
 
     nobs = sum(esample)
     (nobs > 0) || throw("sample is empty")
+    (nobs < nrows) || (esample = Colon())
 
-    if nobs == N
-        esample = Colon()
-    end
-
-    # Compute weights
+    # use esample to materialize weights, subdataframe, and data used for standard erros
     if has_weights
-        weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
-        all(isfinite, weights) || throw("Weights are not finite")
+        weights = Weights(disallowmissing(view(df[!, weights], esample)))
     else
         weights = uweights(nobs)
     end
-
-    # Compute feM, an AbstractFixedEffectSolver
-    has_intercept = hasintercept(formula)
-    has_fe_intercept = false
-    if has_fes
-        if any(fe.interaction isa UnitWeights for fe in fes)
-            has_fe_intercept = true
-        end
-        fes = FixedEffect[fe[esample] for fe in fes]
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method}, nthreads)
-    end
-    # Compute data for std errors
+    subdf = DataFrame((; (x => disallowmissing(view(df[!, x], esample)) for x in all_vars)...))
+    subfes = FixedEffect[fe[esample] for fe in fes]
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
+
     ##############################################################################
     ##
     ## Dataframe --> Matrix
     ##
     ##############################################################################
-    exo_vars = unique(StatsModels.termvars(formula))
-    subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in exo_vars)...))
+
     s = schema(formula, subdf, contrasts)
+    
     formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
 
-    # Obtain y
     # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
     y = convert(Vector{Float64}, response(formula_schema, subdf))
-    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
-
-    # Obtain X
     Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
-    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+    response_name, coefnames_exo = coefnames(formula_schema)
 
-    response_name, coef_names = coefnames(formula_schema)
-    if !(coef_names isa Vector)
-        coef_names = typeof(coef_names)[coef_names]
-    end
-
-    # collect all variable names (outcome, exo [, endo, iv])
-    var_names_all = vcat(response_name, coef_names)
-
+    Xendo = Array{Float64}(undef, nobs, 0)
+    Z = Array{Float64}(undef, nobs, 0)
+    coefnames_endo = typeof(coefnames)[]
+    coefnames_iv = typeof(coefnames)[]
     if has_iv
-        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in endo_vars)...))
         formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
         Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
-        all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
-        _, coefendo_names = coefnames(formula_endo_schema)
-        append!(coef_names, coefendo_names)
-        append!(var_names_all, coefendo_names)
+        _, coefnames_endo = coefnames(formula_endo_schema)
 
-        subdf = Tables.columntable((; (x => disallowmissing(view(df[!, x], esample)) for x in iv_vars)...))
         formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
         _, coefnames_iv = coefnames(formula_iv_schema)
-        append!(var_names_all, coefnames_iv)
     
         Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
-        all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
 
         # modify formula to use in predict
         formula_schema = FormulaTerm(formula_schema.lhs, MatrixTerm(tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
     end
-
+    coef_names = vcat(coefnames_exo, coefnames_endo)
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept | has_fe_intercept, weights)
-    # initalize fields
-    iterations, converged, r2_within = 0, true, nothing
-    F_kp, p_kp = nothing, nothing
-    collinear_fe = falses(length(var_names_all))
 
+    all(isfinite, weights) || throw("Weights are not finite")
+    all(isfinite, y) || throw("Some observations for the dependent variable are infinite")
+    all(isfinite, Xexo) || throw("Some observations for the exogeneous variables are infinite")
+    all(isfinite, Xendo) || throw("Some observations for the endogenous variables are infinite")
+    all(isfinite, Z) || throw("Some observations for the instrumental variables are infinite")
+
+    iterations, converged = 0, true
     if has_fes
-        # used to compute tss even without save_fe
-        if save_fe
+        # used to compute tss even without save_fes
+        if save_fes
             oldy = deepcopy(y)
-            if has_iv
-                oldX = hcat(Xexo, Xendo)
-            else
-                oldX = deepcopy(Xexo)
-            end
+            oldX = hcat(Xexo, Xendo)
         end
 
-        # initialize iterations and converged
-        iterations = Int[]
-        convergeds = Bool[]
-        cols = vcat(eachcol(y), eachcol(Xexo))
-        if has_iv
-            append!(cols, eachcol(Xendo), eachcol(Z))
-        end
-
+        cols = vcat(eachcol(y), eachcol(Xexo), eachcol(Xendo), eachcol(Z))
+        colnames = vcat(response_name, coefnames_exo, coefnames_endo, coefnames_iv)
         # compute 2-norm (sum of squares) for each variable 
         # (to see if they are collinear with the fixed effects)
         sumsquares_pre = [sum(abs2, x) for x in cols]
 
         # partial out fixed effects
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(subfes, weights, Val{method}, nthreads)
+
+        # partial out fixed effects
         _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
-        # re-compute 2-norm (sum of squares) for each variable
-        sumsquares_post = [sum(abs2, x) for x in cols]
-
-        # mark variables that are likely to be collinear with the fixed effects
-        collinear_tol = min(1e-6, tol / 10)
-        collinear_fe = (sumsquares_post ./ sumsquares_pre) .< tol
-        for i in findall(collinear_fe)
-            if i == 1
-                @info "Dependent variable $(var_names_all[1]) is probably perfectly explained by fixed effects (tol = $collinear_tol)."
-            else
-                @info "RHS-variable $(var_names_all[i]) is collinear with the fixed effects (tol = $collinear_tol)."
-                # set to zero so that removed when taking basis
-                cols[i] .= 0.0
+        # set variables that are likely to be collinear with the fixed effects to zero
+        for i in 1:length(cols)
+            if sum(abs2, cols[i]) < tol * sumsquares_pre[i]
+                if i == 1
+                    @info "Dependent variable $(colnames[1]) is probably perfectly explained by fixed effects."
+                else
+                    @info "RHS-variable $(colnames[i]) is collinear with the fixed effects."
+                    # set to zero so that removed when taking basis
+                    cols[i] .= 0.0
+                end
             end
         end
 
@@ -295,7 +263,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         if converged == false
             @info "Convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol."
         end
-
         tss_partial = tss(y, has_intercept | has_fe_intercept, weights)
     end
 
@@ -303,10 +270,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         sqrtw = sqrt.(weights)
         y .= y .* sqrtw
         Xexo .= Xexo .* sqrtw
-        if has_iv
-            Xendo .= Xendo .* sqrtw
-            Z .= Z .* sqrtw
-        end
+        Xendo .= Xendo .* sqrtw
+        Z .= Z .* sqrtw
     end
     
     ##############################################################################
@@ -314,10 +279,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ## Get Linearly Independent Components of Matrix
     ##
     ##############################################################################
+    perm = nothing
     # Compute linearly independent columns + create the Xhat matrix
     if has_iv    	
-        perm = 1:(size(Xexo, 2) +size(Xendo, 2))
-
         # first pass: remove collinear variables in Xendo
         XendoXendo = Xendo' * Xendo
     	basis_endo = basis!(Symmetric(deepcopy(XendoXendo)); has_intercept = false)
@@ -336,10 +300,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
                            zeros(size(Z, 2), size(Xexo, 2)), ZZ, ZXendo, 
                            zeros(size(Xendo, 2), size(Xexo, 2)), zeros(size(Xendo, 2), size(Z, 2)), XendoXendo))
     	basis_all = basis!(XexoZXendo; has_intercept = has_intercept)
-        basis_Xexo, basis_Z, basis_endo_small = basis_all[1:size(Xexo, 2)], basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))], basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
         # basis_endo_small has same length as number of basis_endo who are true
+        basis_Xexo, basis_Z, basis_endo_small = basis_all[1:size(Xexo, 2)], basis_all[(size(Xexo, 2) +1):(size(Xexo, 2) + size(Z, 2))], basis_all[(size(Xexo, 2) + size(Z, 2) + 1):end]
+       
+       # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous instead of endogenous.
         if !all(basis_endo_small)
-            # if adding Xexo and Z makes Xendo collinear, consider these variables are exogeneous
             Xexo = hcat(Xexo, Xendo[:, .!basis_endo_small])
             Xendo = Xendo[:, basis_endo_small]
             XexoXexo = Xexo'Xexo
@@ -351,12 +316,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             # out returns false for endo collinear with instruments
             basis_endo2 = trues(length(basis_endo))
             basis_endo2[basis_endo] = basis_endo_small
-            # TODO: I should probably also change formula in this case so that predict still works 
             ans = 1:length(basis_endo)
             ans = vcat(ans[.!basis_endo2], ans[basis_endo2])
             perm = vcat(1:length(basis_Xexo), length(basis_Xexo) .+ ans)
             # there are basis_endo - basis_endo_small in endo
-            out = join(coefendo_names[.!basis_endo2], " ")
+            out = join(coefnames_endo[.!basis_endo2], " ")
             @info "Endogenous vars collinear with ivs. Recategorized as exogenous: $(out)"
             
             # third pass
@@ -378,7 +342,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
         XexoZ = XexoZ[basis_Xexo, basis_Z]
         size(ZXendo, 1) >= size(ZXendo, 2) || throw("Model not identified. There must be at least as many ivs as endogeneous variables")
-        # basis_endo is true for stuff non colinear
+        # basis_endo is true for stuff non collinear
         # I need to have same vector but removeing the true that have been reclassified as exo and replace them by nothing.  so i need to create a vector equal to false if non endo and non basis_endo_small, which is basis_endo2
         basis_endo2 = trues(length(basis_endo))
         basis_endo2[basis_endo] = basis_endo_small
@@ -408,7 +372,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
     else
         # get linearly independent columns
-        perm = 1:size(Xexo, 2)
         XexoXexo = Xexo'Xexo
         basis_Xexo = basis!(Symmetric(deepcopy(XexoXexo)); has_intercept = has_intercept)
         if !all(basis_Xexo)
@@ -435,13 +398,14 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     ##############################################################################
     ##
-    ## Optionally save objects in a new dataframe
+    ## Test Statistics
     ##
     ##############################################################################
+   
     residuals = y - X * coef
     residuals2 = nothing
     if save_residuals
-        residuals2 = Vector{Union{Float64, Missing}}(missing, N)
+        residuals2 = Vector{Union{Float64, Missing}}(missing, nrows)
         if has_weights
             residuals2[esample] .= residuals ./ sqrt.(weights)
         else
@@ -449,58 +413,35 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
     end
 
-    augmentdf = DataFrame()
-    if save_fe
-        oldX = oldX[:, perm]
-        if !all(basis_coef)
-            oldX = oldX[:, basis_coef]
-        end
-        newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
-        for fekey in fekeys
-            augmentdf[!, fekey] = df[:, fekey]
-        end
-        for j in eachindex(fes)
-            augmentdf[!, ids[j]] = Vector{Union{Float64, Missing}}(missing, N)
-            augmentdf[esample, ids[j]] = newfes[j]
-        end
-    end
-
-    ##############################################################################
-    ##
-    ## Test Statistics
-    ##
-    ##############################################################################
     # Compute degrees of freedom
-    dof_fes_total = 0
-    dof_fes = 0
-    if has_fes
-        for fe in fes
-            # adjust degree of freedom only if fe is not fully nested in a cluster variable:
-            if (vcov isa Vcov.ClusterCovariance) && any(isnested(fe, v.groups) for v in values(vcov_method.clusters))
-                dof_fes += 1 # if fe is nested you still lose 1 degree of freedom
-            else
-                #only count groups that exists
-                dof_fes += nunique(fe)
-            end
-            dof_fes_total += nunique(fe)
-        end
-    end
-
-    nclusters = nothing
+    ngroups_fes = [nunique(fe) for fe in subfes]
+    dof_fes = sum(ngroups_fes)
     if vcov isa Vcov.ClusterCovariance
-        nclusters = Vcov.nclusters(vcov_method)
+        dof_fes = 0
+        for i in 1:length(subfes)
+            if any(isnested(subfes[i], v.groups) for v in values(vcov_method.clusters))
+                dof_fes += 1
+            else
+                dof_fes += ngroups_fes[i]
+            end
+        end
     end
 
     # Compute standard error
+    nclusters = vcov isa Vcov.ClusterCovariance ?  Vcov.nclusters(vcov_method) : nothing
     vcov_data = Vcov.VcovData(Xhat, XhatXhat, invXhatXhat, residuals, nobs - size(X, 2) - dof_fes)
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
+   
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
+   
     # dof_ is the number of estimated coefficients beyond the intercept.
     dof_ = size(X, 2) - has_intercept
     dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - has_intercept | has_fe_intercept)
     p = fdistccdf(dof_, dof_tstat_, F)
+    
     # Compute Fstat of First Stage
+    F_kp, p_kp = NaN, NaN
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         try 
@@ -510,22 +451,20 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             F_kp = r_kp / size(Z_res, 2)
         catch
             @info "ranktest failed ; first-stage statistics not estimated"
-            p_kp, F_kp = NaN, NaN
         end
     end
 
     # Compute rss, tss
     rss = sum(abs2, residuals)
     mss = tss_total - rss
-    if has_fes
-        r2_within = 1 - rss / tss_partial
-    end
+    r2_within = has_fes ?  1 - rss / tss_partial : 1 - rss / tss_total
 
     ##############################################################################
     ##
     ## Return regression result
     ##
     ##############################################################################
+
     # add omitted variables
     if !all(basis_coef)
         newcoef = zeros(length(basis_coef))
@@ -540,7 +479,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         coef = newcoef
         matrix_vcov = Symmetric(newmatrix_vcov)
     end
-    if any(perm[i] != i for i in perm)
+
+    # when IV and some variables were exos were recategorized to endo
+    if perm !== nothing
         _invperm = invperm(perm)
         coef = coef[_invperm]
         newmatrix_vcov = zeros(size(matrix_vcov))
@@ -552,9 +493,21 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         matrix_vcov = Symmetric(newmatrix_vcov)
     end
 
+    augmentdf = DataFrame()
+    if save_fes
+        newfes, b, c = solve_coefficients!(oldy - oldX * coef, feM; tol = tol, maxiter = maxiter)
+        for fekey in fekeys
+            augmentdf[!, fekey] = df[:, fekey]
+        end
+        for j in eachindex(subfes)
+            augmentdf[!, feids[j]] = Vector{Union{Float64, Missing}}(missing, nrows)
+            augmentdf[esample, feids[j]] = newfes[j]
+        end
+    end
 
     if esample == Colon()
-        esample = trues(N)
+        esample = trues(nrows)
     end
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_fes_total, dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
+
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, sum(ngroups_fes), dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

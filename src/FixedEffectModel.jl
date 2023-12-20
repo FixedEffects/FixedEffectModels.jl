@@ -36,14 +36,14 @@ struct FixedEffectModel <: RegressionModel
     # for FE
     iterations::Int         # Number of iterations
     converged::Bool         # Has the demeaning algorithm converged?
-    r2_within::Union{Float64, Nothing}      # within r2 (with fixed effect
+    r2_within::Float64      # within r2 (with fixed effect
 
     # for IV
-    F_kp::Union{Float64, Nothing}           # First Stage F statistics KP
-    p_kp::Union{Float64, Nothing}           # First Stage p value KP
+    F_kp::Float64           # First Stage F statistics KP
+    p_kp::Float64           # First Stage p value KP
 end
 
-has_iv(m::FixedEffectModel) = m.F_kp !== nothing
+has_iv(m::FixedEffectModel) = has_iv(m.formula)
 has_fe(m::FixedEffectModel) = has_fe(m.formula)
 
 
