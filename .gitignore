@@ -1,2 +1,4 @@
 
 benchmark/.sublime2Terminal.jl
+.vscode/settings.json
+test/debug.jl
