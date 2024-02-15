@@ -165,7 +165,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     n_singletons = 0
     if drop_singletons
-        n_singletons = drop_singletons!(esample, fes)
+        n_singletons = drop_singletons!(esample, fes, nthreads)
     end
 
     nobs = sum(esample)
