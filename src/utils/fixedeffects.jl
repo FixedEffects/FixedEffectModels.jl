@@ -6,14 +6,20 @@
 
 function drop_singletons!(esample, fes::Vector{<:FixedEffect}, nthreads)
     nsingletons = 0
-    cleanpasses = 0
+    ncleanpasses = 0
     caches = [Vector{UInt8}(undef, fes[i].n) for i in eachindex(fes)]
     for (fe, cache) in Iterators.cycle(zip(fes,caches))
         n = drop_singletons!(esample, fe, cache)
         nsingletons += n
-        cleanpasses += (n == 0)
-        # if there are N FE groups and the last N-1 passes have been clean, exit
-        cleanpasses >= length(fes) - 1 && break  
+        if n > 0
+            # found singletons, reset the counter
+            ncleanpasses = 0
+        else
+            # otherwise, increment counter
+            ncleanpasses += 1
+        end
+        # if the last N-1 passes have not found singletons (where N is number of FE groups), break the loop
+        ncleanpasses >= length(fes) - 1 && break  
     end
     return nsingletons
 end
@@ -23,13 +29,13 @@ function drop_singletons!(esample, fe::FixedEffect, cache)
     fill!(cache, 0)
     @inbounds for i in eachindex(esample, refs)  # count obs in each FE group
         if esample[i]
-            # stop counting obs in a group at 2, to keep counters in 8-bit integers
+            # no need to keep counting obs after 2 (counters are 8-bit integers)
             cache[refs[i]] = min(0x02, cache[refs[i]] + 0x01)  
         end
     end
     n = 0
     @inbounds for i in eachindex(esample, refs)
-        if esample[i] && cache[refs[i]] == 1
+        if esample[i] && cache[refs[i]] == 0x01
             esample[i] = false
             n += 1
         end
