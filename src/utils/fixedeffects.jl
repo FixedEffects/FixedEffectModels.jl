@@ -5,53 +5,36 @@
 ##############################################################################
 
 function drop_singletons!(esample, fes::Vector{<:FixedEffect}, nthreads)
-# Main._esample = copy(esample); Main._fes=copy(fes); Main._nthreads=nthreads
     nsingletons = 0
-    dirtypasses = length(fes)
-    
-    bounds = ceil.(Int, (0:nthreads) * (length(esample) / nthreads))
-    chunks = [bounds[t]+1:bounds[t+1] for t ∈ 1:nthreads]
-  
-    caches = [Vector{UInt8}(undef, fes[i].n) for i ∈ eachindex(fes)]
-    for (fe,cache) ∈ Iterators.cycle(zip(fes,caches))  # if 1 set of FE, only need 1 pass
-        n = drop_singletons!(esample, fe, cache, chunks)
-        if iszero(n)
-            dirtypasses -= 1
-        else
-            nsingletons += n
-            dirtypasses = length(fes)  # restart counter
-        end
-        dirtypasses <= 1 && break  # done if there are N FE groups and at least last N-1 have been clean (includes case N=1)
+    cleanpasses = 0
+    caches = [Vector{UInt8}(undef, fes[i].n) for i in eachindex(fes)]
+    for (fe, cache) in Iterators.cycle(zip(fes,caches))
+        n = drop_singletons!(esample, fe, cache)
+        nsingletons += n
+        cleanpasses += (n == 0)
+        # if there are N FE groups and the last N-1 passes have been clean, exit
+        cleanpasses >= length(fes) - 1 && break  
     end
-  
-    nsingletons
+    return nsingletons
 end
 
-function drop_singletons!(esample, fe::FixedEffect, cache, chunks)::Int
-# Main._cache = cache; Main._chunks = copy(chunks)
+function drop_singletons!(esample, fe::FixedEffect, cache)
     refs = fe.refs
-      
-    fill!(cache, zero(UInt8))
-    @inbounds for i ∈ eachindex(esample,refs)  # count obs in each FE group
+    fill!(cache, 0)
+    @inbounds for i in eachindex(esample, refs)  # count obs in each FE group
         if esample[i]
-            cache[refs[i]] = min(0x02, cache[refs[i]] + 0x01)  # stop counting obs in a group at 2, to keep counters in 8-bit integers
+            # stop counting obs in a group at 2, to keep counters in 8-bit integers
+            cache[refs[i]] = min(0x02, cache[refs[i]] + 0x01)  
         end
     end
-
-    tasks = map(chunks) do chunk  # drop newly found singletons
-        Threads.@spawn begin
-            n = 0
-            @inbounds for i ∈ chunk
-                if esample[i] && isone(cache[refs[i]])
-                    esample[i] = false
-                    n += 1
-                end
-            end
-            n
+    n = 0
+    @inbounds for i in eachindex(esample, refs)
+        if esample[i] && cache[refs[i]] == 1
+            esample[i] = false
+            n += 1
         end
     end
-
-    sum(fetch.(tasks))
+    return n
 end
 
 
