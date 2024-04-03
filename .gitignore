@@ -1,3 +1,7 @@
 
 benchmark/.sublime2Terminal.jl
 .vscode/settings.json
+Manifest.toml
+debug/debug.jl
+debug/pseudoreg.csv
+debug/repl.do
