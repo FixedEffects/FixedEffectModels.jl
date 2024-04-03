@@ -138,6 +138,8 @@ function partial_out(
         residuals .= residuals .+ m
     end
 
+    dof_fes = mapreduce(nunique, +, fes, init=0)
+
     # Return a dataframe
     out = DataFrame()
     j = 0
@@ -151,5 +153,5 @@ function partial_out(
             out[!, Symbol(y)] = residuals[:, j]
         end
     end
-    return out, esample, iterations, convergeds
+    return out, esample, iterations, convergeds, dof_fes
 end
