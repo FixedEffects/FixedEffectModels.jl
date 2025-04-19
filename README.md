@@ -1,6 +1,6 @@
 [![Build status](https://github.com/FixedEffects/FixedEffectModels.jl/workflows/CI/badge.svg)](https://github.com/FixedEffects/FixedEffectModels.jl/actions)
 
-This package estimates linear models with high dimensional categorical variables and/or instrumental variables.
+This package estimates linear models with high dimensional categorical variables, potentially including instrumental variables.
 
 ## Installation
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
