@@ -165,7 +165,7 @@ end
 
 
 	# only fixed effects
-	f = DataFrame(y=rand(10), id = rand(1:2, 10), t = rand(1:2, 10))
+	df = DataFrame(y=rand(10), id = rand(1:2, 10), t = rand(1:2, 10))
 	out1 = predict(reg(df, @formula(y ~ fe(id) + fe(t)), save = :fe), df)
 	out2 = predict(reg(df, @formula(y ~ 1 + fe(id) + fe(t)), save = :fe), df)
 	@test out1 .≈ out2	
