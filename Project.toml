@@ -30,3 +30,15 @@ StatsModels = "0.7"
 Tables = "1"
 Vcov = "0.8"
 julia = "1.9"
+
+
+[extras]
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["CategoricalArrays", "CSV", "CUDA", "Metal", "Random", "Test"]
