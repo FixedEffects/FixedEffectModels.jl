@@ -143,6 +143,7 @@ function StatsAPI.predict(m::FixedEffectModel, data)
     nrows = length(Tables.rows(cdata))
     if m.formula_schema.rhs == MatrixTerm((InterceptTerm{false}(),))
         out = zeros(Float64, nrows)
+        nonmissings = trues(nrows)
     else
         cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
         Xnew = modelmatrix(m.formula_schema, cols)
