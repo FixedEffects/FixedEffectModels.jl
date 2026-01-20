@@ -133,7 +133,7 @@ end
 
 function StatsAPI.predict(m::FixedEffectModel, data)
     Tables.istable(data) ||
-          throw(ArgumentError("expected second argument to be a Table, got $(typeof(data))"))
+          throw(ArgumentError("Expected second argument to be a Table, got $(typeof(data))"))
 
     has_cont_fe_interaction(m.formula) && 
         throw(ArgumentError("Interaction of fixed effect and continuous variable detected in formula; this is currently not supported in `predict`"))
@@ -142,6 +142,7 @@ function StatsAPI.predict(m::FixedEffectModel, data)
     cdata = StatsModels.columntable(data)
     nrows = length(Tables.rows(cdata))
     if m.formula_schema.rhs == MatrixTerm((InterceptTerm{false}(),))
+        has_fe(m) || throw(ArgumentError("To be used with predict, a model requires regressors or fixed effects"))
         out = zeros(Float64, nrows)
         nonmissings = trues(nrows)
     else
