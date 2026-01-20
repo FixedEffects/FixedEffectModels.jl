@@ -122,7 +122,7 @@ end
 
 # Does the formula have InteractionTerms?
 function has_cont_fe_interaction(x::FormulaTerm)
-    if x.rhs isa Term # only one term
+    if x.rhs isa AbstractTerm # only one term
         is_cont_fe_int(x)
     elseif hasfield(typeof(x.rhs), :lhs) # Is an IV term
         false # Is this correct?
@@ -133,19 +133,27 @@ end
 
 function StatsAPI.predict(m::FixedEffectModel, data)
     Tables.istable(data) ||
-          throw(ArgumentError("expected second argument to be a Table, got $(typeof(data))"))
+          throw(ArgumentError("Expected second argument to be a Table, got $(typeof(data))"))
 
     has_cont_fe_interaction(m.formula) && 
         throw(ArgumentError("Interaction of fixed effect and continuous variable detected in formula; this is currently not supported in `predict`"))
 
+    # only fixed effects
     cdata = StatsModels.columntable(data)
-    cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
-    Xnew = modelmatrix(m.formula_schema, cols)
-    if all(nonmissings)
-        out = Xnew * m.coef
+    nrows = length(Tables.rows(cdata))
+    if m.formula_schema.rhs == MatrixTerm((InterceptTerm{false}(),))
+        has_fe(m) || throw(ArgumentError("To be used with predict, a model requires regressors or fixed effects"))
+        out = zeros(Float64, nrows)
+        nonmissings = trues(nrows)
     else
-        out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(cdata)))
-        out[nonmissings] = Xnew * m.coef 
+        cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
+        Xnew = modelmatrix(m.formula_schema, cols)
+        if all(nonmissings)
+            out = Xnew * m.coef
+        else
+            out = Vector{Union{Float64, Missing}}(missing, nrows)
+            out[nonmissings] = Xnew * m.coef 
+        end
     end
 
     # Join FE estimates onto data and sum row-wise
