@@ -124,7 +124,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
     formula, formula_fes = parse_fe(formula)
     has_fes = formula_fes != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
-    save_fes = (save == :fe) | ((save == :all) & has_fes)
+    if save == :fe && !has_fes
+        throw("the save keyword argument is set to :fe but there are no fixed effects in the formula.")
+    end
+
+    save_fes = save ∈ (:fe, :all) && has_fes
     has_weights = weights !== nothing
 
     # Compute feM, an AbstractFixedEffectSolver
