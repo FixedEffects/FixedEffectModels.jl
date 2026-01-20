@@ -138,14 +138,20 @@ function StatsAPI.predict(m::FixedEffectModel, data)
     has_cont_fe_interaction(m.formula) && 
         throw(ArgumentError("Interaction of fixed effect and continuous variable detected in formula; this is currently not supported in `predict`"))
 
+    # only fixed effects
     cdata = StatsModels.columntable(data)
-    cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
-    Xnew = modelmatrix(m.formula_schema, cols)
-    if all(nonmissings)
-        out = Xnew * m.coef
+    nrows = length(Tables.rows(cdata))
+    if m.formula_schema.rhs == m.formula_schema.rhs == MatrixTerm((InterceptTerm{false}(),))
+        out = zeros(Float64, nrows)
     else
-        out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(cdata)))
-        out[nonmissings] = Xnew * m.coef 
+        cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
+        Xnew = modelmatrix(m.formula_schema, cols)
+        if all(nonmissings)
+            out = Xnew * m.coef
+        else
+            out = Vector{Union{Float64, Missing}}(missing, nrows)
+            out[nonmissings] = Xnew * m.coef 
+        end
     end
 
     # Join FE estimates onto data and sum row-wise
