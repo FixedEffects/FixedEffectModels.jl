@@ -122,7 +122,7 @@ end
 
 # Does the formula have InteractionTerms?
 function has_cont_fe_interaction(x::FormulaTerm)
-    if x.rhs isa Term # only one term
+    if x.rhs isa AbstractTerm # only one term
         is_cont_fe_int(x)
     elseif hasfield(typeof(x.rhs), :lhs) # Is an IV term
         false # Is this correct?
