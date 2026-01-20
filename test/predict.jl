@@ -162,6 +162,13 @@ end
         4.0 .* (df.g4 .== "h") .* df.z
     m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)&fe(g3) + fe(g4)&z))
     @test_throws ArgumentError pred = predict(m, df)
+
+
+	# only fixed effects
+	f = DataFrame(y=rand(10), id = rand(1:2, 10), t = rand(1:2, 10))
+	out1 = predict(reg(df, @formula(y ~ fe(id) + fe(t)), save = :fe), df)
+	out2 = predict(reg(df, @formula(y ~ 1 + fe(id) + fe(t)), save = :fe), df)
+	@test out1 .≈ out2	
 end
 
 @testset "Continuous/FE detection" begin
