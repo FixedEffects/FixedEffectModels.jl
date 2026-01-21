@@ -83,34 +83,34 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 ## Output
 
-The model object returned by `reg()` is lightweight. The following methods can be used to inspect the results
+The model object returned by `reg()` is lightweight. The following methods from `StatsAPI`\ can be used to inspect the results
 ```julia
 # Coefficients
-StatsAPI.coef(m::FixedEffectModel)
-StatsAPI.vcov(m::FixedEffectModel)
-StatsAPI.confint(m::FixedEffectModel)
-StatsAPI.coefnames(m::FixedEffectModel)
-StatsAPI.responsename(m::FixedEffectModel)
+coef(m::FixedEffectModel)
+vcov(m::FixedEffectModel)
+confint(m::FixedEffectModel)
+coefnames(m::FixedEffectModel)
+responsename(m::FixedEffectModel)
 
 # Statistics
-StatsAPI.nobs(m::FixedEffectModel)
-StatsAPI.dof(m::FixedEffectModel)
-StatsAPI.dof_residual(m::FixedEffectModel)
-StatsAPI.r2(m::FixedEffectModel)
-StatsAPI.islinear(m::FixedEffectModel)
-StatsAPI.deviance(m::FixedEffectModel)
-StatsAPI.nulldeviance(m::FixedEffectModel)
-StatsAPI.rss(m::FixedEffectModel)
-StatsAPI.mss(m::FixedEffectModel)
-StatsAPI.loglikelihood(m::FixedEffectModel)
-StatsAPI.nullloglikelihood(m::FixedEffectModel)
-StatsAPI.adjr2(m::FixedEffectModel)
-StatsAPI.coeftable
-StatsModels.formula
+nobs(m::FixedEffectModel)
+dof(m::FixedEffectModel)
+dof_residual(m::FixedEffectModel)
+r2(m::FixedEffectModel)
+islinear(m::FixedEffectModel)
+deviance(m::FixedEffectModel)
+nulldeviance(m::FixedEffectModel)
+rss(m::FixedEffectModel)
+mss(m::FixedEffectModel)
+loglikelihood(m::FixedEffectModel)
+nullloglikelihood(m::FixedEffectModel)
+adjr2(m::FixedEffectModel)
+coeftable(m::FixedEffectModel)
+formula(m::FixedEffectModel)
 
 # Prediction and residuals
-StatsAPI.predict(m::FixedEffectModel, df)
-StatsAPI.residuals(m::FixedEffectModel, df)
+predict(m::FixedEffectModel, df)
+residuals(m::FixedEffectModel, df)
 ```
 The functions `StatsAPI.predict` and `StatsAPI.residuals` require a table (`df`) as a second argument because the object returned by `reg()` does not store the original dataset (to keep the model lightweight). For background on the tradeoff of storing the original data inside fitted model objects, see the following discussions: [1](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [2](https://blogs.oracle.com/R/entry/is_the_size_of_your), [3](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe), [4](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction), [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects), and [5](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way).
 
