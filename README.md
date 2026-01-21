@@ -91,6 +91,7 @@ StatsAPI.vcov(m::FixedEffectModel)
 StatsAPI.confint(m::FixedEffectModel)
 StatsAPI.coefnames(m::FixedEffectModel)
 StatsAPI.responsename(m::FixedEffectModel)
+
 # Statistics
 StatsAPI.nobs(m::FixedEffectModel)
 StatsAPI.dof(m::FixedEffectModel)
@@ -106,6 +107,7 @@ StatsAPI.nullloglikelihood(m::FixedEffectModel)
 StatsAPI.adjr2(m::FixedEffectModel)
 StatsAPI.coeftable
 StatsModels.formula
+
 # Prediction and residuals
 StatsAPI.predict(m::FixedEffectModel, df)
 StatsAPI.residuals(m::FixedEffectModel, df)
