@@ -84,7 +84,7 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 ## Output
 
 The model object returned by `reg()` is lightweight. The following methods can be used to inspect the results
-```
+```julia
 # Coefficients
 StatsAPI.coef(m::FixedEffectModel)
 StatsAPI.vcov(m::FixedEffectModel)
