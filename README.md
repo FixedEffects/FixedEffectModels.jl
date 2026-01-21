@@ -126,7 +126,6 @@ Finally, you can use [RegressionTables.jl](https://github.com/jmboehm/Regression
 The package has an experimental support for GPUs. This can make the package an order of magnitude faster for complicated problems.
 
 If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :CUDA`.
-
 ```julia
 using CUDA, FixedEffectModels
 @assert CUDA.functional()
