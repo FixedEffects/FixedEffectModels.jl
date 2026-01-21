@@ -1,4 +1,4 @@
-using FixedEffectModels, Test
+using CUDA, Metal, FixedEffectModels, Test
 
 @testset "formula" begin include("formula.jl") end
 @testset "fit" begin include("fit.jl") end
