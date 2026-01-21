@@ -82,16 +82,39 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 
 
 ## Output
-`reg` returns a light object. It is composed of
 
-  - the vector of coefficients & the covariance matrix (use `coef`, `coefnames`, `vcov` on the output of `reg`)
-  - a boolean vector reporting rows used in the estimation
-  - a set of scalars (number of observations, the degree of freedoms, r2, etc)
+The model object returned by `reg()` is lightweight. The following methods from `StatsAPI`\ can be used to inspect the results
+```julia
+# Coefficients
+coef(m::FixedEffectModel)
+vcov(m::FixedEffectModel)
+confint(m::FixedEffectModel)
+coefnames(m::FixedEffectModel)
+responsename(m::FixedEffectModel)
 
-Methods such as `predict`, `residuals` are still defined but require to specify a dataframe as a second argument.  The problematic size of `lm` and `glm` models in R or Julia is discussed [here](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [here](https://blogs.oracle.com/R/entry/is_the_size_of_your), [here](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe) [here](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction) (and for absurd consequences, [here](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects) and [there](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way)).
+# Statistics
+nobs(m::FixedEffectModel)
+dof(m::FixedEffectModel)
+dof_residual(m::FixedEffectModel)
+r2(m::FixedEffectModel)
+islinear(m::FixedEffectModel)
+deviance(m::FixedEffectModel)
+nulldeviance(m::FixedEffectModel)
+rss(m::FixedEffectModel)
+mss(m::FixedEffectModel)
+loglikelihood(m::FixedEffectModel)
+nullloglikelihood(m::FixedEffectModel)
+adjr2(m::FixedEffectModel)
+coeftable(m::FixedEffectModel)
+formula(m::FixedEffectModel)
 
+# Prediction and residuals
+predict(m::FixedEffectModel, df)
+residuals(m::FixedEffectModel, df)
+```
+Note that the functions `predict` and `residuals` require a table (`df`) as a second argument because the object returned by `reg` does not store the original dataset (to keep the model lightweight). For background on the tradeoff of storing the original data inside fitted model objects, see [1](http://www.r-bloggers.com/trimming-the-fat-from-glm-models-in-r/), [2](https://blogs.oracle.com/R/entry/is_the_size_of_your), [3](http://stackoverflow.com/questions/21896265/how-to-minimize-size-of-object-of-class-lm-without-compromising-it-being-passe), [4](http://stackoverflow.com/questions/15260429/is-there-a-way-to-compress-an-lm-class-for-later-prediction), [5](http://stackoverflow.com/questions/26010742/using-stargazer-with-memory-greedy-glm-objects), and [6](http://stackoverflow.com/questions/22577161/not-enough-ram-to-run-stargazer-the-normal-way).
 
-You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
+Finally, you can use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl) to get publication-quality regression tables.
 
 
 ## Performances
@@ -103,7 +126,6 @@ You may use [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl
 The package has an experimental support for GPUs. This can make the package an order of magnitude faster for complicated problems.
 
 If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :CUDA`.
-
 ```julia
 using CUDA, FixedEffectModels
 @assert CUDA.functional()
