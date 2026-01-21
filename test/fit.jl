@@ -694,9 +694,9 @@ end
 	if CUDA.functional()
 		push!(methods_vec, :CUDA)
 	end
-	#if Metal.functional()
-	#	push!(methods_vec, :Metal)
-	#end
+	if Metal.functional()
+		push!(methods_vec, :Metal)
+	end
 	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/EmplUK.csv")))
 	for method in methods_vec
 		# same thing with float32 precision

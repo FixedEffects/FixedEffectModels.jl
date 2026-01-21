@@ -399,9 +399,9 @@ end
 	if CUDA.functional()
 		push!(methods_vec, :CUDA)
 	end
-	#if Metal.functional()
-	#	push!(methods_vec, :Metal)
-	#end
+	if Metal.functional()
+		push!(methods_vec, :Metal)
+	end
 	for method in methods_vec
 		local model = @formula Sales ~ Price + fe(Year)
 		local result = reg(df, model, save = true, method = method, double_precision = false)
