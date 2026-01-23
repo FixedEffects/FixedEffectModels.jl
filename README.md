@@ -6,7 +6,7 @@ This package estimates linear models with high dimensional categorical variables
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with `] add FixedEffectModels`.
 
 ## Benchmarks
-The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` or `lfe`. It also tends to be a bit faster than the more recent `fixest` (depending on the exact command). For complicated models, `FixedEffectModels` can also run on Nvidia GPUs for even faster performances (see below)
+The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` (Stata) or `lfe` (R). It also tends to be a bit faster than the more recent `fixest` (R), especially when computing clustered standard errors. `FixedEffectModels` can also run on NVIDIA or Apple GPUs for even faster performances (see below)
 
 
 ![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
@@ -123,34 +123,31 @@ Finally, you can use [RegressionTables.jl](https://github.com/jmboehm/Regression
 `FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`).
 
 ### GPUs
-The package has an experimental support for GPUs. This can make the package an order of magnitude faster for complicated problems.
+The package has an experimental support for GPUs. This can make the package 2x-5x faster for complicated problems.
 
-If you have a Nvidia GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :CUDA`.
+If you have a NVIDIA GPU, run `using CUDA` before `using FixedEffectModels`. Then, estimate a model with `method = :CUDA`.
 ```julia
-using CUDA, FixedEffectModels
+using CUDA, FixedEffectModels, RDatasets
 @assert CUDA.functional()
 df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :CUDA)
 ```
-
-The package also supports Apple GPUs with `Metal.jl`, although I could not find a way to get better performance
+If you have an Apple-designed GPU, run `using Metal` before `using FixedEffectModels`. Then, estimate a model with `method = :Metal`.
 ```julia
-using Metal, FixedEffectModels
+using Metal, FixedEffectModels, RDatasets
 @assert Metal.functional()
 df = dataset("plm", "Cigar")
 reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), method = :Metal)
 ```
 
-
-
-## Solution Method
+## Solution method
 Denote the model `y = X β + D θ + e` where X is a matrix with few columns and D is the design matrix from categorical variables. Estimates for `β`, along with their standard errors, are obtained in two steps:
 
 1. `y, X`  are regressed on `D` using the package [FixedEffects.jl](https://github.com/FixedEffects/FixedEffects.jl)
-2.  Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
+2. Estimates for `β`, along with their standard errors, are obtained by regressing the projected `y` on the projected `X` (an application of the Frisch Waugh-Lovell Theorem)
 3. With the option `save = true`, estimates for the high dimensional fixed effects are obtained after regressing the residuals of the full model minus the residuals of the partialed out models on `D` using the package [FixedEffects.jl](https://github.com/FixedEffects/FixedEffects.jl)
 
-# References
+Here are some references for the solution method:
 
 Baum, C. and Schaffer, M. (2013) *AVAR: Stata module to perform asymptotic covariance estimation for iid and non-iid data robust to heteroskedasticity, autocorrelation, 1- and 2-way clustering, and common cross-panel autocorrelated disturbances*. Statistical Software Components, Boston College Department of Economics.
 
