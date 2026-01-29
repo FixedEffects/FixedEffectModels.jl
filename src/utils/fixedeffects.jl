@@ -4,7 +4,7 @@
 ##
 ##############################################################################
 
-function drop_singletons!(esample, fes::Vector{<:FixedEffect}, nthreads)
+function drop_singletons!(esample, fes::Vector{<:FixedEffect})
     nsingletons = 0
     ncleanpasses = 0
     caches = [Vector{UInt8}(undef, fes[i].n) for i in eachindex(fes)]
