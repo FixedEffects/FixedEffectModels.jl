@@ -53,7 +53,7 @@ function reg(df,
     weights::Union{Symbol, Nothing} = nothing,
     save::Union{Bool, Symbol} = :none,
     method::Symbol = :cpu,
-    nthreads::Integer = method == :cpu ? Threads.nthreads() : 256,
+    nthreads::Union{Integer, Nothing} = nothing,
     double_precision::Bool = method == :cpu,
     tol::Real = 1e-6,
     maxiter::Integer = 10000,
@@ -72,7 +72,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     @nospecialize(weights::Union{Symbol, Nothing} = nothing),
     @nospecialize(save::Union{Bool, Symbol} = :none),
     @nospecialize(method::Symbol = :cpu),
-    @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
+    @nospecialize(nthreads::Union{Integer, Nothing} = nothing,
     @nospecialize(double_precision::Bool = true),
     @nospecialize(tol::Real = 1e-6),
     @nospecialize(maxiter::Integer = 10000),
@@ -104,11 +104,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             throw("the save keyword argument must be a Symbol equal to :all, :none, :residuals or :fe")
     end
     save_residuals = (save == :residuals) | (save == :all)
-
-    if method == :cpu && nthreads > Threads.nthreads()
-        @warn "Keyword argument nthreads = $(nthreads) is ignored (Julia was started with only $(Threads.nthreads()) threads)."
-        nthreads = Threads.nthreads()
-    end
 
     ##############################################################################
     ##
@@ -166,7 +161,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     n_singletons = 0
     if drop_singletons
-        n_singletons = drop_singletons!(esample, fes, nthreads)
+        n_singletons = drop_singletons!(esample, fes)
     end
 
     nobs = sum(esample)
