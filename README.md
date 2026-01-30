@@ -119,8 +119,7 @@ Finally, you can use [RegressionTables.jl](https://github.com/jmboehm/Regression
 
 ## Performances
 
-### MultiThreads
-`FixedEffectModels` is multi-threaded. Use the option `nthreads` to select the number of threads to use in the estimation (defaults to `Threads.nthreads()`).
+`FixedEffectModels` is multi-threaded by default. Launch Julia with multiple threads to benefit from the speedup. You can verify how many threads are available in your session with `Threads.nthreads()`.
 
 ### GPUs
 The package has an experimental support for GPUs. This can make the package 2x-5x faster for complicated problems.
