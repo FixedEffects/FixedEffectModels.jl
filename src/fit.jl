@@ -11,7 +11,6 @@ Estimate a linear model with high dimensional categorical variables / instrument
 * `weights::Union{Nothing, Symbol}` A symbol to refer to a columns for weights
 * `save::Symbol`: Should residuals and eventual estimated fixed effects saved in a dataframe? Default to `:none` Use `save = :residuals` to only save residuals, `save = :fe` to only save fixed effects, `save = :all` for both. Once saved, they can then be accessed using `residuals(m)` or `fe(m)` where `m` is the object returned by the estimation. The returned DataFrame is automatically aligned with the original DataFrame.
 * `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  use :CUDA or :Metal  (in this case, you need to import the respective package before importing FixedEffectModels)
-* `nthreads::Integer` Number of threads to use in the estimation. If `method = :cpu`, defaults to `Threads.nthreads()`. Otherwise, defaults to 256.
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true if `method =:cpu' and false if `method = :CUDA` or `method = :Metal`.
 * `tol::Real` Tolerance. Default to 1e-6.
 * `maxiter::Integer = 10000`: Maximum number of iterations
@@ -53,7 +52,7 @@ function reg(df,
     weights::Union{Symbol, Nothing} = nothing,
     save::Union{Bool, Symbol} = :none,
     method::Symbol = :cpu,
-    nthreads::Integer = method == :cpu ? Threads.nthreads() : 256,
+    nthreads::Union{Integer, Nothing} = nothing,
     double_precision::Bool = method == :cpu,
     tol::Real = 1e-6,
     maxiter::Integer = 10000,
@@ -61,7 +60,7 @@ function reg(df,
     progress_bar::Bool = true,
     subset::Union{Nothing, AbstractVector} = nothing, 
     first_stage::Bool = true)
-    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
+    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
 end
     
 function StatsAPI.fit(::Type{FixedEffectModel},     
@@ -72,8 +71,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     @nospecialize(weights::Union{Symbol, Nothing} = nothing),
     @nospecialize(save::Union{Bool, Symbol} = :none),
     @nospecialize(method::Symbol = :cpu),
-    @nospecialize(nthreads::Integer = method == :cpu ? Threads.nthreads() : 256),
-    @nospecialize(double_precision::Bool = true),
+    @nospecialize(nthreads::Union{Integer, Nothing} = nothing),
+    @nospecialize(double_precision::Bool = method == :cpu),
     @nospecialize(tol::Real = 1e-6),
     @nospecialize(maxiter::Integer = 10000),
     @nospecialize(drop_singletons::Bool = true),
@@ -94,7 +93,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         info("method = :gpu is deprecated. Use method = :CUDA or method = :Metal")
         method = :CUDA
     end
-
+    if nthreads !== nothing    
+        info("The keyword argument nthreads is deprecated. Multiple threads are now used by default.")
+    end
     if save == true
         save = :all
     elseif save == false
@@ -104,11 +105,6 @@ function StatsAPI.fit(::Type{FixedEffectModel},
             throw("the save keyword argument must be a Symbol equal to :all, :none, :residuals or :fe")
     end
     save_residuals = (save == :residuals) | (save == :all)
-
-    if method == :cpu && nthreads > Threads.nthreads()
-        @warn "Keyword argument nthreads = $(nthreads) is ignored (Julia was started with only $(Threads.nthreads()) threads)."
-        nthreads = Threads.nthreads()
-    end
 
     ##############################################################################
     ##
@@ -166,7 +162,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
 
     n_singletons = 0
     if drop_singletons
-        n_singletons = drop_singletons!(esample, fes, nthreads)
+        n_singletons = drop_singletons!(esample, fes)
     end
 
     nobs = sum(esample)
@@ -240,7 +236,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         sumsquares_pre = [sum(abs2, x) for x in cols]
 
         # partial out fixed effects
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(subfes, weights, Val{method}, nthreads)
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(subfes, weights, Val{method})
 
         # partial out fixed effects
         _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
