@@ -6,7 +6,7 @@ Code to reproduce this graph:
   FixedEffectModels.jl v1.9.0 (Julia 1.9)
   ```julia
   using DataFrames, CategoricalArrays, FixedEffectModels
-  N = 10000000
+  N = 10_000_000
   K = 100
   id1 = rand(1:(N/K), N)
   id2 = rand(1:K, N)
