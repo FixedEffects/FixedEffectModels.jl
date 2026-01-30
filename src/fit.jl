@@ -93,7 +93,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         info("method = :gpu is deprecated. Use method = :CUDA or method = :Metal")
         method = :CUDA
     end
-
+    if nthreads !== nothing    
+        info("The keyword argument nthreads is deprecated. Multiple threads are now used by default.")
+    end
     if save == true
         save = :all
     elseif save == false
@@ -234,7 +236,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         sumsquares_pre = [sum(abs2, x) for x in cols]
 
         # partial out fixed effects
-        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(subfes, weights, Val{method}, nthreads)
+        feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(subfes, weights, Val{method})
 
         # partial out fixed effects
         _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
