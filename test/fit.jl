@@ -721,6 +721,11 @@ end
 		local m = @formula Wage ~ Emp + fe(Firm) + fe(Year)
 		local x = reg(df, m, weights = :Output, method = method, double_precision = false)
 		@test coef(x) ≈  [- 0.043475472188120416] atol = 1e-3
+		# check Metal with very few fixed effects
+		df.period = df.Year .>= 1980
+		local m = @formula Wage ~ Emp + fe(Firm) + fe(period)
+		local x = reg(df, m, method = method, double_precision = false)
+		@test coef(x) ≈  [-0.0879211] atol = 1e-3
 	end
 end
 
