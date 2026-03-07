@@ -51,11 +51,11 @@ end
 ##############################################################################
 
 function nunique(fe::FixedEffect)
-    out = zeros(Int, fe.n)
-    @inbounds @simd for ref in fe.refs
-        out[ref] += 1
+    seen = falses(fe.n)
+    @inbounds for ref in fe.refs
+        seen[ref] = true
     end
-    sum(>(0), out)
+    count(seen)
 end
 
 

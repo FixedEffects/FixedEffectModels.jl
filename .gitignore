@@ -1,3 +1,4 @@
-
+Manifest.toml
+settings.local.json
 benchmark/.sublime2Terminal.jl
 .vscode/settings.json

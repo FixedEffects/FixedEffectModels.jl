@@ -42,12 +42,12 @@ function partial_out(
     @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
     @nospecialize(align = true))
 
-    if  (ConstantTerm(0) ∉ eachterm(f.rhs)) & (ConstantTerm(1) ∉ eachterm(f.rhs))
+    if  (ConstantTerm(0) ∉ eachterm(f.rhs)) && (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
     end
     formula, formula_endo, formula_iv = parse_iv(f)
     has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
-    has_iv && throw("partial_out does not support instrumental variables")
+    has_iv && throw(ArgumentError("partial_out does not support instrumental variables"))
     formula, formula_fes = parse_fe(formula)
     has_weights = weights !== nothing
 
@@ -56,7 +56,7 @@ function partial_out(
     all_vars = StatsModels.termvars(formula)
     esample = completecases(df[!, all_vars])
     if has_weights
-        esample .&= BitArray(!ismissing(x) & (x > 0) for x in df[!, weights])
+        esample .&= BitArray(!ismissing(x) && (x > 0) for x in df[!, weights])
     end
 
     # initialize iterations & converged
@@ -69,11 +69,11 @@ function partial_out(
 
 
     nobs = sum(esample)
-    (nobs > 0) || throw("sample is empty")
+    (nobs > 0) || throw(ArgumentError("sample is empty"))
     # Compute weights
     if has_weights
         weights = Weights(convert(Vector{Float64}, view(df, esample, weights)))
-        all(isfinite, weights) || throw("Weights are not finite")
+        all(isfinite, weights) || throw(ArgumentError("Weights are not finite"))
     else
         weights = uweights(sum(esample))
     end
@@ -82,7 +82,6 @@ function partial_out(
         # in case some FixedEffect does not have interaction, remove the intercept
         if any(isa(fe.interaction, UnitWeights) for fe in fes)
             formula = FormulaTerm(formula.lhs, tuple(ConstantTerm(0), (t for t in eachterm(formula.rhs) if t!= ConstantTerm(1))...))
-            has_fes_intercept = true
         end
         fes = FixedEffect[fe[esample] for fe in fes]
         feM = AbstractFixedEffectSolver{double_precision ? Float64 : Float32}(fes, weights, Val{method})
@@ -103,7 +102,7 @@ function partial_out(
         m = mean(Y, weights, dims = 1)
     end
     if has_fes
-        Y, b, c = solve_residuals!(Y, feM; maxiter = maxiter, tol = tol, progress_bar = false)
+        _, b, c = solve_residuals!(eachcol(Y), feM; maxiter = maxiter, tol = tol, progress_bar = false)
         append!(iterations, b)
         append!(convergeds, c)
     end
@@ -137,11 +136,9 @@ function partial_out(
 
     # Return a dataframe
     out = DataFrame()
-    j = 0
 
-    for y in ynames
-        j += 1
-        if align & (nobs < length(esample))
+    for (j, y) in enumerate(ynames)
+        if align && (nobs < length(esample))
             out[!, Symbol(y)] = Vector{Union{Float64, Missing}}(missing, size(df, 1))
             out[esample, Symbol(y)] = residuals[:, j]
         else

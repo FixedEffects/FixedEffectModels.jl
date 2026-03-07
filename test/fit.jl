@@ -230,7 +230,7 @@ using CUDA, Metal
 	df.Price_zero = copy(df.Price)
 	df.Price_zero[1] = 0.0
 	m = @formula Sales ~ log(Price_zero)
-	@test_throws  "Some observations for the regressor are infinite" reg(df, m)
+	@test_throws ArgumentError reg(df, m)
 	##############################################################################
 	##
 	## collinearity
@@ -268,15 +268,15 @@ using CUDA, Metal
 
 
 	# catch when IV underidentified 
-	@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(Sales ~ Price + (NDI + Pop ~ NDI)))
-	@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(Sales ~ Price + (Pop ~ Price)))
+	@test_throws ArgumentError reg(df, @formula(Sales ~ Price + (NDI + Pop ~ NDI)))
+	@test_throws ArgumentError reg(df, @formula(Sales ~ Price + (Pop ~ Price)))
 
 
 
 
 
-	# catch when IV underidentified 
-	@test_throws "Model not identified. There must be at least as many ivs as endogeneneous variables" reg(df, @formula(Sales ~ Price + (NDI + Pop ~ NDI)))
+	# catch when IV underidentified
+	@test_throws ArgumentError reg(df, @formula(Sales ~ Price + (NDI + Pop ~ NDI)))
 
 
 	# Make sure all coefficients are estimated

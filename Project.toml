@@ -19,7 +19,7 @@ Vcov = "ec2bfdc2-55df-4fc9-b9ae-4958c2cf2486"
 
 [compat]
 DataFrames = "0.21, 0.22, 1"
-FixedEffects = "2.6"
+FixedEffects = "2.6, 3"
 PrecompileTools = "1"
 Reexport = "0.1, 0.2, 1"
 Statistics = "1"
@@ -29,7 +29,7 @@ StatsFuns = "0.9, 1"
 StatsModels = "0.7"
 Tables = "1"
 Vcov = "0.8"
-julia = "1.9"
+julia = "1.10"
 
 
 [extras]
