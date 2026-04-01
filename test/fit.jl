@@ -750,3 +750,31 @@ end
 	x = reg(df1, @formula(a ~ b + fe(c)))
 	@test coef(x) ≈ [0.5] atol = 1e-4
 end
+
+@testset "keyword arguments" begin
+	df = DataFrame(y = [1.0, 2.0, 2.5], x = [0.0, 1.0, 2.0])
+	@test_logs (:info, r"The keyword argument nthreads is deprecated") reg(df, @formula(y ~ x), nthreads = 1)
+	@test_logs (:info, r"method = :gpu is deprecated") reg(df, @formula(y ~ x), method = :gpu)
+end
+
+@testset "error handling" begin
+	df = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, 1.0, 2.0], z = [1.0, 2.0, 3.0], w = [1.0, 2.0, Inf])
+
+	@test_throws ArgumentError reg(df, @formula(y ~ x), save = :bad)
+	@test_throws DimensionMismatch reg(df, @formula(y ~ x), subset = [true, false])
+	@test_throws ArgumentError reg(df, @formula(y ~ x), subset = falses(3))
+	@test_throws ArgumentError adjr2(reg(df, @formula(y ~ x)), :bad)
+	@test_throws ArgumentError reg(df, @formula(y ~ x), weights = :w)
+
+	df_yinf = DataFrame(y = [1.0, Inf, 3.0], x = [0.0, 1.0, 2.0])
+	@test_throws ArgumentError reg(df_yinf, @formula(y ~ x))
+
+	df_xinf = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, Inf, 2.0])
+	@test_throws ArgumentError reg(df_xinf, @formula(y ~ x))
+
+	df_endoinf = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, Inf, 2.0], z = [1.0, 2.0, 3.0])
+	@test_throws ArgumentError reg(df_endoinf, @formula(y ~ (x ~ z)))
+
+	df_ivinf = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, 1.0, 2.0], z = [1.0, Inf, 3.0])
+	@test_throws ArgumentError reg(df_ivinf, @formula(y ~ (x ~ z)))
+end

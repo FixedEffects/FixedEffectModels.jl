@@ -22,5 +22,21 @@ using FixedEffectModels, DataFrames, Statistics, CSV, Test
 	@test Matrix(partial_out(df, @formula(Sales + Price ~ NDI + fe(State)), weights = :Pop)[1])[1:5, :] ≈ [ -22.2429  -1.2635 ; -20.5296  -1.1515 ; -17.2164  -2.23949; -19.1378  -1.45057; -19.854   -2.28819] atol = 1e-3
 	@test Matrix(partial_out(df, @formula(Sales + Price ~ 1 + fe(State)), weights = :Pop)[1])[1:5, :] ≈ [ -14.0383   -43.1224; -12.5383   -41.9224; -9.43825  -41.9224; -11.5383   -40.2224; -12.4383   -40.1224] atol = 1e-3
 	@test Matrix(partial_out(df, @formula(Sales + Price ~ 1), weights = :Pop)[1])[1:5, :] ≈ [ -26.3745  -44.9103; -24.8745  -43.7103; -21.7745  -43.7103; -23.8745  -42.0103; -24.7745  -41.9103] atol = 1e-3
+
+	df_missing = DataFrame(y = [1.0, 2.0, 3.0, 4.0], g = ["a", missing, "a", "b"])
+	out_missing, esample_missing, _, _ = partial_out(df_missing, @formula(y ~ 1 + fe(g)))
+	out_nomissing, esample_nomissing, _, _ = partial_out(dropmissing(df_missing, :g), @formula(y ~ 1 + fe(g)); align = false)
+	@test esample_missing == [true, false, true, true]
+	@test all(esample_nomissing)
+	@test ismissing(out_missing.y[2])
+	@test collect(skipmissing(out_missing.y)) ≈ out_nomissing.y
+end
+
+@testset "partial out errors" begin
+	df = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, 1.0, 2.0], z = [1.0, 2.0, 3.0], w = [1.0, 2.0, Inf])
+
+	@test_throws ArgumentError partial_out(df, @formula(y ~ (x ~ z)))
+	@test_throws ArgumentError partial_out(df, @formula(y ~ x), weights = :w)
+	@test_throws ArgumentError partial_out(DataFrame(y = [missing, missing], x = [1.0, 2.0]), @formula(y ~ x))
 end
 	    

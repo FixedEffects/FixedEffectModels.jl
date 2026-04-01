@@ -113,23 +113,22 @@ end
 
 # predict, residuals, modelresponse
 
-# Utility functions for checking whether FE/continuous interactions are in formula
-# These are currently not supported in predict
-function is_cont_fe_int(x) 
+# Utility functions for checking whether FE/non-FE interactions are in formula.
+# These are currently not supported in predict.
+function is_cont_fe_int(x)
     x isa InteractionTerm || return false
-    any(x -> isa(x, Term), x.terms) && any(x -> isa(x, FunctionTerm{typeof(fe), Vector{Term}}), x.terms)
+    any(has_fe, x.terms) && any(t -> !has_fe(t), x.terms)
 end
 
-# Does the formula have InteractionTerms?
+has_cont_fe_interaction(::AbstractTerm) = false
+has_cont_fe_interaction(x::InteractionTerm) = is_cont_fe_int(x)
+has_cont_fe_interaction(x::NTuple{N, AbstractTerm}) where {N} = any(has_cont_fe_interaction, x)
 function has_cont_fe_interaction(x::FormulaTerm)
-    if x.rhs isa AbstractTerm # only one term
-        is_cont_fe_int(x)
-    elseif hasfield(typeof(x.rhs), :lhs) # Is an IV term
-        false # Is this correct?
-    else
-        any(is_cont_fe_int, x.rhs)
-    end
+    has_cont_fe_interaction(x.lhs) || any(has_cont_fe_interaction, eachterm(x.rhs))
 end
+
+_is_no_regressor_rhs(rhs) = rhs == MatrixTerm((InterceptTerm{false}(),))
+_is_intercept_only_rhs(rhs) = rhs == MatrixTerm((InterceptTerm{true}(),))
 
 function StatsAPI.predict(m::FixedEffectModel, data)
     Tables.istable(data) ||
@@ -140,10 +139,12 @@ function StatsAPI.predict(m::FixedEffectModel, data)
 
     # only fixed effects
     cdata = StatsModels.columntable(data)
-    nrows = length(Tables.rows(cdata))
-    if m.formula_schema.rhs == MatrixTerm((InterceptTerm{false}(),))
-        has_fe(m) || throw(ArgumentError("To be used with predict, a model requires regressors or fixed effects"))
+    nrows = length(Tables.rows(data))
+    if _is_no_regressor_rhs(m.formula_schema.rhs)
         out = zeros(Float64, nrows)
+        nonmissings = trues(nrows)
+    elseif _is_intercept_only_rhs(m.formula_schema.rhs)
+        out = fill(only(m.coef), nrows)
         nonmissings = trues(nrows)
     else
         cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
@@ -186,14 +187,26 @@ function StatsAPI.residuals(m::FixedEffectModel, data)
     has_fe(m) &&
      throw(ArgumentError("To access residuals for a model with high-dimensional fixed effects, run `m = reg(..., save = :residuals)` and then access residuals with `residuals(m)`."))
     cdata = StatsModels.columntable(data)
-    cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
-    Xnew = modelmatrix(m.formula_schema, cols)
     y = response(m.formula_schema, cdata)
-    if all(nonmissings)
-        out =  y -  Xnew * m.coef
+    if _is_no_regressor_rhs(m.formula_schema.rhs)
+        out = y
+    elseif _is_intercept_only_rhs(m.formula_schema.rhs)
+        observed = .!ismissing.(y)
+        if all(observed)
+            out = y .- only(m.coef)
+        else
+            out = Vector{Union{Float64, Missing}}(missing, length(y))
+            out[observed] = y[observed] .- only(m.coef)
+        end
     else
-        out = Vector{Union{Float64, Missing}}(missing,  length(Tables.rows(cdata)))
-        out[nonmissings] = y -  Xnew * m.coef
+        cols, nonmissings = StatsModels.missing_omit(cdata, m.formula_schema.rhs)
+        Xnew = modelmatrix(m.formula_schema, cols)
+        if all(nonmissings)
+            out = y - Xnew * m.coef
+        else
+            out = Vector{Union{Float64, Missing}}(missing, length(Tables.rows(data)))
+            out[nonmissings] = y - Xnew * m.coef
+        end
     end
     return out
 end
@@ -361,4 +374,3 @@ function StatsModels.apply_schema(t::FormulaTerm, schema::StatsModels.Schema, Mo
     FormulaTerm(apply_schema(t.lhs, schema.schema, StatisticalModel),
                 StatsModels.collect_matrix_terms(apply_schema(t.rhs, schema, StatisticalModel)))
 end
-
