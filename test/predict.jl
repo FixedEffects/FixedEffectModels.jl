@@ -1,4 +1,5 @@
 using FixedEffectModels, DataFrames, CategoricalArrays, CSV, Test
+using CUDA, Metal
 
 
 
@@ -38,6 +39,17 @@ using FixedEffectModels, DataFrames, CategoricalArrays, CSV, Test
 end
 
 @testset "Predict" begin
+    # Intercept only
+    df = DataFrame(y = [1.0, 2.0, 3.0])
+    m = reg(df, @formula(y ~ 1))
+    pred = predict(m, df)
+    @test pred ≈ fill(2.0, 3)
+
+    # No regressors
+    m = reg(df, @formula(y ~ 0))
+    pred = predict(m, df)
+    @test pred ≈ zeros(3)
+
     # Simple - one binary FE
     df = DataFrame(x = rand(100), g = rand(["a", "b"], 100))
     df.y = 1.0 .+ 0.5 .* df.x .+ (df.g .== "b")
@@ -155,6 +167,12 @@ end
     m = reg(df, @formula(y ~ x + fe(g1) + fe(g2)&z + fe(g1)&x); save = :fe)
     @test_throws ArgumentError pred = predict(m, df)
 
+    # FE/continuous interaction as the only regressor
+    df = DataFrame(g = rand(["a", "b"], 100), z = rand(100))
+    df.y = 1.5 .+ 2.0 .* (df.g .== "b") .* df.z
+    m = reg(df, @formula(y ~ fe(g)&z); save = :fe)
+    @test_throws ArgumentError pred = predict(m, df)
+
     # Regular FE + interacted FE + FE/continuous interaction
     df = DataFrame(x = rand(100), g1 = rand(["a", "b"], 100), g2 = rand(["c", "d"], 100), 
         g3 = rand(["e", "f"], 100), g4 = rand(["g", "h"], 100), z = rand(100))
@@ -171,6 +189,20 @@ end
 	@test all(skipmissing(out1 .≈ out2))
 end
 
+@testset "predict/residual error paths" begin
+	df = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, 1.0, 2.0], g = ["a", "a", "b"])
+
+	@test_throws ArgumentError predict(reg(df, @formula(y ~ x)), 1)
+	@test_throws ArgumentError residuals(reg(df, @formula(y ~ x)), 1)
+	@test_throws ArgumentError fe(reg(df, @formula(y ~ x)))
+	@test_throws ArgumentError residuals(reg(df, @formula(y ~ x)))
+
+	m_fe = reg(df, @formula(y ~ x + fe(g)))
+	@test_throws ArgumentError predict(m_fe, df)
+	@test_throws ArgumentError residuals(m_fe, df)
+	@test_throws ArgumentError residuals(m_fe)
+end
+
 @testset "Continuous/FE detection" begin
     # Regular interaction is fine as handled by StatsModels
     @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + y&z)) == false
@@ -179,6 +211,7 @@ end
     @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + fe(y)&fe(z))) == false
 
     # Interaction of FEs with continuous variable requires special handling, currently not implemented
+    @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ fe(y)&z)) == true
     @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + fe(y)&z)) == true
     @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + y&fe(z))) == true
     @test FixedEffectModels.has_cont_fe_interaction(@formula(y ~ x + fe(y)&fe(z)&a)) == true
@@ -189,6 +222,11 @@ end
 
 
 @testset "residuals" begin
+
+	df = DataFrame(y = [1.0, 2.0, 3.0])
+	model = @formula y ~ 1
+	result = reg(df, model)
+	@test residuals(result, df) ≈ [-1.0, 0.0, 1.0]
 
 	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 	df.StateC = categorical(df.State)
@@ -408,5 +446,3 @@ end
 		@test fe(result)[1, :fe_Year] ≈ 164.7 atol = 1e-1
 	end
 end
-
-

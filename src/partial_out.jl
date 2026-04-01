@@ -42,6 +42,10 @@ function partial_out(
     @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
     @nospecialize(align = true))
 
+    # Normalize generic Tables.jl input once; the rest of the function uses
+    # DataFrame indexing/views, and copycols = false avoids copies when possible.
+    df = DataFrame(df; copycols = false)
+
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) && (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))
     end
@@ -53,8 +57,10 @@ function partial_out(
 
 
     # create a dataframe without missing values & negative weights
-    all_vars = StatsModels.termvars(formula)
-    esample = completecases(df[!, all_vars])
+    main_vars = unique(StatsModels.termvars(formula))
+    fe_vars = unique(StatsModels.termvars(formula_fes))
+    all_vars = unique(vcat(main_vars, fe_vars))
+    esample = completecases(df, all_vars)
     if has_weights
         esample .&= BitArray(!ismissing(x) && (x > 0) for x in df[!, weights])
     end

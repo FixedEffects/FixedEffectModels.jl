@@ -60,7 +60,7 @@ function reg(df,
     progress_bar::Bool = true,
     subset::Union{Nothing, AbstractVector} = nothing, 
     first_stage::Bool = true)
-    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
+    StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
 end
     
 function StatsAPI.fit(::Type{FixedEffectModel},     
