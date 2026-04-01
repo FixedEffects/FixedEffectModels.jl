@@ -10,6 +10,7 @@ Partial out variables in a Dataframe
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
 * `tol::Real`: Tolerance
 * `align::Bool`: Should the returned DataFrame align with the original DataFrame in case of missing values? Default to true.
+* `drop_singletons::Bool=false`: Should singletons be dropped?
 
 ### Returns
 * `::DataFrame`: a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -40,7 +41,8 @@ function partial_out(
     @nospecialize(method::Symbol = :cpu),
     @nospecialize(double_precision::Bool = true),
     @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
-    @nospecialize(align = true))
+    @nospecialize(align = true),
+    @nospecialize(drop_singletons = false))
 
     # Normalize generic Tables.jl input once; the rest of the function uses
     # DataFrame indexing/views, and copycols = false avoids copies when possible.
@@ -73,6 +75,7 @@ function partial_out(
     fes, ids, ids_fes = parse_fixedeffect(df, formula_fes)
     has_fes = !isempty(fes)
 
+    drop_singletons && drop_singletons!(esample, fes, Threads.nthreads())
 
     nobs = sum(esample)
     (nobs > 0) || throw(ArgumentError("sample is empty"))
@@ -140,6 +143,8 @@ function partial_out(
         residuals .= residuals .+ m
     end
 
+    dof_fes = mapreduce(nunique, +, fes, init=0)
+
     # Return a dataframe
     out = DataFrame()
 
@@ -151,5 +156,5 @@ function partial_out(
             out[!, Symbol(y)] = residuals[:, j]
         end
     end
-    return out, esample, iterations, convergeds
+    return out, esample, iterations, convergeds, dof_fes
 end
