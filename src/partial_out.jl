@@ -5,17 +5,19 @@ Partial out variables in a Dataframe
 * `df`: A table
 * `formula::FormulaTerm`: A formula created using `@formula`
 * `add_mean::Bool`: Should the initial mean added to the returned variable?
-* `method::Symbol`: A symbol for the method. Default is :cpu. Alternatively,  :gpu requires `CuArrays`. In this case, use the option `double_precision = false` to use `Float32`.
+* `method::Symbol`: A symbol for the method. Default is `:cpu`. Alternatively, use `:CUDA` or `:Metal` (load the respective package — CUDA.jl or Metal.jl — before `using FixedEffectModels`).
 * `maxiter::Integer`: Maximum number of iterations
 * `double_precision::Bool`: Should the demeaning operation use Float64 rather than Float32? Default to true.
-* `tol::Real`: Tolerance
+* `tol::Real`: Tolerance for the iterative demeaning. Default `1e-6`, matching `reg` (so that `partial_out` and `reg(...; save = :residuals)` return the same residuals).
 * `align::Bool`: Should the returned DataFrame align with the original DataFrame in case of missing values? Default to true.
 * `drop_singletons::Bool=false`: Should singletons be dropped?
 
 ### Returns
-* `::DataFrame`: a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
-* `::Vector{Int}`: a vector of iterations for each column
-* `::Vector{Bool}`: a vector of success for each column
+* `::DataFrame`: residuals, one column per dependent variable, aligned with the original dataframe.
+* `::BitVector`: the estimation-sample mask (the rows actually used).
+* `::Vector{Int}`: number of demeaning iterations for each column.
+* `::Vector{Bool}`: convergence flag for each column.
+* `::Int`: degrees of freedom absorbed by the fixed effects.
 
 ### Details
 `partial_out` returns the residuals of a set of variables after regressing them on a set of regressors. The syntax is similar to `reg` - but it accepts multiple dependent variables. It returns a dataframe with as many columns as there are dependent variables and as many rows as the original dataframe.
@@ -40,13 +42,18 @@ function partial_out(
     @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
     @nospecialize(method::Symbol = :cpu),
     @nospecialize(double_precision::Bool = true),
-    @nospecialize(tol::Real = double_precision ? 1e-8 : 1e-6),
+    @nospecialize(tol::Real = 1e-6),
     @nospecialize(align = true),
     @nospecialize(drop_singletons = false))
 
     # Normalize generic Tables.jl input once; the rest of the function uses
     # DataFrame indexing/views, and copycols = false avoids copies when possible.
     df = DataFrame(df; copycols = false)
+
+    if method == :gpu
+        @info "method = :gpu is deprecated. Use method = :CUDA or method = :Metal"
+        method = :CUDA
+    end
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) && (ConstantTerm(1) ∉ eachterm(f.rhs))
         f = FormulaTerm(f.lhs, tuple(ConstantTerm(1), eachterm(f.rhs)...))

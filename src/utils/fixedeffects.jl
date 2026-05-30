@@ -52,8 +52,20 @@ end
 
 function nunique(fe::FixedEffect)
     seen = falses(fe.n)
-    @inbounds for ref in fe.refs
-        seen[ref] = true
+    if fe.interaction isa UnitWeights
+        @inbounds for ref in fe.refs
+            seen[ref] = true
+        end
+    else
+        # Continuous-slope fixed effect (e.g. fe(id)&x): a group whose interaction is
+        # identically zero contributes no column to the design and absorbs no degree of
+        # freedom (the demeaning sets its scale to 0, SolverCPU.scale!). Count only groups
+        # with at least one nonzero interaction value, so dof_fes is not overstated.
+        @inbounds for i in eachindex(fe.refs, fe.interaction)
+            if !iszero(fe.interaction[i])
+                seen[fe.refs[i]] = true
+            end
+        end
     end
     count(seen)
 end

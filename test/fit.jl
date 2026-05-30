@@ -777,4 +777,37 @@ end
 
 	df_ivinf = DataFrame(y = [1.0, 2.0, 3.0], x = [0.0, 1.0, 2.0], z = [1.0, Inf, 3.0])
 	@test_throws ArgumentError reg(df_ivinf, @formula(y ~ (x ~ z)))
+
+	# malformed formula: a `~` on the left-hand side gives a clear error, not a MethodError
+	@test_throws ArgumentError reg(df, @formula((y ~ z) ~ x))
+end
+
+@testset "residual degrees of freedom and CI labels" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+
+	# The intercept is counted exactly once: residual dof is N - K, not N - K - 1.
+	@test dof_residual(reg(df, @formula(Sales ~ Price))) == 1378
+	@test dof_residual(reg(df, @formula(Sales ~ 0 + Price))) == 1379
+	@test dof_residual(reg(df, @formula(Sales ~ CPI + (Price ~ Pimin)))) == 1377
+	# A fixed effect absorbs the constant once (dof = N - slopes - #levels).
+	@test dof_residual(reg(df, @formula(Sales ~ Price + fe(State)))) == 1380 - 1 - length(unique(df.State))
+	# Cluster-robust dof is G - 1 (clusters minus one), not G - 2.
+	@test dof_residual(reg(df, @formula(Sales ~ Price), Vcov.cluster(:State))) == length(unique(df.State)) - 1
+
+	# coeftable labels the confidence-interval columns with the requested level.
+	m = reg(df, @formula(Sales ~ Price))
+	@test coeftable(m).colnms[end-1:end] == ["Lower 95%", "Upper 95%"]
+	@test coeftable(m; level = 0.90).colnms[end-1:end] == ["Lower 90%", "Upper 90%"]
+	@test coeftable(m; level = 0.99).colnms[end-1:end] == ["Lower 99%", "Upper 99%"]
+end
+
+@testset "continuous-slope FE degrees of freedom" begin
+	# A group whose continuous interaction is identically zero contributes no column
+	# to the design and must not be counted in dof_fes.
+	df = DataFrame(id = repeat(1:3, inner = 4),
+	               z = Float64[3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8],
+	               y = Float64[5, 2, 7, 3, 1, 8, 4, 9, 6, 2, 5, 3])
+	df.x = Float64.(df.id .!= 1)          # interaction identically zero for id == 1
+	m = reg(df, @formula(y ~ z + fe(id)&x))
+	@test FixedEffectModels.dof_fes(m) == 2
 end

@@ -23,6 +23,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 ### Details
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
+Regressors that are collinear with other regressors (or with the fixed effects) are dropped from the estimation. A dropped coefficient is reported as `0` with a `NaN` standard error (and `NaN` t-statistic, p-value, and confidence interval).
+
 ### Examples
 ```julia
 using RDatasets, FixedEffectModels
@@ -325,9 +327,14 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # Compute Fstat
     F = Fstat(coef, matrix_vcov, has_intercept)
    
-    # dof_ is the number of estimated coefficients beyond the intercept.
+    # dof_ is the number of estimated coefficients beyond the intercept (F-stat numerator).
     dof_ = size(X, 2) - has_intercept
-    dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method) - (has_intercept || has_fe_intercept))
+    # Residual dof for t-tests/p-values/CIs. Vcov.dof_residual already returns the final
+    # value: nobs - size(X,2) - dof_fes for simple/robust (size(X,2) already counts the
+    # intercept column, or the constant is inside dof_fes when absorbed by a fixed effect),
+    # and minimum(nclusters)-1 = G-1 for clustering. It must NOT be decremented again for
+    # the intercept (doing so reported N-K-1 instead of N-K, and G-2 instead of G-1).
+    dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method))
     p = fdistccdf(dof_, dof_tstat_, F)
     
     # Compute Fstat of First Stage
