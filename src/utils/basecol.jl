@@ -5,7 +5,8 @@ Generalized inverse via sweep operator.
 Returns minus the symmetric inverse (negated so callers negate back).
 """
 function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal = 1:size(X, 2))
-    tols = max.(diag(X), 1)
+    # Per-column reference scale for the numerically-zero pivot test below.
+    tols = sweep_tolerances(X)
     buffer = zeros(size(X, 1))
     for j in diagonal
         d = X[j,j]
@@ -17,15 +18,29 @@ function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal
             copy!(buffer, view(X, :, j))
             Symmetric(BLAS.syrk!('U', 'N', -1/d, buffer, one(eltype(X)), X.data))
             rmul!(buffer, 1 / d)
-            @views copy!(X.data[1:j-1,j], buffer[1:j-1])        
-            @views copy!(X.data[j, j+1:end], buffer[j+1:end])   
+            @views copy!(X.data[1:j-1,j], buffer[1:j-1])
+            @views copy!(X.data[j, j+1:end], buffer[j+1:end])
             X[j,j] = - 1 / d
         end
         if setzeros && has_intercept && j == 1
-            tols = max.(diag(X), 1)
+            tols = sweep_tolerances(X)
         end
     end
     return X
+end
+
+# Reference scale per column used by invsym! to flag a (post-sweep) pivot as numerically
+# zero: a column is dropped when |pivot| < scale_j * sqrt(eps). The scale is the column's
+# own diagonal, floored by a tiny multiple of the largest diagonal so the test is
+# scale-invariant. The previous absolute floor of 1 spuriously dropped genuinely
+# independent regressors whose total sum of squares was below ~sqrt(eps), while the
+# relative floor still drops all-zero columns (diag 0 -> floored to ref*eps > 0). On
+# well-scaled designs (all diagonals >= 1) this reproduces the old tolerances exactly.
+function sweep_tolerances(X::Symmetric)
+    d = diag(X)
+    ref = maximum(d; init = zero(eltype(d)))
+    floor_ = ref > 0 ? ref * eps(eltype(d)) : eps(eltype(d))
+    return max.(d, floor_)
 end
 
 """
@@ -189,6 +204,11 @@ end
 
 Expand coefficient vector and vcov matrix to account for omitted (collinear)
 variables and IV-reclassified variable permutations.
+
+Coefficients dropped for collinearity are reinserted with a value of `0`, and the
+corresponding rows and columns of the variance-covariance matrix are filled with `NaN`.
+This is the convention used to flag an omitted regressor: its standard error, t-statistic,
+p-value, and confidence interval are therefore reported as `NaN`.
 """
 function reinsert_omitted!(
     coef::Vector{Float64},                   # estimated coefficients (excluding omitted)
@@ -197,28 +217,19 @@ function reinsert_omitted!(
     perm::Union{Nothing, Vector{Int}}        # permutation from IV reclassification, or nothing
 )
     if !all(basis_coef)
+        kept = findall(basis_coef)
         newcoef = zeros(length(basis_coef))
+        newcoef[kept] = coef
+
         newmatrix_vcov = fill(NaN, (length(basis_coef), length(basis_coef)))
-        newindex = [searchsortedfirst(cumsum(basis_coef), i) for i in 1:length(coef)]
-        for i in eachindex(newindex)
-            newcoef[newindex[i]] = coef[i]
-            for j in eachindex(newindex)
-                newmatrix_vcov[newindex[i], newindex[j]] = matrix_vcov[i, j]
-            end
-        end
+        newmatrix_vcov[kept, kept] = Matrix(matrix_vcov)
         coef = newcoef
         matrix_vcov = Symmetric(newmatrix_vcov)
     end
     if perm !== nothing
-        _invperm = invperm(perm)
-        coef = coef[_invperm]
-        newmatrix_vcov = zeros(size(matrix_vcov))
-        for i in 1:size(newmatrix_vcov, 1)
-            for j in 1:size(newmatrix_vcov, 1)
-                newmatrix_vcov[i, j] = matrix_vcov[_invperm[i], _invperm[j]]
-            end
-        end
-        matrix_vcov = Symmetric(newmatrix_vcov)
+        invp = invperm(perm)
+        coef = coef[invp]
+        matrix_vcov = Symmetric(Matrix(matrix_vcov)[invp, invp])
     end
     return coef, matrix_vcov
 end

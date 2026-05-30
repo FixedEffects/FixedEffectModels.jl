@@ -1,4 +1,5 @@
-using DataFrames, CSV, FixedEffectModels, Random, Statistics, Test
+using DataFrames, CSV, FixedEffectModels, Random, Statistics, Test, LinearAlgebra
+using FixedEffectModels: reinsert_omitted!
 
 @testset "collinearity_with_fixedeffects" begin
 
@@ -43,4 +44,48 @@ using DataFrames, CSV, FixedEffectModels, Random, Statistics, Test
   )
   rr = reg(df, @formula(x1 ~ x2))
   @test all(!isnan, stderror(rr))
+end
+
+@testset "reinsert omitted" begin
+  coef = [10.0, 20.0]
+  vcov = Symmetric([1.0 0.2; 0.2 4.0])
+  basis_coef = BitVector([true, false, true])
+  perm = [2, 1, 3]
+
+  newcoef, newvcov = reinsert_omitted!(coef, vcov, basis_coef, perm)
+  newvcov_matrix = Matrix(newvcov)
+
+  @test newcoef == [0.0, 10.0, 20.0]
+  @test isnan(newvcov_matrix[1, 1])
+  @test isnan(newvcov_matrix[1, 2])
+  @test isnan(newvcov_matrix[1, 3])
+  @test isnan(newvcov_matrix[2, 1])
+  @test newvcov_matrix[2, 2] == 1.0
+  @test newvcov_matrix[2, 3] == 0.2
+  @test isnan(newvcov_matrix[3, 1])
+  @test newvcov_matrix[3, 2] == 0.2
+  @test newvcov_matrix[3, 3] == 4.0
+end
+
+@testset "small-scale independent regressor is kept" begin
+  # The rank test is scale-invariant: a genuinely independent regressor whose total
+  # sum of squares is below sqrt(eps) used to be dropped as collinear (NaN stderror).
+  df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+  df.tiny = df.Price .* 3e-8
+  m = reg(df, @formula(Sales ~ tiny))
+  mP = reg(df, @formula(Sales ~ Price))
+  @test !isnan(stderror(m)[2])
+  # scaling a regressor by c scales its coefficient by 1/c and leaves the t-stat invariant
+  @test coef(m)[2] * 3e-8 ≈ coef(mP)[2] rtol = 1e-4
+  @test coef(m)[2] / stderror(m)[2] ≈ coef(mP)[2] / stderror(mP)[2] rtol = 1e-4
+end
+
+@testset "collinear regressor reported as zero coef and NaN stderror" begin
+  df = DataFrame(y = [1.0, 3.0, 2.0, 5.0, 4.0, 6.0], x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+  df.x2 = 2 .* df.x        # perfectly collinear with x
+  m = reg(df, @formula(y ~ x + x2))
+  # coefnames are [(Intercept), x, x2]; the later collinear column x2 is dropped
+  @test coef(m)[3] == 0
+  @test isnan(stderror(m)[3])
+  @test !isnan(stderror(m)[2])
 end
