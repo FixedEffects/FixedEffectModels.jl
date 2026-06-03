@@ -118,6 +118,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
     formula, formula_fes = parse_fe(formula)
     has_fes = formula_fes != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    # HC2/HC3 compute leverage from the partialled-out (demeaned) regressors only, which
+    # omits the absorbed fixed-effect contribution to leverage. The resulting standard
+    # errors are silently anti-conservative, so guard against the combination (mirroring
+    # the IV guard, where HC2/HC3 are likewise rejected).
+    if has_fes && vcov isa Vcov.RobustCovariance && vcov.correction ∈ (:hc2, :hc3)
+        throw(ArgumentError("$(uppercase(string(vcov.correction))) standard errors are not supported with fixed effects, because the leverage correction does not account for the absorbed fixed effects. Use Vcov.robust() (HC1) or Vcov.cluster(...) instead."))
+    end
     # when save = :fe but there are no fixed effects in the formula, don't save fixed effects
     save_fes = save ∈ (:fe, :all) && has_fes
     has_weights = weights !== nothing
