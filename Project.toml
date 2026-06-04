@@ -1,6 +1,6 @@
 name = "FixedEffectModels"
 uuid = "9d5cd8c9-2029-5cab-9928-427838db53e3"
-version = "1.13.1"
+version = "1.13.2"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -25,7 +25,7 @@ Reexport = "0.1, 0.2, 1"
 Statistics = "1"
 StatsAPI = "1"
 StatsBase = "0.33, 0.34"
-StatsFuns = "0.9, 1"
+StatsFuns = "0.9, 1, 2"
 StatsModels = "0.7"
 Tables = "1"
 Vcov = "0.8"
