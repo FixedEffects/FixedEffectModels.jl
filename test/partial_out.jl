@@ -38,5 +38,8 @@ end
 	@test_throws ArgumentError partial_out(df, @formula(y ~ (x ~ z)))
 	@test_throws ArgumentError partial_out(df, @formula(y ~ x), weights = :w)
 	@test_throws ArgumentError partial_out(DataFrame(y = [missing, missing], x = [1.0, 2.0]), @formula(y ~ x))
+
+	# method = :gpu is deprecated in favor of :CUDA / :Metal
+	@test_logs (:info, r"method = :gpu is deprecated") partial_out(df, @formula(y ~ x), method = :gpu)
 end
 	    

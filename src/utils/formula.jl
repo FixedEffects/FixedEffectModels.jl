@@ -14,6 +14,7 @@ eachterm(@nospecialize(x::NTuple{N, AbstractTerm})) where {N} = x
 ##############################################################################
 has_iv(@nospecialize(f::FormulaTerm)) = any(x -> x isa FormulaTerm, eachterm(f.rhs))
 function parse_iv(@nospecialize(f::FormulaTerm))
+    f.lhs isa FormulaTerm && throw(ArgumentError("Malformed formula: the left-hand side cannot contain `~`. The instrumental-variable syntax is `y ~ exogenous + (endogenous ~ instruments)`."))
     if has_iv(f)
         i = findfirst(x -> x isa FormulaTerm, eachterm(f.rhs))
         term = eachterm(f.rhs)[i]
@@ -41,6 +42,18 @@ struct FixedEffectTerm <: AbstractTerm
     x::Symbol
 end
 StatsModels.termvars(t::FixedEffectTerm) = [t.x]
+
+"""
+    fe(x)
+
+Mark a variable as a high-dimensional fixed effect (a categorical variable to be absorbed)
+inside a `@formula` passed to [`reg`](@ref) or [`partial_out`](@ref), e.g.
+`@formula(y ~ x + fe(id))`. Several fixed effects are added with `+`, and they can be
+interacted with `&`/`*`: `fe(id)&fe(year)` for interacted fixed effects, `fe(id)&x` for
+group-specific slopes on a continuous variable `x`.
+
+When building a formula programmatically, `fe` also accepts a `Symbol`: `fe(:id)`.
+"""
 fe(x::Term) = fe(Symbol(x))
 fe(s::Symbol) = FixedEffectTerm(s)
 

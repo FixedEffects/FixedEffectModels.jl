@@ -5,6 +5,16 @@
 ##
 ##############################################################################
 
+"""
+    FixedEffectModel <: RegressionModel
+
+The fitted model returned by [`reg`](@ref). It is lightweight: it stores the coefficients,
+variance-covariance matrix, fit statistics, and (optionally) saved residuals and fixed
+effects, but not the original data. Inspect it with the `StatsAPI` accessors
+(`coef`, `vcov`, `stderror`, `confint`, `coeftable`, `nobs`, `dof_residual`, `r2`, …),
+and with [`fe`](@ref) for saved fixed effects. `predict`/`residuals` take the data table as
+a second argument since it is not retained.
+"""
 struct FixedEffectModel <: RegressionModel
     coef::Vector{Float64}   # Vector of coefficients
     vcov::Matrix{Float64}   # Covariance matrix
@@ -43,7 +53,18 @@ struct FixedEffectModel <: RegressionModel
     p_kp::Float64           # First Stage p value KP
 end
 
+"""
+    has_iv(m::FixedEffectModel)
+
+Return `true` if the model was estimated with instrumental variables (2SLS).
+"""
 has_iv(m::FixedEffectModel) = has_iv(m.formula)
+
+"""
+    has_fe(m::FixedEffectModel)
+
+Return `true` if the model includes high-dimensional fixed effects (`fe(...)` terms).
+"""
 has_fe(m::FixedEffectModel) = has_fe(m.formula)
 
 
@@ -62,6 +83,12 @@ StatsAPI.nulldeviance(m::FixedEffectModel) = m.tss
 StatsAPI.rss(m::FixedEffectModel) = m.rss
 StatsAPI.mss(m::FixedEffectModel) = nulldeviance(m) - rss(m)
 StatsModels.formula(m::FixedEffectModel) = m.formula_schema
+"""
+    dof_fes(m::FixedEffectModel)
+
+Return the number of degrees of freedom absorbed by the fixed effects (the total number of
+fixed-effect levels across all `fe(...)` dimensions).
+"""
 dof_fes(m::FixedEffectModel) = m.dof_fes
 
 function StatsAPI.loglikelihood(m::FixedEffectModel)
@@ -256,9 +283,12 @@ function StatsAPI.coeftable(m::FixedEffectModel; level = 0.95)
         coefnms = coefnms[newindex]
     end
     tt = cc ./ se
+    # Label the confidence-interval columns with the requested level, not a hard-coded 95%.
+    pct = 100 * level
+    pctstr = isinteger(pct) ? string(Int(pct)) : string(pct)
     CoefTable(
         hcat(cc, se, tt, fdistccdf.(Ref(1), Ref(StatsAPI.dof_residual(m)), abs2.(tt)), conf_int[:, 1:2]),
-        ["Estimate","Std. Error","t-stat", "Pr(>|t|)", "Lower 95%", "Upper 95%" ],
+        ["Estimate","Std. Error","t-stat", "Pr(>|t|)", "Lower $(pctstr)%", "Upper $(pctstr)%" ],
         ["$(coefnms[i])" for i = 1:length(cc)], 4)
 end
 
