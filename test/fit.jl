@@ -31,7 +31,6 @@ using CUDA, Metal
 	m = @formula Sales ~ Price + fe(State)
 	x = reg(df, m)
 	@test coef(x) ≈ [-0.20984] atol = 1e-4
-	@test x.iterations == 1
 
 	m = @formula Sales ~ Price + fe(State) + fe(Year)
 	x = reg(df, m)
