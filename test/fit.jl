@@ -604,6 +604,68 @@ end
 
 
 @testset "singletons" begin
+	@testset "singleton pruning k-core" begin
+		esample = trues(7)
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1, 1, 2, 2, 3, 3, 4]),
+			FixedEffectModels.FixedEffect([1, 2, 1, 2, 2, 3, 3]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 3
+		@test esample == Bool[true, true, true, true, false, false, false]
+
+		esample = Bool[true, true, true, true, false]
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1, 1, 2, 2, 3]),
+			FixedEffectModels.FixedEffect([1, 2, 1, 2, 3]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 0
+		@test esample == Bool[true, true, true, true, false]
+
+		esample = trues(5)
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1, 1, 1, 2, 2]),
+			FixedEffectModels.FixedEffect([1, 2, 3, 2, 3]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 1
+		@test esample == Bool[false, true, true, true, true]
+
+		esample = Bool[true, false, true, true]
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1, 1, 2, 2]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 1
+		@test esample == Bool[false, false, true, true]
+
+		esample = trues(4)
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1, 1, 2, 2], [1, 2, 1, 2]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 4
+		@test esample == falses(4)
+
+		esample = trues(1)
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1]),
+			FixedEffectModels.FixedEffect([1]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 1
+		@test esample == Bool[false]
+
+		esample = trues(3)
+		fes = FixedEffectModels.FixedEffect[
+			FixedEffectModels.FixedEffect([1, 1, 2]; interaction = [0.0, 0.0, 0.0]),
+		]
+		@test FixedEffectModels.drop_singletons!(esample, fes) == 1
+		@test esample == Bool[true, true, false]
+
+		df_partial = DataFrame(y = [1.0, 2.0, 3.0], g = [1, 1, 2])
+		_, esample_partial, _, _, _ = partial_out(df_partial, @formula(y ~ fe(g)); drop_singletons = true)
+		@test esample_partial == Bool[true, true, false]
+
+		esample = Bool[true, false, true]
+		@test FixedEffectModels.drop_singletons!(esample, FixedEffectModels.FixedEffect[]) == 0
+		@test esample == Bool[true, false, true]
+	end
 
 	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
 	df.StateC = categorical(df.State)
