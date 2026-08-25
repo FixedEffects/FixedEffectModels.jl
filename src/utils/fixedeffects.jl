@@ -29,11 +29,11 @@ function drop_singletons!(esample, fes::AbstractVector{<:FixedEffect}, _nthreads
         fe = fes[j]
         counts_j = zeros(Int, fe.n)
         active_xor_j = zeros(Int, fe.n)
-        # nactive is the number of observations currently kept in the estimation
+        # nobs is the number of observations currently kept in the estimation
         # sample, i.e. the number of true entries in esample.
         # count_groups! also fills counts_j and active_xor_j.
-        nactive = count_groups!(counts_j, active_xor_j, esample, fe.refs)
-        nactive == 0 && return 0
+        nobs = count_groups!(counts_j, active_xor_j, esample, fe.refs)
+        nobs == 0 && return 0
 
         # Count FE levels that currently contain exactly one active observation.
         nsingleton_groups = 0
@@ -42,9 +42,9 @@ function drop_singletons!(esample, fes::AbstractVector{<:FixedEffect}, _nthreads
                 nsingleton_groups += 1
             end
         end
-        if nsingleton_groups == nactive
+        if nsingleton_groups == nobs
             fill!(esample, false)
-            return nactive
+            return nobs
         end
         if nsingleton_groups > 0
             @inbounds for ref in eachindex(counts_j)
@@ -90,16 +90,16 @@ function drop_singletons!(esample, fes::AbstractVector{<:FixedEffect}, _nthreads
 end
 
 function count_groups!(counts, active_xor, esample, refs)
-    nactive = 0
+    nobs = 0
     @inbounds for i in eachindex(esample, refs)
         if esample[i]
-            nactive += 1
+            nobs += 1
             ref = refs[i]
             counts[ref] += 1
             active_xor[ref] = xor(active_xor[ref], i)
         end
     end
-    return nactive
+    return nobs
 end
 
 function drop_singletons!(esample, fe::FixedEffect, cache)
