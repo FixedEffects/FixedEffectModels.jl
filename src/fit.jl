@@ -24,6 +24,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
 Regressors that are collinear with other regressors (or with the fixed effects) are dropped from the estimation. A dropped coefficient is reported as `0` with a `NaN` standard error (and `NaN` t-statistic, p-value, and confidence interval).
+An RHS term exactly spanned by a continuous-slope fixed effect, such as `x` in
+`fe(id)*x`, is structurally unidentified and is omitted from the coefficient output entirely.
 
 ### Examples
 ```julia
@@ -64,7 +66,7 @@ function reg(df,
     first_stage::Bool = true)
     StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
 end
-    
+
 function StatsAPI.fit(::Type{FixedEffectModel},     
     @nospecialize(formula::FormulaTerm),
     @nospecialize(df),
@@ -90,8 +92,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ========================================================#
 
     if method == :gpu
-        @info "method = :gpu is deprecated. Use method = :CUDA or method = :Metal"
-        method = :CUDA
+        @info "method = :gpu is deprecated and falls back to CPU with the existing precision setting. Use method = :CUDA after `using CUDA`, or method = :Metal after `using Metal`, to select a GPU backend."
+        method = :cpu
     end
     if nthreads !== nothing
         @info "The keyword argument nthreads is deprecated. Multiple threads are now used by default."
@@ -129,8 +131,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     save_fes = save ∈ (:fe, :all) && has_fes
     has_weights = weights !== nothing
 
-    # Compute feM, an AbstractFixedEffectSolver
-    fes, feids, fekeys = parse_fixedeffect(df, formula_fes)
+    # Avoid FE parser on no-FE regressions; it touches table/formula dispatch.
+    fes, feids, fekeys = has_fes ? parse_fixedeffect(df, formula_fes) : (FixedEffect[], Symbol[], Symbol[])
     has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
 
     # remove intercept if absorbed by fixed effects
@@ -164,7 +166,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     esample .&= Vcov.completecases(df, vcov)
 
     n_singletons = 0
-    if drop_singletons
+    if drop_singletons && has_fes
         n_singletons = drop_singletons!(esample, fes)
     end
 
@@ -287,8 +289,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     (see https://github.com/FixedEffects/FixedEffectModels.jl/issues/249).
     ========================================================#
 
-    Xy = Symmetric(hvcat(2, XhatXhat, Xhat'reshape(y, length(y), 1),
-                         zeros(size(Xhat, 2))', [0.0]))
+    Xy = sweep_rhs_matrix(XhatXhat, Xhat, y)
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
     invXhatXhat = Symmetric(.- Xy[1:(end-1),1:(end-1)])
     coef = Xy[1:(end-1),end]

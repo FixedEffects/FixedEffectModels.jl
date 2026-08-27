@@ -50,7 +50,8 @@ Mark a variable as a high-dimensional fixed effect (a categorical variable to be
 inside a `@formula` passed to [`reg`](@ref) or [`partial_out`](@ref), e.g.
 `@formula(y ~ x + fe(id))`. Several fixed effects are added with `+`, and they can be
 interacted with `&`/`*`: `fe(id)&fe(year)` for interacted fixed effects, `fe(id)&x` for
-group-specific slopes on a continuous variable `x`.
+group-specific slopes on a continuous variable `x`. Because those group-specific slopes
+span the common slope on `x`, `fe(id)*x` omits `x` from the reported coefficients.
 
 When building a formula programmatically, `fe` also accepts a `Symbol`: `fe(:id)`.
 """
@@ -65,12 +66,28 @@ has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 function parse_fe(@nospecialize(f::FormulaTerm))
     if has_fe(f)
-        formula_main = FormulaTerm(f.lhs, Tuple(term for term in eachterm(f.rhs) if !has_fe(term)))
-        formula_fe = FormulaTerm(ConstantTerm(0), Tuple(term for term in eachterm(f.rhs) if has_fe(term)))
+        rhs_terms = eachterm(f.rhs)
+        fe_terms = Tuple(term for term in rhs_terms if has_fe(term))
+        # A continuous-slope FE spans its standalone slope exactly. Remove that
+        # unidentified main-effect column before schema/model-matrix construction.
+        formula_main = FormulaTerm(f.lhs, Tuple(term for term in rhs_terms
+            if !has_fe(term) && !any(fe_term -> _is_absorbed_fe_slope(term, fe_term), fe_terms)))
+        formula_fe = FormulaTerm(ConstantTerm(0), fe_terms)
         return formula_main, formula_fe
     else
         return f, FormulaTerm(ConstantTerm(0), ConstantTerm(0))
     end
+end
+
+function _is_absorbed_fe_slope(@nospecialize(main_term::AbstractTerm),
+                               @nospecialize(fe_term::AbstractTerm))
+    fe_term isa InteractionTerm || return false
+    slope_terms = Tuple(term for term in fe_term.terms if !has_fe(term))
+    isempty(slope_terms) && return false
+    if length(slope_terms) == 1
+        return main_term == slope_terms[1]
+    end
+    return main_term isa InteractionTerm && main_term.terms == slope_terms
 end
 
 
@@ -140,17 +157,34 @@ end
 
 # Construct FixedEffect from an InteractionTerm
 function _parse_fixedeffect(data, @nospecialize(t::InteractionTerm))
-    fes = (x for x in t.terms if has_fe(x))
-    interactions = (x for x in t.terms if !has_fe(x))
-    if !isempty(fes)
-        # x1&x2 from (x1&x2)*id
-        fe_names = [fesymbol(x) for x in fes]
-        v1 = _multiply(data, Symbol.(interactions))
-        fe = FixedEffect((Tables.getcolumn(data, fe_name) for fe_name in fe_names)...; interaction = v1)
-        interactions = string.(interactions)
-        s = vcat(["fe_" * string(fe_name) for fe_name in fe_names], interactions)
-        return fe, Symbol(reduce((x1, x2) -> x1*"&"*x2, s)), fe_names
+    fe_terms = [x for x in t.terms if has_fe(x)]
+    slope_terms = [x for x in t.terms if !has_fe(x)]
+    isempty(fe_terms) && return nothing
+
+    # x1&x2 from (x1&x2)*id
+    fe_names = [fesymbol(x) for x in fe_terms]
+    slope_names = _validate_fe_interactions(data, slope_terms)
+    interaction = _multiply(data, slope_names)
+    fe = FixedEffect((Tables.getcolumn(data, fe_name) for fe_name in fe_names)...; interaction = interaction)
+    pieces = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(slope_terms))
+    return fe, Symbol(join(pieces, "&")), fe_names
+end
+
+function _validate_fe_interactions(data, @nospecialize(interactions))
+    out = Symbol[]
+    for t in interactions
+        if !(t isa Term)
+            throw(ArgumentError("Fixed-effect slope interactions only support plain numeric columns. The term `$t` is transformed or expanded; create a numeric column first, then use `fe(...)&new_column`."))
+        end
+        name = Symbol(t)
+        col = Tables.getcolumn(data, name)
+        nonmissing_type = nonmissingtype(eltype(col))
+        if !(nonmissing_type <: Number)
+            throw(ArgumentError("Fixed-effect slope interactions only support numeric columns. Column `$name` has element type $(eltype(col)); convert it to numeric dummy/slope columns first, then use `fe(...)&new_column`."))
+        end
+        push!(out, name)
     end
+    return out
 end
 
 function _multiply(data, ss::AbstractVector)
