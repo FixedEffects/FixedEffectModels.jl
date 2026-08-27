@@ -37,10 +37,10 @@ using CUDA, Metal
 	@test coef(x)  ≈ [-1.08471] atol = 1e-4
 	m = @formula Sales ~ Price + fe(State) + fe(State)*Year
 	x = reg(df, m)
-	@test coef(x) ≈  [-0.53470, 0.0] atol = 1e-4
+	@test coef(x) ≈  [-0.53470] atol = 1e-4
 	m = @formula Sales ~ Price + fe(State)*Year
 	x = reg(df, m)
-	@test coef(x) ≈  [-0.53470, 0.0] atol = 1e-4
+	@test coef(x) ≈  [-0.53470] atol = 1e-4
 
 	#@test isempty(coef(reg(df, @formula(Sales ~ 0), @fe(State*Price))))
 	df.mState = div.(df.State, 10)
@@ -76,7 +76,7 @@ using CUDA, Metal
 	# SSR does not work well here
 	m = @formula Sales ~ Pimin + (Price&NDI)*fe(State)
 	x = reg(df, m)
-	@test coef(x) ≈   [0.421406, 0.0] atol = 1e-4
+	@test coef(x) ≈   [0.421406] atol = 1e-4
 
 	# only one intercept
 	m = @formula Sales ~ 1 + fe(State) + fe(Year)
@@ -813,9 +813,10 @@ end
 end
 
 @testset "keyword arguments" begin
-	df = DataFrame(y = [1.0, 2.0, 2.5], x = [0.0, 1.0, 2.0])
+	df = DataFrame(y = [1.0, 2.0, 2.5], x = [0.0, 1.0, 2.0], id = [1, 1, 2])
 	@test_logs (:info, r"The keyword argument nthreads is deprecated") reg(df, @formula(y ~ x), nthreads = 1)
-	@test_logs (:info, r"method = :gpu is deprecated") reg(df, @formula(y ~ x), method = :gpu)
+	@test_logs (:info, r"method = :gpu is deprecated and falls back to CPU") reg(df,
+		@formula(y ~ fe(id)), method = :gpu)
 end
 
 @testset "error handling" begin

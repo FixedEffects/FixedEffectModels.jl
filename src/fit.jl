@@ -24,6 +24,8 @@ Estimate a linear model with high dimensional categorical variables / instrument
 Models with instruments variables are estimated using 2SLS. `reg` tests for weak instruments by computing the Kleibergen-Paap rk Wald F statistic, a generalization of the Cragg-Donald Wald F statistic for non i.i.d. errors. The statistic is similar to the one returned by the Stata command `ivreg2`.
 
 Regressors that are collinear with other regressors (or with the fixed effects) are dropped from the estimation. A dropped coefficient is reported as `0` with a `NaN` standard error (and `NaN` t-statistic, p-value, and confidence interval).
+An RHS term exactly spanned by a continuous-slope fixed effect, such as `x` in
+`fe(id)*x`, is structurally unidentified and is omitted from the coefficient output entirely.
 
 ### Examples
 ```julia
@@ -90,8 +92,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ========================================================#
 
     if method == :gpu
-        @info "method = :gpu is deprecated. Use method = :CUDA or method = :Metal"
-        method = :CUDA
+        @info "method = :gpu is deprecated and falls back to CPU with the existing precision setting. Use method = :CUDA or method = :Metal to select a GPU backend."
+        method = :cpu
     end
     if nthreads !== nothing
         @info "The keyword argument nthreads is deprecated. Multiple threads are now used by default."

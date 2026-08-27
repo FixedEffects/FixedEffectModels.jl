@@ -51,8 +51,8 @@ function partial_out(
     df = DataFrame(df; copycols = false)
 
     if method == :gpu
-        @info "method = :gpu is deprecated. Use method = :CUDA or method = :Metal"
-        method = :CUDA
+        @info "method = :gpu is deprecated and falls back to CPU with the existing precision setting. Use method = :CUDA or method = :Metal to select a GPU backend."
+        method = :cpu
     end
 
     if  (ConstantTerm(0) ∉ eachterm(f.rhs)) && (ConstantTerm(1) ∉ eachterm(f.rhs))

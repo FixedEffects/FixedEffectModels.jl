@@ -1,11 +1,20 @@
 using CSV, CategoricalArrays, DataFrames, Test
 using FixedEffectModels
-using FixedEffectModels: parse_fixedeffect, _parse_fixedeffect, _multiply
+using FixedEffectModels: parse_fe, parse_fixedeffect, _parse_fixedeffect, _multiply
 using FixedEffects
 import Base: ==
 
 function ==(x::FixedEffect, y::FixedEffect)
     x.refs == y.refs && x.interaction == y.interaction && x.n == y.n
+end
+
+@testset "fixed-effect slopes absorb matching RHS terms" begin
+    formula_main, formula_fes = parse_fe(@formula(y ~ z + fe(id)*x))
+    @test StatsModels.termvars(formula_main) == [:y, :z]
+    @test StatsModels.termvars(formula_fes) == [:id, :x]
+
+    formula_main_explicit, _ = parse_fe(@formula(y ~ z + x + fe(id) + fe(id)&x))
+    @test formula_main_explicit == formula_main
 end
 
 csvfile = CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv"))

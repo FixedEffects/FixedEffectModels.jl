@@ -89,3 +89,24 @@ end
   @test isnan(stderror(m)[3])
   @test !isnan(stderror(m)[2])
 end
+
+@testset "fixed-effect slopes omit matching RHS terms" begin
+  df = DataFrame(
+    id1 = repeat(1:3, inner = 4),
+    id2 = repeat(1:2, inner = 6),
+    x1 = collect(1.0:12.0),
+    x2 = [3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0, 5.0, 3.0, 5.0, 8.0],
+  )
+  df.y = df.x1 .* repeat([1.0, 2.0, 3.0], inner = 4) .+
+         df.x2 .* repeat([0.5, -0.5], inner = 6) .+ sin.(df.x1)
+
+  m = @test_logs min_level=Base.CoreLogging.Info reg(
+    df, @formula(y ~ fe(id1)*x1 + fe(id2)*x2); progress_bar = false)
+  @test isempty(coefnames(m))
+  @test isempty(coef(m))
+
+  # Unrelated, data-driven collinearity with an intercept FE is still reported.
+  df.group_constant = Float64.(df.id1)
+  @test_logs (:info, r"RHS-variable group_constant is collinear with the fixed effects") reg(
+    df, @formula(y ~ group_constant + fe(id1)); progress_bar = false)
+end

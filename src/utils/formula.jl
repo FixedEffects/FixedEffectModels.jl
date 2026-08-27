@@ -50,7 +50,8 @@ Mark a variable as a high-dimensional fixed effect (a categorical variable to be
 inside a `@formula` passed to [`reg`](@ref) or [`partial_out`](@ref), e.g.
 `@formula(y ~ x + fe(id))`. Several fixed effects are added with `+`, and they can be
 interacted with `&`/`*`: `fe(id)&fe(year)` for interacted fixed effects, `fe(id)&x` for
-group-specific slopes on a continuous variable `x`.
+group-specific slopes on a continuous variable `x`. Because those group-specific slopes
+span the common slope on `x`, `fe(id)*x` omits `x` from the reported coefficients.
 
 When building a formula programmatically, `fe` also accepts a `Symbol`: `fe(:id)`.
 """
@@ -65,12 +66,28 @@ has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
 function parse_fe(@nospecialize(f::FormulaTerm))
     if has_fe(f)
-        formula_main = FormulaTerm(f.lhs, Tuple(term for term in eachterm(f.rhs) if !has_fe(term)))
-        formula_fe = FormulaTerm(ConstantTerm(0), Tuple(term for term in eachterm(f.rhs) if has_fe(term)))
+        rhs_terms = eachterm(f.rhs)
+        fe_terms = Tuple(term for term in rhs_terms if has_fe(term))
+        # A continuous-slope FE spans its standalone slope exactly. Remove that
+        # unidentified main-effect column before schema/model-matrix construction.
+        formula_main = FormulaTerm(f.lhs, Tuple(term for term in rhs_terms
+            if !has_fe(term) && !any(fe_term -> _is_absorbed_fe_slope(term, fe_term), fe_terms)))
+        formula_fe = FormulaTerm(ConstantTerm(0), fe_terms)
         return formula_main, formula_fe
     else
         return f, FormulaTerm(ConstantTerm(0), ConstantTerm(0))
     end
+end
+
+function _is_absorbed_fe_slope(@nospecialize(main_term::AbstractTerm),
+                               @nospecialize(fe_term::AbstractTerm))
+    fe_term isa InteractionTerm || return false
+    slope_terms = Tuple(term for term in fe_term.terms if !has_fe(term))
+    isempty(slope_terms) && return false
+    if length(slope_terms) == 1
+        return main_term == slope_terms[1]
+    end
+    return main_term isa InteractionTerm && main_term.terms == slope_terms
 end
 
 
