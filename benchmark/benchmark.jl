@@ -40,11 +40,15 @@ y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
 #   1.546023 seconds (19.89 k allocations: 119.673 MiB, 1.70% gc time)
+@time reg(df, @formula(y ~ x1 + fe(id1) + fe(id1)&x2 + fe(id2) + fe(id2)&x2))
+@time reg(df, @formula(y ~ fe(id1)*x1 + fe(id2)*x2))
+# 4.245766 seconds (3.18 M allocations: 336.433 MiB, 0.46% gc time, 16.92% compilation time)
 
 
 
 
-+# fixest
+
+# fixest
 n = 10_000_000
 nb_dum = [div(n,20), floor(Int, sqrt(n)), floor(Int, n^.33)]
 N = nb_dum.^3

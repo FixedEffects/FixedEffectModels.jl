@@ -64,7 +64,7 @@ function reg(df,
     first_stage::Bool = true)
     StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
 end
-    
+
 function StatsAPI.fit(::Type{FixedEffectModel},     
     @nospecialize(formula::FormulaTerm),
     @nospecialize(df),
@@ -129,8 +129,8 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     save_fes = save ∈ (:fe, :all) && has_fes
     has_weights = weights !== nothing
 
-    # Compute feM, an AbstractFixedEffectSolver
-    fes, feids, fekeys = parse_fixedeffect(df, formula_fes)
+    # Avoid FE parser on no-FE regressions; it touches table/formula dispatch.
+    fes, feids, fekeys = has_fes ? parse_fixedeffect(df, formula_fes) : (FixedEffect[], Symbol[], Symbol[])
     has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
 
     # remove intercept if absorbed by fixed effects
@@ -164,7 +164,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     esample .&= Vcov.completecases(df, vcov)
 
     n_singletons = 0
-    if drop_singletons
+    if drop_singletons && has_fes
         n_singletons = drop_singletons!(esample, fes)
     end
 
@@ -287,8 +287,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     (see https://github.com/FixedEffects/FixedEffectModels.jl/issues/249).
     ========================================================#
 
-    Xy = Symmetric(hvcat(2, XhatXhat, Xhat'reshape(y, length(y), 1),
-                         zeros(size(Xhat, 2))', [0.0]))
+    Xy = sweep_rhs_matrix(XhatXhat, Xhat, y)
     invsym!(Xy; diagonal = 1:size(Xhat, 2))
     invXhatXhat = Symmetric(.- Xy[1:(end-1),1:(end-1)])
     coef = Xy[1:(end-1),end]

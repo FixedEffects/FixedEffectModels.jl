@@ -1,4 +1,4 @@
-using CSV, DataFrames, Test
+using CSV, CategoricalArrays, DataFrames, Test
 using FixedEffectModels
 using FixedEffectModels: parse_fixedeffect, _parse_fixedeffect, _multiply
 using FixedEffects
@@ -61,4 +61,49 @@ for data in [df, csvfile]
     @test parse_fixedeffect(data, f) == ([FixedEffect(data.State), FixedEffect(data.Year), FixedEffect(data.State, data.Year)], [:fe_State, :fe_Year, Symbol("fe_State&fe_Year")], [:State, :Year])
     @test parse_fixedeffect(data, ts1) == ([FixedEffect(data.State), FixedEffect(data.Year), FixedEffect(data.State, data.Year)], [:fe_State, :fe_Year, Symbol("fe_State&fe_Year")], [:State, :Year])
     @test parse_fixedeffect(data, ts2) == parse_fixedeffect(data, ts1)
+end
+
+@testset "fixed effect slope restrictions" begin
+    data = DataFrame(y = 1:4, id = [1, 1, 2, 2], x = [1.0, 2.0, 3.0, 4.0],
+                     z = [2.0, 3.0, 4.0, 5.0], c = categorical(["a", "b", "a", "b"]))
+
+    fes, feids, fekeys = parse_fixedeffect(data, @formula(y ~ fe(id)&x&z))
+    @test length(fes) == 1
+    @test feids == [Symbol("fe_id&x&z")]
+    @test fekeys == [:id]
+    @test fes[1].interaction == data.x .* data.z
+
+    err = try
+        parse_fixedeffect(data, @formula(y ~ fe(id)&log(x)))
+        nothing
+    catch e
+        e
+    end
+    @test err isa ArgumentError
+    @test occursin("only support plain numeric columns", sprint(showerror, err))
+    @test occursin("create a numeric column first", sprint(showerror, err))
+
+    err = try
+        parse_fixedeffect(data, @formula(y ~ fe(id)&x^2))
+        nothing
+    catch e
+        e
+    end
+    @test err isa ArgumentError
+    @test occursin("only support plain numeric columns", sprint(showerror, err))
+
+    err = try
+        parse_fixedeffect(data, @formula(y ~ fe(id)&c))
+        nothing
+    catch e
+        e
+    end
+    @test err isa ArgumentError
+    @test occursin("only support numeric columns", sprint(showerror, err))
+    @test occursin("convert it to numeric", sprint(showerror, err))
+
+    data_missing = DataFrame(y = 1:4, id = [1, 1, 2, 2],
+                             x = [1.0, missing, 3.0, 4.0])
+    fes_missing, _, _ = parse_fixedeffect(data_missing, @formula(y ~ fe(id)&x))
+    @test fes_missing[1].interaction == [1.0, 0.0, 3.0, 4.0]
 end

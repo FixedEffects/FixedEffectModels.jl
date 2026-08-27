@@ -78,15 +78,60 @@ Build a Symmetric matrix from upper-triangular blocks, filling the lower triangl
 """
 function upper_block_symmetric(A11, A12, A13, A22, A23, A33)
     n1, n2, n3 = size(A11, 1), size(A22, 1), size(A33, 1)
-    Symmetric(hvcat(3, A11, A12, A13,
-                       zeros(n2, n1), A22, A23,
-                       zeros(n3, n1), zeros(n3, n2), A33))
+    # Avoid hvcat here: broad concatenation methods are easy for unrelated packages to invalidate.
+    out = Matrix{Float64}(undef, n1 + n2 + n3, n1 + n2 + n3)
+    r1 = 1:n1
+    r2 = (n1 + 1):(n1 + n2)
+    r3 = (n1 + n2 + 1):(n1 + n2 + n3)
+    @views out[r1, r1] .= A11
+    @views out[r1, r2] .= A12
+    @views out[r1, r3] .= A13
+    @views out[r2, r1] .= 0.0
+    @views out[r2, r2] .= A22
+    @views out[r2, r3] .= A23
+    @views out[r3, r1] .= 0.0
+    @views out[r3, r2] .= 0.0
+    @views out[r3, r3] .= A33
+    return Symmetric(out)
 end
 
 function upper_block_symmetric(A11, A12, A22)
-    n2 = size(A22, 1)
-    Symmetric(hvcat(2, A11, A12,
-                       zeros(n2, size(A11, 1)), A22))
+    n1, n2 = size(A11, 1), size(A22, 1)
+    # Avoid hvcat here: broad concatenation methods are easy for unrelated packages to invalidate.
+    out = Matrix{Float64}(undef, n1 + n2, n1 + n2)
+    r1 = 1:n1
+    r2 = (n1 + 1):(n1 + n2)
+    @views out[r1, r1] .= A11
+    @views out[r1, r2] .= A12
+    @views out[r2, r1] .= 0.0
+    @views out[r2, r2] .= A22
+    return Symmetric(out)
+end
+
+function block_matrix(A11, A12, A21, A22)
+    # Keep IV block assembly on concrete Matrix{Float64} code, away from generic hvcat.
+    n1, n2 = size(A11, 1), size(A22, 1)
+    out = Matrix{Float64}(undef, n1 + n2, n1 + n2)
+    r1 = 1:n1
+    r2 = (n1 + 1):(n1 + n2)
+    @views out[r1, r1] .= A11
+    @views out[r1, r2] .= A12
+    @views out[r2, r1] .= A21
+    @views out[r2, r2] .= A22
+    return out
+end
+
+function sweep_rhs_matrix(XtX::Symmetric, X::Matrix{Float64}, y::Vector{Float64})
+    # Build the sweep system explicitly to avoid hvcat invalidations on the hot regression core.
+    k = size(X, 2)
+    out = Matrix{Float64}(undef, k + 1, k + 1)
+    if k > 0
+        @views out[1:k, 1:k] .= XtX
+        @views mul!(out[1:k, k + 1], transpose(X), y)
+        @views out[k + 1, 1:k] .= 0.0
+    end
+    out[k + 1, k + 1] = 0.0
+    return Symmetric(out)
 end
 
 """
@@ -166,11 +211,11 @@ function collinearity!(
 
         # Build Xhat via 2SLS
         newZ = hcat(Xexo, Z)
-        newZnewZ = hvcat(2, XexoXexo, XexoZ, XexoZ', ZZ)
+        newZnewZ = block_matrix(XexoXexo, XexoZ, XexoZ', ZZ)
         newZXendo = vcat(XexoXendo, ZXendo)
-        Pi = ls_solve!(Symmetric(hvcat(2, newZnewZ, newZXendo,
-                                zeros(size(newZXendo')), zeros(size(Xendo, 2), size(Xendo, 2)))),
-                       size(newZnewZ, 2))
+        Pi = ls_solve!(
+            upper_block_symmetric(newZnewZ, newZXendo, zeros(Float64, size(Xendo, 2), size(Xendo, 2))),
+            size(newZnewZ, 2))
         newnewZ = newZ * Pi
         Xhat = hcat(Xexo, newnewZ)
         XhatXhat = upper_block_symmetric(XexoXexo, Xexo'newnewZ, newnewZ'newnewZ)
@@ -178,8 +223,7 @@ function collinearity!(
 
         # prepare residuals for first stage F statistic
         Xendo_res = BLAS.gemm!('N', 'N', -1.0, newZ, Pi, 1.0, Xendo)
-        Pi2 = ls_solve!(Symmetric(hvcat(2, XexoXexo, XexoZ,
-                                zeros(size(Z, 2), size(Xexo, 2)), ZZ)), size(Xexo, 2))
+        Pi2 = ls_solve!(upper_block_symmetric(XexoXexo, XexoZ, ZZ), size(Xexo, 2))
         Z_res = BLAS.gemm!('N', 'N', -1.0, Xexo, Pi2, 1.0, Z)
 
         return Xexo, Xendo, Z, X, Xhat, XhatXhat, basis_coef, perm, Xendo_res, Z_res, Pi
