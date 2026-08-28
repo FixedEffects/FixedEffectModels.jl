@@ -1,9 +1,10 @@
 ### Simple benchmark 
-![benchmark](https://cdn.rawgit.com/matthieugomez/FixedEffectModels.jl/4c7d1db39377f1ee649624c909c9017f92484114/benchmark/result.svg)
+![benchmark](fixedeffectmodels_benchmark.png)
 
+All timings below are from the same machine (Apple M4, 16GB RAM, 2026-08-28).
 Code to reproduce this graph:
 
-  FixedEffectModels.jl v1.9.0 (Julia 1.9)
+  FixedEffectModels.jl v2.1.0 (Julia 1.12.7, started with `julia -t auto`; timings are warm calls)
   ```julia
   using DataFrames, CategoricalArrays, FixedEffectModels
   N = 10_000_000
@@ -15,19 +16,19 @@ Code to reproduce this graph:
   y= 3 .* x1 .+ 2 .* x2 .+ sin.(id1) .+ cos.(id2).^2 .+ randn(N)
   df = DataFrame(id1 = categorical(id1), id2 = categorical(id2), x1 = x1, x2 = x2, y = y)
   @time reg(df, @formula(y ~ x1 + x2))
-  # 0.338749 seconds (450 allocations: 691.441 MiB, 2.30% gc time)
+  # 0.133884 seconds (313 allocations: 386.310 MiB, 1.42% gc time)
   @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
-  #  0.463058 seconds (1.00 k allocations: 929.129 MiB, 13.31% gc time)
+  # 0.203769 seconds (2.75 k allocations: 664.707 MiB, 28.83% gc time)
   @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-  #  1.006031 seconds (3.22 k allocations: 1.057 GiB, 1.68% gc time)
+  # 0.489542 seconds (7.22 k allocations: 893.853 MiB, 17.39% gc time)
   @time reg(df, @formula(y ~ x1 + x2), Vcov.cluster(:id1))
-  # 0.380562 seconds (580 allocations: 771.606 MiB, 3.07% gc time)
+  # 0.117933 seconds (468 allocations: 535.131 MiB, 0.43% gc time)
   @time reg(df, @formula(y ~ x1 + x2), Vcov.cluster(:id1, :id2))
-  #0.765847 seconds (719 allocations: 1.128 GiB, 2.01% gc time)
+  # 0.384734 seconds (641 allocations: 849.876 MiB, 13.68% gc time)
   ````
 
 
-  fixest v0.8.4 (R 4.2.2)
+  fixest v0.13.2 (R 4.4.2)
   ```R
   library(fixest)
   N = 10000000
@@ -41,23 +42,23 @@ Code to reproduce this graph:
   df[, "y"] =  3 * df[, "x1"] + 2 * df[, "x2"] + sin(as.numeric(df[, "id1"])) + cos(as.numeric(df[, "id2"])) + runif(N)
   system.time(feols(y ~ x1 + x2, df))
   #>      user  system elapsed 
-  #>     0.280   0.036   0.317 
+  #>     0.324   0.028   0.354 
   system.time(feols(y ~ x1 + x2|id1, df))
   #>    user  system elapsed 
-  #> 0.616   0.089   0.704 
+  #>   0.396   0.048   0.444 
   system.time(feols(y ~ x1 + x2|id1 + id2, df))
   #>  user  system elapsed 
-  #>   1.181   0.120   1.297 
+  #>   0.714   0.056   0.770 
   system.time(feols(y ~ x1 + x2, cluster = "id1", df))
   #> user  system elapsed 
-  #>  0.630   0.071   0.700 
+  #>  0.438   0.046   0.498 
   system.time(feols(y ~ x1 + x2, cluster = c("id1", "id2"), df)) 
   #>  user  system elapsed 
-  #> 1.570   0.197   1.803 
+  #>  1.345   0.102   1.449 
   ```
 
 
-  lfe v2.8-8 (R 4.2.2)
+  lfe v3.1.1 (R 4.4.2)
   ```R
   library(lfe)
   N = 10000000
@@ -72,22 +73,23 @@ Code to reproduce this graph:
 
   system.time(felm(y ~ x1 + x2, df))
   #>   user  system elapsed
-  #>   1.137   0.232   1.596 
+  #>   0.807   0.107   0.914 
   system.time(felm(y ~ x1 + x2|id1, df))
   #>    user  system elapsed 
-  #>    7.08    0.41    7.46 
+  #>   5.589   0.202   5.770 
   system.time(felm(y ~ x1 + x2|id1 + id2, df))
   #>  user  system elapsed 
-  #>  4.832   0.370   4.615 
+  #>  3.580   0.300   3.504 
   system.time(felm(y ~ x1 + x2|0|0|id1, df))
   #> user  system elapsed 
-  #>  3.712   0.287   3.996 
+  #>  3.105   0.166   3.271 
   system.time(felm(y ~ x1 + x2|0|0|id1 + id2, df)) 
   #>  user  system elapsed 
-  #> 59.119   0.889  59.946 
+  #> 48.771   0.552  49.466 
+  ```
 
 
-  reghdfe  version 5.6.8 03mar2019 (Stata 16.1)
+  reghdfe 5.7.3 / ivreg2 4.1.11 (Stata 19.0 MP, 2 cores)
   ```
   clear all
   local N = 10000000
@@ -102,13 +104,13 @@ Code to reproduce this graph:
 
   set rmsg on
   reg y x1 x2
-  #> r; t=0.61
+  #> r; t=0.46
   reghdfe y x1 x2, a(id1)
-  #>r; t=4.64
+  #> r; t=2.67
   reghdfe y x1 x2, a(id1 id2)
-  #> r; t==22.99
+  #> r; t=15.14
   reg y x1 x2, cl(id1)
-  #> r; t=8.28
+  #> r; t=6.44
   ivreg2 y x1 x2, cluster(id1 id2)
-  #> r; t=70.44
+  #> r; t=35.71
   ````
