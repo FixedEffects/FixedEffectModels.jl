@@ -1,6 +1,6 @@
 using DataFrames, Random, CategoricalArrays
 @time using  FixedEffectModels
-#  0.418712 seconds (742.49 k allocations: 45.500 MiB, 4.07% gc time, 1.07% compilation time)
+#  0.580477 seconds (632.49 k allocations: 41.519 MiB, 2.80% gc time, 0.84% compilation time)
 # Very simple setup
 N = 10000000
 K = 100
@@ -12,21 +12,21 @@ y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 # first time
 @time reg(df, @formula(y ~ x1 + x2))
-#   1.810739 seconds (14.05 M allocations: 1.583 GiB, 3.76% gc time, 84.28% compilation time: 91% of which was recompilation)
+#   1.328866 seconds (7.87 M allocations: 771.431 MiB, 4.44% gc time, 79.16% compilation time: 94% of which was recompilation)
 @time reg(df, @formula(y ~ x1 + x2))
-#   0.288344 seconds (712 allocations: 920.405 MiB, 18.71% gc time)
+#   0.275951 seconds (322 allocations: 386.311 MiB, 19.27% gc time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
-#   0.528590 seconds (1.33 M allocations: 1.039 GiB, 8.76% gc time, 55.33% compilation time)
+#   0.530246 seconds (1.60 M allocations: 542.123 MiB, 3.19% gc time, 60.83% compilation time)
 @time reg(df, @formula(y ~ x1 + x2),  Vcov.cluster(:id2))
-#   0.268619 seconds (879 allocations: 997.916 MiB, 15.08% gc time)
+#   0.268264 seconds (490 allocations: 463.822 MiB, 10.66% gc time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
-# 0.824536 seconds (3.09 M allocations: 1.426 GiB, 5.37% gc time, 61.39% compilation time: 3% of which was recompilation)
+#   0.708850 seconds (2.05 M allocations: 804.701 MiB, 5.09% gc time, 66.27% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)))
-#    0.356793 seconds (1.41 k allocations: 1.276 GiB, 19.31% gc time)
+#   0.317658 seconds (2.78 k allocations: 702.849 MiB, 14.03% gc time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1)), Vcov.cluster(:id1))
-#   0.435500 seconds (495.96 k allocations: 1.381 GiB, 15.97% gc time, 10.72% compilation time)
+#   0.433026 seconds (148.71 k allocations: 790.274 MiB, 17.56% gc time, 9.16% compilation time)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-#  1.367264 seconds (1.91 M allocations: 1.592 GiB, 5.74% gc time, 23.85% compilation time: 20% of which was recompilation)
+#   0.903748 seconds (404.27 k allocations: 875.213 MiB, 10.17% gc time, 21.63% compilation time)
 
 # More complicated setup
 N = 800000 # number of observations
@@ -39,12 +39,11 @@ x2 =  cos.(id1) +  sin.(id2) + randn(N)
 y= 3 .* x1 .+ 5 .* x2 .+ cos.(id1) .+ cos.(id2).^2 .+ randn(N)
 df = DataFrame(id1 = id1, id2 = id2, x1 = x1, x2 = x2, y = y)
 @time reg(df, @formula(y ~ x1 + x2 + fe(id1) + fe(id2)))
-#   1.546023 seconds (19.89 k allocations: 119.673 MiB, 1.70% gc time)
+#   0.790119 seconds (92.25 k allocations: 75.734 MiB, 3.99% gc time)
 @time reg(df, @formula(y ~ x1 + fe(id1) + fe(id1)&x2 + fe(id2) + fe(id2)&x2))
-# 1.679007 seconds (3.61 M allocations: 334.110 MiB, 2.31% gc time, 45.11% compilation time: <1% of which was recompilation)
+#   1.365713 seconds (1.87 M allocations: 205.596 MiB, 2.98% gc time, 39.06% compilation time)
 @time reg(df, @formula(y ~ fe(id1)*x1 + fe(id2)*x2))
-# 4.245766 seconds (3.18 M allocations: 336.433 MiB, 0.46% gc time, 16.92% compilation time)
-
+#   0.516583 seconds (678.56 k allocations: 144.636 MiB, 2.77% gc time, 20.37% compilation time)
 
 
 
@@ -57,11 +56,11 @@ id1 = categorical(rand(1:nb_dum[1], n))
 id2 = categorical(rand(1:nb_dum[2], n))
 id3 = categorical(rand(1:nb_dum[3], n))
 X1 = rand(n)
-ln_y = 3 .* X1 .+ rand(n) 
+ln_y = 3 .* X1 .+ rand(n)
 df = DataFrame(X1 = X1, ln_y = ln_y, id1 = id1, id2 = id2, id3 = id3)
 @time reg(df, @formula(ln_y ~ X1 + fe(id1)), Vcov.cluster(:id1))
-#   0.311420 seconds (1.35 k allocations: 1.052 GiB, 22.30% gc time)
+#   0.952912 seconds (4.06 M allocations: 892.628 MiB, 4.22% gc time, 69.77% compilation time)
 @time reg(df, @formula(ln_y ~ X1 + fe(id1) + fe(id2)), Vcov.cluster(:id1))
-#   0.808992 seconds (3.52 k allocations: 1.272 GiB, 8.68% gc time)
+#   1.206156 seconds (1.77 M allocations: 1.152 GiB, 5.81% gc time, 40.53% compilation time)
 @time reg(df, @formula(ln_y ~ X1 + fe(id1) + fe(id2) + fe(id3)), Vcov.cluster(:id1))
-# 0.950808 seconds (4.75 k allocations: 1.496 GiB, 7.48% gc time)
+#   0.998796 seconds (327.33 k allocations: 1.307 GiB, 8.67% gc time, 15.16% compilation time)
