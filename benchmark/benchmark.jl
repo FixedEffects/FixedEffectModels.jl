@@ -59,6 +59,7 @@ id3 = categorical(rand(1:nb_dum[3], n))
 X1 = rand(n)
 ln_y = 3 .* X1 .+ rand(n)
 df = DataFrame(X1 = X1, ln_y = ln_y, id1 = id1, id2 = id2, id3 = id3)
+# the first call recompiles code invalidated by loading CategoricalArrays
 @time reg(df, @formula(ln_y ~ X1 + fe(id1)), Vcov.cluster(:id1))
 # 2.384253 seconds (14.46 M allocations: 1.324 GiB, 5.22% gc time, 88.63% compilation time: 68% of which was recompilation)
 @time reg(df, @formula(ln_y ~ X1 + fe(id1)), Vcov.cluster(:id1))
