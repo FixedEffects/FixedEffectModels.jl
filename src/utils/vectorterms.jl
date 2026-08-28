@@ -97,7 +97,16 @@ function build_schema(vars::Vector{Symbol}, data, contrasts::Dict)
     sch = StatsModels.Schema()
     for s in vars
         t = Term(s)
-        sch.schema[t] = StatsModels.concrete_term(t, getcol(data, s), get(contrasts, s, nothing))
+        col = getcol(data, s)
+        hint = get(contrasts, s, nothing)
+        if hint === nothing && eltype(col) <: Number
+            # concrete_term fills ContinuousTerm's mean/var/min/max with three
+            # O(n) passes over the column (mean_and_var + extrema); nothing here
+            # reads those fields, so store NaN placeholders instead
+            sch.schema[t] = ContinuousTerm(s, NaN, NaN, NaN, NaN)
+        else
+            sch.schema[t] = StatsModels.concrete_term(t, col, hint)
+        end
     end
     return sch
 end
