@@ -299,37 +299,38 @@ end
 ##
 ##############################################################################
 
+import StatsBase: NoQuote, PValue
+
 function top(m::FixedEffectModel)
     out = [
-            "Number of obs" sprint(show, nobs(m), context = :compact => true);
-            "Converged" m.converged;
+            "Dependent variable" string(responsename(m));
+            "Number of obs" replace(string(nobs(m)), r"(?<=\d)(?=(\d{3})+$)" => ",");
             "dof (model)" sprint(show, dof(m), context = :compact => true);
             "dof (residuals)" sprint(show, dof_residual(m), context = :compact => true);
             "R²" @sprintf("%.3f",r2(m));
             "R² adjusted" @sprintf("%.3f",adjr2(m));
             "F-statistic" sprint(show, m.F, context = :compact => true);
-            "P-value" @sprintf("%.3f",m.p);
+            "P-value" sprint(show, PValue(m.p));
             ]
     if has_iv(m)
-        out = vcat(out, 
+        out = vcat(out,
             [
                 "F-statistic (first stage)" sprint(show, m.F_kp, context = :compact => true);
-                "P-value (first stage)" @sprintf("%.3f",m.p_kp);
+                "P-value (first stage)" sprint(show, PValue(m.p_kp));
             ])
     end
     if has_fe(m)
-        out = vcat(out, 
+        out = vcat(out,
             [
                 "R² within" @sprintf("%.3f",m.r2_within);
                 "Iterations" sprint(show, m.iterations, context = :compact => true);
+                "Converged" m.converged;
              ])
     end
     return out
 end
 
 
-
-import StatsBase: NoQuote, PValue
 function Base.show(io::IO, m::FixedEffectModel)
     ct = coeftable(m)
     #copied from show(iio,cf::Coeftable)
@@ -353,22 +354,29 @@ function Base.show(io::IO, m::FixedEffectModel)
     totwidth = sum(sum.(A)) + 2 * (length(A) - 1)
 
 
-    #intert my stuff which requires totwidth
-    ctitle = string(typeof(m))
-    halfwidth = div(totwidth - length(ctitle), 2)
-    print(io, " " ^ halfwidth * ctitle * " " ^ halfwidth)
+    #insert my stuff which requires totwidth
     ctop = top(m)
     for i in 1:size(ctop, 1)
         ctop[i, 1] = ctop[i, 1] * ":"
     end
+    # widen the table if a label/value pair does not fit in half of it:
+    # lpad would otherwise glue the value to its label and shift the row
+    needed = maximum(length(ctop[i, 1]) + 1 + length(string(ctop[i, 2])) for i in 1:size(ctop, 1))
+    totwidth = max(totwidth, 2 * needed + 2)
+    ctitle = string(typeof(m))
+    if has_iv(m)
+        ctitle *= " (IV)"
+    end
+    halfwidth = div(totwidth - length(ctitle), 2)
+    print(io, " " ^ halfwidth, ctitle)
     println(io, '\n', repeat('=', totwidth))
     halfwidth = div(totwidth, 2) - 1
     interwidth = 2 +  mod(totwidth, 2)
     for i in 1:(div(size(ctop, 1) - 1, 2)+1)
         print(io, ctop[2*i-1, 1])
         print(io, lpad(ctop[2*i-1, 2], halfwidth - length(ctop[2*i-1, 1])))
-        print(io, " " ^interwidth)
         if size(ctop, 1) >= 2*i
+            print(io, " " ^interwidth)
             print(io, ctop[2*i, 1])
             print(io, lpad(ctop[2*i, 2], halfwidth - length(ctop[2*i, 1])))
         end
