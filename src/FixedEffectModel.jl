@@ -324,7 +324,6 @@ function top(m::FixedEffectModel)
             [
                 "R² within" @sprintf("%.3f",m.r2_within);
                 "Iterations" sprint(show, m.iterations, context = :compact => true);
-                "Converged" m.converged;
              ])
     end
     return out
@@ -385,6 +384,9 @@ function Base.show(io::IO, m::FixedEffectModel)
    
     # rest of coeftable code
     println(io, repeat('=', totwidth))
+    if has_fe(m) && !m.converged
+        println(io, "Warning: demeaning did not converge; estimates may be unreliable")
+    end
     print(io, repeat(' ', sum(A[1])))
     for j in 1:length(colnms)
         print(io, "  ", lpad(colnms[j], sum(A[j+1])))

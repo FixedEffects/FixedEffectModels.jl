@@ -24,7 +24,6 @@ reg(df, @formula(Sales ~ NDI + fe(State) + fe(Year)), Vcov.cluster(:State), weig
 # R²:                           0.803   R² adjusted:                  0.791
 # F-statistic:                13.3382   P-value:                     0.0007
 # R² within:                    0.139   Iterations:                       5
-# Converged:                     true
 # =========================================================================
 #         Estimate  Std. Error    t-stat  Pr(>|t|)   Lower 95%    Upper 95%
 # ─────────────────────────────────────────────────────────────────────────
