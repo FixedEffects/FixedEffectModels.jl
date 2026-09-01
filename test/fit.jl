@@ -1,4 +1,4 @@
-using FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra
+using FixedEffectModels, CategoricalArrays, CSV, DataFrames, Test, LinearAlgebra, Random
 using FixedEffectModels: nullloglikelihood_within
 using CUDA, Metal
 
@@ -872,4 +872,31 @@ end
 	df.x = Float64.(df.id .!= 1)          # interaction identically zero for id == 1
 	m = reg(df, @formula(y ~ z + fe(id)&x))
 	@test FixedEffectModels.dof_fes(m) == 2
+end
+
+@testset "reg does not modify the input dataframe" begin
+	# The model matrices are built from views into the input columns (no
+	# defensive copy), so the in-place demeaning and weighting steps must
+	# only ever touch freshly allocated arrays.
+	Random.seed!(0)
+	n = 200
+	df1 = DataFrame(y = rand(n), x1 = rand(n), x2 = rand(n),
+	                xm = [i % 7 == 0 ? missing : rand() for i in 1:n],
+	                w = rand(n) .+ 0.5, firm = rand(1:10, n), grp = rand(["a", "b", "c"], n),
+	                instr = rand(n))
+	snapshot = deepcopy(df1)
+	reg(df1, @formula(y ~ x1 + x2))
+	reg(df1, @formula(y ~ x1 + xm))
+	reg(df1, @formula(y ~ x1 + x2 + fe(firm)), save = :all)
+	reg(df1, @formula(y ~ x1 + fe(firm) + fe(firm)&x2))
+	reg(df1, @formula(y ~ x1 + grp + x1&grp))
+	reg(df1, @formula(y ~ x1 + (x2 ~ instr)))
+	reg(df1, @formula(y ~ x1 + log(w)))
+	reg(df1, @formula(y ~ x1 + x2), weights = :w)
+	reg(df1, @formula(y ~ x1 + x2 + fe(firm)), weights = :w, save = :residuals)
+	reg(df1, @formula(y ~ x1 + x2), subset = df1.x1 .> 0.2)
+	reg(df1, @formula(y ~ x1), Vcov.cluster(:firm))
+	for c in names(df1)
+		@test isequal(df1[!, c], snapshot[!, c])
+	end
 end

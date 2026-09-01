@@ -49,21 +49,21 @@ df = dataset("plm", "Cigar")
 fit(FixedEffectModel, @formula(Sales ~ NDI + fe(State) + fe(State)&Year), df)
 ```
 """
-function reg(df,     
-    formula::FormulaTerm,
-    vcov::CovarianceEstimator = Vcov.simple();
-    contrasts::Dict = Dict{Symbol, Any}(),
-    weights::Union{Symbol, Nothing} = nothing,
-    save::Union{Bool, Symbol} = :none,
-    method::Symbol = :cpu,
-    nthreads::Union{Integer, Nothing} = nothing,
-    double_precision::Bool = method == :cpu,
-    tol::Real = 1e-6,
-    maxiter::Integer = 10000,
-    drop_singletons::Bool = true,
-    progress_bar::Bool = true,
-    subset::Union{Nothing, AbstractVector} = nothing, 
-    first_stage::Bool = true)
+function reg(@nospecialize(df),
+    @nospecialize(formula::FormulaTerm),
+    @nospecialize(vcov::CovarianceEstimator = Vcov.simple());
+    @nospecialize(contrasts::Dict = Dict{Symbol, Any}()),
+    @nospecialize(weights::Union{Symbol, Nothing} = nothing),
+    @nospecialize(save::Union{Bool, Symbol} = :none),
+    @nospecialize(method::Symbol = :cpu),
+    @nospecialize(nthreads::Union{Integer, Nothing} = nothing),
+    @nospecialize(double_precision::Bool = method == :cpu),
+    @nospecialize(tol::Real = 1e-6),
+    @nospecialize(maxiter::Integer = 10000),
+    @nospecialize(drop_singletons::Bool = true),
+    @nospecialize(progress_bar::Bool = true),
+    @nospecialize(subset::Union{Nothing, AbstractVector} = nothing),
+    @nospecialize(first_stage::Bool = true))
     StatsAPI.fit(FixedEffectModel, formula, df, vcov; contrasts = contrasts, weights = weights, save = save, method = method, nthreads = nthreads, double_precision = double_precision, tol = tol, maxiter = maxiter, drop_singletons = drop_singletons, progress_bar = progress_bar, subset = subset, first_stage = first_stage)
 end
 
@@ -113,13 +113,19 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     ========================================================#
 
     formula_origin = formula
-    if !omitsintercept(formula) && !hasintercept(formula)
-        formula = FormulaTerm(formula.lhs, InterceptTerm{true}() + formula.rhs)
+    formula.lhs isa FormulaTerm && throw(ArgumentError("Malformed formula: the left-hand side cannot contain `~`. The instrumental-variable syntax is `y ~ exogenous + (endogenous ~ instruments)`."))
+    # Work on Vector{AbstractTerm} rather than the formula's term tuple: the
+    # vector-based machinery in utils/vectorterms.jl compiles per term type
+    # rather than per formula shape, which avoids recompilation on every new
+    # formula (see that file for details).
+    exo_ts = termvector(formula.rhs)
+    if !_omitsintercept(exo_ts) && !_hasintercept(exo_ts)
+        pushfirst!(exo_ts, InterceptTerm{true}())
     end
-    formula, formula_endo, formula_iv = parse_iv(formula)
-    has_iv = formula_iv != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
-    formula, formula_fes = parse_fe(formula)
-    has_fes = formula_fes != FormulaTerm(ConstantTerm(0), ConstantTerm(0))
+    endo_ts, iv_ts = parse_iv!(exo_ts)
+    has_iv = !isempty(endo_ts)
+    fe_ts = parse_fe!(exo_ts)
+    has_fes = !isempty(fe_ts)
     # HC2/HC3 compute leverage from the partialled-out (demeaned) regressors only, which
     # omits the absorbed fixed-effect contribution to leverage. The resulting standard
     # errors are silently anti-conservative, so guard against the combination (mirroring
@@ -132,25 +138,28 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     has_weights = weights !== nothing
 
     # Avoid FE parser on no-FE regressions; it touches table/formula dispatch.
-    fes, feids, fekeys = has_fes ? parse_fixedeffect(df, formula_fes) : (FixedEffect[], Symbol[], Symbol[])
+    fes, feids, fekeys = has_fes ? parse_fixedeffect(df, fe_ts) : (FixedEffect[], Symbol[], Symbol[])
     has_fe_intercept = any(fe.interaction isa UnitWeights for fe in fes)
 
     # remove intercept if absorbed by fixed effects
     if has_fe_intercept
-        formula = FormulaTerm(formula.lhs, tuple(InterceptTerm{false}(), (term for term in eachterm(formula.rhs) if !isa(term, Union{ConstantTerm,InterceptTerm}))...))
+        filter!(t -> !isa(t, Union{ConstantTerm, InterceptTerm}), exo_ts)
+        pushfirst!(exo_ts, InterceptTerm{false}())
     end
-    has_intercept = hasintercept(formula)
+    has_intercept = _hasintercept(exo_ts)
 
     #========================================================
     Create boolean vector esample that is true for observations used in estimation
     ========================================================#
 
     # Collect all variable names needed to detect missing values and build model matrices
-    exo_vars = unique(StatsModels.termvars(formula))
-    iv_vars = unique(StatsModels.termvars(formula_iv))
-    endo_vars = unique(StatsModels.termvars(formula_endo))
-    fe_vars = unique(StatsModels.termvars(formula_fes))
-    all_vars = unique(vcat(exo_vars, endo_vars, iv_vars, fe_vars))
+    response_vars = StatsModels.termvars(formula.lhs)
+    exo_vars = termvars_vector(exo_ts)
+    endo_vars = termvars_vector(endo_ts)
+    iv_vars = termvars_vector(iv_ts)
+    fe_vars = termvars_vector(fe_ts)
+    model_vars = unique(vcat(response_vars, exo_vars, endo_vars, iv_vars))
+    all_vars = unique(vcat(model_vars, fe_vars))
 
     # Create esample that returns obs used in estimation
     esample = completecases(df, all_vars)
@@ -181,7 +190,9 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     else
         weights = uweights(nobs)
     end
-    subdf = DataFrame((; (x => disallowmissing(view(df[!, x], esample)) for x in all_vars)...))
+    # constructed from a vector of pairs, not a NamedTuple splat: column names
+    # stay out of the type domain, so nothing recompiles on new variable names
+    subdf = DataFrame(Pair{Symbol, AbstractVector}[x => disallowmissing(view(df[!, x], esample)) for x in all_vars], copycols = false)
     subfes = FixedEffect[fe[esample] for fe in fes]
     vcov_method = Vcov.materialize(view(df, esample, :), vcov)
 
@@ -189,33 +200,35 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     Dataframe --> Matrix
     ========================================================#
 
-    s = schema(formula, subdf, contrasts)
-    
-    formula_schema = apply_schema(formula, s, FixedEffectModel, has_fe_intercept)
+    sch = build_schema(model_vars, subdf, contrasts)
 
-    # for a Vector{Float64}, convert(Vector{Float64}, y) aliases y
-    y = convert(Vector{Float64}, response(formula_schema, subdf))
-    Xexo = convert(Matrix{Float64}, modelmatrix(formula_schema, subdf))
-    response_name, coefnames_exo = coefnames(formula_schema)
+    exo_ts = apply_schema_vector(exo_ts, sch, StatisticalModel, has_fe_intercept)
+    lhs_schema = apply_schema(formula.lhs, sch, StatisticalModel)
+    # the constructor always copies, so y never aliases a column of df
+    y = Vector{Float64}(modelcols_term(lhs_schema, subdf, nobs))
+    Xexo = modelmatrix_vector(exo_ts, subdf, nobs)
+    response_name = coefnames(lhs_schema)
+    coefnames_exo = coefnames_vector(exo_ts)
 
     Xendo = Array{Float64}(undef, nobs, 0)
     Z = Array{Float64}(undef, nobs, 0)
-    coefnames_endo = typeof(coefnames_exo)[]
-    coefnames_iv = typeof(coefnames_exo)[]
+    coefnames_endo = String[]
+    coefnames_iv = String[]
     if has_iv
-        formula_endo_schema = apply_schema(formula_endo, schema(formula_endo, subdf, contrasts), StatisticalModel)
-        Xendo = convert(Matrix{Float64}, modelmatrix(formula_endo_schema, subdf))
-        _, coefnames_endo = coefnames(formula_endo_schema)
+        endo_ts = apply_schema_vector(endo_ts, sch, StatisticalModel)
+        Xendo = modelmatrix_vector(endo_ts, subdf, nobs)
+        coefnames_endo = coefnames_vector(endo_ts)
 
-        formula_iv_schema = apply_schema(formula_iv, schema(formula_iv, subdf, contrasts), StatisticalModel)
-        _, coefnames_iv = coefnames(formula_iv_schema)
-    
-        Z = convert(Matrix{Float64}, modelmatrix(formula_iv_schema, subdf))
-
-        # modify formula to use in predict
-        formula_schema = FormulaTerm(formula_schema.lhs, MatrixTerm(tuple(eachterm(formula_schema.rhs)..., (term for term in eachterm(formula_endo_schema.rhs) if term != ConstantTerm(0))...)))
+        iv_ts = apply_schema_vector(iv_ts, sch, StatisticalModel)
+        Z = modelmatrix_vector(iv_ts, subdf, nobs)
+        coefnames_iv = coefnames_vector(iv_ts)
     end
     coef_names = vcat(coefnames_exo, coefnames_endo)
+
+    # formula with concrete terms, stored in the model and used by predict;
+    # with IV, the endogenous terms are appended since their coefficients are reported
+    predict_ts = has_iv ? vcat(exo_ts, AbstractTerm[t for t in endo_ts if StatsModels.width(t) > 0]) : exo_ts
+    formula_schema = FormulaTerm(lhs_schema, MatrixTerm((predict_ts...,)))
     # compute tss now before potentially demeaning y
     tss_total = tss(y, has_intercept || has_fe_intercept, weights)
 

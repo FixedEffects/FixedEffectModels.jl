@@ -106,8 +106,11 @@ function partial_out(
     # Compute residualized Y
     vars = unique(StatsModels.termvars(formula))
     subdf = Tables.columntable(disallowmissing!(df[esample, vars]))
+    # one pass over the variables, skipping the unused per-column statistics
+    # (see build_schema); the same schema serves both Y and X below
+    sch = build_schema(vars, subdf, contrasts)
     formula_y = FormulaTerm(ConstantTerm(0), (ConstantTerm(0), eachterm(formula.lhs)...))
-    formula_y_schema = apply_schema(formula_y, schema(formula_y, subdf, contrasts), StatisticalModel)
+    formula_y_schema = apply_schema(formula_y, sch, StatisticalModel)
     Y = convert(Matrix{Float64}, modelmatrix(formula_y_schema, subdf))
 
     ynames = coefnames(formula_y_schema)[2]
@@ -125,7 +128,7 @@ function partial_out(
 
     # Compute residualized X
     formula_x = FormulaTerm(ConstantTerm(0), formula.rhs)
-    formula_x_schema = apply_schema(formula_x, schema(formula_x, subdf, contrasts), StatisticalModel)
+    formula_x_schema = apply_schema(formula_x, sch, StatisticalModel)
     X = convert(Matrix{Float64}, modelmatrix(formula_x_schema, subdf))
     if has_fes
         _, b, c = solve_residuals!(eachcol(X), feM; maxiter = maxiter, tol = tol, progress_bar = false)

@@ -20,6 +20,7 @@ include("utils/fixedeffects.jl")
 include("utils/basecol.jl")
 include("utils/tss.jl")
 include("utils/formula.jl")
+include("utils/vectorterms.jl")
 include("FixedEffectModel.jl")
 include("fit.jl")
 include("partial_out.jl")
@@ -39,10 +40,13 @@ Vcov
 
 
 @compile_workload begin
-    df = DataFrame(x1 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], x2 = [1.0, 2.0, 4.0, 4.0, 3.0, 5.0], y = [3.0, 4.0, 4.0, 5.0, 1.0, 2.0], id = [1, 1, 2, 2, 3, 3])
+    df = DataFrame(x1 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], x2 = [1.0, 2.0, 4.0, 4.0, 3.0, 5.0], y = [3.0, 4.0, 4.0, 5.0, 1.0, 2.0], id = [1, 1, 2, 2, 3, 3], s = ["a", "a", "b", "b", "a", "b"])
     reg(df, @formula(y ~ x1 + x2))
     reg(df, @formula(y ~ x1 + fe(id)))
     reg(df, @formula(y ~ x1), Vcov.cluster(:id))
+    # cover the categorical and interaction term types (the vector-based
+    # machinery compiles per term type, not per formula shape)
+    reg(df, @formula(y ~ x1 + s + x1&x2 + x1&s))
 end
 
 

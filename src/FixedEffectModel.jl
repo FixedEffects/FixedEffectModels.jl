@@ -51,6 +51,18 @@ struct FixedEffectModel <: RegressionModel
     # for IV
     F_kp::Float64           # First Stage F statistics KP
     p_kp::Float64           # First Stage p value KP
+
+    # @nospecialize on the formula arguments: their concrete types change with
+    # every formula shape, and the fields are abstract anyway, so specializing
+    # the constructor would recompile it on each new formula
+    function FixedEffectModel(coef, vcov, vcov_type, nclusters, esample, residuals, fe, fekeys,
+                              coefnames, responsename, @nospecialize(formula), @nospecialize(formula_schema),
+                              contrasts, nobs, dof, dof_fes, dof_residual, rss, tss, F, p,
+                              iterations, converged, r2_within, F_kp, p_kp)
+        return new(coef, vcov, vcov_type, nclusters, esample, residuals, fe, fekeys,
+                   coefnames, responsename, formula, formula_schema, contrasts, nobs, dof,
+                   dof_fes, dof_residual, rss, tss, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    end
 end
 
 """
