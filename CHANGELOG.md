@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+
+- Reduce compilation latency: formula parsing, schema and model matrices go through a vector-based term pipeline, so methods compile per term type rather than per formula shape or column names (#283).
+
 ## 2.0.0
 
 ### Breaking changes
