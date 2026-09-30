@@ -9,7 +9,7 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
 The objective of the package is similar to the Stata command [`reghdfe`](https://github.com/sergiocorreia/reghdfe) and the R packages [`lfe`](https://cran.r-project.org/web/packages/lfe/lfe.pdf) and [`fixest`](https://lrberge.github.io/fixest/). The package is much faster than `reghdfe` (Stata) or `lfe` (R). It also tends to be a bit faster than the more recent `fixest` (R). `FixedEffectModels` can also run on NVIDIA or Apple GPUs for even faster performances (see below)
 
 
-![benchmark](http://www.matthieugomez.com/files/fixedeffectmodels_benchmark.png)
+![benchmark](benchmark/fixedeffectmodels_benchmark.png)
 
 ## Syntax
 
