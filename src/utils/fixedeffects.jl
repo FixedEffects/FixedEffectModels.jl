@@ -153,3 +153,27 @@ function isnested(fe::FixedEffect, prefs)
     end
     return true
 end
+
+
+##############################################################################
+##
+## Degrees of freedom absorbed by fixed effects
+##
+##############################################################################
+
+# An intercept FE nested within a cluster absorbs nothing of its own (a slope still does), and each intercept FE
+# after the first has as many redundant levels as the connected components it forms with an
+# earlier one (exact with two FEs, an upper bound on the degrees of freedom with more).
+function dof_absorbed(fes, clusters = ())
+    kept = [fe for fe in fes if !(fe.interaction isa UnitWeights && any(isnested(fe, g) for g in clusters))]
+    intercepts = [fe for fe in kept if fe.interaction isa UnitWeights]
+    out = sum(nunique, kept; init = 0)
+    for j in 2:length(intercepts)
+        out -= maximum(FixedEffects.components([intercepts[i], intercepts[j]])[2] for i in 1:(j - 1))
+    end
+    # the constant, absorbed by a nested FE, still counts if nothing else is absorbed
+    if isempty(kept) && !isempty(fes)
+        out += 1
+    end
+    return out
+end

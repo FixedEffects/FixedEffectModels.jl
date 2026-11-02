@@ -238,14 +238,26 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     all(isfinite, Xendo) || throw(ArgumentError("Some observations for the endogenous variables are infinite"))
     all(isfinite, Z) || throw(ArgumentError("Some observations for the instrumental variables are infinite"))
 
+    # Save pre-demeaned data for FE recovery after estimation
+    if has_fes && save_fes
+        oldy = copy(y)
+        oldX = hcat(Xexo, Xendo)
+    end
+
+    # The fixed effects absorb the means, so remove them first: neither the convergence of the
+    # fixed-effect solver nor the collinearity test below then depends on the mean.
+    if has_fe_intercept
+        y .-= mean(y, weights)
+        for x in vcat(eachcol(Xexo), eachcol(Xendo), eachcol(Z))
+            sumsquares = sum(abs2, x)
+            x .-= mean(x, weights)
+            # only rounding errors remain in a constant variable
+            sum(abs2, x) < (1000 * eps())^2 * sumsquares && (x .= 0.0)
+        end
+    end
+
     iterations, converged = 0, true
     if has_fes
-        # Save pre-demeaned data for FE recovery after estimation
-        if save_fes
-            oldy = copy(y)
-            oldX = hcat(Xexo, Xendo)
-        end
-
         cols = vcat(eachcol(y), eachcol(Xexo), eachcol(Xendo), eachcol(Z))
         colnames = vcat(response_name, coefnames_exo, coefnames_endo, coefnames_iv)
         # compute 2-norm (sum of squares) for each variable 
@@ -257,9 +269,11 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         # Partial out fixed effects from y, Xexo, Xendo, Z
         _, iterations, convergeds = solve_residuals!(cols, feM; maxiter = maxiter, tol = tol, progress_bar = progress_bar)
 
-        # set variables that are likely to be collinear with the fixed effects to zero
+        # set variables that are likely to be collinear with the fixed effects to zero:
+        # what remains of them is what the solver, which is accurate up to tol, cannot remove
+        collinear_tol = max(100 * tol^2, (1000 * eps(double_precision ? Float64 : Float32))^2)
         for i in 1:length(cols)
-            if sum(abs2, cols[i]) < tol * sumsquares_pre[i]
+            if sum(abs2, cols[i]) <= collinear_tol * sumsquares_pre[i]
                 if i == 1
                     @info "Dependent variable $(colnames[1]) is probably perfectly explained by fixed effects."
                 else
@@ -323,21 +337,13 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         end
     end
 
-    # Compute degrees of freedom absorbed by fixed effects.
-    # When an FE is nested within a cluster variable, it only absorbs 1 dof
-    # (its mean is not identified separately from the cluster effect),
-    # rather than the full number of groups.
-    ngroups_fes = [nunique(fe) for fe in subfes]
-    dof_fes = sum(ngroups_fes)
+    # Compute degrees of freedom absorbed by fixed effects: in total (for the adjusted R²),
+    # and for the standard errors, where an FE nested within a cluster variable does not count
+    # (its mean is not identified separately from the cluster effect).
+    dof_fes_total = dof_absorbed(subfes)
+    dof_fes = dof_fes_total
     if vcov isa Vcov.ClusterCovariance
-        dof_fes = 0
-        for i in 1:length(subfes)
-            if any(isnested(subfes[i], v.groups) for v in values(vcov_method.clusters))
-                dof_fes += 1
-            else
-                dof_fes += ngroups_fes[i]
-            end
-        end
+        dof_fes = dof_absorbed(subfes, [v.groups for v in values(vcov_method.clusters)])
     end
 
     # Compute standard error
@@ -346,7 +352,7 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     matrix_vcov = StatsAPI.vcov(vcov_data, vcov_method)
    
     # Compute Fstat
-    F = Fstat(coef, matrix_vcov, has_intercept)
+    F, rank_F = Fstat(coef, matrix_vcov, has_intercept)
    
     # dof_ is the number of estimated coefficients beyond the intercept (F-stat numerator).
     dof_ = size(X, 2) - has_intercept
@@ -356,15 +362,16 @@ function StatsAPI.fit(::Type{FixedEffectModel},
     # and minimum(nclusters)-1 = G-1 for clustering. It must NOT be decremented again for
     # the intercept (doing so reported N-K-1 instead of N-K, and G-2 instead of G-1).
     dof_tstat_ = max(1, Vcov.dof_residual(vcov_data, vcov_method))
-    p = fdistccdf(dof_, dof_tstat_, F)
+    p = fdistccdf(rank_F, dof_tstat_, F)
     
     # Compute Fstat of First Stage
     F_kp, p_kp = NaN, NaN
     if has_iv && first_stage
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
         try 
+            # the residuals are those of the first stage, which has one regressor per instrument
             r_kp = Vcov.ranktest!(Xendo_res, Z_res, Pip,
-                              vcov_method, size(X, 2), dof_fes)
+                              vcov_method, size(Xexo, 2) + size(Z_res, 2), dof_fes)
             p_kp = chisqccdf(size(Z_res, 2) - size(Xendo_res, 2) + 1, r_kp)
             F_kp = r_kp / size(Z_res, 2)
         catch
@@ -403,5 +410,5 @@ function StatsAPI.fit(::Type{FixedEffectModel},
         esample = trues(nrows)
     end
 
-    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, sum(ngroups_fes), dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
+    return FixedEffectModel(coef, matrix_vcov, vcov, nclusters, esample, residuals2, augmentdf, fekeys, coef_names, response_name, formula_origin, formula_schema, contrasts, nobs, dof_, dof_fes_total, dof_tstat_, rss, tss_total, F, p, iterations, converged, r2_within, F_kp, p_kp)
 end

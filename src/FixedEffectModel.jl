@@ -99,7 +99,8 @@ StatsModels.formula(m::FixedEffectModel) = m.formula_schema
     dof_fes(m::FixedEffectModel)
 
 Return the number of degrees of freedom absorbed by the fixed effects (the total number of
-fixed-effect levels across all `fe(...)` dimensions).
+fixed-effect levels across all `fe(...)` dimensions, minus the levels that are redundant across
+them).
 """
 dof_fes(m::FixedEffectModel) = m.dof_fes
 
@@ -138,7 +139,7 @@ function StatsAPI.adjr2(model::FixedEffectModel, variant::Symbol=:devianceratio)
         n = nobs(model)
         dev  = deviance(model)
         dev0 = nulldeviance(model)
-        1 - (dev*(n - (has_int || has_fe(model)))) / (dev0 * max(n - k, 1))
+        1 - (dev*(n - (has_int || has_fe_intercept(model.formula)))) / (dev0 * max(n - k, 1))
     else
         throw(ArgumentError("variant must be one of :McFadden or :devianceratio"))
     end

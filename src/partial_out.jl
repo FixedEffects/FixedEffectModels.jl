@@ -153,7 +153,7 @@ function partial_out(
         residuals .= residuals .+ m
     end
 
-    dof_fes = mapreduce(nunique, +, fes, init=0)
+    dof_fes = dof_absorbed(fes)
 
     # Return a dataframe
     out = DataFrame()

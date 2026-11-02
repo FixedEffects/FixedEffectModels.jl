@@ -64,6 +64,11 @@ has_fe(@nospecialize(t::InteractionTerm)) = any(has_fe(x) for x in t.terms)
 has_fe(::AbstractTerm) = false
 has_fe(@nospecialize(t::FormulaTerm)) = any(has_fe(x) for x in eachterm(t.rhs))
 
+# A fixed effect that absorbs a constant, unlike a slope such as fe(id)&x
+has_fe_intercept(@nospecialize(t::AbstractTerm)) = has_fe(t)
+has_fe_intercept(@nospecialize(t::InteractionTerm)) = all(has_fe(x) for x in t.terms)
+has_fe_intercept(@nospecialize(t::FormulaTerm)) = any(has_fe_intercept(x) for x in eachterm(t.rhs))
+
 function parse_fe(@nospecialize(f::FormulaTerm))
     if has_fe(f)
         rhs_terms = eachterm(f.rhs)

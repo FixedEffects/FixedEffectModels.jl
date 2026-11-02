@@ -6,11 +6,14 @@ Returns minus the symmetric inverse (negated so callers negate back).
 """
 function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal = 1:size(X, 2))
     # Per-column reference scale for the numerically-zero pivot test below.
-    tols = sweep_tolerances(X)
+    # A column is dropped when its pivot is small relative to its own sum of squares, which does
+    # not depend on the units of the other columns. A zero column has a zero tolerance.
+    sumsquares = diag(X)
+    tols = sumsquares .* sqrt(eps())
     buffer = zeros(size(X, 1))
     for j in diagonal
         d = X[j,j]
-        if setzeros && abs(d) < tols[j] * sqrt(eps())
+        if setzeros && abs(d) <= tols[j]
             X.data[1:j,j] .= 0
             X.data[j,(j+1):end] .= 0
         else
@@ -23,24 +26,12 @@ function invsym!(X::Symmetric; has_intercept = false, setzeros = false, diagonal
             X[j,j] = - 1 / d
         end
         if setzeros && has_intercept && j == 1
-            tols = sweep_tolerances(X)
+            # Relative to the sum of squares net of the constant, but no smaller than the rounding
+            # errors made in removing the constant.
+            tols = max.(diag(X) .* sqrt(eps()), sumsquares .* (1000 * eps()))
         end
     end
     return X
-end
-
-# Reference scale per column used by invsym! to flag a (post-sweep) pivot as numerically
-# zero: a column is dropped when |pivot| < scale_j * sqrt(eps). The scale is the column's
-# own diagonal, floored by a tiny multiple of the largest diagonal so the test is
-# scale-invariant. The previous absolute floor of 1 spuriously dropped genuinely
-# independent regressors whose total sum of squares was below ~sqrt(eps), while the
-# relative floor still drops all-zero columns (diag 0 -> floored to ref*eps > 0). On
-# well-scaled designs (all diagonals >= 1) this reproduces the old tolerances exactly.
-function sweep_tolerances(X::Symmetric)
-    d = diag(X)
-    ref = maximum(d; init = zero(eltype(d)))
-    floor_ = ref > 0 ? ref * eps(eltype(d)) : eps(eltype(d))
-    return max.(d, floor_)
 end
 
 """

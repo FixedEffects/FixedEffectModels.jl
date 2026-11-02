@@ -519,16 +519,16 @@ end
 	##############################################################################
 	m = @formula Sales ~ (Price ~ Pimin)
 	x = reg(df, m)
-	@test x.F_kp ≈ 52248.79247 atol = 1e-4
+	@test x.F_kp ≈ 52173.06958 atol = 1e-4
 	m = @formula Sales ~ NDI + (Price ~ Pimin)
 	x = reg(df, m)
-	@test x.F_kp ≈ 5159.812208193612 atol = 1e-4
+	@test x.F_kp ≈ 5148.59523 atol = 1e-4
 	m = @formula Sales ~ (Price ~ Pimin + CPI)
 	x = reg(df, m)
-	@test x.F_kp   ≈ 27011.44080 atol = 1e-4
+	@test x.F_kp   ≈ 26952.72028 atol = 1e-4
 	m = @formula Sales ~ (Price ~ Pimin) + fe(State)
 	x = reg(df, m)
-	@test x.F_kp ≈ 100927.75710 atol = 1e-4
+	@test x.F_kp ≈ 97490.36248 atol = 1e-4
 
 	# exactly same with ivreg2
 	m = @formula Sales ~ (Price ~ Pimin)
@@ -542,32 +542,26 @@ end
 	@test x.F_kp ≈ 2093.46609 atol = 1e-4
 	m = @formula Sales ~ (Price ~ Pimin + CPI)
 	x = reg(df, m, Vcov.robust())
-	@test x.F_kp  ≈ 16418.21196 atol = 1e-4
+	@test x.F_kp  ≈ 16406.29744 atol = 1e-4
 
 
 
-	# like in ivreg2 but += 5 difference. combination iv difference, degrees of freedom difference?
-	# iv + cluster - F_kp varies from ivreg2 about 7e-4 (SEs off by more than 2 df)
+	# exactly same with ivreg2 (SEs match with the option small)
 	m = @formula Sales ~ (Price ~ Pimin)
 	x = reg(df, m, Vcov.cluster(:State))
 	@test x.F_kp     ≈ 7249.88606 atol = 1e-4
-	# iv + cluster - F_kp varies from ivreg2 about 5e-6 (SEs off by more than 2 df)
 	m = @formula Sales ~ CPI + (Price ~ Pimin)
 	x = reg(df, m, Vcov.cluster(:State))
 	@test x.F_kp   ≈ 538.40393 atol = 1e-4
-	# Modified test values below after multiway clustering update
-	# iv + 2way clustering - F_kp matches ivreg2 (SEs match with df_add=-2)
 	m = @formula Sales ~ CPI + (Price ~ Pimin)
 	x = reg(df, m, Vcov.cluster(:State, :Year))
 	@test x.F_kp   ≈ 421.9651 atol = 1e-4
-	# multivariate iv + clustering - F_kp varies from ivreg2 about 3 (SEs off by more than 2 df)
 	m = @formula Sales ~ (Price ~ Pimin + CPI)
 	x = reg(df, m, Vcov.cluster(:State))
-	@test x.F_kp      ≈ 4080.66081 atol = 1e-4
-	# multivariate iv + multiway clustering - F_kp varies from ivreg2 about 2 (SEs off by more than 2 df)
+	@test x.F_kp      ≈ 4077.69952 atol = 1e-4
 	m = @formula Sales ~ (Price ~ Pimin + CPI)
 	x = reg(df, m, Vcov.cluster(:State, :Year))
-	@test x.F_kp  ≈ 2873.1405 atol = 1e-4
+	@test x.F_kp  ≈ 2871.05552 atol = 1e-4
 
 	############################################
 	##
@@ -899,4 +893,97 @@ end
 	for c in names(df1)
 		@test isequal(df1[!, c], snapshot[!, c])
 	end
+end
+
+@testset "first-stage F and absorbed degrees of freedom" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+	# F_kp with several endogenous variables does not depend on their order
+	for m in (@formula(Sales ~ (Price + NDI ~ Pimin + Pop)), @formula(Sales ~ (NDI + Price ~ Pimin + Pop)))
+		@test reg(df, m).F_kp ≈ 21.07294 atol = 1e-4
+		@test reg(df, m, Vcov.robust()).F_kp ≈ 16.90896 atol = 1e-4
+		@test reg(df, m, Vcov.cluster(:State)).F_kp ≈ 3.58888 atol = 1e-4
+	end
+	# over-identified, with fixed effects
+	m = @formula(Sales ~ (Price + NDI ~ Pimin + Pop + Pop16) + fe(State))
+	@test reg(df, m).F_kp ≈ 115.02860 atol = 1e-4
+	@test reg(df, m, Vcov.robust()).F_kp ≈ 12.82761 atol = 1e-4
+	# levels that are redundant across fixed effects do not count
+	m = @formula(Sales ~ Price + NDI + fe(State) + fe(Year))
+	x = reg(df, m)
+	@test FixedEffectModels.dof_fes(x) == 75
+	@test dof_residual(x) == 1303
+	@test stderror(x)[1] ≈ 0.0745977930 atol = 1e-7
+	@test stderror(reg(df, m, Vcov.cluster(:State)))[1] ≈ 0.1898193772 atol = 1e-7
+	@test stderror(reg(df, m, Vcov.cluster(:State, :Year)))[1] ≈ 0.2302891977 atol = 1e-7
+	# two connected components
+	df.yreg = df.Year .* 100 .+ (df.State .<= 23)
+	x = reg(df, @formula(Sales ~ Price + NDI + fe(State) + fe(yreg)))
+	@test FixedEffectModels.dof_fes(x) == 104
+	@test stderror(x)[1] ≈ 0.0757482286 atol = 1e-7
+	# a third fixed effect that is a function of the first adds no degree of freedom
+	df.region = mod.(df.State, 7)
+	x = reg(df, @formula(Sales ~ Price + NDI + fe(State) + fe(Year) + fe(region)))
+	@test FixedEffectModels.dof_fes(x) == 75
+end
+
+@testset "scale of the variables" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+
+	# a trend with a large mean in a short panel is not collinear with the fixed effects
+	short = df[df.Year .<= 67, :]
+	short.year = short.Year .+ 1900.0
+	x = reg(short, @formula(Sales ~ NDI + year + fe(State)))
+	x0 = reg(short, @formula(Sales ~ NDI + Year + fe(State)))
+	@test coef(x) ≈ coef(x0) rtol = 1e-8
+	@test stderror(x) ≈ stderror(x0) rtol = 1e-8
+
+	# neither the constant nor a regressor is dropped because of the units of another
+	df.big = df.NDI .* 1e12
+	df.small = df.Pop .* 1e-6
+	for v in (Vcov.simple(), Vcov.robust(), Vcov.cluster(:State))
+		x = reg(df, @formula(Sales ~ big + small), v)
+		x0 = reg(df, @formula(Sales ~ NDI + Pop), v)
+		@test coef(x) ≈ coef(x0) ./ [1, 1e12, 1e-6] rtol = 1e-8
+		@test stderror(x) ≈ stderror(x0) ./ [1, 1e12, 1e-6] rtol = 1e-6
+	end
+
+	# a constant regressor is collinear with the constant, or with the fixed effects
+	df.constant .= 0.1
+	@test isnan(stderror(reg(df, @formula(Sales ~ constant + Price)))[2])
+	@test isnan(stderror(reg(df, @formula(Sales ~ constant + Price + fe(State))))[1])
+	# and an IV model has the same constant as a model in levels
+	x = reg(df, @formula(Sales ~ NDI + (Price ~ Pimin)))
+	df.NDIshift = df.NDI .+ 1e6
+	x2 = reg(df, @formula(Sales ~ NDIshift + (Price ~ Pimin)))
+	@test coef(x2)[1] ≈ coef(x)[1] - 1e6 * coef(x)[2] rtol = 1e-6
+	@test coef(x2)[2:3] ≈ coef(x)[2:3] rtol = 1e-6
+end
+
+@testset "slopes nested in a cluster" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+	df.trend = df.Year .- 63.0
+	# matches reghdfe Sales NDI Pop, absorb(State##c.trend) vce(cluster State)
+	x = reg(df, @formula(Sales ~ NDI + Pop + fe(State) + fe(State)&trend), Vcov.cluster(:State); tol = 1e-11)
+	@test coef(x) ≈ [-0.0056133909, -0.0029599972] rtol = 1e-6
+	@test stderror(x) ≈ [0.0010845672, 0.0036060255] rtol = 1e-3
+end
+
+@testset "F-statistic with a singular covariance matrix" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+	df.two = mod.(df.State, 2)
+	# two clusters identify a single linear combination of the coefficients
+	x = reg(df, @formula(Sales ~ NDI + Pop), Vcov.cluster(:two))
+	@test x.F ≈ (coef(x)[2] / stderror(x)[2])^2 rtol = 1e-6
+	# a single cluster identifies none
+	df.one .= 1
+	x = reg(df, @formula(Sales ~ NDI + Pop), Vcov.cluster(:one))
+	@test isnan(x.F)
+	@test all(isnan, stderror(x))
+end
+
+@testset "adjusted R2 with slopes and no constant" begin
+	df = DataFrame(CSV.File(joinpath(dirname(pathof(FixedEffectModels)), "../dataset/Cigar.csv")))
+	x = reg(df, @formula(Sales ~ 0 + NDI + fe(State)&Year))
+	n, k = nobs(x), 1 + 46
+	@test adjr2(x) ≈ 1 - (1 - r2(x)) * n / (n - k)
 end
