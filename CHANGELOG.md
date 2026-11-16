@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 2.2.1
 
 - Reduce the latency of the first results display (about 1.3s to 0.07s): the display is precompiled and no longer compiles for each type of output stream.
+- Avoid invalidations from packages loaded by CSV (WeakRefStrings, FilePathsBase): fixed-effect names, coefficient names, and the display use concretely typed strings.
 
 ## 2.2.0
 

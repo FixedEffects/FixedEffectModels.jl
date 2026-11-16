@@ -172,7 +172,12 @@ function coefnames_vector(ts::Vector{AbstractTerm})
     out = String[]
     for t in ts
         StatsModels.width(t) > 0 || continue
-        append!(out, StatsModels.vectorize(coefnames(t)))
+        # push concretely typed names: appending the untyped coefnames result
+        # compiles String conversions that packages adding string types (e.g.
+        # WeakRefStrings) invalidate, along with fit
+        for nm in StatsModels.vectorize(coefnames(t))
+            push!(out, string(nm)::String)
+        end
     end
     return out
 end

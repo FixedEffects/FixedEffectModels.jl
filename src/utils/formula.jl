@@ -167,11 +167,13 @@ function _parse_fixedeffect(data, @nospecialize(t::InteractionTerm))
     isempty(fe_terms) && return nothing
 
     # x1&x2 from (x1&x2)*id
-    fe_names = [fesymbol(x) for x in fe_terms]
+    fe_names = Symbol[fesymbol(x) for x in fe_terms]
     slope_names = _validate_fe_interactions(data, slope_terms)
     interaction = _multiply(data, slope_names)
     fe = FixedEffect((Tables.getcolumn(data, fe_name) for fe_name in fe_names)...; interaction = interaction)
-    pieces = vcat(["fe_" * string(fe_name) for fe_name in fe_names], string.(slope_terms))
+    # a concretely typed vector: joining an untyped one compiles IO calls that
+    # packages adding IO methods (e.g. FilePathsBase) invalidate, along with fit
+    pieces = vcat(String["fe_" * string(fe_name) for fe_name in fe_names], String[string(s) for s in slope_names])
     return fe, Symbol(join(pieces, "&")), fe_names
 end
 

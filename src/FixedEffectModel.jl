@@ -355,17 +355,24 @@ end
 function _show(io::IOContext{IOBuffer}, m::FixedEffectModel)
     ct = coeftable(m)
     #copied from show(iio,cf::Coeftable)
-    cols = ct.cols; rownms = ct.rownms; colnms = ct.colnms;
+    cols = ct.cols
     nc = length(cols)
-    nr = length(cols[1])
-    if length(rownms) == 0
-        rownms = [lpad("[$i]",floor(Integer, log10(nr))+3) for i in 1:nr]
+    nr = length(cols[1])::Int
+    # concretely typed names: untyped ones compile String conversions that
+    # packages adding string types (e.g. WeakRefStrings) invalidate
+    rownms = (isempty(ct.rownms) ? String[lpad("[$i]", floor(Int, log10(nr))+3) for i in 1:nr] :
+                                   String[string(x)::String for x in ct.rownms])::Vector{String}
+    colnms = String[string(x)::String for x in ct.colnms]::Vector{String}
+    mat = Matrix{Any}(undef, nr, nc + 1)
+    for i in 1:nr
+        mat[i, 1] = NoQuote(rownms[i])
+        for j in 1:nc
+            x = cols[j][i]
+            mat[i, j + 1] = j == ct.pvalcol ? NoQuote(sprint(show, PValue(x))::String) :
+                            j in ct.teststatcol ? TestStat(x) :
+                            x isa AbstractString ? NoQuote(string(x)::String) : x
+        end
     end
-    mat = [j == 1 ? NoQuote(rownms[i]) :
-           j-1 == ct.pvalcol ? NoQuote(sprint(show, PValue(cols[j-1][i]))) :
-           j-1 in ct.teststatcol ? TestStat(cols[j-1][i]) :
-           cols[j-1][i] isa AbstractString ? NoQuote(cols[j-1][i]) : cols[j-1][i]
-           for i in 1:nr, j in 1:nc+1]
     io = IOContext(io, :compact=>true, :limit=>false)
     A = Base.alignment(io, mat, 1:size(mat, 1), 1:size(mat, 2),
                        typemax(Int), typemax(Int), 3)
