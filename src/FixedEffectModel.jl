@@ -343,7 +343,16 @@ function top(m::FixedEffectModel)
 end
 
 
+# Render into a buffer, so that the display compiles once (in the precompile
+# workload) rather than once per type of io (terminal, pipe, IOContext, ...)
 function Base.show(io::IO, m::FixedEffectModel)
+    buf = IOContext(IOBuffer(), io)
+    _show(buf, m)
+    write(io, take!(buf.io))
+    return nothing
+end
+
+function _show(io::IOContext{IOBuffer}, m::FixedEffectModel)
     ct = coeftable(m)
     #copied from show(iio,cf::Coeftable)
     cols = ct.cols; rownms = ct.rownms; colnms = ct.colnms;

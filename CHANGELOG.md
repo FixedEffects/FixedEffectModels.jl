@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Reduce the latency of the first results display (about 1.3s to 0.07s): the display is precompiled and no longer compiles for each type of output stream.
+
 ## 2.2.0
 
 - Fix regressors and the constant that were dropped as collinear because of the units of another regressor, e.g. the constant with a regressor around 1e12. Fix standard errors in the same cases.

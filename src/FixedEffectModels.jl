@@ -47,6 +47,8 @@ Vcov
     # cover the categorical and interaction term types (the vector-based
     # machinery compiles per term type, not per formula shape)
     reg(df, @formula(y ~ x1 + s + x1&x2 + x1&s))
+    # the REPL displays every result
+    show(IOBuffer(), MIME"text/plain"(), reg(df, @formula(y ~ x1 + fe(id))))
 end
 
 
